@@ -428,6 +428,8 @@ class OP_ClearChildrenRecurse(bpy.types.Operator):
         parent_objs = 0
         total_children_cleared = 0
         
+        problem_objects = []
+        
         active_obj = bpy.context.view_layer.objects.active
         
         # Match selected objects' data names to mesh names
@@ -440,8 +442,12 @@ class OP_ClearChildrenRecurse(bpy.types.Operator):
             
             for child in iter_children(o, recursive=True):
                 # print(f"Child: {child.name}")
-                self.process_child_object(child)
-                total_children_cleared += 1
+                try:
+                    self.process_child_object(child)
+                    total_children_cleared += 1
+                except Exception as e:
+                    print(f"ERROR: {e}")
+                    problem_objects.append(child)
             
             parent_objs += 1
                 
@@ -449,6 +455,14 @@ class OP_ClearChildrenRecurse(bpy.types.Operator):
         
         show_notification(f"Cleared {total_children_cleared} child objects for {parent_objs} main objects.")
         
+        if problem_objects:
+            deselect_all()
+            for obj in problem_objects:
+                if obj.name in bpy.data.objects:
+                    obj.select_set(True)
+                    child.hide_set(False)
+                    child.hide_viewport = False
+            show_notification(f"The following objects have raised issues: {', '.join([obj.name for obj in problem_objects])}")
         
     def process_child_object(self, child):
         """Handle visibility and selection state for a child object"""
