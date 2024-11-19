@@ -519,14 +519,46 @@ class OP_ClearAxisSharpEdgesZ(bpy.types.Operator):
     def execute(self, context):
         op_clear_sharp_along_axis('Z')
         return {'FINISHED'}
-    
+        
+class MATERIAL_UL_matslots_example(bpy.types.UIList):
+    # The draw_item function is called for each item of the collection that is visible in the list.
+    #   data is the RNA object containing the collection,
+    #   item is the current drawn item of the collection,
+    #   icon is the "computed" icon for the item (as an integer, because some objects like materials or textures
+    #   have custom icons ID, which are not available as enum items).
+    #   active_data is the RNA object containing the active property for the collection (i.e. integer pointing to the
+    #   active item of the collection).
+    #   active_propname is the name of the active property (use 'getattr(active_data, active_propname)').
+    #   index is index of the current item in the collection.
+    #   flt_flag is the result of the filtering process for this item.
+    #   Note: as index and flt_flag are optional arguments, you do not have to use/declare them here if you don't
+    #         need them.
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
+        ob = data
+        slot = item
+        ma = slot.material
+        # draw_item must handle the three layout types... Usually 'DEFAULT' and 'COMPACT' can share the same code.
+        if self.layout_type in {'DEFAULT', 'COMPACT'}:
+            # You should always start your row layout by a label (icon + text), or a non-embossed text field,
+            # this will also make the row easily selectable in the list! The later also enables ctrl-click rename.
+            # We use icon_value of label, as our given icon is an integer value, not an enum ID.
+            # Note "data" names should never be translated!
+            if ma:
+                layout.prop(ma, "name", text="", emboss=False, icon_value=icon)
+            else:
+                layout.label(text="", translate=False, icon_value=icon)
+        # 'GRID' layout type should be as compact as possible (typically a single icon!).
+        elif self.layout_type == 'GRID':
+            layout.alignment = 'CENTER'
+            layout.label(text="", icon_value=icon)
+
 class PT_SimpleToolbox(bpy.types.Panel):
-    bl_idname = 'OBJECT_PT_clear_custom_data'
+    bl_idname = 'OBJECT_PT_quick_toolbox'
     bl_label = 'Quick Simple Toolbox'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'Tool'
-    bl_options = {"DEFAULT_CLOSED"}
+    # bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context):
         addon_prefs = bpy.context.preferences.addons[__name__].preferences
@@ -545,6 +577,7 @@ class PT_SimpleToolbox(bpy.types.Panel):
         # row.operator("r0tools.clear_mesh_attributes")
         row = box.row(align=True)
         row.operator("r0tools.clear_all_objects_children")
+        row = box.row(align=True)
         
         # Mesh Ops
         # Clear Sharp Edges on Axis
@@ -575,10 +608,22 @@ class PT_SimpleToolbox(bpy.types.Panel):
         row.operator("r0tools.zenuv_td")
 
 
-classes = [AddonPreferences, PT_SimpleToolbox, OP_ClearCustomData, OP_ClearMeshAttributes, OP_ClearChildrenRecurse, OP_ClearAxisSharpEdgesX, OP_ClearAxisSharpEdgesY, OP_ClearAxisSharpEdgesZ, OP_DissolveNthEdge, OP_ApplyZenUVTD]
+classes = [
+    AddonPreferences,
+    PT_SimpleToolbox,
+    OP_ClearCustomData,
+    OP_ClearMeshAttributes,
+    OP_ClearChildrenRecurse,
+    OP_ClearAxisSharpEdgesX,
+    OP_ClearAxisSharpEdgesY,
+    OP_ClearAxisSharpEdgesZ,
+    OP_DissolveNthEdge,
+    OP_ApplyZenUVTD,
+]
 
 
 def register():
+    bpy.types.Object.action_list_index = bpy.props.IntProperty()
     for cls in classes:
         bpy.utils.register_class(cls)
     
@@ -588,3 +633,4 @@ def unregister():
 
 if __name__ == "__main__":
     register()
+    
