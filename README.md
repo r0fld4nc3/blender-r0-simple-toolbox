@@ -1,4 +1,4 @@
-# blender-r0fl-quick-toolbox
+# Simple Toolbox
 A simple Panel addon for some personal convenience functions.
 
 <p align="center">
