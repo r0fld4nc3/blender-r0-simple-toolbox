@@ -4,7 +4,7 @@ import math
 bl_info = {
     "name": "r0Tools - Quick Toolbox",
     "author": "Artur Rosário",
-    "version": (0, 0, 1),
+    "version": (0, 0, 2),
     "blender": (4, 2, 3),
     "location": "3D View",
     "description": "Utility to help clear different kinds of Data",
@@ -419,28 +419,28 @@ class OP_ClearMeshAttributes(bpy.types.Operator):
         return {'FINISHED'}
         
 class OP_ClearChildrenRecurse(bpy.types.Operator):
-    bl_label = "Clear All Children (Recurses)"
+    bl_label = "Clear Children"
     bl_idname = "r0tools.clear_all_objects_children"
-    bl_description = "For each selected object, clears parenting keeping transform for each child object."
+    bl_description = "For each selected object, clears parenting keeping transform for each child object.\n(SHIFT): Recursively clears parenting for ALL object children and sub-children."
     bl_options = {'REGISTER', 'UNDO'}
+
+    recurse: bpy.props.BoolProperty(default=False)
     
-    def op_clear_all_objects_children(self):
+    def op_clear_all_objects_children(self, recurse=False):
         parent_objs = 0
         total_children_cleared = 0
         
         problem_objects = []
         
         active_obj = bpy.context.view_layer.objects.active
+
+        print(f"Recurse: {recurse}")
         
         # Match selected objects' data names to mesh names
         for o in iter_scene_objects(selected=True):
             print(f"Iter {o.name}")
             
-            if not o.type == "MESH":
-                print(f"{obj.name} is not a mesh")
-                continue
-            
-            for child in iter_children(o, recursive=True):
+            for child in iter_children(o, recursive=recurse):
                 # print(f"Child: {child.name}")
                 try:
                     self.process_child_object(child)
@@ -486,8 +486,16 @@ class OP_ClearChildrenRecurse(bpy.types.Operator):
         if was_hidden_viewport:
             child.hide_viewport = True
 
+    def invoke(self, context, event):
+        if event.shift:
+            self.recurse = True
+        else:
+            self.recurse = False
+
+        return self.execute(context)
+
     def execute(self, context):
-        self.op_clear_all_objects_children()
+        self.op_clear_all_objects_children(recurse=self.recurse)
         return {'FINISHED'}
     
 class OP_ClearAxisSharpEdgesX(bpy.types.Operator):
