@@ -1,10 +1,11 @@
 import bpy
 import math
+import bmesh
 
 bl_info = {
     "name": "r0Tools - Quick Toolbox",
     "author": "Artur Rosário",
-    "version": (0, 0, 2),
+    "version": (0, 0, 3),
     "blender": (4, 2, 3),
     "location": "3D View",
     "description": "Utility to help clear different kinds of Data",
@@ -290,11 +291,74 @@ class OP_DissolveNthEdge(bpy.types.Operator):
     bl_description = "Remove every other edge from a continuous perpendicular selection of edges.\nMostly used for reducing geometry on cylinder-like shapes."
     bl_options = {'REGISTER', 'UNDO'}
 
-    def execute(self, context):
+    @classmethod
+    def poll(cls, context):
+        # Ensure at least one object is selected
+        return any(obj.type == "MESH" and obj.select_get() for obj in context.selected_objects) and context.mode == "EDIT_MESH"
+
+    def dissolve_nth_edges_macro(self):
         bpy.ops.mesh.loop_multi_select(ring=True)
         bpy.ops.mesh.select_nth()
         bpy.ops.mesh.loop_multi_select(ring=False)
         bpy.ops.mesh.dissolve_mode(use_verts=True)
+
+    def process_object(self, obj, context):
+        # Make active
+        context.view_layer.objects.active = obj
+
+        if context.mode != "EDIT_MODE":
+            bpy.ops.object.mode_set(mode="EDIT")
+        
+        # Get the mesh and create a bmesh
+        me = obj.data
+        bm = bmesh.from_edit_mesh(me)
+        bm.select_mode = {'EDGE'}
+
+        # Currently selected edges
+        selected_edges = [edge for edge in bm.edges if edge.select]
+
+        # Deselect all
+        for edge in bm.edges:
+            edge.select = False
+
+        for edge in selected_edges:
+            # Make sure to deselect all bm edges too
+            for e in bm.edges:
+                e.select = False
+
+            edge.select = True
+
+            bmesh.update_edit_mesh(me)
+
+            self.dissolve_nth_edges_macro()
+
+        # Update the mesh
+        bmesh.update_edit_mesh(me)
+
+    def execute(self, context):
+        original_active_obj = context.active_object
+        original_mode = context.mode
+
+        if original_mode != 'OBJECT':
+            bpy.ops.object.mode_set(mode="OBJECT")
+
+        # Collect selected mesh objects
+        selected_objects = [obj for obj in context.selected_objects if obj.type == "MESH"]
+        deselect_all()
+        for obj in selected_objects:
+            obj.select_set(True)
+            self.process_object(obj, context)
+            obj.select_set(False)
+
+        # Return to the original active object and mode
+        if original_mode != 'EDIT_MESH':
+            bpy.ops.object.mode_set(mode=original_mode)
+        
+        # Restore selection
+        for obj in selected_objects:
+            obj.select_set(True)
+        context.view_layer.objects.active = original_active_obj
+
         return {'FINISHED'}
     
         
@@ -424,6 +488,10 @@ class OP_ClearChildrenRecurse(bpy.types.Operator):
     bl_description = "For each selected object, clears parenting keeping transform for each child object.\n(SHIFT): Recursively clears parenting for ALL object children and sub-children."
     bl_options = {'REGISTER', 'UNDO'}
 
+    @classmethod
+    def poll(cls, context):
+        return any(obj.type == "MESH" and obj.select_get() for obj in context.selected_objects) and context.mode == "OBJECT"
+
     recurse: bpy.props.BoolProperty(default=False)
     
     def op_clear_all_objects_children(self, recurse=False):
@@ -433,8 +501,6 @@ class OP_ClearChildrenRecurse(bpy.types.Operator):
         problem_objects = []
         
         active_obj = bpy.context.view_layer.objects.active
-
-        print(f"Recurse: {recurse}")
         
         # Match selected objects' data names to mesh names
         for o in iter_scene_objects(selected=True):
