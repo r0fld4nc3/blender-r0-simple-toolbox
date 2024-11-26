@@ -2,11 +2,11 @@
 A simple Panel addon for some personal convenience functions.
 
 <p align="center">
-<img src="https://github.com/r0fld4nc3/blender-r0fl-quick-toolbox/blob/main/media/Panel_Preview.png" width="200">
+<img src="https://github.com/r0fld4nc3/blender-quick-simple-toolbox/blob/main/media/Panel_Preview.png" width="200">
 </p>
 
 # Installation
-* Go to [Releases](https://github.com/r0fld4nc3/blender-r0fl-quick-toolbox/releases)
+* Go to [Releases](https://github.com/r0fld4nc3/blender-quick-simple-toolbox/releases)
 * Download the .zip file
 * In Blender > User Settings > Addons > Top Left Downward Arrow > Install from Disk... > Pick the .zip file
 
