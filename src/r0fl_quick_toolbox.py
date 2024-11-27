@@ -5,7 +5,7 @@ import bmesh
 bl_info = {
     "name": "r0Tools - Quick Toolbox",
     "author": "Artur Rosário",
-    "version": (0, 0, 3),
+    "version": (0, 0, 4),
     "blender": (4, 2, 3),
     "location": "3D View",
     "description": "Utility to help clear different kinds of Data",
@@ -296,12 +296,6 @@ class OP_DissolveNthEdge(bpy.types.Operator):
         # Ensure at least one object is selected
         return any(obj.type == "MESH" and obj.select_get() for obj in context.selected_objects) and context.mode == "EDIT_MESH"
 
-    def dissolve_nth_edges_macro(self):
-        bpy.ops.mesh.loop_multi_select(ring=True)
-        bpy.ops.mesh.select_nth()
-        bpy.ops.mesh.loop_multi_select(ring=False)
-        bpy.ops.mesh.dissolve_mode(use_verts=True)
-
     def process_object(self, obj, context):
         # Make active
         context.view_layer.objects.active = obj
@@ -309,31 +303,61 @@ class OP_DissolveNthEdge(bpy.types.Operator):
         if context.mode != "EDIT_MODE":
             bpy.ops.object.mode_set(mode="EDIT")
         
-        # Get the mesh and create a bmesh
+        # Create a bmesh
         me = obj.data
         bm = bmesh.from_edit_mesh(me)
         bm.select_mode = {'EDGE'}
 
+        workarounded = False
+
         # Currently selected edges
-        selected_edges = [edge for edge in bm.edges if edge.select]
+        initial_selection = [edge for edge in bm.edges if edge.select]
 
-        # Deselect all
-        for edge in bm.edges:
-            edge.select = False
+        # Edges to delete from all meshes
+        edges_delete = []
 
-        for edge in selected_edges:
-            # Make sure to deselect all bm edges too
+        for i, edge in enumerate(initial_selection):
+            print(f"{i} {edge.index}")
+            
+            # Deselect all bm edges
             for e in bm.edges:
                 e.select = False
 
+            # Select the original edge
             edge.select = True
 
-            bmesh.update_edit_mesh(me)
+            # Select the ring and nth
+            bpy.ops.mesh.loop_multi_select(ring=True)
+            bpy.ops.mesh.select_nth()
 
-            self.dissolve_nth_edges_macro()
+            selected_edges = [edge.index for edge in bm.edges if edge.select]
+            if edge.index in selected_edges:
+                # Deselect all bm edges
+                for e in bm.edges:
+                    e.select = False
+                
+                # Select the original edge
+                edge.select = True
+                bpy.ops.mesh.loop_multi_select(ring=True)
+                bpy.ops.mesh.select_nth(offset=1)
+            
+            bpy.ops.mesh.loop_multi_select(ring=False)
+
+            # Store those edges
+            edges_delete.extend([edge for edge in bm.edges if edge.select])
+
+        # Make sure to deselect all bm edges too
+        for e in bm.edges:
+            e.select = False
+
+        for edge in edges_delete:
+            edge.select = True
+        
+        bpy.ops.mesh.dissolve_mode(use_verts=True)
 
         # Update the mesh
         bmesh.update_edit_mesh(me)
+        bm.free()
 
     def execute(self, context):
         original_active_obj = context.active_object
@@ -344,11 +368,11 @@ class OP_DissolveNthEdge(bpy.types.Operator):
 
         # Collect selected mesh objects
         selected_objects = [obj for obj in context.selected_objects if obj.type == "MESH"]
-        deselect_all()
+        # deselect_all()
         for obj in selected_objects:
-            obj.select_set(True)
+            # obj.select_set(True)
             self.process_object(obj, context)
-            obj.select_set(False)
+            # obj.select_set(False)
 
         # Return to the original active object and mode
         if original_mode != 'EDIT_MESH':
