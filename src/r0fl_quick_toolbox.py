@@ -308,8 +308,6 @@ class OP_DissolveNthEdge(bpy.types.Operator):
         bm = bmesh.from_edit_mesh(me)
         bm.select_mode = {'EDGE'}
 
-        workarounded = False
-
         # Currently selected edges
         initial_selection = [edge for edge in bm.edges if edge.select]
 
