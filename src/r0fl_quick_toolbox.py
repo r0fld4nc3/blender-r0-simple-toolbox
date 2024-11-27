@@ -357,6 +357,10 @@ class OP_DissolveNthEdge(bpy.types.Operator):
         bmesh.update_edit_mesh(me)
         bm.free()
 
+        # Select initial selection of edges
+        for edge in initial_selection:
+            edge.select = True
+
     def execute(self, context):
         original_active_obj = context.active_object
         original_mode = context.mode
