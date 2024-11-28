@@ -5,8 +5,8 @@ import bmesh
 bl_info = {
     "name": "r0Tools - Quick Toolbox",
     "author": "Artur Rosário",
-    "version": (0, 0, 4),
-    "blender": (4, 2, 3),
+    "version": (0, 0, 5),
+    "blender": (4, 2, 1),
     "location": "3D View",
     "description": "Utility to help clear different kinds of Data",
     "warning": "",
@@ -288,8 +288,11 @@ class OP_ClearCustomData(bpy.types.Operator):
 class OP_DissolveNthEdge(bpy.types.Operator):
     bl_label = "Remove Nth Edges"
     bl_idname = "r0tools.nth_edges"
-    bl_description = "Remove every other edge from a continuous perpendicular selection of edges.\nMostly used for reducing geometry on cylinder-like shapes."
+    bl_description = "Remove Nth (every other) edges.\n\nUsage: Select 1 edge on each object and run the operation.\nNote: The selected edge and every other edge starting from it will be preserved.\n\nExpand Edges: Per default, the ring selection of edges expands to cover all connected edges to the ring selection. Turning it off will make it so that it only works on the immediate circular ring selection and will not expand to the continuous connected edges."
     bl_options = {'REGISTER', 'UNDO'}
+
+    keep_initial_selection: bpy.props.BoolProperty(name="Keep Selected Edges", default=True)
+    expand_edges: bpy.props.BoolProperty(name="Expand Edges", default=True)
 
     @classmethod
     def poll(cls, context):
@@ -339,10 +342,14 @@ class OP_DissolveNthEdge(bpy.types.Operator):
                 bpy.ops.mesh.loop_multi_select(ring=True)
                 bpy.ops.mesh.select_nth(offset=1)
             
-            bpy.ops.mesh.loop_multi_select(ring=False)
+            if self.expand_edges:
+                bpy.ops.mesh.loop_multi_select(ring=False)
 
             # Store those edges
             edges_delete.extend([edge for edge in bm.edges if edge.select])
+
+            # Deselect initial edge we want to keep
+            edge.select = False
 
         # Make sure to deselect all bm edges too
         for e in bm.edges:
@@ -358,8 +365,9 @@ class OP_DissolveNthEdge(bpy.types.Operator):
         bm.free()
 
         # Select initial selection of edges
-        for edge in initial_selection:
-            edge.select = True
+        if self.keep_initial_selection:
+            for edge in initial_selection:
+                edge.select = True
 
     def execute(self, context):
         original_active_obj = context.active_object
