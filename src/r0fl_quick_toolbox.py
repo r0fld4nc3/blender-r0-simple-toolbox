@@ -1,6 +1,10 @@
 import bpy
+import gpu
 import math
 import bmesh
+import json
+from mathutils import Vector
+from bpy_extras import view3d_utils
 
 bl_info = {
     "name": "r0Tools - Quick Toolbox",
@@ -14,9 +18,138 @@ bl_info = {
     "category": "Object"
 }
 
+vertex_shader = '''
+uniform mat4 ModelViewProjectionMatrix;
+in vec3 pos;
+
+void main() {
+    gl_Position = ModelViewProjectionMatrix * vec4(pos, 1.0);
+}
+'''
+
+fragment_shader = '''
+out vec4 fragColor;
+
+void main() {
+    fragColor = vec4(1.0, 0.0, 0.0, 0.1); // Red with 90% transparency
+}
+'''
+
+shader = gpu.types.GPUShader(vertex_shader, fragment_shader)
+
+# Store the faces to highlight for each object
+highlight_faces = {}
+
+def create_batch(coords):
+    """Create a GPU batch for drawing triangles."""
+    # Create a vertex buffer
+    format = gpu.types.GPUVertFormat()
+    pos_id = format.attr_add(id="pos", comp_type='F32', len=3, fetch_mode='FLOAT')
+
+    vert_buf = gpu.types.GPUVertBuf(format=format, len=len(coords))
+    vert_buf.attr_fill(id=pos_id, data=coords)
+
+    # Create a batch from the vertex buffer
+    return gpu.types.GPUBatch(type='TRIS', buf=vert_buf)
+
+def draw_highlight_callback():
+    """Callback to draw highlighted polygons in the viewport."""
+    if not highlight_faces:
+        return
+
+    shader.bind()
+
+    for obj_name, faces in highlight_faces.items():
+        obj = bpy.data.objects.get(obj_name)
+        if not obj or obj.type != 'MESH':
+            continue
+
+        mesh = obj.data
+        model_matrix = obj.matrix_world
+        shader.uniform_float("ModelViewProjectionMatrix", bpy.context.region_data.perspective_matrix @ model_matrix)
+
+        for face_idx in faces:
+            face = mesh.polygons[face_idx]
+            coords = [obj.matrix_world @ mesh.vertices[v].co for v in face.vertices]
+
+            # Create and draw a batch for the face
+            batch = create_batch(coords)
+            batch.draw(shader)
+
+def update_highlights(precomputed_faces):
+    """
+    Update the list of faces to highlight based on a precomputed dictionary.
+
+    Args:
+        precomputed_faces (dict): A dictionary where the keys are object names and
+                                   the values are lists of polygon indices to highlight.
+    """
+    global highlight_faces
+    highlight_faces = precomputed_faces  # Directly use the precomputed data
+
+class OP_HighlightFacesGPU(bpy.types.Operator):
+    bl_label = "Highlight Faces with GPU"
+    bl_idname = "r0tools.gpu_highlight_faces"
+    bl_description = "Highlight faces using GPU shaders based on precomputed data"
+    bl_options = {'REGISTER'}
+
+    precomputed_faces: bpy.props.StringProperty(
+        name="Precomputed Faces",
+        description="JSON string of precomputed faces to highlight"
+    )
+
+    _draw_handler = None
+
+    def invoke(self, context, event):
+        # Parse the precomputed data
+        try:
+            precomputed_faces = json.loads(self.precomputed_faces)
+        except json.JSONDecodeError as e:
+            self.report({'ERROR'}, f"Invalid precomputed data: {e}")
+            return {'CANCELLED'}
+
+        # Update the highlights
+        update_highlights(precomputed_faces)
+
+        # Register the draw handler if not already done
+        if OP_HighlightFacesGPU._draw_handler is None:
+            OP_HighlightFacesGPU._draw_handler = bpy.types.SpaceView3D.draw_handler_add(
+                draw_highlight_callback, (), 'WINDOW', 'POST_VIEW'
+            )
+
+        context.area.tag_redraw()
+        return {'FINISHED'}
+
+
+# Operator to remove the draw callback
+class OP_ClearGPUHighlights(bpy.types.Operator):
+    bl_label = "Clear GPU Highlights"
+    bl_idname = "r0tools.gpu_clear_highlights"
+    bl_description = "Clear GPU-based face highlights"
+    bl_options = {'REGISTER'}
+
+    def execute(self, context):
+        if OP_HighlightFacesGPU._draw_handler is not None:
+            bpy.types.SpaceView3D.draw_handler_remove(
+                OP_HighlightFacesGPU._draw_handler, 'WINDOW'
+            )
+            OP_HighlightFacesGPU._draw_handler = None
+
+        global highlight_faces
+        highlight_faces = {}  # Clear highlights
+        context.area.tag_redraw()
+        self.report({'INFO'}, "GPU highlights cleared")
+        return {'FINISHED'}
+
 # ============ ADDON PREFS =============
 class AddonPreferences(bpy.types.AddonPreferences):
     bl_idname = __name__
+
+    experimental_features: bpy.props.BoolProperty(
+        name="Experimental Features",
+        description="Enable experimental features",
+        default=False
+    )
     
     clear_sharp_axis_float_prop: bpy.props.FloatProperty(
         name="clear_sharp_axis_float_prop",
@@ -56,6 +189,10 @@ class AddonPreferences(bpy.types.AddonPreferences):
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = False
+
+        row = layout.row()
+        row.prop(self, "experimental_features", text="Experimental Features")
+
         layout.prop(self, "clear_sharp_axis_float_prop", text="Clear Sharp Edges Threshold")
         
         # Box for texel density settings
@@ -291,8 +428,8 @@ class OP_DissolveNthEdge(bpy.types.Operator):
     bl_description = "Remove Nth (every other) edges.\n\nUsage: Select 1 edge on each object and run the operation.\nNote: The selected edge and every other edge starting from it will be preserved.\n\nExpand Edges: Per default, the ring selection of edges expands to cover all connected edges to the ring selection. Turning it off will make it so that it only works on the immediate circular ring selection and will not expand to the continuous connected edges."
     bl_options = {'REGISTER', 'UNDO'}
 
-    keep_initial_selection: bpy.props.BoolProperty(name="Keep Selected Edges", default=True)
     expand_edges: bpy.props.BoolProperty(name="Expand Edges", default=True)
+    keep_initial_selection: bpy.props.BoolProperty(name="Keep Selected Edges", default=True)
 
     @classmethod
     def poll(cls, context):
@@ -597,6 +734,218 @@ class OP_ClearChildrenRecurse(bpy.types.Operator):
     def execute(self, context):
         self.op_clear_all_objects_children(recurse=self.recurse)
         return {'FINISHED'}
+
+class OP_CaptureObjectsScreenSizePct(bpy.types.Operator):
+    bl_label = "Capture Visible"
+    bl_idname = "r0tools.capture_screen_size_pct"
+    bl_description = "Capture visible objects' screen size"
+    bl_options = {'REGISTER'}
+
+    screen_pct_threshold: bpy.props.FloatProperty(
+        name="Screen Size Threshold (%)",
+        default=0.01,
+        min=0.0,
+        description="Highlight meshes smaller than this screen size percentage"
+    )
+
+    mesh_screen_data = {}
+
+    _draw_handler = None
+
+    def invoke(self, context, event):
+        if event.shift:
+            if OP_CaptureObjectsScreenSizePct._draw_handler is not None:
+                bpy.types.SpaceView3D.draw_handler_remove(
+                    OP_CaptureObjectsScreenSizePct._draw_handler, "WINDOW"
+                )
+                OP_CaptureObjectsScreenSizePct._draw_handler = None
+
+            global highlight_faces
+            highlight_faces = {} # Clear highlights
+            context.area.tag_redraw()
+            self.report({'INFO'}, "GPU Highlights Removed")
+            return {'FINISHED'}
+
+        return self.execute(context)
+
+    def execute(self, context):
+        global highlight_faces
+        highlight_faces = {} # Reset
+
+        print(f"=== Capture Screen Size ===")
+
+        # Collect select objects
+        selected_objects = [obj for obj in bpy.context.selected_objects]
+        original_active_obj = context.view_layer.objects.active
+
+        for area in context.screen.areas:
+            if area.type == "VIEW_3D":
+                region = None
+                for r in area.regions:
+                    if r.type == "WINDOW":
+                        region = r
+                        break
+                rv3d = area.spaces[0].region_3d
+                break
+        
+        if not (region and rv3d):
+            self.report({'ERROR'}, "Could not find 3D Viewport")
+            return {'CANCELLED'}
+        
+        viewport_width = region.width
+        viewport_height = region.height
+        viewport_diagonal = (viewport_width**2 + viewport_height**2) ** 0.5
+
+        tracked_objects = []
+        small_faces_data = {}
+        total_screen_pct = 0.0
+        
+        has_valid_objects = False
+        screen_union_min = Vector((viewport_width, viewport_height))
+        screen_union_max = Vector((0, 0))
+
+        # Iterate through visible objects
+        for obj in context.visible_objects:
+            print(obj.name)
+            obj.select_set(True)
+            
+            # Skip objects that can't be measured
+            if obj.type not in {'MESH', 'CURVE', 'SURFACE', 'META', 'FONT'}:
+                continue
+
+            bounds = [obj.matrix_world @ Vector(corner) for corner in obj.bound_box]
+
+            # Project 3D Bounds to 2D Screen Coords
+            screen_coords = []
+            for bound in bounds:
+                # Project 3D coordinate to 2D
+                screen_coord = view3d_utils.location_3d_to_region_2d(region, rv3d, bound)
+                if screen_coord:
+                    screen_coords.append(Vector(screen_coord))
+            
+            # Calc screen size and update union bounds
+            if len(screen_coords) >= 2:
+                has_valid_objects = True
+                x_coords = [coord[0] for coord in screen_coords]
+                y_coords = [coord[1] for coord in screen_coords]
+
+                min_screen = Vector((min(x_coords), min(y_coords)))
+                max_screen = Vector((max(x_coords), max(y_coords)))
+
+                # Update union bounds
+                screen_union_min = Vector((min(screen_union_min[0], min_screen[0]),
+                                           min(screen_union_min[1], min_screen[1])))
+                screen_union_max = Vector((max(screen_union_max[0], max_screen[0]),
+                                           max(screen_union_max[1], max_screen[1])))
+
+                width = max_screen[0] - min_screen[0]
+                height = max_screen[1] - min_screen[1]
+
+                screen_pct = (width * height) / (viewport_width * viewport_height) * 100
+                # tracked_objects.append((obj.name, screen_pct))
+
+            deselect_all()
+            
+            # Calculate individual mesh screen sizes in edit mode
+            if obj.type == "MESH":
+                # obj.select_set(True)
+                self.mesh_screen_data[obj.name] = []
+                bpy.context.view_layer.objects.active = obj
+                bpy.ops.object.mode_set(mode="EDIT")
+                bpy.ops.mesh.select_all(action="DESELECT")
+                bpy.ops.object.mode_set(mode="OBJECT")
+
+                mesh = obj.data
+                obj_small_faces = []
+                obj_screen_pct = 0.0
+                
+                for poly in mesh.polygons: # Iterate faces
+                    # Project face centre to screen space
+                    poly_center = obj.matrix_world @ poly.center
+                    screen_coord = view3d_utils.location_3d_to_region_2d(region, rv3d, poly_center)
+
+                    if not screen_coord:
+                        continue
+                    # Screen space of the face
+                    corners = [obj.matrix_world @ mesh.vertices[v].co for v in poly.vertices]
+                    screen_corners = [
+                        view3d_utils.location_3d_to_region_2d(region, rv3d, corner)
+                        for corner in corners if view3d_utils.location_3d_to_region_2d(region, rv3d, corner)
+                    ]
+
+                    if len(screen_corners) < 2:
+                        continue
+                    
+                    # Calculate screen space dimensions
+                    x_coords = [coord[0] for coord in screen_corners]
+                    y_coords = [coord[1] for coord in screen_corners]
+
+                    width = max(x_coords) - min(x_coords)
+                    height = max(y_coords) - min(y_coords)
+
+                    diagonal_size = (width ** 2 + height ** 2) ** 0.5
+                    screen_pct = (width * height) / (viewport_width * viewport_height) * 100
+                    # screen_pct = (diagonal_size / viewport_diagonal) * 100
+                    self.mesh_screen_data[obj.name].append((poly.index, screen_pct))
+
+                    # Accumulate screen percentage
+                    obj_screen_pct += screen_pct
+
+                    # Track polies below threslhold
+                    if screen_pct < self.screen_pct_threshold:
+                        print(f"!!->{obj.name} {poly} {screen_pct} < {self.screen_pct_threshold}")
+                        obj_small_faces.append(poly.index)
+                    else:
+                        print(f"!!->{obj.name} {poly} {screen_pct} >= {self.screen_pct_threshold}")
+
+                if obj_small_faces:
+                    small_faces_data[obj.name] = obj_small_faces
+
+                # Update total screen percentage
+                total_screen_pct += obj_screen_pct
+                tracked_objects.append((obj.name, obj_screen_pct))
+
+                bpy.ops.object.mode_set(mode="OBJECT")
+
+        # Calculate combined screen size based on the union bounds
+        if has_valid_objects:
+            union_width = screen_union_max[0] - screen_union_min[0]
+            union_height = screen_union_max[1] - screen_union_min[1]
+            union_area = union_width * union_height
+            total_screen_pct = (union_area / (viewport_width * viewport_height)) * 100
+
+        context.scene.screen_size_pct_prop = total_screen_pct
+
+        # Highlight small meshes below the threshold
+        for obj_name, mesh_data in self.mesh_screen_data.items():
+            for poly_index, screen_pct in mesh_data:
+                if screen_pct < self.screen_pct_threshold:
+                    print(f"Object: {obj_name}, Face {poly_index}: {screen_pct:.3f}% (Below Threshold ({self.screen_pct_threshold}))")
+
+        # Restore selection
+        for obj in selected_objects:
+            obj.select_set(True)
+        context.view_layer.objects.active = original_active_obj
+
+        # Provide detailed reporting
+        self.report({'INFO'}, f"Viewport Size: {viewport_width}x{viewport_height}")
+        self.report({'INFO'}, f"Total Screen Coverage: {total_screen_pct:.3f}%")
+
+        # Optional: Print detailed object coverage (can be removed)
+        print("Object Screen Coverage:")
+        for obj_name, coverage in sorted(tracked_objects, key=lambda x: x[1], reverse=True):
+            print(f"{obj_name}: {coverage:.3f}%")
+
+        # Register draw handler for highlights
+        update_highlights(small_faces_data)
+
+        # Register the draw handler if not already done
+        if OP_HighlightFacesGPU._draw_handler is None:
+            OP_HighlightFacesGPU._draw_handler = bpy.types.SpaceView3D.draw_handler_add(
+                draw_highlight_callback, (), 'WINDOW', 'POST_VIEW'
+            )
+
+        return {'FINISHED'}
     
 class OP_ClearAxisSharpEdgesX(bpy.types.Operator):
     bl_label = "Clear Sharp X"
@@ -627,38 +976,6 @@ class OP_ClearAxisSharpEdgesZ(bpy.types.Operator):
     def execute(self, context):
         op_clear_sharp_along_axis('Z')
         return {'FINISHED'}
-        
-class MATERIAL_UL_matslots_example(bpy.types.UIList):
-    # The draw_item function is called for each item of the collection that is visible in the list.
-    #   data is the RNA object containing the collection,
-    #   item is the current drawn item of the collection,
-    #   icon is the "computed" icon for the item (as an integer, because some objects like materials or textures
-    #   have custom icons ID, which are not available as enum items).
-    #   active_data is the RNA object containing the active property for the collection (i.e. integer pointing to the
-    #   active item of the collection).
-    #   active_propname is the name of the active property (use 'getattr(active_data, active_propname)').
-    #   index is index of the current item in the collection.
-    #   flt_flag is the result of the filtering process for this item.
-    #   Note: as index and flt_flag are optional arguments, you do not have to use/declare them here if you don't
-    #         need them.
-    def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
-        ob = data
-        slot = item
-        ma = slot.material
-        # draw_item must handle the three layout types... Usually 'DEFAULT' and 'COMPACT' can share the same code.
-        if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            # You should always start your row layout by a label (icon + text), or a non-embossed text field,
-            # this will also make the row easily selectable in the list! The later also enables ctrl-click rename.
-            # We use icon_value of label, as our given icon is an integer value, not an enum ID.
-            # Note "data" names should never be translated!
-            if ma:
-                layout.prop(ma, "name", text="", emboss=False, icon_value=icon)
-            else:
-                layout.label(text="", translate=False, icon_value=icon)
-        # 'GRID' layout type should be as compact as possible (typically a single icon!).
-        elif self.layout_type == 'GRID':
-            layout.alignment = 'CENTER'
-            layout.label(text="", icon_value=icon)
 
 class PT_SimpleToolbox(bpy.types.Panel):
     bl_idname = 'OBJECT_PT_quick_toolbox'
@@ -668,9 +985,18 @@ class PT_SimpleToolbox(bpy.types.Panel):
     bl_category = 'Tool'
     # bl_options = {"DEFAULT_CLOSED"}
 
+    screen_size_pct_prop = bpy.props.FloatProperty(
+        name="screen_size_pct_prop",
+        default=0.0,
+        min=0.0
+    )
+
     def draw(self, context):
         addon_prefs = bpy.context.preferences.addons[__name__].preferences
         layout = self.layout
+
+        row = layout.row()
+        row.prop(addon_prefs, "experimental_features", text="Experimental Features", icon="EXPERIMENTAL")
         
         row = layout.row()
         row.operator("script.reload", text="Reload Scripts", icon="NONE")
@@ -715,6 +1041,18 @@ class PT_SimpleToolbox(bpy.types.Panel):
         row = box.row(align=True)
         row.operator("r0tools.zenuv_td")
 
+        if addon_prefs.experimental_features:
+            row = layout.row()
+            row.label(text="EXPERIMENTAL", icon="EXPERIMENTAL")
+            box = layout.box()
+            row = box.row()
+            row.label(text="LODs")
+            row = box.row()
+            row.operator("r0tools.capture_screen_size_pct")
+            row = box.row()
+            row.prop(context.scene, "screen_size_pct_prop", text="Screen Size (%):")
+            # row.enabled = False
+
 
 classes = [
     AddonPreferences,
@@ -727,11 +1065,19 @@ classes = [
     OP_ClearAxisSharpEdgesZ,
     OP_DissolveNthEdge,
     OP_ApplyZenUVTD,
+    OP_CaptureObjectsScreenSizePct,
+    OP_HighlightFacesGPU,
+    OP_ClearGPUHighlights,
 ]
 
-
 def register():
-    bpy.types.Object.action_list_index = bpy.props.IntProperty()
+    bpy.types.Scene.screen_size_pct_prop = bpy.props.FloatProperty(
+        name="Screen Size",
+        description="Size",
+        default=0.0,
+        min=0.0
+    )
+
     for cls in classes:
         bpy.utils.register_class(cls)
     
