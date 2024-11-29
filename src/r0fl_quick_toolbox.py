@@ -741,32 +741,41 @@ class OP_CaptureObjectsScreenSizePct(bpy.types.Operator):
     bl_description = "Capture visible objects' screen size"
     bl_options = {'REGISTER'}
 
-    screen_pct_threshold: bpy.props.FloatProperty(
+    polygon_threshold: bpy.props.FloatProperty(
         name="Screen Size Threshold (%)",
-        default=0.01,
+        default=1,
         min=0.0,
+        max=100.0,
         description="Highlight meshes smaller than this screen size percentage"
     )
 
-    mesh_screen_data = {}
-
-    _draw_handler = None
-
-    def invoke(self, context, event):
-        if event.shift:
-            if OP_CaptureObjectsScreenSizePct._draw_handler is not None:
-                bpy.types.SpaceView3D.draw_handler_remove(
-                    OP_CaptureObjectsScreenSizePct._draw_handler, "WINDOW"
-                )
-                OP_CaptureObjectsScreenSizePct._draw_handler = None
-
-            global highlight_faces
-            highlight_faces = {} # Clear highlights
-            context.area.tag_redraw()
-            self.report({'INFO'}, "GPU Highlights Removed")
-            return {'FINISHED'}
-
-        return self.execute(context)
+    def project_point(self, point, perspective_matrix, region):
+        """
+        Project a 3D point to 2D screen coordinates
+        
+        :param point: 3D input point
+        :param perspective_matrix: 4x4 projection matrix
+        :param region: Blender region
+        :return: 2D screen coordinates or None if point is behind camera
+        """
+        # Convert point to 4D homogeneous coordinates
+        point_4d = Vector((point.x, point.y, point.z, 1.0))
+        
+        # Apply projection matrix
+        proj_point = perspective_matrix @ point_4d
+        
+        # Check if point is in front of the camera (w > 0)
+        if proj_point.w > 1e-6:
+            # Perspective divide
+            ndc_point = proj_point.xyz / proj_point.w
+            
+            # Convert from normalized device coordinates to screen coordinates
+            screen_x = (ndc_point.x * 0.5 + 0.5) * region.width
+            screen_y = (ndc_point.y * 0.5 + 0.5) * region.height
+            
+            return (screen_x, screen_y)
+        
+        return None
 
     def execute(self, context):
         global highlight_faces
@@ -778,174 +787,204 @@ class OP_CaptureObjectsScreenSizePct(bpy.types.Operator):
         selected_objects = [obj for obj in bpy.context.selected_objects]
         original_active_obj = context.view_layer.objects.active
 
-        for area in context.screen.areas:
-            if area.type == "VIEW_3D":
-                region = None
-                for r in area.regions:
-                    if r.type == "WINDOW":
-                        region = r
-                        break
-                rv3d = area.spaces[0].region_3d
+        # Get the current active area and region
+        for area in bpy.context.screen.areas:
+            if area.type == 'VIEW_3D':
+                region = area.regions[-1]  # Usually the main region
                 break
-        
-        if not (region and rv3d):
+        else:
             self.report({'ERROR'}, "Could not find 3D Viewport")
             return {'CANCELLED'}
         
-        viewport_width = region.width
-        viewport_height = region.height
-        viewport_diagonal = (viewport_width**2 + viewport_height**2) ** 0.5
-
-        tracked_objects = []
-        small_faces_data = {}
+        screen_space_objects = []
         total_screen_pct = 0.0
+
+        # Get the current view matrix and projection matrix
+        rv3d = bpy.context.space_data.region_3d
+        projection_matrix = rv3d.perspective_matrix
+        view_matrix = rv3d.view_matrix
+
+        # Iterate through visible objects of specific types
+        valid_types = {'MESH', 'CURVE', 'SURFACE', 'META', 'FONT'}
+        visible_objects = [
+            obj for obj in bpy.context.visible_objects 
+            if obj.type in valid_types
+        ]
+
+        total_screen_pct = 0
         
-        has_valid_objects = False
-        screen_union_min = Vector((viewport_width, viewport_height))
-        screen_union_max = Vector((0, 0))
+        for obj in visible_objects:
+            # Calculate object's screen space
+            screen_space_percentage = self.calculate_object_screen_space(obj, region, projection_matrix)
+            screen_space_objects.append({
+                'name': obj.name,
+                'screen_space_percentage': screen_space_percentage
+            })
 
-        # Iterate through visible objects
-        for obj in context.visible_objects:
-            print(obj.name)
-            obj.select_set(True)
-            
-            # Skip objects that can't be measured
-            if obj.type not in {'MESH', 'CURVE', 'SURFACE', 'META', 'FONT'}:
-                continue
+            # total_screen_pct += min(screen_space_percentage, 100.0)
+            if screen_space_percentage > total_screen_pct:
+                total_screen_pct = screen_space_percentage
 
-            bounds = [obj.matrix_world @ Vector(corner) for corner in obj.bound_box]
+            # Analyze polygon screen space and create vertex groups
+            self.analyze_polygon_screen_space(obj, region, self.polygon_threshold)
 
-            # Project 3D Bounds to 2D Screen Coords
-            screen_coords = []
-            for bound in bounds:
-                # Project 3D coordinate to 2D
-                screen_coord = view3d_utils.location_3d_to_region_2d(region, rv3d, bound)
-                if screen_coord:
-                    screen_coords.append(Vector(screen_coord))
-            
-            # Calc screen size and update union bounds
-            if len(screen_coords) >= 2:
-                has_valid_objects = True
-                x_coords = [coord[0] for coord in screen_coords]
-                y_coords = [coord[1] for coord in screen_coords]
+        # Ensure total screen percentage doesn't exceed 100%
+        total_screen_pct = min(total_screen_pct, 100.0)
 
-                min_screen = Vector((min(x_coords), min(y_coords)))
-                max_screen = Vector((max(x_coords), max(y_coords)))
+        # Print results
+        self.report({'INFO'}, "Screen Space Analysis Complete")
+        for obj_info in screen_space_objects:
+            print(f"-> {obj_info['name']}: {obj_info['screen_space_percentage']:.2f}% screen space")
 
-                # Update union bounds
-                screen_union_min = Vector((min(screen_union_min[0], min_screen[0]),
-                                           min(screen_union_min[1], min_screen[1])))
-                screen_union_max = Vector((max(screen_union_max[0], max_screen[0]),
-                                           max(screen_union_max[1], max_screen[1])))
-
-                width = max_screen[0] - min_screen[0]
-                height = max_screen[1] - min_screen[1]
-
-                screen_pct = (width * height) / (viewport_width * viewport_height) * 100
-                # tracked_objects.append((obj.name, screen_pct))
-
-            deselect_all()
-            
-            # Calculate individual mesh screen sizes in edit mode
-            if obj.type == "MESH":
-                # obj.select_set(True)
-                self.mesh_screen_data[obj.name] = []
-                bpy.context.view_layer.objects.active = obj
-                bpy.ops.object.mode_set(mode="EDIT")
-                bpy.ops.mesh.select_all(action="DESELECT")
-                bpy.ops.object.mode_set(mode="OBJECT")
-
-                mesh = obj.data
-                obj_small_faces = []
-                obj_screen_pct = 0.0
-                
-                for poly in mesh.polygons: # Iterate faces
-                    # Project face centre to screen space
-                    poly_center = obj.matrix_world @ poly.center
-                    screen_coord = view3d_utils.location_3d_to_region_2d(region, rv3d, poly_center)
-
-                    if not screen_coord:
-                        continue
-                    # Screen space of the face
-                    corners = [obj.matrix_world @ mesh.vertices[v].co for v in poly.vertices]
-                    screen_corners = [
-                        view3d_utils.location_3d_to_region_2d(region, rv3d, corner)
-                        for corner in corners if view3d_utils.location_3d_to_region_2d(region, rv3d, corner)
-                    ]
-
-                    if len(screen_corners) < 2:
-                        continue
-                    
-                    # Calculate screen space dimensions
-                    x_coords = [coord[0] for coord in screen_corners]
-                    y_coords = [coord[1] for coord in screen_corners]
-
-                    width = max(x_coords) - min(x_coords)
-                    height = max(y_coords) - min(y_coords)
-
-                    diagonal_size = (width ** 2 + height ** 2) ** 0.5
-                    screen_pct = (width * height) / (viewport_width * viewport_height) * 100
-                    # screen_pct = (diagonal_size / viewport_diagonal) * 100
-                    self.mesh_screen_data[obj.name].append((poly.index, screen_pct))
-
-                    # Accumulate screen percentage
-                    obj_screen_pct += screen_pct
-
-                    # Track polies below threslhold
-                    if screen_pct < self.screen_pct_threshold:
-                        print(f"!!->{obj.name} {poly} {screen_pct} < {self.screen_pct_threshold}")
-                        obj_small_faces.append(poly.index)
-                    else:
-                        print(f"!!->{obj.name} {poly} {screen_pct} >= {self.screen_pct_threshold}")
-
-                if obj_small_faces:
-                    small_faces_data[obj.name] = obj_small_faces
-
-                # Update total screen percentage
-                total_screen_pct += obj_screen_pct
-                tracked_objects.append((obj.name, obj_screen_pct))
-
-                bpy.ops.object.mode_set(mode="OBJECT")
-
-        # Calculate combined screen size based on the union bounds
-        if has_valid_objects:
-            union_width = screen_union_max[0] - screen_union_min[0]
-            union_height = screen_union_max[1] - screen_union_min[1]
-            union_area = union_width * union_height
-            total_screen_pct = (union_area / (viewport_width * viewport_height)) * 100
-
+        # Set the scene property to the total screen percentage
         context.scene.screen_size_pct_prop = total_screen_pct
-
-        # Highlight small meshes below the threshold
-        for obj_name, mesh_data in self.mesh_screen_data.items():
-            for poly_index, screen_pct in mesh_data:
-                if screen_pct < self.screen_pct_threshold:
-                    print(f"Object: {obj_name}, Face {poly_index}: {screen_pct:.3f}% (Below Threshold ({self.screen_pct_threshold}))")
 
         # Restore selection
         for obj in selected_objects:
             obj.select_set(True)
         context.view_layer.objects.active = original_active_obj
 
-        # Provide detailed reporting
-        self.report({'INFO'}, f"Viewport Size: {viewport_width}x{viewport_height}")
-        self.report({'INFO'}, f"Total Screen Coverage: {total_screen_pct:.3f}%")
-
-        # Optional: Print detailed object coverage (can be removed)
-        print("Object Screen Coverage:")
-        for obj_name, coverage in sorted(tracked_objects, key=lambda x: x[1], reverse=True):
-            print(f"{obj_name}: {coverage:.3f}%")
-
-        # Register draw handler for highlights
-        update_highlights(small_faces_data)
-
-        # Register the draw handler if not already done
-        if OP_HighlightFacesGPU._draw_handler is None:
-            OP_HighlightFacesGPU._draw_handler = bpy.types.SpaceView3D.draw_handler_add(
-                draw_highlight_callback, (), 'WINDOW', 'POST_VIEW'
-            )
-
         return {'FINISHED'}
+
+    def calculate_object_screen_space_depr(self, obj, region):
+        """
+        Calculate the screen space percentage of an object.
+        Approximates by projecting object's bounding box to screen.
+        """
+        context = bpy.context
+        region_data = context.region_data
+        
+        # Get object's bounding box corners in world space
+        bbox_corners = [obj.matrix_world @ Vector(corner) for corner in obj.bound_box]
+        
+        # Project 3D corners to 2D screen coordinates
+        screen_corners = []
+        for corner in bbox_corners:
+            # Use region_data.view_matrix to project points
+            view_coords = region_data.view_matrix @ corner
+            
+            # Perspective projection
+            if view_coords.z != 0:
+                x = (view_coords.x / -view_coords.z) * region.width / 2 + region.width / 2
+                y = (view_coords.y / -view_coords.z) * region.height / 2 + region.height / 2
+                screen_corners.append(Vector((x, y)))
+        
+        # Ensure we have enough corners to calculate area
+        if len(screen_corners) < 3:
+            return 0.0
+        
+        # Calculate total screen area and object's screen bbox area
+        total_screen_area = region.width * region.height
+        bbox_screen_area = self.calculate_polygon_area(screen_corners)
+
+        screen_space_percentage = min((bbox_screen_area / total_screen_area) * 100, 100.0)
+        print(f"{obj.name}: {screen_space_percentage}")
+        
+        return screen_space_percentage
+    
+    def calculate_object_screen_space(self, obj, region, perspective_matrix):
+        # Get object's bounding box corners in world space
+        bbox_corners = [obj.matrix_world @ Vector(corner) for corner in obj.bound_box]
+        
+        # Project 3D bbox corners to 2D screen space
+        screen_points = []
+        for corner in bbox_corners:
+            screen_point = self.project_point(corner, perspective_matrix, region)
+            if screen_point:
+                screen_points.append(screen_point)
+
+        print(f"{obj.name} {screen_points=}")
+
+        # Compute screen space bounding box
+        if screen_points:
+            xs = [p[0] for p in screen_points]
+            ys = [p[1] for p in screen_points]
+            
+            # Calculate bbox area
+            bbox_width = max(xs) - min(xs)
+            bbox_height = max(ys) - min(ys)
+            screen_area = bbox_width * bbox_height
+            
+            # Calculate screen coverage percentage
+            total_screen_area = region.width * region.height
+            coverage_percentage = min((screen_area / total_screen_area) * 100, 100.0)
+        else:
+            coverage_percentage = 0.0
+            
+        return coverage_percentage
+
+    def analyze_polygon_screen_space(self, obj, region, threshold):
+        """
+        Analyze individual polygon screen space and create vertex groups
+        for polygons below the threshold.
+        """
+        # Ensure we have a mesh we can work with
+        if obj.type != 'MESH':
+            return
+
+        # Create a new vertex group for low-screen-space polygons
+        # If vertex group already exists, remove it first
+        vg_name = f"{obj.name}_low_screen_space"
+        vg = obj.vertex_groups.get(vg_name)
+        if vg:
+            obj.vertex_groups.remove(vg)
+        # vg = obj.vertex_groups.new(name=f"{obj.name}_low_screen_space")
+        
+        # Create a bmesh for detailed polygon analysis
+        bm = bmesh.new()
+        bm.from_mesh(obj.data)
+        bm.normal_update()
+
+        total_screen_area = region.width * region.height
+        low_screen_space_vertices = set()
+
+        context = bpy.context
+        region_data = context.region_data
+
+        for face in bm.faces:
+            # Project face vertices to screen
+            face_screen_coords = []
+            for vert in face.verts:
+                world_pos = obj.matrix_world @ vert.co
+                
+                # Use view matrix for projection
+                view_coords = region_data.view_matrix @ world_pos
+                
+                # Perspective projection
+                if view_coords.z != 0:
+                    x = (view_coords.x / -view_coords.z) * region.width / 2 + region.width / 2
+                    y = (view_coords.y / -view_coords.z) * region.height / 2 + region.height / 2
+                    face_screen_coords.append(Vector((x, y)))
+
+            # Calculate screen space area of the face
+            if len(face_screen_coords) >= 3:
+                face_screen_area = self.calculate_polygon_area(face_screen_coords)
+                face_screen_percentage = (face_screen_area / total_screen_area) * 100
+
+                # If face is below threshold, add its vertices to vertex group
+                if face_screen_percentage < threshold:
+                    for vert in face.verts:
+                        low_screen_space_vertices.add(vert.index)
+
+        # Add vertices to vertex group
+        # for vert_index in low_screen_space_vertices:
+            # vg.add([vert_index], 1.0, 'ADD')
+
+        bm.free()
+
+
+    def calculate_polygon_area(self, points):
+        """
+        Calculate the area of a 2D polygon using shoelace formula.
+        Works for arbitrary polygon shapes.
+        """
+        n = len(points)
+        area = 0.0
+        for i in range(n):
+            j = (i + 1) % n
+            area += points[i].x * points[j].y
+            area -= points[j].x * points[i].y
+        return abs(area) / 2.0
     
 class OP_ClearAxisSharpEdgesX(bpy.types.Operator):
     bl_label = "Clear Sharp X"
@@ -988,7 +1027,9 @@ class PT_SimpleToolbox(bpy.types.Panel):
     screen_size_pct_prop = bpy.props.FloatProperty(
         name="screen_size_pct_prop",
         default=0.0,
-        min=0.0
+        min=0.0,
+        max=100.0,
+        subtype="PERCENTAGE"
     )
 
     def draw(self, context):
