@@ -1,15 +1,14 @@
 import bpy
-import gpu
 import math
 import bmesh
-import json
+import math
 from mathutils import Vector
 from bpy_extras import view3d_utils
 
 bl_info = {
     "name": "r0Tools - Quick Toolbox",
     "author": "Artur Rosário",
-    "version": (0, 0, 5),
+    "version": (0, 0, 6),
     "blender": (4, 2, 1),
     "location": "3D View",
     "description": "Utility to help clear different kinds of Data",
@@ -18,128 +17,35 @@ bl_info = {
     "category": "Object"
 }
 
-vertex_shader = '''
-uniform mat4 ModelViewProjectionMatrix;
-in vec3 pos;
 
-void main() {
-    gl_Position = ModelViewProjectionMatrix * vec4(pos, 1.0);
-}
-'''
-
-fragment_shader = '''
-out vec4 fragColor;
-
-void main() {
-    fragColor = vec4(1.0, 0.0, 0.0, 0.1); // Red with 90% transparency
-}
-'''
-
-shader = gpu.types.GPUShader(vertex_shader, fragment_shader)
-
-# Store the faces to highlight for each object
-highlight_faces = {}
-
-def create_batch(coords):
-    """Create a GPU batch for drawing triangles."""
-    # Create a vertex buffer
-    format = gpu.types.GPUVertFormat()
-    pos_id = format.attr_add(id="pos", comp_type='F32', len=3, fetch_mode='FLOAT')
-
-    vert_buf = gpu.types.GPUVertBuf(format=format, len=len(coords))
-    vert_buf.attr_fill(id=pos_id, data=coords)
-
-    # Create a batch from the vertex buffer
-    return gpu.types.GPUBatch(type='TRIS', buf=vert_buf)
-
-def draw_highlight_callback():
-    """Callback to draw highlighted polygons in the viewport."""
-    if not highlight_faces:
-        return
-
-    shader.bind()
-
-    for obj_name, faces in highlight_faces.items():
-        obj = bpy.data.objects.get(obj_name)
-        if not obj or obj.type != 'MESH':
-            continue
-
-        mesh = obj.data
-        model_matrix = obj.matrix_world
-        shader.uniform_float("ModelViewProjectionMatrix", bpy.context.region_data.perspective_matrix @ model_matrix)
-
-        for face_idx in faces:
-            face = mesh.polygons[face_idx]
-            coords = [obj.matrix_world @ mesh.vertices[v].co for v in face.vertices]
-
-            # Create and draw a batch for the face
-            batch = create_batch(coords)
-            batch.draw(shader)
-
-def update_highlights(precomputed_faces):
-    """
-    Update the list of faces to highlight based on a precomputed dictionary.
-
-    Args:
-        precomputed_faces (dict): A dictionary where the keys are object names and
-                                   the values are lists of polygon indices to highlight.
-    """
-    global highlight_faces
-    highlight_faces = precomputed_faces  # Directly use the precomputed data
-
-class OP_HighlightFacesGPU(bpy.types.Operator):
-    bl_label = "Highlight Faces with GPU"
-    bl_idname = "r0tools.gpu_highlight_faces"
-    bl_description = "Highlight faces using GPU shaders based on precomputed data"
-    bl_options = {'REGISTER'}
-
-    precomputed_faces: bpy.props.StringProperty(
-        name="Precomputed Faces",
-        description="JSON string of precomputed faces to highlight"
+# ============ ADDON PROPS =============
+# Properties which are not stored in preferences
+class r0flToolboxProps(bpy.types.PropertyGroup):
+    show_dev_tools: bpy.props.BoolProperty(
+        name="Dev Tools",
+        description="Show or hide the development options section",
+        default=False
+    )
+    reload_modules_prop: bpy.props.StringProperty(
+        name="Module(s)",
+        description="Command-separated list of module names"
+    )
+    screen_size_pct_prop: bpy.props.FloatProperty(
+        name="Screen Size Percentage",
+        default=0.0,
+        min=0.0,
+        max=100.0,
+        subtype="PERCENTAGE"
     )
 
-    _draw_handler = None
+    polygon_threshold: bpy.props.FloatProperty(
+        name="Screen Size Threshold (%)",
+        default=1,
+        min=0.0,
+        max=100.0,
+        description="Highlight meshes smaller than this screen size percentage"
+    )
 
-    def invoke(self, context, event):
-        # Parse the precomputed data
-        try:
-            precomputed_faces = json.loads(self.precomputed_faces)
-        except json.JSONDecodeError as e:
-            self.report({'ERROR'}, f"Invalid precomputed data: {e}")
-            return {'CANCELLED'}
-
-        # Update the highlights
-        update_highlights(precomputed_faces)
-
-        # Register the draw handler if not already done
-        if OP_HighlightFacesGPU._draw_handler is None:
-            OP_HighlightFacesGPU._draw_handler = bpy.types.SpaceView3D.draw_handler_add(
-                draw_highlight_callback, (), 'WINDOW', 'POST_VIEW'
-            )
-
-        context.area.tag_redraw()
-        return {'FINISHED'}
-
-
-# Operator to remove the draw callback
-class OP_ClearGPUHighlights(bpy.types.Operator):
-    bl_label = "Clear GPU Highlights"
-    bl_idname = "r0tools.gpu_clear_highlights"
-    bl_description = "Clear GPU-based face highlights"
-    bl_options = {'REGISTER'}
-
-    def execute(self, context):
-        if OP_HighlightFacesGPU._draw_handler is not None:
-            bpy.types.SpaceView3D.draw_handler_remove(
-                OP_HighlightFacesGPU._draw_handler, 'WINDOW'
-            )
-            OP_HighlightFacesGPU._draw_handler = None
-
-        global highlight_faces
-        highlight_faces = {}  # Clear highlights
-        context.area.tag_redraw()
-        self.report({'INFO'}, "GPU highlights cleared")
-        return {'FINISHED'}
 
 # ============ ADDON PREFS =============
 class AddonPreferences(bpy.types.AddonPreferences):
@@ -391,6 +297,65 @@ def show_notification(message, title="Script Finished"):
 def deselect_all():
     bpy.ops.object.select_all(action="DESELECT")
 
+
+class OP_ReloadNamedScripts(bpy.types.Operator):
+    bl_label = "Reload Script(s)"
+    bl_idname = "r0tools.reload_named_scripts"
+    bl_description = "Reload only specified scripts from a name text box."
+    bl_options = {'REGISTER'}
+
+    def get_modules(self) -> list[str]:
+        text = bpy.context.scene.r0fl_toolbox_props.reload_modules_prop
+        modules = []
+        if text:
+            modules.extend([t.strip() for t in text.split(',')])
+        
+        return modules
+    
+    def reload_module(self, mod_name) -> bool:
+        addons = bpy.context.preferences.addons
+
+        # Special case for self-reload
+        if mod_name == __name__:
+            print(f"Delaying reload of {mod_name} to avoid conflicts.")
+            bpy.app.timers.register(self.delayed_self_reload)
+            return True
+
+        if mod_name in addons:
+            bpy.ops.preferences.addon_enable(module=mod_name)
+            print(f"Reloaded {mod_name}")
+            return True
+        
+        print(f"Unable to reload {mod_name}")
+        return False
+    
+    def delayed_self_reload(self):
+        bpy.ops.preferences.addon_enable(module=__name__)
+        return None # Stop timer
+
+    def execute(self, context):
+        modules = self.get_modules()
+
+        failures = []
+        successes = []
+        if modules:
+            for module in modules:
+                success = self.reload_module(module)
+                if success:
+                    successes.append(module)
+                else:
+                    failures.append(module)
+        
+        print(f"Reloaded: {successes}")
+        print(f"Failed: {failures}")
+        
+        try:
+            self.report({'INFO'}, f"Reloaded {len(successes)}. Unable to reload {len(failures)}")
+        except Exception as e:
+            print(f"Error reporting results: {e}")
+        show_notification(f"Reloaded {len(successes)}. Unable to reload {len(failures)}")
+        return {'FINISHED'}
+    
 
 class OP_ClearCustomData(bpy.types.Operator):
     bl_label = "Clear Split Normals"
@@ -735,19 +700,12 @@ class OP_ClearChildrenRecurse(bpy.types.Operator):
         self.op_clear_all_objects_children(recurse=self.recurse)
         return {'FINISHED'}
 
+
 class OP_CaptureObjectsScreenSizePct(bpy.types.Operator):
     bl_label = "Capture Visible"
     bl_idname = "r0tools.capture_screen_size_pct"
     bl_description = "Capture visible objects' screen size"
     bl_options = {'REGISTER'}
-
-    polygon_threshold: bpy.props.FloatProperty(
-        name="Screen Size Threshold (%)",
-        default=1,
-        min=0.0,
-        max=100.0,
-        description="Highlight meshes smaller than this screen size percentage"
-    )
 
     def project_point(self, point, perspective_matrix, region):
         """
@@ -778,6 +736,8 @@ class OP_CaptureObjectsScreenSizePct(bpy.types.Operator):
         return None
 
     def execute(self, context):
+        addon_props = context.scene.r0fl_toolbox_props
+
         global highlight_faces
         highlight_faces = {} # Reset
 
@@ -826,7 +786,7 @@ class OP_CaptureObjectsScreenSizePct(bpy.types.Operator):
                 total_screen_pct = screen_space_percentage
 
             # Analyze polygon screen space and create vertex groups
-            self.analyze_polygon_screen_space(obj, region, self.polygon_threshold)
+            self.analyze_polygon_screen_space(obj, region, addon_props.polygon_threshold)
 
         # Ensure total screen percentage doesn't exceed 100%
         total_screen_pct = min(total_screen_pct, 100.0)
@@ -837,7 +797,7 @@ class OP_CaptureObjectsScreenSizePct(bpy.types.Operator):
             print(f"-> {obj_info['name']}: {obj_info['screen_space_percentage']:.2f}% screen space")
 
         # Set the scene property to the total screen percentage
-        context.scene.screen_size_pct_prop = total_screen_pct
+        addon_props.screen_size_pct_prop = total_screen_pct
 
         # Restore selection
         for obj in selected_objects:
@@ -1018,29 +978,32 @@ class OP_ClearAxisSharpEdgesZ(bpy.types.Operator):
 
 class PT_SimpleToolbox(bpy.types.Panel):
     bl_idname = 'OBJECT_PT_quick_toolbox'
-    bl_label = 'Quick Simple Toolbox'
+    bl_label = 'r0Tools Quick Toolbox'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'Tool'
     # bl_options = {"DEFAULT_CLOSED"}
 
-    screen_size_pct_prop = bpy.props.FloatProperty(
-        name="screen_size_pct_prop",
-        default=0.0,
-        min=0.0,
-        max=100.0,
-        subtype="PERCENTAGE"
-    )
-
     def draw(self, context):
+        addon_props = context.scene.r0fl_toolbox_props
         addon_prefs = bpy.context.preferences.addons[__name__].preferences
+        
         layout = self.layout
 
         row = layout.row()
         row.prop(addon_prefs, "experimental_features", text="Experimental Features", icon="EXPERIMENTAL")
+
+        layout.prop(addon_props, "show_dev_tools", icon="TRIA_DOWN" if addon_props.show_dev_tools else "TRIA_RIGHT", emboss=False)
         
-        row = layout.row()
-        row.operator("script.reload", text="Reload Scripts", icon="NONE")
+        if addon_props.show_dev_tools:
+            box = layout.box()
+            row = box.row()
+            row.operator("script.reload", text="Reload All Scripts", icon="NONE")
+            box = box.box()
+            row = box.row()
+            row.prop(addon_props, "reload_modules_prop")
+            row = box.row()
+            row.operator("r0tools.reload_named_scripts", icon="NONE")
         
         # Object Ops
         box = layout.box()
@@ -1091,13 +1054,15 @@ class PT_SimpleToolbox(bpy.types.Panel):
             row = box.row()
             row.operator("r0tools.capture_screen_size_pct")
             row = box.row()
-            row.prop(context.scene, "screen_size_pct_prop", text="Screen Size (%):")
+            row.prop(addon_props, "screen_size_pct_prop", text="Screen Size (%):")
             # row.enabled = False
 
 
 classes = [
     AddonPreferences,
+    r0flToolboxProps,
     PT_SimpleToolbox,
+    OP_ReloadNamedScripts,
     OP_ClearCustomData,
     OP_ClearMeshAttributes,
     OP_ClearChildrenRecurse,
@@ -1106,25 +1071,20 @@ classes = [
     OP_ClearAxisSharpEdgesZ,
     OP_DissolveNthEdge,
     OP_ApplyZenUVTD,
-    OP_CaptureObjectsScreenSizePct,
-    OP_HighlightFacesGPU,
-    OP_ClearGPUHighlights,
+    OP_CaptureObjectsScreenSizePct
 ]
 
 def register():
-    bpy.types.Scene.screen_size_pct_prop = bpy.props.FloatProperty(
-        name="Screen Size",
-        description="Size",
-        default=0.0,
-        min=0.0
-    )
-
     for cls in classes:
         bpy.utils.register_class(cls)
     
+    bpy.types.Scene.r0fl_toolbox_props = bpy.props.PointerProperty(type=r0flToolboxProps)
+
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
+    
+    del bpy.types.Scene.r0fl_toolbox_props
 
 if __name__ == "__main__":
     register()
