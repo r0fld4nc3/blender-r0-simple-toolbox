@@ -532,10 +532,10 @@ class OP_DissolveNthEdge(bpy.types.Operator):
 
         return {'FINISHED'}
     
-        
+
 class OP_ApplyZenUVTD(bpy.types.Operator):
     bl_label = "Set TD"
-    bl_idname = "r0tools.zenuv_td"
+    bl_idname = "r0tools.zenuv_set_td"
     bl_description = "Apply Texel Density from ZenUV to objects"
     bl_options = {'REGISTER','UNDO'}
     
@@ -1080,7 +1080,7 @@ class PT_SimpleToolbox(bpy.types.Panel):
         row.prop(addon_prefs, "zenuv_td_prop", text="TD:")
         row.prop(addon_prefs, "zenuv_td_unit_prop", text="Unit")
         row = box.row(align=True)
-        row.operator("r0tools.zenuv_td")
+        row.operator("r0tools.zenuv_set_td")
 
         if addon_prefs.experimental_features:
             row = layout.row()
