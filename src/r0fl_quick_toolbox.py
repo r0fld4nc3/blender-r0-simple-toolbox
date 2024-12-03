@@ -1,14 +1,11 @@
 import bpy
 import math
 import bmesh
-import math
-from mathutils import Vector
-from bpy_extras import view3d_utils
 
 bl_info = {
     "name": "r0Tools - Quick Toolbox",
     "author": "Artur Rosário",
-    "version": (0, 0, 6),
+    "version": (0, 0, 7),
     "blender": (4, 2, 1),
     "location": "3D View",
     "description": "Utility to help clear different kinds of Data",
@@ -287,8 +284,8 @@ def iter_children(p_obj, recursive=True):
         if obj.parent == p_obj:
             yield obj
             if recursive:
-                yield from iter_children(obj, recursive=True)
-                
+                yield from iter_children(obj, recursive=True)         
+
 def show_notification(message, title="Script Finished"):
     """Display a popup notification and status info message"""
     bpy.context.window_manager.popup_menu(lambda self, context: self.layout.label(text=message), title=title)
@@ -298,13 +295,95 @@ def deselect_all():
     bpy.ops.object.select_all(action="DESELECT")
 
 
+class OP_ExperimentalOP(bpy.types.Operator):
+    bl_label = "Exp Op 1"
+    bl_idname = "r0tools.experimental_op_1"
+    bl_description = ""
+    bl_options = {'REGISTER'}
+
+    def get_viewport(self, context):
+        # Get the active 3D viewport
+        for area in context.screen.areas:
+            if area.type == 'VIEW_3D':
+                # Get the region and region 3D view
+                region = None
+                rv3d = None
+                for r in area.regions:
+                    if r.type == 'WINDOW':
+                        region = r
+                        break
+                rv3d = area.spaces[0].region_3d
+                
+                # Exit the loop once we find a valid viewport
+                break
+        
+        
+        # Validate viewport
+        if not (region and rv3d):
+            self.report({'ERROR'}, "Could not find 3D viewport")
+            return (None, None)
+        
+        return region, rv3d
+    
+    def get_loose_vertices(self, obj):
+        obj_verts = [v.index for v in obj.data.vertices]
+        loop_verts = [] # Vertices which are part of a loop
+        loose_verts = []
+
+        # bpy.ops.mesh.select_non_manifold() # Requires Edit Mode
+        
+        for p in obj.data.polygons:
+            poly_idx = p.index
+            poly_verts = [p.vertices[0], p.vertices[1], p.vertices[2]]
+            loop_verts.append(poly_verts)
+
+            print(f"P{poly_idx}: {poly_verts}")
+            
+        for v in obj_verts:
+            found = False
+            for vert_loop in loop_verts:
+                if v in vert_loop:
+                    found = True
+                    break
+
+            if not found:
+                loose_verts.append(v)
+
+        if loose_verts:
+            print(f"{obj.name} has {len(loose_verts)} loose vertices: {loose_verts}")
+
+        return loose_verts
+
+    def execute(self, context):
+        print("=== Experimental Operator 1 ===")
+        region, rv3d = self.get_viewport(context)
+
+        # Get the actual viewport dimensions
+        viewport_width = region.width
+        viewport_height = region.height
+        viewport_diagonal = math.sqrt(viewport_width**2 + viewport_height**2)
+
+        print(f"Viewport WxH: {viewport_width}x{viewport_height}")
+
+        orig_active = context.view_layer.objects.active
+        
+        visible_objects = [o for o in iter_scene_objects() if o.visible_get()]
+
+        for o in visible_objects:
+            self.get_loose_vertices(o)
+
+        context.view_layer.objects.active = orig_active
+
+        return {'FINISHED'}
+
+
 class OP_ReloadNamedScripts(bpy.types.Operator):
     bl_label = "Reload Script(s)"
     bl_idname = "r0tools.reload_named_scripts"
     bl_description = "Reload only specified scripts from a name text box."
     bl_options = {'REGISTER'}
 
-    def get_modules(self) -> list[str]:
+    def get_input_modules(self) -> list[str]:
         text = bpy.context.scene.r0fl_toolbox_props.reload_modules_prop
         modules = []
         if text:
@@ -314,6 +393,9 @@ class OP_ReloadNamedScripts(bpy.types.Operator):
     
     def reload_module(self, mod_name) -> bool:
         addons = bpy.context.preferences.addons
+
+        for addon_name in addons.keys():
+            print(f"> {addon_name}")
 
         # Special case for self-reload
         if mod_name == __name__:
@@ -334,7 +416,7 @@ class OP_ReloadNamedScripts(bpy.types.Operator):
         return None # Stop timer
 
     def execute(self, context):
-        modules = self.get_modules()
+        modules = self.get_input_modules()
 
         failures = []
         successes = []
@@ -375,13 +457,14 @@ class OP_ClearCustomData(bpy.types.Operator):
             for obj in objects:
                 bpy.context.view_layer.objects.active = obj
                 bpy.ops.mesh.customdata_custom_splitnormals_clear()
+                bpy.ops.object.shade_smooth()
                 # bpy.ops.object.shade_smooth() # Not needed. Will give an error if Weighted Normals modifier is present.
-                bpy.context.object.data.use_auto_smooth = True
-                bpy.context.object.data.auto_smooth_angle = 3.14159
+                # bpy.context.object.data.use_auto_smooth = True
+                # bpy.context.object.data.auto_smooth_angle = 3.14159
             bpy.context.view_layer.objects.active = orig_active
 
     def execute(self, context):
-        objects = [obj for obj in bpy.context.selected_objects if obj.type == 'MESH']
+        objects = [obj for obj in iter_scene_objects(selected=True, type="MESH")]
         self.op_clear_custom_split_normals_data(objects)
         show_notification("Custom Split Data cleared")
         return {'FINISHED'}
@@ -617,7 +700,8 @@ class OP_ClearMeshAttributes(bpy.types.Operator):
     def execute(self, context):
         self.op_clear_mesh_attributes()
         return {'FINISHED'}
-        
+
+
 class OP_ClearChildrenRecurse(bpy.types.Operator):
     bl_label = "Clear Children"
     bl_idname = "r0tools.clear_all_objects_children"
@@ -701,251 +785,6 @@ class OP_ClearChildrenRecurse(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class OP_CaptureObjectsScreenSizePct(bpy.types.Operator):
-    bl_label = "Capture Visible"
-    bl_idname = "r0tools.capture_screen_size_pct"
-    bl_description = "Capture visible objects' screen size"
-    bl_options = {'REGISTER'}
-
-    def project_point(self, point, perspective_matrix, region):
-        """
-        Project a 3D point to 2D screen coordinates
-        
-        :param point: 3D input point
-        :param perspective_matrix: 4x4 projection matrix
-        :param region: Blender region
-        :return: 2D screen coordinates or None if point is behind camera
-        """
-        # Convert point to 4D homogeneous coordinates
-        point_4d = Vector((point.x, point.y, point.z, 1.0))
-        
-        # Apply projection matrix
-        proj_point = perspective_matrix @ point_4d
-        
-        # Check if point is in front of the camera (w > 0)
-        if proj_point.w > 1e-6:
-            # Perspective divide
-            ndc_point = proj_point.xyz / proj_point.w
-            
-            # Convert from normalized device coordinates to screen coordinates
-            screen_x = (ndc_point.x * 0.5 + 0.5) * region.width
-            screen_y = (ndc_point.y * 0.5 + 0.5) * region.height
-            
-            return (screen_x, screen_y)
-        
-        return None
-
-    def execute(self, context):
-        addon_props = context.scene.r0fl_toolbox_props
-
-        global highlight_faces
-        highlight_faces = {} # Reset
-
-        print(f"=== Capture Screen Size ===")
-
-        # Collect select objects
-        selected_objects = [obj for obj in bpy.context.selected_objects]
-        original_active_obj = context.view_layer.objects.active
-
-        # Get the current active area and region
-        for area in bpy.context.screen.areas:
-            if area.type == 'VIEW_3D':
-                region = area.regions[-1]  # Usually the main region
-                break
-        else:
-            self.report({'ERROR'}, "Could not find 3D Viewport")
-            return {'CANCELLED'}
-        
-        screen_space_objects = []
-        total_screen_pct = 0.0
-
-        # Get the current view matrix and projection matrix
-        rv3d = bpy.context.space_data.region_3d
-        projection_matrix = rv3d.perspective_matrix
-        view_matrix = rv3d.view_matrix
-
-        # Iterate through visible objects of specific types
-        valid_types = {'MESH', 'CURVE', 'SURFACE', 'META', 'FONT'}
-        visible_objects = [
-            obj for obj in bpy.context.visible_objects 
-            if obj.type in valid_types
-        ]
-
-        total_screen_pct = 0
-        
-        for obj in visible_objects:
-            # Calculate object's screen space
-            screen_space_percentage = self.calculate_object_screen_space(obj, region, projection_matrix)
-            screen_space_objects.append({
-                'name': obj.name,
-                'screen_space_percentage': screen_space_percentage
-            })
-
-            # total_screen_pct += min(screen_space_percentage, 100.0)
-            if screen_space_percentage > total_screen_pct:
-                total_screen_pct = screen_space_percentage
-
-            # Analyze polygon screen space and create vertex groups
-            self.analyze_polygon_screen_space(obj, region, addon_props.polygon_threshold)
-
-        # Ensure total screen percentage doesn't exceed 100%
-        total_screen_pct = min(total_screen_pct, 100.0)
-
-        # Print results
-        self.report({'INFO'}, "Screen Space Analysis Complete")
-        for obj_info in screen_space_objects:
-            print(f"-> {obj_info['name']}: {obj_info['screen_space_percentage']:.2f}% screen space")
-
-        # Set the scene property to the total screen percentage
-        addon_props.screen_size_pct_prop = total_screen_pct
-
-        # Restore selection
-        for obj in selected_objects:
-            obj.select_set(True)
-        context.view_layer.objects.active = original_active_obj
-
-        return {'FINISHED'}
-
-    def calculate_object_screen_space_depr(self, obj, region):
-        """
-        Calculate the screen space percentage of an object.
-        Approximates by projecting object's bounding box to screen.
-        """
-        context = bpy.context
-        region_data = context.region_data
-        
-        # Get object's bounding box corners in world space
-        bbox_corners = [obj.matrix_world @ Vector(corner) for corner in obj.bound_box]
-        
-        # Project 3D corners to 2D screen coordinates
-        screen_corners = []
-        for corner in bbox_corners:
-            # Use region_data.view_matrix to project points
-            view_coords = region_data.view_matrix @ corner
-            
-            # Perspective projection
-            if view_coords.z != 0:
-                x = (view_coords.x / -view_coords.z) * region.width / 2 + region.width / 2
-                y = (view_coords.y / -view_coords.z) * region.height / 2 + region.height / 2
-                screen_corners.append(Vector((x, y)))
-        
-        # Ensure we have enough corners to calculate area
-        if len(screen_corners) < 3:
-            return 0.0
-        
-        # Calculate total screen area and object's screen bbox area
-        total_screen_area = region.width * region.height
-        bbox_screen_area = self.calculate_polygon_area(screen_corners)
-
-        screen_space_percentage = min((bbox_screen_area / total_screen_area) * 100, 100.0)
-        print(f"{obj.name}: {screen_space_percentage}")
-        
-        return screen_space_percentage
-    
-    def calculate_object_screen_space(self, obj, region, perspective_matrix):
-        # Get object's bounding box corners in world space
-        bbox_corners = [obj.matrix_world @ Vector(corner) for corner in obj.bound_box]
-        
-        # Project 3D bbox corners to 2D screen space
-        screen_points = []
-        for corner in bbox_corners:
-            screen_point = self.project_point(corner, perspective_matrix, region)
-            if screen_point:
-                screen_points.append(screen_point)
-
-        print(f"{obj.name} {screen_points=}")
-
-        # Compute screen space bounding box
-        if screen_points:
-            xs = [p[0] for p in screen_points]
-            ys = [p[1] for p in screen_points]
-            
-            # Calculate bbox area
-            bbox_width = max(xs) - min(xs)
-            bbox_height = max(ys) - min(ys)
-            screen_area = bbox_width * bbox_height
-            
-            # Calculate screen coverage percentage
-            total_screen_area = region.width * region.height
-            coverage_percentage = min((screen_area / total_screen_area) * 100, 100.0)
-        else:
-            coverage_percentage = 0.0
-            
-        return coverage_percentage
-
-    def analyze_polygon_screen_space(self, obj, region, threshold):
-        """
-        Analyze individual polygon screen space and create vertex groups
-        for polygons below the threshold.
-        """
-        # Ensure we have a mesh we can work with
-        if obj.type != 'MESH':
-            return
-
-        # Create a new vertex group for low-screen-space polygons
-        # If vertex group already exists, remove it first
-        vg_name = f"{obj.name}_low_screen_space"
-        vg = obj.vertex_groups.get(vg_name)
-        if vg:
-            obj.vertex_groups.remove(vg)
-        # vg = obj.vertex_groups.new(name=f"{obj.name}_low_screen_space")
-        
-        # Create a bmesh for detailed polygon analysis
-        bm = bmesh.new()
-        bm.from_mesh(obj.data)
-        bm.normal_update()
-
-        total_screen_area = region.width * region.height
-        low_screen_space_vertices = set()
-
-        context = bpy.context
-        region_data = context.region_data
-
-        for face in bm.faces:
-            # Project face vertices to screen
-            face_screen_coords = []
-            for vert in face.verts:
-                world_pos = obj.matrix_world @ vert.co
-                
-                # Use view matrix for projection
-                view_coords = region_data.view_matrix @ world_pos
-                
-                # Perspective projection
-                if view_coords.z != 0:
-                    x = (view_coords.x / -view_coords.z) * region.width / 2 + region.width / 2
-                    y = (view_coords.y / -view_coords.z) * region.height / 2 + region.height / 2
-                    face_screen_coords.append(Vector((x, y)))
-
-            # Calculate screen space area of the face
-            if len(face_screen_coords) >= 3:
-                face_screen_area = self.calculate_polygon_area(face_screen_coords)
-                face_screen_percentage = (face_screen_area / total_screen_area) * 100
-
-                # If face is below threshold, add its vertices to vertex group
-                if face_screen_percentage < threshold:
-                    for vert in face.verts:
-                        low_screen_space_vertices.add(vert.index)
-
-        # Add vertices to vertex group
-        # for vert_index in low_screen_space_vertices:
-            # vg.add([vert_index], 1.0, 'ADD')
-
-        bm.free()
-
-
-    def calculate_polygon_area(self, points):
-        """
-        Calculate the area of a 2D polygon using shoelace formula.
-        Works for arbitrary polygon shapes.
-        """
-        n = len(points)
-        area = 0.0
-        for i in range(n):
-            j = (i + 1) % n
-            area += points[i].x * points[j].y
-            area -= points[j].x * points[i].y
-        return abs(area) / 2.0
-    
 class OP_ClearAxisSharpEdgesX(bpy.types.Operator):
     bl_label = "Clear Sharp X"
     bl_idname = "r0tools.clear_sharp_axis_x"
@@ -955,7 +794,8 @@ class OP_ClearAxisSharpEdgesX(bpy.types.Operator):
     def execute(self, context):
         op_clear_sharp_along_axis('X')
         return {'FINISHED'}
-    
+
+
 class OP_ClearAxisSharpEdgesY(bpy.types.Operator):
     bl_label = "Clear Sharp X"
     bl_idname = "r0tools.clear_sharp_axis_y"
@@ -965,7 +805,8 @@ class OP_ClearAxisSharpEdgesY(bpy.types.Operator):
     def execute(self, context):
         op_clear_sharp_along_axis('Y')
         return {'FINISHED'}
-    
+
+
 class OP_ClearAxisSharpEdgesZ(bpy.types.Operator):
     bl_label = "Clear Sharp X"
     bl_idname = "r0tools.clear_sharp_axis_z"
@@ -976,9 +817,10 @@ class OP_ClearAxisSharpEdgesZ(bpy.types.Operator):
         op_clear_sharp_along_axis('Z')
         return {'FINISHED'}
 
+
 class PT_SimpleToolbox(bpy.types.Panel):
     bl_idname = 'OBJECT_PT_quick_toolbox'
-    bl_label = 'r0Tools Quick Toolbox'
+    bl_label = f'r0Tools Quick Toolbox'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'Tool'
@@ -1052,7 +894,7 @@ class PT_SimpleToolbox(bpy.types.Panel):
             row = box.row()
             row.label(text="LODs")
             row = box.row()
-            row.operator("r0tools.capture_screen_size_pct")
+            row.operator("r0tools.experimental_op_1")
             row = box.row()
             row.prop(addon_props, "screen_size_pct_prop", text="Screen Size (%):")
             # row.enabled = False
@@ -1071,7 +913,7 @@ classes = [
     OP_ClearAxisSharpEdgesZ,
     OP_DissolveNthEdge,
     OP_ApplyZenUVTD,
-    OP_CaptureObjectsScreenSizePct
+    OP_ExperimentalOP
 ]
 
 def register():
