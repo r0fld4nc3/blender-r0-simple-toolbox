@@ -7,7 +7,7 @@ import importlib
 from .const import INTERNAL_NAME
 from . import utils as u
 
-class ST_OT_ExperimentalOP(bpy.types.Operator):
+class SimpleToolbox_OT_ExperimentalOP(bpy.types.Operator):
     bl_label = "Exp Op 1"
     bl_idname = "r0tools.experimental_op_1"
     bl_description = ""
@@ -89,7 +89,7 @@ class ST_OT_ExperimentalOP(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class ST_OT_ReloadNamedScripts(bpy.types.Operator):
+class SimpleToolbox_OT_ReloadNamedScripts(bpy.types.Operator):
     bl_label = "Reload Script(s)"
     bl_idname = "r0tools.reload_named_scripts"
     bl_description = "Reload only specified scripts from a name text box."
@@ -163,7 +163,7 @@ class ST_OT_ReloadNamedScripts(bpy.types.Operator):
         return {'FINISHED'}
     
 
-class ST_OT_ClearCustomData(bpy.types.Operator):
+class SimpleToolbox_OT_ClearCustomData(bpy.types.Operator):
     bl_label = "Clear Split Normals"
     bl_idname = "r0tools.clear_custom_split_normals"
     bl_description = "Clears the Custom Split Normals assignments for selected objects and sets AutoSmooth to 180.\nUseful to quickly clear baked normals/shading assignments of multiple meshes at once."
@@ -233,7 +233,7 @@ class R0TOOLS_update_property_list(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class ST_OT_ClearCustomProperties(bpy.types.Operator):
+class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
     bl_label = "Delete Custom Properties"
     bl_idname = "r0tools.clear_custom_properties"
     bl_description = "Delete Custom Properties from Object(s)"
@@ -272,7 +272,7 @@ class ST_OT_ClearCustomProperties(bpy.types.Operator):
         return {'FINISHED'}
 
         
-class ST_OT_DissolveNthEdge(bpy.types.Operator):
+class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
     bl_label = "Remove Nth Edges"
     bl_idname = "r0tools.nth_edges"
     bl_description = "Remove Nth (every other) edges.\n\nUsage: Select 1 edge on each object and run the operation.\nNote: The selected edge and every other edge starting from it will be preserved.\n\nExpand Edges: Per default, the ring selection of edges expands to cover all connected edges to the ring selection. Turning it off will make it so that it only works on the immediate circular ring selection and will not expand to the continuous connected edges."
@@ -383,7 +383,7 @@ class ST_OT_DissolveNthEdge(bpy.types.Operator):
         return {'FINISHED'}
     
 
-class ST_OT_ApplyZenUVTD(bpy.types.Operator):
+class SimpleToolbox_OT_ApplyZenUVTD(bpy.types.Operator):
     bl_label = "Set TD"
     bl_idname = "r0tools.zenuv_set_td"
     bl_description = "Apply Texel Density from ZenUV to objects"
@@ -456,7 +456,7 @@ class ST_OT_ApplyZenUVTD(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class ST_OT_ClearMeshAttributes(bpy.types.Operator):
+class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
     bl_label = "Clear Attributes"
     bl_idname = "r0tools.clear_mesh_attributes"
     bl_description = "Clears unneeded mesh(es) attributes created by various addons.\nPreserves some integral and needed attributes such as material_index that is required for multi-material assignments.\nSometimes certain addons or operations will populate this list with attributes you wish to remove at a later date, be it for parsing or exporting."
@@ -510,7 +510,7 @@ class ST_OT_ClearMeshAttributes(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class ST_OT_ClearChildrenRecurse(bpy.types.Operator):
+class SimpleToolbox_OT_ClearChildrenRecurse(bpy.types.Operator):
     bl_label = "Clear Children"
     bl_idname = "r0tools.clear_all_objects_children"
     bl_description = "For each selected object, clears parenting keeping transform for each child object.\n(SHIFT): Recursively clears parenting for ALL object children and sub-children."
@@ -597,7 +597,7 @@ class ST_OT_ClearChildrenRecurse(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class ST_OT_ClearAxisSharpEdgesX(bpy.types.Operator):
+class SimpleToolbox_OT_ClearAxisSharpEdgesX(bpy.types.Operator):
     bl_label = "Clear Sharp X"
     bl_idname = "r0tools.clear_sharp_axis_x"
     bl_description = "Clears sharp edges on the X axis."
@@ -614,7 +614,7 @@ class ST_OT_ClearAxisSharpEdgesX(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class ST_OT_ClearAxisSharpEdgesY(bpy.types.Operator):
+class SimpleToolbox_OT_ClearAxisSharpEdgesY(bpy.types.Operator):
     bl_label = "Clear Sharp X"
     bl_idname = "r0tools.clear_sharp_axis_y"
     bl_description = "Clears sharp edges on the Y axis."
@@ -631,7 +631,7 @@ class ST_OT_ClearAxisSharpEdgesY(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class ST_OT_ClearAxisSharpEdgesZ(bpy.types.Operator):
+class SimpleToolbox_OT_ClearAxisSharpEdgesZ(bpy.types.Operator):
     bl_label = "Clear Sharp X"
     bl_idname = "r0tools.clear_sharp_axis_z"
     bl_description = "Clears sharp edges on the Z axis."
@@ -655,17 +655,17 @@ class ST_OT_ClearAxisSharpEdgesZ(bpy.types.Operator):
 classes = [
     R0TOOLS_update_property_list, # Useful to register them early
     
-    ST_OT_ReloadNamedScripts,
-    ST_OT_ClearCustomData,
-    ST_OT_ClearCustomProperties,
-    ST_OT_ClearMeshAttributes,
-    ST_OT_ClearChildrenRecurse,
-    ST_OT_ClearAxisSharpEdgesX,
-    ST_OT_ClearAxisSharpEdgesY,
-    ST_OT_ClearAxisSharpEdgesZ,
-    ST_OT_DissolveNthEdge,
-    ST_OT_ApplyZenUVTD,
-    ST_OT_ExperimentalOP,
+    SimpleToolbox_OT_ReloadNamedScripts,
+    SimpleToolbox_OT_ClearCustomData,
+    SimpleToolbox_OT_ClearCustomProperties,
+    SimpleToolbox_OT_ClearMeshAttributes,
+    SimpleToolbox_OT_ClearChildrenRecurse,
+    SimpleToolbox_OT_ClearAxisSharpEdgesX,
+    SimpleToolbox_OT_ClearAxisSharpEdgesY,
+    SimpleToolbox_OT_ClearAxisSharpEdgesZ,
+    SimpleToolbox_OT_DissolveNthEdge,
+    SimpleToolbox_OT_ApplyZenUVTD,
+    SimpleToolbox_OT_ExperimentalOP,
 ]
 
 def register():
