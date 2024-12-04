@@ -137,7 +137,12 @@ class AddonPreferences(bpy.types.AddonPreferences):
         addon_prefs = bpy.context.preferences.addons["r0fl_simple_toolbox"].preferences
         addon_prefs.clear_sharp_axis_float_prop = self.clear_sharp_axis_float_prop
         # print(f"Saved Property: clear_sharp_axis_float_prop -> {self.clear_sharp_axis_float_prop}")
-    
+
+
+# -------------------------------------------------------------------
+#   Register & Unregister
+# -------------------------------------------------------------------
+
 classes = [
     RPROP_UL_custom_property_list,
     CustomPropertyItem,

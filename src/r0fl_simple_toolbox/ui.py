@@ -99,6 +99,10 @@ class PT_SimpleToolbox(bpy.types.Panel):
             row.prop(addon_props, "screen_size_pct_prop", text="Screen Size (%):")
 
 
+# -------------------------------------------------------------------
+#   Register & Unregister
+# -------------------------------------------------------------------
+
 classes = [
     PT_SimpleToolbox
 ]

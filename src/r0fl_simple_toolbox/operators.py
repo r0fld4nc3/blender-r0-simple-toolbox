@@ -6,9 +6,8 @@ import importlib
 
 from .const import INTERNAL_NAME
 from . import utils as u
-from . import properties as props
 
-class OP_ExperimentalOP(bpy.types.Operator):
+class ST_OT_ExperimentalOP(bpy.types.Operator):
     bl_label = "Exp Op 1"
     bl_idname = "r0tools.experimental_op_1"
     bl_description = ""
@@ -90,7 +89,7 @@ class OP_ExperimentalOP(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class OP_ReloadNamedScripts(bpy.types.Operator):
+class ST_OT_ReloadNamedScripts(bpy.types.Operator):
     bl_label = "Reload Script(s)"
     bl_idname = "r0tools.reload_named_scripts"
     bl_description = "Reload only specified scripts from a name text box."
@@ -158,11 +157,13 @@ class OP_ReloadNamedScripts(bpy.types.Operator):
             self.report({'INFO'}, reload_msg)
         except Exception as e:
             print(f"Error reporting results: {e}")
+        
         u.show_notification(reload_msg)
+        
         return {'FINISHED'}
     
 
-class OP_ClearCustomData(bpy.types.Operator):
+class ST_OT_ClearCustomData(bpy.types.Operator):
     bl_label = "Clear Split Normals"
     bl_idname = "r0tools.clear_custom_split_normals"
     bl_description = "Clears the Custom Split Normals assignments for selected objects and sets AutoSmooth to 180.\nUseful to quickly clear baked normals/shading assignments of multiple meshes at once."
@@ -203,7 +204,9 @@ class OP_ClearCustomData(bpy.types.Operator):
         if orig_context != "OBJECT" and orig_context == "EDIT_MESH":
             bpy.ops.object.mode_set(mode='EDIT')
 
-        u.show_notification("Custom Split Data cleared")
+        msg = f"Finished clearing Custom Split Data across {len(objects)} objects"
+        # u.show_notification(msg)
+        self.report({'INFO'}, msg)
         return {'FINISHED'}
 
 
@@ -230,7 +233,7 @@ class R0TOOLS_update_property_list(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class OP_ClearCustomProperties(bpy.types.Operator):
+class ST_OT_ClearCustomProperties(bpy.types.Operator):
     bl_label = "Delete Custom Properties"
     bl_idname = "r0tools.clear_custom_properties"
     bl_description = "Delete Custom Properties from Object(s)"
@@ -264,12 +267,12 @@ class OP_ClearCustomProperties(bpy.types.Operator):
                     total_objects += 1
         
         bpy.ops.r0tools.update_property_list()
-        u.show_notification(f"Deleted {total_deletions} propertie(s) across {total_objects} object(s)")
+        # u.show_notification(f"Deleted {total_deletions} propertie(s) across {total_objects} object(s)")
         self.report({'INFO'}, f"Deleted {total_deletions} propertie(s) across {total_objects} object(s)")
         return {'FINISHED'}
 
         
-class OP_DissolveNthEdge(bpy.types.Operator):
+class ST_OT_DissolveNthEdge(bpy.types.Operator):
     bl_label = "Remove Nth Edges"
     bl_idname = "r0tools.nth_edges"
     bl_description = "Remove Nth (every other) edges.\n\nUsage: Select 1 edge on each object and run the operation.\nNote: The selected edge and every other edge starting from it will be preserved.\n\nExpand Edges: Per default, the ring selection of edges expands to cover all connected edges to the ring selection. Turning it off will make it so that it only works on the immediate circular ring selection and will not expand to the continuous connected edges."
@@ -380,7 +383,7 @@ class OP_DissolveNthEdge(bpy.types.Operator):
         return {'FINISHED'}
     
 
-class OP_ApplyZenUVTD(bpy.types.Operator):
+class ST_OT_ApplyZenUVTD(bpy.types.Operator):
     bl_label = "Set TD"
     bl_idname = "r0tools.zenuv_set_td"
     bl_description = "Apply Texel Density from ZenUV to objects"
@@ -447,13 +450,13 @@ class OP_ApplyZenUVTD(bpy.types.Operator):
             
             bpy.ops.uv.zenuv_set_texel_density(global_mode=True)
         
+        # u.show_notification(f"Texel density set to {TD} px/{TD_UNIT} for {len(selected_objs)} objects.")
         self.report({'INFO'}, f"Texel density set to {TD} px/{TD_UNIT} for {len(selected_objs)} objects.")
-        u.show_notification(f"Texel density set to {TD} px/{TD_UNIT} for {len(selected_objs)} objects.")
         
         return {'FINISHED'}
 
 
-class OP_ClearMeshAttributes(bpy.types.Operator):
+class ST_OT_ClearMeshAttributes(bpy.types.Operator):
     bl_label = "Clear Attributes"
     bl_idname = "r0tools.clear_mesh_attributes"
     bl_description = "Clears unneeded mesh(es) attributes created by various addons.\nPreserves some integral and needed attributes such as material_index that is required for multi-material assignments.\nSometimes certain addons or operations will populate this list with attributes you wish to remove at a later date, be it for parsing or exporting."
@@ -507,7 +510,7 @@ class OP_ClearMeshAttributes(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class OP_ClearChildrenRecurse(bpy.types.Operator):
+class ST_OT_ClearChildrenRecurse(bpy.types.Operator):
     bl_label = "Clear Children"
     bl_idname = "r0tools.clear_all_objects_children"
     bl_description = "For each selected object, clears parenting keeping transform for each child object.\n(SHIFT): Recursively clears parenting for ALL object children and sub-children."
@@ -544,7 +547,9 @@ class OP_ClearChildrenRecurse(bpy.types.Operator):
                 
         bpy.context.view_layer.objects.active = active_obj
         
-        u.show_notification(f"Cleared {total_children_cleared} child objects for {parent_objs} main objects.")
+        cleared_msg = f"Cleared {total_children_cleared} child objects for {parent_objs} main objects."
+        # u.show_notification(cleared_msg)
+        self.report({'INFO'}, cleared_msg)
         
         if problem_objects:
             u.deselect_all()
@@ -553,7 +558,9 @@ class OP_ClearChildrenRecurse(bpy.types.Operator):
                     obj.select_set(True)
                     child.hide_set(False)
                     child.hide_viewport = False
-            u.show_notification(f"The following objects have raised issues: {', '.join([obj.name for obj in problem_objects])}")
+            issues_msg = f"The following objects have raised issues: {', '.join([obj.name for obj in problem_objects])}"
+            u.show_notification(issues_msg)
+            self.report({'WARNING'}, issues_msg)
         
     def process_child_object(self, child):
         """Handle visibility and selection state for a child object"""
@@ -590,7 +597,7 @@ class OP_ClearChildrenRecurse(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class OP_ClearAxisSharpEdgesX(bpy.types.Operator):
+class ST_OT_ClearAxisSharpEdgesX(bpy.types.Operator):
     bl_label = "Clear Sharp X"
     bl_idname = "r0tools.clear_sharp_axis_x"
     bl_description = "Clears sharp edges on the X axis."
@@ -607,7 +614,7 @@ class OP_ClearAxisSharpEdgesX(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class OP_ClearAxisSharpEdgesY(bpy.types.Operator):
+class ST_OT_ClearAxisSharpEdgesY(bpy.types.Operator):
     bl_label = "Clear Sharp X"
     bl_idname = "r0tools.clear_sharp_axis_y"
     bl_description = "Clears sharp edges on the Y axis."
@@ -624,7 +631,7 @@ class OP_ClearAxisSharpEdgesY(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class OP_ClearAxisSharpEdgesZ(bpy.types.Operator):
+class ST_OT_ClearAxisSharpEdgesZ(bpy.types.Operator):
     bl_label = "Clear Sharp X"
     bl_idname = "r0tools.clear_sharp_axis_z"
     bl_description = "Clears sharp edges on the Z axis."
@@ -641,20 +648,24 @@ class OP_ClearAxisSharpEdgesZ(bpy.types.Operator):
         return {'FINISHED'}
 
 
+# -------------------------------------------------------------------
+#   Register & Unregister
+# -------------------------------------------------------------------
+
 classes = [
     R0TOOLS_update_property_list, # Useful to register them early
     
-    OP_ReloadNamedScripts,
-    OP_ClearCustomData,
-    OP_ClearCustomProperties,
-    OP_ClearMeshAttributes,
-    OP_ClearChildrenRecurse,
-    OP_ClearAxisSharpEdgesX,
-    OP_ClearAxisSharpEdgesY,
-    OP_ClearAxisSharpEdgesZ,
-    OP_DissolveNthEdge,
-    OP_ApplyZenUVTD,
-    OP_ExperimentalOP,
+    ST_OT_ReloadNamedScripts,
+    ST_OT_ClearCustomData,
+    ST_OT_ClearCustomProperties,
+    ST_OT_ClearMeshAttributes,
+    ST_OT_ClearChildrenRecurse,
+    ST_OT_ClearAxisSharpEdgesX,
+    ST_OT_ClearAxisSharpEdgesY,
+    ST_OT_ClearAxisSharpEdgesZ,
+    ST_OT_DissolveNthEdge,
+    ST_OT_ApplyZenUVTD,
+    ST_OT_ExperimentalOP,
 ]
 
 def register():
