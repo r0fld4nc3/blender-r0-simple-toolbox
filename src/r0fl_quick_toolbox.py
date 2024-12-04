@@ -324,24 +324,15 @@ def deselect_all():
 
 def continuous_property_list_update(scene, context):
     if bpy.context.selected_objects:
-        current_selection = list(iter_scene_objects(selected=True))
-        
-        if 'r0fl_last_selected_objects' not in scene:
-            scene['r0fl_last_selected_objects'] = []
-        
-        # Selection has changed
-        if set(current_selection) != set(scene['r0fl_last_selected_objects']):
-            context.scene.r0fl_toolbox_props.custom_property_list.clear()
+        context.scene.r0fl_toolbox_props.custom_property_list.clear()
 
-            unique_props = set()
-            for obj in bpy.context.selected_objects:
-                for prop_name in obj.keys():
-                    if not prop_name.startswith('_') and prop_name not in unique_props:
-                        unique_props.add(prop_name)
-                        item = context.scene.r0fl_toolbox_props.custom_property_list.add()
-                        item.name = prop_name
-
-            scene['r0fl_last_selected_objects'] = current_selection
+        unique_props = set()
+        for obj in bpy.context.selected_objects:
+            for prop_name in obj.keys():
+                if not prop_name.startswith('_') and prop_name not in unique_props:
+                    unique_props.add(prop_name)
+                    item = context.scene.r0fl_toolbox_props.custom_property_list.add()
+                    item.name = prop_name
     else:
         context.scene.r0fl_toolbox_props.custom_property_list.clear()
         scene['r0fl_last_selected_objects'] = []
@@ -463,7 +454,10 @@ class OP_ReloadNamedScripts(bpy.types.Operator):
         return False
     
     def delayed_self_reload(self):
-        bpy.ops.preferences.addon_enable(module=__name__)
+        try:
+            bpy.ops.preferences.addon_enable(module=__name__)
+        except Exception as e:
+            print(f"ERROR: {e}")
         return None # Stop timer
 
     def execute(self, context):
