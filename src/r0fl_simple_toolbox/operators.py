@@ -1,7 +1,7 @@
+import sys
 import bpy
 import math
 import bmesh
-import sys
 import importlib
 
 from .const import INTERNAL_NAME
