@@ -5,10 +5,10 @@ import bmesh
 bl_info = {
     "name": "r0Tools - Quick Toolbox",
     "author": "Artur Rosário",
-    "version": (0, 0, 7),
+    "version": (0, 0, 8),
     "blender": (4, 2, 1),
     "location": "3D View",
-    "description": "Utility to help clear different kinds of Data",
+    "description": "Miscellaneous Utilities",
     "warning": "",
     "doc_url": "",
     "category": "Object"
@@ -17,16 +17,30 @@ bl_info = {
 
 # ============ ADDON PROPS =============
 # Properties which are not stored in preferences
+class RPROP_UL_custom_property_list(bpy.types.UIList):
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
+        row = layout.row(align=True)
+        row.prop(item, "selected", text="")
+        row.label(text=item.name)
+
+
+class CustomPropertyItem(bpy.types.PropertyGroup):
+    name: bpy.props.StringProperty()
+    selected: bpy.props.BoolProperty(default=False)
+
+
 class r0flToolboxProps(bpy.types.PropertyGroup):
     show_dev_tools: bpy.props.BoolProperty(
         name="Dev Tools",
         description="Show or hide the development options section",
         default=False
     )
+
     reload_modules_prop: bpy.props.StringProperty(
         name="Module(s)",
         description="Command-separated list of module names"
     )
+
     screen_size_pct_prop: bpy.props.FloatProperty(
         name="Screen Size Percentage",
         default=0.0,
@@ -41,6 +55,20 @@ class r0flToolboxProps(bpy.types.PropertyGroup):
         min=0.0,
         max=100.0,
         description="Highlight meshes smaller than this screen size percentage"
+    )
+
+    show_custom_property_list_prop: bpy.props.BoolProperty(
+        name="Delete Custom Properties",
+        description="List Custom Properties",
+        default=False
+    )
+
+    custom_property_list: bpy.props.CollectionProperty(
+        type=CustomPropertyItem
+    )
+    
+    custom_property_list_index: bpy.props.IntProperty(
+        default=0
     )
 
 
@@ -294,6 +322,29 @@ def show_notification(message, title="Script Finished"):
 def deselect_all():
     bpy.ops.object.select_all(action="DESELECT")
 
+def continuous_property_list_update(scene, context):
+    if bpy.context.selected_objects:
+        current_selection = list(iter_scene_objects(selected=True))
+        
+        if 'r0fl_last_selected_objects' not in scene:
+            scene['r0fl_last_selected_objects'] = []
+        
+        # Selection has changed
+        if set(current_selection) != set(scene['r0fl_last_selected_objects']):
+            context.scene.r0fl_toolbox_props.custom_property_list.clear()
+
+            unique_props = set()
+            for obj in bpy.context.selected_objects:
+                for prop_name in obj.keys():
+                    if not prop_name.startswith('_') and prop_name not in unique_props:
+                        unique_props.add(prop_name)
+                        item = context.scene.r0fl_toolbox_props.custom_property_list.add()
+                        item.name = prop_name
+
+            scene['r0fl_last_selected_objects'] = current_selection
+    else:
+        context.scene.r0fl_toolbox_props.custom_property_list.clear()
+        scene['r0fl_last_selected_objects'] = []
 
 class OP_ExperimentalOP(bpy.types.Operator):
     bl_label = "Exp Op 1"
@@ -445,6 +496,12 @@ class OP_ClearCustomData(bpy.types.Operator):
     bl_description = "Clears the Custom Split Normals assignments for selected objects and sets AutoSmooth to 180.\nUseful to quickly clear baked normals/shading assignments of multiple meshes at once."
     bl_options = {'REGISTER', 'UNDO'}
     
+    accepted_contexts = ["OBJECT", "EDIT_MESH"]
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
+    
     def op_clear_custom_split_normals_data(self, objects):
         """
         Clears the Custom Split Normals assignments for selected objects and sets AutoSmooth to 180.
@@ -452,21 +509,87 @@ class OP_ClearCustomData(bpy.types.Operator):
         Useful to quickly clear baked normals/shading assignments of multiple meshes at once.
         """
         
-        if len(objects) != 0:
-            orig_active = bpy.context.view_layer.objects.active
-            for obj in objects:
-                bpy.context.view_layer.objects.active = obj
-                bpy.ops.mesh.customdata_custom_splitnormals_clear()
-                bpy.ops.object.shade_smooth()
-                # bpy.ops.object.shade_smooth() # Not needed. Will give an error if Weighted Normals modifier is present.
-                # bpy.context.object.data.use_auto_smooth = True
-                # bpy.context.object.data.auto_smooth_angle = 3.14159
-            bpy.context.view_layer.objects.active = orig_active
+        for obj in objects:
+            bpy.context.view_layer.objects.active = obj
+            bpy.ops.mesh.customdata_custom_splitnormals_clear()
+            bpy.ops.object.shade_smooth()
+            # bpy.ops.object.shade_smooth() # Not needed. Will give an error if Weighted Normals modifier is present.
+            # bpy.context.object.data.use_auto_smooth = True
+            # bpy.context.object.data.auto_smooth_angle = 3.14159
 
     def execute(self, context):
+        orig_context = context.mode
+        orig_active = bpy.context.view_layer.objects.active
+
+        if context.mode == "EDIT_MESH":
+            bpy.ops.object.mode_set(mode="OBJECT")
+
         objects = [obj for obj in iter_scene_objects(selected=True, type="MESH")]
         self.op_clear_custom_split_normals_data(objects)
+        bpy.context.view_layer.objects.active = orig_active
+
+        if orig_context != "OBJECT" and orig_context == "EDIT_MESH":
+            bpy.ops.object.mode_set(mode='EDIT')
+
         show_notification("Custom Split Data cleared")
+        return {'FINISHED'}
+
+
+class R0TOOLS_update_property_list(bpy.types.Operator):
+    bl_idname = "r0tools.update_property_list"
+    bl_label = "Update Property List"
+
+    @classmethod
+    def poll(cls, context):
+        return len(context.selected_objects) > 0
+
+    def execute(self, context):
+        addon_props = context.scene.r0fl_toolbox_props
+        addon_props.custom_property_list.clear()
+
+        unique_props = set()
+        for obj in context.selected_objects:
+            for prop_name in obj.keys():
+                if not prop_name.startswith('_') and prop_name not in unique_props:
+                    unique_props.add(prop_name)
+                    item = addon_props.custom_property_list.add()
+                    item.name = prop_name
+
+        return {'FINISHED'}
+
+
+class OP_ClearCustomProperties(bpy.types.Operator):
+    bl_label = "Clear Custom Properties"
+    bl_idname = "r0tools.clear_custom_properties"
+    bl_description = "Clear Custom Properties from Object(s)"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        return len(context.selected_objects) > 0
+
+    def execute(self, context):
+        total_deletions = 0
+        total_objects = 0
+        
+        for obj in context.selected_objects:
+            # Find selected properties to remove
+            props_to_remove = [
+                item.name for item in context.scene.r0fl_toolbox_props.custom_property_list 
+                if item.selected
+            ]
+            
+            # Remove selected properties
+            for prop_name in props_to_remove:
+                if prop_name in obj.keys():
+                    print(f"Deleting property '{prop_name}' of object {obj.name}")
+                    del obj[prop_name]
+                    total_deletions += 1
+                    total_objects += 1
+        
+        bpy.ops.r0tools.update_property_list()
+        show_notification(f"Deleted {total_deletions} propertie(s) across {total_objects} object(s)")
+        self.report({'INFO'}, f"Deleted {total_deletions} propertie(s) across {total_objects} object(s)")
         return {'FINISHED'}
 
         
@@ -586,6 +709,12 @@ class OP_ApplyZenUVTD(bpy.types.Operator):
     bl_idname = "r0tools.zenuv_set_td"
     bl_description = "Apply Texel Density from ZenUV to objects"
     bl_options = {'REGISTER','UNDO'}
+
+    accepted_contexts = ["OBJECT", "EDIT_MESH"]
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
     
     def execute(self, context):
         context_mode = context.mode
@@ -791,6 +920,12 @@ class OP_ClearAxisSharpEdgesX(bpy.types.Operator):
     bl_description = "Clears sharp edges on the X axis."
     bl_options = {'REGISTER', 'UNDO'}
 
+    accepted_contexts = ["OBJECT", "EDIT_MESH"]
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
+
     def execute(self, context):
         op_clear_sharp_along_axis('X')
         return {'FINISHED'}
@@ -802,6 +937,12 @@ class OP_ClearAxisSharpEdgesY(bpy.types.Operator):
     bl_description = "Clears sharp edges on the Y axis."
     bl_options = {'REGISTER', 'UNDO'}
 
+    accepted_contexts = ["OBJECT", "EDIT_MESH"]
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
+
     def execute(self, context):
         op_clear_sharp_along_axis('Y')
         return {'FINISHED'}
@@ -812,6 +953,12 @@ class OP_ClearAxisSharpEdgesZ(bpy.types.Operator):
     bl_idname = "r0tools.clear_sharp_axis_z"
     bl_description = "Clears sharp edges on the Z axis."
     bl_options = {'REGISTER', 'UNDO'}
+
+    accepted_contexts = ["OBJECT", "EDIT_MESH"]
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
 
     def execute(self, context):
         op_clear_sharp_along_axis('Z')
@@ -857,7 +1004,22 @@ class PT_SimpleToolbox(bpy.types.Panel):
         # row.operator("r0tools.clear_mesh_attributes")
         row = box.row(align=True)
         row.operator("r0tools.clear_all_objects_children")
-        row = box.row(align=True)
+        row = box.row()
+        row.prop(addon_props, "show_custom_property_list_prop", icon="TRIA_DOWN" if addon_props.show_custom_property_list_prop else "TRIA_RIGHT", emboss=False)
+        # Scrollable list with checkboxes
+        if addon_props.show_custom_property_list_prop:
+            row = box.row()
+            row.template_list(
+                "RPROP_UL_custom_property_list",
+                "custom_property_list",
+                context.scene.r0fl_toolbox_props,
+                "custom_property_list",
+                context.scene.r0fl_toolbox_props,
+                "custom_property_list_index",
+                rows=6
+            )
+            row = box.row()
+            row.operator("r0tools.clear_custom_properties")
         
         # Mesh Ops
         # Clear Sharp Edges on Axis
@@ -897,15 +1059,20 @@ class PT_SimpleToolbox(bpy.types.Panel):
             row.operator("r0tools.experimental_op_1")
             row = box.row()
             row.prop(addon_props, "screen_size_pct_prop", text="Screen Size (%):")
-            # row.enabled = False
 
 
 classes = [
+    CustomPropertyItem, # Useful to register them early
+    RPROP_UL_custom_property_list, # Useful to register them early
+    R0TOOLS_update_property_list, # Useful to register them early
+    
     AddonPreferences,
     r0flToolboxProps,
+    
     PT_SimpleToolbox,
     OP_ReloadNamedScripts,
     OP_ClearCustomData,
+    OP_ClearCustomProperties,
     OP_ClearMeshAttributes,
     OP_ClearChildrenRecurse,
     OP_ClearAxisSharpEdgesX,
@@ -913,7 +1080,11 @@ classes = [
     OP_ClearAxisSharpEdgesZ,
     OP_DissolveNthEdge,
     OP_ApplyZenUVTD,
-    OP_ExperimentalOP
+    OP_ExperimentalOP,
+]
+
+depsgraph_handlers = [
+    continuous_property_list_update
 ]
 
 def register():
@@ -922,7 +1093,13 @@ def register():
     
     bpy.types.Scene.r0fl_toolbox_props = bpy.props.PointerProperty(type=r0flToolboxProps)
 
+    for handler in depsgraph_handlers:
+        bpy.app.handlers.depsgraph_update_post.append(handler)
+
 def unregister():
+    for handler in depsgraph_handlers:
+        bpy.app.handlers.depsgraph_update_post.remove(handler)
+
     for cls in classes:
         bpy.utils.unregister_class(cls)
     
