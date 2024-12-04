@@ -63,12 +63,12 @@ class r0flToolboxProps(bpy.types.PropertyGroup):
         default=False
     )
 
-    custom_property_list: bpy.props.CollectionProperty(
-        type=CustomPropertyItem
-    )
-    
-    custom_property_list_index: bpy.props.IntProperty(
-        default=0
+    custom_property_list: bpy.props.CollectionProperty(type=CustomPropertyItem)
+    custom_property_list_index: bpy.props.IntProperty(default=0)
+    last_object_selection: bpy.props.StringProperty(
+        name="Last Object Selection",
+        description="Comma-separated names of last selected objects",
+        default=''
     )
 
 
@@ -323,19 +323,32 @@ def deselect_all():
     bpy.ops.object.select_all(action="DESELECT")
 
 def continuous_property_list_update(scene, context):
+    # This method is required to assess the last object selection, otherwise
+    # this is triggered on every click and the list is updated, and the checkboxes are reset
+    
     if bpy.context.selected_objects:
-        context.scene.r0fl_toolbox_props.custom_property_list.clear()
+        current_selection = {obj.name for obj in iter_scene_objects(selected=True)}
+        addon_props = context.scene.r0fl_toolbox_props
+        prev_selection = set(addon_props.last_object_selection.split(',')) if addon_props.last_object_selection else set()
 
-        unique_props = set()
-        for obj in bpy.context.selected_objects:
-            for prop_name in obj.keys():
-                if not prop_name.startswith('_') and prop_name not in unique_props:
-                    unique_props.add(prop_name)
-                    item = context.scene.r0fl_toolbox_props.custom_property_list.add()
-                    item.name = prop_name
+        if current_selection != prev_selection:
+            addon_props.custom_property_list.clear()
+
+            # Add unique custom properties to the list
+            unique_props = set()
+            for obj in bpy.context.selected_objects:
+                for prop_name in obj.keys():
+                    if not prop_name.startswith('_') and prop_name not in unique_props:
+                        unique_props.add(prop_name)
+                        item = addon_props.custom_property_list.add()
+                        item.name = prop_name
+
+            # Update the last object selection
+            addon_props.last_object_selection = ','.join(current_selection)
     else:
+        # Clear the property list if no objects are selected
         context.scene.r0fl_toolbox_props.custom_property_list.clear()
-        scene['r0fl_last_selected_objects'] = []
+        context.scene.r0fl_toolbox_props.last_object_selection = ""
 
 class OP_ExperimentalOP(bpy.types.Operator):
     bl_label = "Exp Op 1"
@@ -463,6 +476,9 @@ class OP_ReloadNamedScripts(bpy.types.Operator):
     def execute(self, context):
         modules = self.get_input_modules()
 
+        if not modules:
+            modules.append(__name__)
+
         failures = []
         successes = []
         if modules:
@@ -560,6 +576,10 @@ class OP_ClearCustomProperties(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
+        # FIXME: There has to be a better way to solve this shit...
+        if continuous_property_list_update not in bpy.app.handlers.depsgraph_update_post:
+            bpy.app.handlers.depsgraph_update_post.append(continuous_property_list_update)
+
         return len(context.selected_objects) > 0
 
     def execute(self, context):
@@ -1006,10 +1026,10 @@ class PT_SimpleToolbox(bpy.types.Panel):
             row.template_list(
                 "RPROP_UL_custom_property_list",
                 "custom_property_list",
-                context.scene.r0fl_toolbox_props,
-                "custom_property_list",
-                context.scene.r0fl_toolbox_props,
-                "custom_property_list_index",
+                context.scene.r0fl_toolbox_props,  # Collection owner
+                "custom_property_list",            # Collection property
+                context.scene.r0fl_toolbox_props,  # Active item owner
+                "custom_property_list_index",      # Active item property
                 rows=6
             )
             row = box.row()
@@ -1088,11 +1108,16 @@ def register():
     bpy.types.Scene.r0fl_toolbox_props = bpy.props.PointerProperty(type=r0flToolboxProps)
 
     for handler in depsgraph_handlers:
-        bpy.app.handlers.depsgraph_update_post.append(handler)
+        if handler not in bpy.app.handlers.depsgraph_update_post:
+            bpy.app.handlers.depsgraph_update_post.append(handler)
 
 def unregister():
     for handler in depsgraph_handlers:
-        bpy.app.handlers.depsgraph_update_post.remove(handler)
+        try:
+            if handler in bpy.app.handlers.depsgraph_update_post:
+                bpy.app.handlers.depsgraph_update_post.remove(handler)
+        except Exception as e:
+            print(f"Error removing handler {handler}: {e}")
 
     for cls in classes:
         bpy.utils.unregister_class(cls)
