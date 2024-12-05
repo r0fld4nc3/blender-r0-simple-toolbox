@@ -1,7 +1,7 @@
 bl_info = {
     "name": "r0Tools - Simple Toolbox",
     "author": "Artur Rosário",
-    "version": (0, 0, 9),
+    "version": (0, 0, 10),
     "blender": (4, 2, 1),
     "location": "3D View > Tool",
     "description": "Miscellaneous Utilities",
@@ -20,15 +20,15 @@ modules = (
 
 def import_modules():
     for module in modules:
-        print(f"------------------> {module} - {__package__}")
+        print(f"------------------> IMPORT {module} - {__package__}")
         importlib.import_module(module, __package__)
 
 
 def reimport_modules():
     for module in modules:
         print(f"------------------> RELOAD {module} - {__package__}")
-        want_reload_module = importlib.import_module(module, __package__)
-        importlib.reload(want_reload_module)
+        to_reload_module = importlib.import_module(module, __package__)
+        importlib.reload(to_reload_module)
 
 
 import_modules()
