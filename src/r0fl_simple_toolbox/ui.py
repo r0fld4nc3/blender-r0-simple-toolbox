@@ -85,8 +85,8 @@ class PT_SimpleToolbox(bpy.types.Panel):
         box = layout.box()
         box.prop(addon_props, "show_ext_ops", icon="TRIA_DOWN" if addon_props.show_ext_ops else "TRIA_RIGHT", emboss=False)
         if addon_props.show_ext_ops:
-            # row = box.row(align=True)
-            # row.label(text="ZenUV Texel Density")
+            row = box.row(align=True)
+            row.label(text="ZenUV Texel Density")
             row = box.row(align=True)
             row.prop(addon_prefs, "zenuv_td_prop", text="TD:")
             row.prop(addon_prefs, "zenuv_td_unit_prop", text="Unit")
