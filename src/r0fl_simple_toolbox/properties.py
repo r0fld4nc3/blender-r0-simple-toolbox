@@ -32,6 +32,24 @@ class r0flToolboxProps(bpy.types.PropertyGroup):
         default=False
     )
 
+    show_object_ops: BoolProperty(
+        name="Object Ops",
+        description="Show or hide the Object operators section",
+        default=False
+    )
+    
+    show_mesh_ops: BoolProperty(
+        name="Mesh Ops",
+        description="Show or hide the Mesh operators section",
+        default=False
+    )
+
+    show_ext_ops: BoolProperty(
+        name="External Ops",
+        description="Show or hide the External operators section",
+        default=False
+    )
+
     reload_modules_prop: StringProperty(
         name="Module(s)",
         description="Command-separated list of module names"
