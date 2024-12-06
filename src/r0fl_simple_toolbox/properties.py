@@ -35,13 +35,13 @@ class r0flToolboxProps(bpy.types.PropertyGroup):
     show_object_ops: BoolProperty(
         name="Object Ops",
         description="Show or hide the Object operators section",
-        default=False
+        default=True
     )
     
     show_mesh_ops: BoolProperty(
         name="Mesh Ops",
         description="Show or hide the Mesh operators section",
-        default=False
+        default=True
     )
 
     show_ext_ops: BoolProperty(
