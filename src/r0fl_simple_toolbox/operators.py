@@ -1,7 +1,6 @@
 import sys
 import bpy
 import math
-import time
 import bmesh
 import importlib
 
@@ -98,7 +97,7 @@ class SimpleToolbox_OT_ExperimentalOP(bpy.types.Operator):
         return loose_verts
 
     def execute(self, context):
-        print("=== Experimental Operator 1 ===")
+        print("\n=== Experimental Operator 1 ===")
         region, rv3d = self.get_viewport(context)
 
         # Get the actual viewport dimensions
@@ -167,6 +166,7 @@ class SimpleToolbox_OT_ReloadNamedScripts(bpy.types.Operator):
             return False
 
     def execute(self, context):
+        print("\n=== Reload Named Scripts ===")
         modules = self.get_input_modules()
 
         if not modules:
@@ -228,6 +228,7 @@ class SimpleToolbox_OT_ClearCustomSplitNormalsData(bpy.types.Operator):
             # bpy.context.object.data.auto_smooth_angle = 3.14159
 
     def execute(self, context):
+        print("\n=== Clear Custom Split Normals Data ===")
         orig_context = context.mode
         orig_active = bpy.context.view_layer.objects.active
 
@@ -262,6 +263,7 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
         return len(context.selected_objects) > 0
 
     def execute(self, context):
+        print("\n=== Clear Custom Properties ===")
         total_deletions = 0
         total_objects = 0
         
@@ -336,6 +338,7 @@ class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
         bpy.context.view_layer.objects.active = initial_obj
 
     def execute(self, context):
+        print("\n=== Clear Mesh Attributes ===")
         self.op_clear_mesh_attributes()
         return {'FINISHED'}
 
@@ -351,46 +354,6 @@ class SimpleToolbox_OT_ClearChildrenRecurse(bpy.types.Operator):
         return any(u.iter_scene_objects(selected=True, types=["MESH"])) and context.mode == u.OBJECT_MODES.OBJECT
 
     recurse: BoolProperty(name="Recursively clear all children", default=False) #type: ignore
-    
-    def op_clear_all_objects_children(self, recurse=False):
-        parent_objs = 0
-        total_children_cleared = 0
-        
-        problem_objects = []
-        
-        active_obj = bpy.context.view_layer.objects.active
-        
-        # Match selected objects' data names to mesh names
-        for o in u.iter_scene_objects(selected=True):
-            print(f"Iter {o.name}")
-            
-            for child in u.iter_children(o, recursive=recurse):
-                # print(f"Child: {child.name}")
-                try:
-                    self.process_child_object(child)
-                    total_children_cleared += 1
-                except Exception as e:
-                    print(f"ERROR: {e}")
-                    problem_objects.append(child)
-            
-            parent_objs += 1
-                
-        bpy.context.view_layer.objects.active = active_obj
-        
-        cleared_msg = f"Cleared {total_children_cleared} child objects for {parent_objs} main objects."
-        # u.show_notification(cleared_msg)
-        self.report({'INFO'}, cleared_msg)
-        
-        if problem_objects:
-            u.deselect_all()
-            for obj in problem_objects:
-                if obj.name in bpy.data.objects:
-                    obj.select_set(True)
-                    child.hide_set(False)
-                    child.hide_viewport = False
-            issues_msg = f"The following objects have raised issues: {', '.join([obj.name for obj in problem_objects])}"
-            u.show_notification(issues_msg)
-            self.report({'WARNING'}, issues_msg)
         
     def process_child_object(self, child):
         """Handle visibility and selection state for a child object"""
@@ -423,7 +386,46 @@ class SimpleToolbox_OT_ClearChildrenRecurse(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
-        self.op_clear_all_objects_children(recurse=self.recurse)
+        print("\n=== Clear Object(s) Children ===")
+        parent_objs = 0
+        total_children_cleared = 0
+        
+        problem_objects = []
+        
+        active_obj = bpy.context.view_layer.objects.active
+        
+        # Match selected objects' data names to mesh names
+        for o in u.iter_scene_objects(selected=True):
+            print(f"Iter {o.name}")
+            
+            for child in u.iter_children(o, recursive=self.recurse):
+                # print(f"Child: {child.name}")
+                try:
+                    self.process_child_object(child)
+                    total_children_cleared += 1
+                except Exception as e:
+                    print(f"ERROR: {e}")
+                    problem_objects.append(child)
+            
+            parent_objs += 1
+                
+        bpy.context.view_layer.objects.active = active_obj
+        
+        cleared_msg = f"Cleared {total_children_cleared} child objects for {parent_objs} main objects."
+        # u.show_notification(cleared_msg)
+        self.report({'INFO'}, cleared_msg)
+        
+        if problem_objects:
+            u.deselect_all()
+            for obj in problem_objects:
+                if obj.name in bpy.data.objects:
+                    obj.select_set(True)
+                    child.hide_set(False)
+                    child.hide_viewport = False
+            issues_msg = f"The following objects have raised issues: {', '.join([obj.name for obj in problem_objects])}"
+            u.show_notification(issues_msg)
+            self.report({'WARNING'}, issues_msg)
+        
         return {'FINISHED'}
 
 
@@ -515,6 +517,7 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
                 edge.select = True
 
     def execute(self, context):
+        print("\n=== Dissolve Nth Edges ===")
         original_active_obj = context.active_object
         original_mode = context.mode
 
@@ -523,11 +526,8 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
 
         # Collect selected mesh objects
         selected_objects = [obj for obj in context.selected_objects if obj.type == "MESH"]
-        # deselect_all()
         for obj in selected_objects:
-            # obj.select_set(True)
             self.process_object(obj, context)
-            # obj.select_set(False)
 
         # Return to the original active object and mode
         if original_mode != u.OBJECT_MODES.EDIT_MESH:
@@ -545,40 +545,24 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
 class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
     bl_label = "Restore Rotation"
     bl_idname = "r0tools.rotation_from_selection"
-    bl_description = ""
+    bl_description = "Given a selection of vertices/edges/faces, align each object such that the selection aligns to the Z Axis.\n\n- SHIFT: Clear object rotations on finish. (Also present in Redo panel)."
     bl_options = {'REGISTER', 'UNDO'}
 
     clear_rotation_on_align: BoolProperty(name="Clear Rotation(s)", default=False) #type: ignore
-    keep_original_tool_configs: BoolProperty(name="Keep Original Tool Configurations", default=True) #type: ignore
-
-    _last_execution_time = 0
-    _execution_timeout = 5 # seconds
+    keep_original_tool_configs: BoolProperty(name="Restore Tool Configurations", default=True) #type: ignore
 
     @classmethod
     def poll(cls, context):
-        # Check if we're in edit mode during initial execution
-        if context.mode == u.OBJECT_MODES.EDIT_MESH:
-            return any(u.iter_scene_objects(selected=True, types=["MESH"]))
-        
-        # Allow re-running only if recently executed and in object mode
-        if context.mode == u.OBJECT_MODES.OBJECT:
-            current_time = time.time()
-            time_diff = current_time - cls._last_execution_time
+        return any(u.iter_scene_objects(selected=True, types=["MESH"])) and context.mode == u.OBJECT_MODES.EDIT_MESH
+    
+    def invoke(self, context, event):
+        if event.shift:
+            self.clear_rotation_on_align = True
 
-            elapsed_since_last_execution = cls._execution_timeout - (current_time - cls._last_execution_time)
-            countdown = max(0, int(elapsed_since_last_execution))
-
-            if countdown > 0:
-                print(f"Restore Rotation: {countdown=}")
-
-            return (time_diff < cls._execution_timeout and 
-                    context.selected_objects and 
-                    any(u.iter_scene_objects(selected=True, types=["MESH"])))
-        
-        return False
+        return self.execute(context)
     
     def execute(self, context):
-        print("=== Restore Rotation From Selection ===")
+        print("\n=== Restore Rotation From Selection ===")
         # Store original configurations
         orig_affect_only_origins = u.get_scene().tool_settings.use_transform_data_origin
         orig_affect_only_locations = u.get_scene().tool_settings.use_transform_pivot_point_align
@@ -590,7 +574,7 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
         transform_orientation_names = []
         
         for obj in orig_selected_objects:
-            print(f"--> {obj.name}")
+            print(f"Iterating Object: {obj.name}")
             u.select_object(obj, add=False, set_active=True)
             u.set_mode_edit()
 
@@ -616,13 +600,16 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
 
             # Conditionally clear rotations based on property
             if self.clear_rotation_on_align:
-                print(f"Clearing rotations for {obj.name}")
+                print(f"Clearing Rotation for {obj.name}")
                 obj.rotation_euler = (0, 0, 0)
             else:
-                print("Don't clear those rotations...")
+                print(f"Keeping Rotation for {obj.name}")
 
+
+        # Restore selection
         for obj in orig_selected_objects:
             u.select_object(obj) # Add to selection
+            u.set_mode_edit()
         
         # Restore active object
         u.set_active_object(orig_active_obj)
@@ -637,9 +624,6 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
             u.get_scene().tool_settings.use_transform_pivot_point_align = orig_affect_only_locations
             u.get_scene().tool_settings.use_transform_skip_children = orig_affect_only_parents
             u.get_scene().transform_orientation_slots[0].type = orig_transform_orientation
-
-        # Update last execution time for timer
-        self.__class__._last_execution_time = time.time()
 
         self.report({'INFO'}, "Restore Rotation From Face: Done")
         return {"FINISHED"}
@@ -712,6 +696,7 @@ class SimpleToolbox_OT_ApplyZenUVTD(bpy.types.Operator):
         return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
     
     def execute(self, context):
+        print("\n=== (EXT) Apply Zen UV Texel Density ===")
         context_mode = context.mode
         
         if context_mode not in self.accepted_contexts:

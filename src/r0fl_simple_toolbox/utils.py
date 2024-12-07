@@ -163,6 +163,7 @@ def get_td_unit():
         return 'cm'  # default value if preferences not found
 
 def op_clear_sharp_along_axis(axis: str):
+    print(f"\n=== Clear Sharp Along Axis {axis}")
     axis = str(axis).upper()
     
     threshold = bpy.context.preferences.addons[INTERNAL_NAME].preferences.clear_sharp_axis_float_prop
