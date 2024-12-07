@@ -549,6 +549,7 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     clear_rotation_on_align: BoolProperty(name="Clear Rotation(s)", default=False) #type: ignore
+    origin_to_selection: BoolProperty(name="Origin to selection", default=False) #type: ignore
     keep_original_tool_configs: BoolProperty(name="Restore Tool Configurations", default=True) #type: ignore
 
     @classmethod
@@ -568,6 +569,8 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
         orig_affect_only_locations = u.get_scene().tool_settings.use_transform_pivot_point_align
         orig_affect_only_parents = u.get_scene().tool_settings.use_transform_skip_children
         orig_transform_orientation = u.get_scene().transform_orientation_slots[0].type
+        orig_cursor_location = tuple(u.get_scene().cursor.location.xyz)
+        orig_cursor_rotation = tuple(u.get_scene().cursor.rotation_euler)
         orig_active_obj = context.active_object
         orig_selected_objects = list(u.iter_scene_objects(selected=True, types=["MESH"]))
         
@@ -605,6 +608,13 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
             else:
                 print(f"Keeping Rotation for {obj.name}")
 
+            # Check if we're just setting origin to transform
+            if self.origin_to_selection:
+                u.set_mode_edit()
+                print(f"Setting object origin to median of selection for {obj.name}")
+                bpy.ops.view3d.snap_cursor_to_selected()
+                u.set_mode_object()
+                bpy.ops.object.origin_set(type='ORIGIN_CURSOR', center='MEDIAN')
 
         # Restore selection
         for obj in orig_selected_objects:
@@ -624,6 +634,8 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
             u.get_scene().tool_settings.use_transform_pivot_point_align = orig_affect_only_locations
             u.get_scene().tool_settings.use_transform_skip_children = orig_affect_only_parents
             u.get_scene().transform_orientation_slots[0].type = orig_transform_orientation
+        u.get_scene().cursor.location.xyz = orig_cursor_location
+        u.get_scene().cursor.rotation_euler = orig_cursor_rotation
 
         self.report({'INFO'}, "Restore Rotation From Face: Done")
         return {"FINISHED"}
