@@ -552,8 +552,14 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        # Ensure at least one object is selected
-        return any(u.iter_scene_objects(selected=True, types=["MESH"])) and context.mode == u.OBJECT_MODES.EDIT_MESH
+        # Allow execution if in EDIT_MESH or OBJECT mode with selected mesh objects
+        # This because once the operation has ended, it goes into Object Mode, and
+        # trying to re-invoke the operation via F9, will fail.
+        return (
+            (context.mode in [u.OBJECT_MODES.EDIT_MESH, u.OBJECT_MODES.OBJECT]) and
+            context.selected_objects and
+            any(u.iter_scene_objects(selected=True, types=["MESH"]))
+        )
     
     def execute(self, context):
         print("=== Restore Rotation From Selection ===")
@@ -567,12 +573,12 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
         
         transform_orientation_names = []
         
-        u.set_mode_object()
-        
         for obj in orig_selected_objects:
             print(f"--> {obj.name}")
             u.select_object(obj, add=False, set_active=True)
             u.set_mode_edit()
+
+            # TODO: Check for selected loops/polygons, otherwise, skip.
 
             # Create Transform Orientation
             to_name = f"{obj.name}_restore_orientation"
