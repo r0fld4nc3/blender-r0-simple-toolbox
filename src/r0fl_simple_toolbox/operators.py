@@ -1,6 +1,7 @@
 import sys
 import bpy
 import math
+import time
 import bmesh
 import importlib
 
@@ -550,16 +551,31 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
     clear_rotation_on_align: BoolProperty(name="Clear Rotation(s)", default=False) #type: ignore
     keep_original_tool_configs: BoolProperty(name="Keep Original Tool Configurations", default=True) #type: ignore
 
+    _last_execution_time = 0
+    _execution_timeout = 5 # seconds
+
     @classmethod
     def poll(cls, context):
-        # Allow execution if in EDIT_MESH or OBJECT mode with selected mesh objects
-        # This because once the operation has ended, it goes into Object Mode, and
-        # trying to re-invoke the operation via F9, will fail.
-        return (
-            (context.mode in [u.OBJECT_MODES.EDIT_MESH, u.OBJECT_MODES.OBJECT]) and
-            context.selected_objects and
-            any(u.iter_scene_objects(selected=True, types=["MESH"]))
-        )
+        # Check if we're in edit mode during initial execution
+        if context.mode == u.OBJECT_MODES.EDIT_MESH:
+            return any(u.iter_scene_objects(selected=True, types=["MESH"]))
+        
+        # Allow re-running only if recently executed and in object mode
+        if context.mode == u.OBJECT_MODES.OBJECT:
+            current_time = time.time()
+            time_diff = current_time - cls._last_execution_time
+
+            elapsed_since_last_execution = cls._execution_timeout - (current_time - cls._last_execution_time)
+            countdown = max(0, int(elapsed_since_last_execution))
+
+            if countdown > 0:
+                print(f"Restore Rotation: {countdown=}")
+
+            return (time_diff < cls._execution_timeout and 
+                    context.selected_objects and 
+                    any(u.iter_scene_objects(selected=True, types=["MESH"])))
+        
+        return False
     
     def execute(self, context):
         print("=== Restore Rotation From Selection ===")
@@ -621,6 +637,9 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
             u.get_scene().tool_settings.use_transform_pivot_point_align = orig_affect_only_locations
             u.get_scene().tool_settings.use_transform_skip_children = orig_affect_only_parents
             u.get_scene().transform_orientation_slots[0].type = orig_transform_orientation
+
+        # Update last execution time for timer
+        self.__class__._last_execution_time = time.time()
 
         self.report({'INFO'}, "Restore Rotation From Face: Done")
         return {"FINISHED"}
