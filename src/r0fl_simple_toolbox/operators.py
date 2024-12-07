@@ -6,7 +6,37 @@ import importlib
 
 from .const import INTERNAL_NAME
 from . import utils as u
+from .properties import BoolProperty
 
+# -------------------------------------------------------------------
+#   MISC
+# -------------------------------------------------------------------
+class R0TOOLS_update_property_list(bpy.types.Operator):
+    bl_idname = "r0tools.update_property_list"
+    bl_label = "Update Property List"
+
+    @classmethod
+    def poll(cls, context):
+        return len(context.selected_objects) > 0
+
+    def execute(self, context):
+        addon_props = u.get_scene().r0fl_toolbox_props
+        addon_props.custom_property_list.clear()
+
+        unique_props = set()
+        for obj in context.selected_objects:
+            for prop_name in obj.keys():
+                if not prop_name.startswith('_') and prop_name not in unique_props:
+                    unique_props.add(prop_name)
+                    item = addon_props.custom_property_list.add()
+                    item.name = prop_name
+
+        return {'FINISHED'}
+
+
+# -------------------------------------------------------------------
+#   EXPERIMENTAL
+# -------------------------------------------------------------------
 class SimpleToolbox_OT_ExperimentalOP(bpy.types.Operator):
     bl_label = "Exp Op 1"
     bl_idname = "r0tools.experimental_op_1"
@@ -89,6 +119,9 @@ class SimpleToolbox_OT_ExperimentalOP(bpy.types.Operator):
         return {'FINISHED'}
 
 
+# -------------------------------------------------------------------
+#   DEV OPS
+# -------------------------------------------------------------------
 class SimpleToolbox_OT_ReloadNamedScripts(bpy.types.Operator):
     bl_label = "Reload Script(s)"
     bl_idname = "r0tools.reload_named_scripts"
@@ -96,7 +129,7 @@ class SimpleToolbox_OT_ReloadNamedScripts(bpy.types.Operator):
     bl_options = {'REGISTER'}
 
     def get_input_modules(self) -> list[str]:
-        text = bpy.context.scene.r0fl_toolbox_props.reload_modules_prop
+        text = u.get_scene().r0fl_toolbox_props.reload_modules_prop
         modules = []
         if text:
             modules.extend([t.strip() for t in text.split(',')])
@@ -163,13 +196,16 @@ class SimpleToolbox_OT_ReloadNamedScripts(bpy.types.Operator):
         return {'FINISHED'}
     
 
-class SimpleToolbox_OT_ClearCustomData(bpy.types.Operator):
+# -------------------------------------------------------------------
+#   OBJECT OPS
+# -------------------------------------------------------------------
+class SimpleToolbox_OT_ClearCustomSplitNormalsData(bpy.types.Operator):
     bl_label = "Clear Split Normals"
-    bl_idname = "r0tools.clear_custom_split_normals"
+    bl_idname = "r0tools.clear_custom_split_normals_data"
     bl_description = "Clears the Custom Split Normals assignments for selected objects and sets AutoSmooth to 180.\nUseful to quickly clear baked normals/shading assignments of multiple meshes at once."
     bl_options = {'REGISTER', 'UNDO'}
     
-    accepted_contexts = ["OBJECT", "EDIT_MESH"]
+    accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
 
     @classmethod
     def poll(cls, context):
@@ -194,15 +230,15 @@ class SimpleToolbox_OT_ClearCustomData(bpy.types.Operator):
         orig_context = context.mode
         orig_active = bpy.context.view_layer.objects.active
 
-        if context.mode == "EDIT_MESH":
-            bpy.ops.object.mode_set(mode="OBJECT")
+        if context.mode == u.OBJECT_MODES.EDIT_MESH:
+            u.set_mode_object()
 
-        objects = [obj for obj in u.iter_scene_objects(selected=True, type="MESH")]
+        objects = [obj for obj in u.iter_scene_objects(selected=True, types=["MESH"])]
         self.op_clear_custom_split_normals_data(objects)
         bpy.context.view_layer.objects.active = orig_active
 
-        if orig_context != "OBJECT" and orig_context == "EDIT_MESH":
-            bpy.ops.object.mode_set(mode='EDIT')
+        if orig_context != u.OBJECT_MODES.OBJECT and orig_context == u.OBJECT_MODES.EDIT_MESH:
+            u.set_mode_edit()
 
         msg = f"Finished clearing Custom Split Data across {len(objects)} objects"
         # u.show_notification(msg)
@@ -210,31 +246,8 @@ class SimpleToolbox_OT_ClearCustomData(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class R0TOOLS_update_property_list(bpy.types.Operator):
-    bl_idname = "r0tools.update_property_list"
-    bl_label = "Update Property List"
-
-    @classmethod
-    def poll(cls, context):
-        return len(context.selected_objects) > 0
-
-    def execute(self, context):
-        addon_props = context.scene.r0fl_toolbox_props
-        addon_props.custom_property_list.clear()
-
-        unique_props = set()
-        for obj in context.selected_objects:
-            for prop_name in obj.keys():
-                if not prop_name.startswith('_') and prop_name not in unique_props:
-                    unique_props.add(prop_name)
-                    item = addon_props.custom_property_list.add()
-                    item.name = prop_name
-
-        return {'FINISHED'}
-
-
 class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
-    bl_label = "Delete Custom Properties"
+    bl_label = "Delete"
     bl_idname = "r0tools.clear_custom_properties"
     bl_description = "Delete Custom Properties from Object(s)"
     bl_options = {'REGISTER', 'UNDO'}
@@ -254,7 +267,7 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
         for obj in context.selected_objects:
             # Find selected properties to remove
             props_to_remove = [
-                item.name for item in context.scene.r0fl_toolbox_props.custom_property_list 
+                item.name for item in u.get_scene().r0fl_toolbox_props.custom_property_list 
                 if item.selected
             ]
             
@@ -270,191 +283,7 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
         # u.show_notification(f"Deleted {total_deletions} propertie(s) across {total_objects} object(s)")
         self.report({'INFO'}, f"Deleted {total_deletions} propertie(s) across {total_objects} object(s)")
         return {'FINISHED'}
-
-        
-class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
-    bl_label = "Remove Nth Edges"
-    bl_idname = "r0tools.nth_edges"
-    bl_description = "Remove Nth (every other) edges.\n\nUsage: Select 1 edge on each object and run the operation.\nNote: The selected edge and every other edge starting from it will be preserved.\n\nExpand Edges: Per default, the ring selection of edges expands to cover all connected edges to the ring selection. Turning it off will make it so that it only works on the immediate circular ring selection and will not expand to the continuous connected edges."
-    bl_options = {'REGISTER', 'UNDO'}
-
-    expand_edges: bpy.props.BoolProperty(name="Expand Edges", default=True)
-    keep_initial_selection: bpy.props.BoolProperty(name="Keep Selected Edges", default=True)
-
-    @classmethod
-    def poll(cls, context):
-        # Ensure at least one object is selected
-        return any(obj.type == "MESH" and obj.select_get() for obj in context.selected_objects) and context.mode == "EDIT_MESH"
-
-    def process_object(self, obj, context):
-        # Make active
-        context.view_layer.objects.active = obj
-
-        if context.mode != "EDIT_MODE":
-            bpy.ops.object.mode_set(mode="EDIT")
-        
-        # Create a bmesh
-        me = obj.data
-        bm = bmesh.from_edit_mesh(me)
-        bm.select_mode = {'EDGE'}
-
-        # Currently selected edges
-        initial_selection = [edge for edge in bm.edges if edge.select]
-
-        # Edges to delete from all meshes
-        edges_delete = []
-
-        for i, edge in enumerate(initial_selection):
-            print(f"{i} {edge.index}")
-            
-            # Deselect all bm edges
-            for e in bm.edges:
-                e.select = False
-
-            # Select the original edge
-            edge.select = True
-
-            # Select the ring and nth
-            bpy.ops.mesh.loop_multi_select(ring=True)
-            bpy.ops.mesh.select_nth()
-
-            selected_edges = [edge.index for edge in bm.edges if edge.select]
-            if edge.index in selected_edges:
-                # Deselect all bm edges
-                for e in bm.edges:
-                    e.select = False
-                
-                # Select the original edge
-                edge.select = True
-                bpy.ops.mesh.loop_multi_select(ring=True)
-                bpy.ops.mesh.select_nth(offset=1)
-            
-            if self.expand_edges:
-                bpy.ops.mesh.loop_multi_select(ring=False)
-
-            # Store those edges
-            edges_delete.extend([edge for edge in bm.edges if edge.select])
-
-            # Deselect initial edge we want to keep
-            edge.select = False
-
-        # Make sure to deselect all bm edges too
-        for e in bm.edges:
-            e.select = False
-
-        for edge in edges_delete:
-            edge.select = True
-        
-        bpy.ops.mesh.dissolve_mode(use_verts=True)
-
-        # Update the mesh
-        bmesh.update_edit_mesh(me)
-        bm.free()
-
-        # Select initial selection of edges
-        if self.keep_initial_selection:
-            for edge in initial_selection:
-                edge.select = True
-
-    def execute(self, context):
-        original_active_obj = context.active_object
-        original_mode = context.mode
-
-        if original_mode != 'OBJECT':
-            bpy.ops.object.mode_set(mode="OBJECT")
-
-        # Collect selected mesh objects
-        selected_objects = [obj for obj in context.selected_objects if obj.type == "MESH"]
-        # deselect_all()
-        for obj in selected_objects:
-            # obj.select_set(True)
-            self.process_object(obj, context)
-            # obj.select_set(False)
-
-        # Return to the original active object and mode
-        if original_mode != 'EDIT_MESH':
-            bpy.ops.object.mode_set(mode=original_mode)
-        
-        # Restore selection
-        for obj in selected_objects:
-            obj.select_set(True)
-        context.view_layer.objects.active = original_active_obj
-
-        return {'FINISHED'}
-    
-
-class SimpleToolbox_OT_ApplyZenUVTD(bpy.types.Operator):
-    bl_label = "Set TD"
-    bl_idname = "r0tools.zenuv_set_td"
-    bl_description = "Apply Texel Density from ZenUV to objects"
-    bl_options = {'REGISTER','UNDO'}
-
-    accepted_contexts = ["OBJECT", "EDIT_MESH"]
-
-    @classmethod
-    def poll(cls, context):
-        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
-    
-    def execute(self, context):
-        context_mode = context.mode
-        
-        if context_mode not in ["OBJECT", "EDIT_MESH"]:
-            self.report({'WARNING'}, "Only performed in Object or Edit modes")
-            return {'CANCELLED'}
-        
-        selected_objs = list(u.iter_scene_objects(selected=True))
-        active_obj = bpy.context.view_layer.objects.active
-        
-        if context_mode == "OBJECT":
-            u.deselect_all()
-        
-        TD = u.get_td_value()
-        TD_UNIT = u.get_td_unit()
-        
-        print(f"Setting TD {TD} for {len(selected_objs)} selected objects with {TD} px/{TD_UNIT}")
-        
-        bpy.data.scenes["Scene"].zen_uv.td_props.prp_current_td = TD
-        bpy.data.scenes["Scene"].zen_uv.td_props.td_unit = TD_UNIT
-        bpy.context.scene.zen_uv.td_props.td_set_mode = 'ISLAND'
-        
-        if context_mode == "OBJECT":
-        
-            for o in selected_objs:
-                try:
-                    print(f"Setting {TD} px/{TD_UNIT} for {o.name}")
-                    
-                    o.select_set(True)
-                    
-                    bpy.context.view_layer.objects.active = o
-                    
-                    bpy.context.view_layer.update()
-                    
-                    # Add a small delay to ensure the selection is registered
-                    bpy.app.timers.register(lambda: None, first_interval=0.2)
-                    
-                    bpy.ops.uv.zenuv_set_texel_density(global_mode=True)
-                    
-                except Exception as e:
-                    print(f"Error: {e}")
-                    self.report({'ERROR'}, f"Error: {e}")
-                    o.select_set(False)
-                    
-            for obj in selected_objs:
-                obj.select_set(True)
-                
-            if active_obj:
-                bpy.context.view_layer.objects.active = active_obj
-        elif context_mode == "EDIT_MESH":
-            # Add a small delay to ensure the selection is registered
-            bpy.app.timers.register(lambda: None, first_interval=0.2)
-            
-            bpy.ops.uv.zenuv_set_texel_density(global_mode=True)
-        
-        # u.show_notification(f"Texel density set to {TD} px/{TD_UNIT} for {len(selected_objs)} objects.")
-        self.report({'INFO'}, f"Texel density set to {TD} px/{TD_UNIT} for {len(selected_objs)} objects.")
-        
-        return {'FINISHED'}
-
+     
 
 class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
     bl_label = "Clear Attributes"
@@ -513,14 +342,14 @@ class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
 class SimpleToolbox_OT_ClearChildrenRecurse(bpy.types.Operator):
     bl_label = "Clear Children"
     bl_idname = "r0tools.clear_all_objects_children"
-    bl_description = "For each selected object, clears parenting keeping transform for each child object.\n(SHIFT): Recursively clears parenting for ALL object children and sub-children."
+    bl_description = "For each selected object, clears parenting keeping transform for each child object.\n\n- SHIFT: Recursively clears parenting for ALL object children and sub-children."
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(cls, context):
-        return any(obj.type == "MESH" and obj.select_get() for obj in context.selected_objects) and context.mode == "OBJECT"
+        return any(u.iter_scene_objects(selected=True, types=["MESH"])) and context.mode == u.OBJECT_MODES.OBJECT
 
-    recurse: bpy.props.BoolProperty(default=False)
+    recurse: BoolProperty(name="Recursively clear all children", default=False) #type: ignore
     
     def op_clear_all_objects_children(self, recurse=False):
         parent_objs = 0
@@ -597,54 +426,324 @@ class SimpleToolbox_OT_ClearChildrenRecurse(bpy.types.Operator):
         return {'FINISHED'}
 
 
+# -------------------------------------------------------------------
+#   MESH OPS
+# -------------------------------------------------------------------
+class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
+    bl_label = "Remove Nth Edges"
+    bl_idname = "r0tools.nth_edges"
+    bl_description = "Remove Nth (every other) edges from edge loops.\nSelect one edge per disconnected mesh to define the starting point.\n\nBy default, the selection automatically expands to include all connected edges in the loop. To limit the operation to only the manually selected contiguous edges or restrict it to the original ring selection, disable 'Expand Edges.'"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    expand_edges: BoolProperty(name="Expand Edges", default=True) #type: ignore
+    keep_initial_selection: BoolProperty(name="Keep Selected Edges", default=True) #type: ignore
+
+    @classmethod
+    def poll(cls, context):
+        # Ensure at least one object is selected
+        return any(u.iter_scene_objects(selected=True, types=["MESH"])) and context.mode == u.OBJECT_MODES.EDIT_MESH
+
+    def process_object(self, obj, context):
+        # Make active
+        u.set_active_object(obj)
+
+        if context.mode != u.OBJECT_MODES.EDIT_MESH:
+            u.set_mode_edit()
+        
+        # Create a bmesh
+        me = obj.data
+        bm = bmesh.from_edit_mesh(me)
+        bm.select_mode = {'EDGE'}
+
+        # Currently selected edges
+        initial_selection = [edge for edge in bm.edges if edge.select]
+
+        # Edges to delete from all meshes
+        edges_delete = []
+
+        for i, edge in enumerate(initial_selection):
+            print(f"{i} {edge.index}")
+            
+            # Deselect all bm edges
+            for e in bm.edges:
+                e.select = False
+
+            # Select the original edge
+            edge.select = True
+
+            # Select the ring and nth
+            bpy.ops.mesh.loop_multi_select(ring=True)
+            bpy.ops.mesh.select_nth()
+
+            selected_edges = [edge.index for edge in bm.edges if edge.select]
+            if edge.index in selected_edges:
+                # Deselect all bm edges
+                for e in bm.edges:
+                    e.select = False
+                
+                # Select the original edge
+                edge.select = True
+                bpy.ops.mesh.loop_multi_select(ring=True)
+                bpy.ops.mesh.select_nth(offset=1)
+            
+            if self.expand_edges:
+                bpy.ops.mesh.loop_multi_select(ring=False)
+
+            # Store those edges
+            edges_delete.extend([edge for edge in bm.edges if edge.select])
+
+            # Deselect initial edge we want to keep
+            edge.select = False
+
+        # Make sure to deselect all bm edges too
+        for e in bm.edges:
+            e.select = False
+
+        for edge in edges_delete:
+            edge.select = True
+        
+        bpy.ops.mesh.dissolve_mode(use_verts=True)
+
+        # Update the mesh
+        bmesh.update_edit_mesh(me)
+        bm.free()
+
+        # Select initial selection of edges
+        if self.keep_initial_selection:
+            for edge in initial_selection:
+                edge.select = True
+
+    def execute(self, context):
+        original_active_obj = context.active_object
+        original_mode = context.mode
+
+        if original_mode != u.OBJECT_MODES.OBJECT:
+            u.set_mode_object()
+
+        # Collect selected mesh objects
+        selected_objects = [obj for obj in context.selected_objects if obj.type == "MESH"]
+        # deselect_all()
+        for obj in selected_objects:
+            # obj.select_set(True)
+            self.process_object(obj, context)
+            # obj.select_set(False)
+
+        # Return to the original active object and mode
+        if original_mode != u.OBJECT_MODES.EDIT_MESH:
+            bpy.ops.object.mode_set(mode=original_mode)
+            u.set_object_mode(original_mode)
+        
+        # Restore selection
+        for obj in selected_objects:
+            obj.select_set(True)
+        context.view_layer.objects.active = original_active_obj
+
+        return {'FINISHED'}
+    
+
+class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
+    bl_label = "Restore Rotation"
+    bl_idname = "r0tools.rotation_from_selection"
+    bl_description = ""
+    bl_options = {'REGISTER', 'UNDO'}
+
+    clear_rotation_on_align: BoolProperty(name="Clear Rotation(s)", default=False) #type: ignore
+    keep_original_tool_configs: BoolProperty(name="Keep Original Tool Configurations", default=True) #type: ignore
+
+    @classmethod
+    def poll(cls, context):
+        # Ensure at least one object is selected
+        return any(u.iter_scene_objects(selected=True, types=["MESH"])) and context.mode == u.OBJECT_MODES.EDIT_MESH
+    
+    def execute(self, context):
+        print("=== Restore Rotation From Selection ===")
+        # Store original configurations
+        orig_affect_only_origins = u.get_scene().tool_settings.use_transform_data_origin
+        orig_affect_only_locations = u.get_scene().tool_settings.use_transform_pivot_point_align
+        orig_affect_only_parents = u.get_scene().tool_settings.use_transform_skip_children
+        orig_transform_orientation = u.get_scene().transform_orientation_slots[0].type
+        orig_active_obj = context.active_object
+        orig_selected_objects = list(u.iter_scene_objects(selected=True, types=["MESH"]))
+        
+        transform_orientation_names = []
+        
+        u.set_mode_object()
+        
+        for obj in orig_selected_objects:
+            print(f"--> {obj.name}")
+            u.select_object(obj, add=False, set_active=True)
+            u.set_mode_edit()
+
+            # Create Transform Orientation
+            to_name = f"{obj.name}_restore_orientation"
+            transform_orientation_names.append(to_name)
+            bpy.ops.transform.create_orientation(name=to_name, use=True) # Immediately set to use it
+
+            u.set_mode_object()
+
+            # Affect only origins
+            u.get_scene().tool_settings.use_transform_data_origin = True
+            u.get_scene().tool_settings.use_transform_pivot_point_align = False
+            u.get_scene().tool_settings.use_transform_skip_children = False
+
+            # Align to Transform Orientation
+            bpy.ops.transform.transform(mode='ALIGN')
+
+            # Clear affect only origins
+            u.get_scene().tool_settings.use_transform_data_origin = False
+
+            # Conditionally clear rotations based on property
+            if self.clear_rotation_on_align:
+                print(f"Clearing rotations for {obj.name}")
+                obj.rotation_euler = (0, 0, 0)
+            else:
+                print("Don't clear those rotations...")
+
+        for obj in orig_selected_objects:
+            u.select_object(obj) # Add to selection
+        
+        # Restore active object
+        u.set_active_object(orig_active_obj)
+
+        # Delete custom orientations
+        for orientation_name in transform_orientation_names:
+            u.delete_custom_orientation(orientation_name)
+
+        # Restore effectors and transform orientation selections
+        if self.keep_original_tool_configs:
+            u.get_scene().tool_settings.use_transform_data_origin = orig_affect_only_origins
+            u.get_scene().tool_settings.use_transform_pivot_point_align = orig_affect_only_locations
+            u.get_scene().tool_settings.use_transform_skip_children = orig_affect_only_parents
+            u.get_scene().transform_orientation_slots[0].type = orig_transform_orientation
+
+        self.report({'INFO'}, "Restore Rotation From Face: Done")
+        return {"FINISHED"}
+   
+
 class SimpleToolbox_OT_ClearAxisSharpEdgesX(bpy.types.Operator):
     bl_label = "Clear Sharp X"
     bl_idname = "r0tools.clear_sharp_axis_x"
-    bl_description = "Clears sharp edges on the X axis."
+    bl_description = "Clears sharp edges along the X axis"
     bl_options = {'REGISTER', 'UNDO'}
 
-    accepted_contexts = ["OBJECT", "EDIT_MESH"]
+    accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
 
     @classmethod
     def poll(cls, context):
         return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
 
     def execute(self, context):
-        u.op_clear_sharp_along_axis('X')
+        u.op_clear_sharp_along_axis('Y') # Y so as to clear along the axis, not across it
         return {'FINISHED'}
 
 
 class SimpleToolbox_OT_ClearAxisSharpEdgesY(bpy.types.Operator):
     bl_label = "Clear Sharp X"
     bl_idname = "r0tools.clear_sharp_axis_y"
-    bl_description = "Clears sharp edges on the Y axis."
+    bl_description = "Clears sharp edges along the Y axis"
     bl_options = {'REGISTER', 'UNDO'}
 
-    accepted_contexts = ["OBJECT", "EDIT_MESH"]
+    accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
 
     @classmethod
     def poll(cls, context):
         return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
 
     def execute(self, context):
-        u.op_clear_sharp_along_axis('Y')
+        u.op_clear_sharp_along_axis('X') # X so as to clear along the axis, not across it
         return {'FINISHED'}
 
 
 class SimpleToolbox_OT_ClearAxisSharpEdgesZ(bpy.types.Operator):
     bl_label = "Clear Sharp X"
     bl_idname = "r0tools.clear_sharp_axis_z"
-    bl_description = "Clears sharp edges on the Z axis."
+    bl_description = "Clears sharp edges along the Z axis (XY plane)"
     bl_options = {'REGISTER', 'UNDO'}
 
-    accepted_contexts = ["OBJECT", "EDIT_MESH"]
+    accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
 
     @classmethod
     def poll(cls, context):
         return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
 
     def execute(self, context):
-        u.op_clear_sharp_along_axis('Z')
+        u.op_clear_sharp_along_axis('Z') # Z: along the XY axis
+        return {'FINISHED'}
+
+
+# -------------------------------------------------------------------
+#   EXTERNAL OPS
+# -------------------------------------------------------------------
+class SimpleToolbox_OT_ApplyZenUVTD(bpy.types.Operator):
+    bl_label = "Set TD"
+    bl_idname = "r0tools.zenuv_set_td"
+    bl_description = "Apply Texel Density from ZenUV to objects"
+    bl_options = {'REGISTER','UNDO'}
+
+    accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
+    
+    def execute(self, context):
+        context_mode = context.mode
+        
+        if context_mode not in self.accepted_contexts:
+            self.report({'WARNING'}, "Only performed in Object or Edit modes")
+            return {'CANCELLED'}
+        
+        selected_objs = list(u.iter_scene_objects(selected=True))
+        active_obj = bpy.context.view_layer.objects.active
+        
+        if context_mode == u.OBJECT_MODES.OBJECT:
+            u.deselect_all()
+        
+        TD = u.get_td_value()
+        TD_UNIT = u.get_td_unit()
+        
+        print(f"Setting TD {TD} for {len(selected_objs)} selected objects with {TD} px/{TD_UNIT}")
+        
+        u.get_scene().zen_uv.td_props.prp_current_td = TD
+        u.get_scene().zen_uv.td_props.td_unit = TD_UNIT
+        u.get_scene().zen_uv.td_props.td_set_mode = 'ISLAND'
+        
+        if context_mode == u.OBJECT_MODES.OBJECT:
+        
+            for o in selected_objs:
+                try:
+                    print(f"Setting {TD} px/{TD_UNIT} for {o.name}")
+                    
+                    o.select_set(True)
+                    
+                    bpy.context.view_layer.objects.active = o
+                    
+                    bpy.context.view_layer.update()
+                    
+                    # Add a small delay to ensure the selection is registered
+                    bpy.app.timers.register(lambda: None, first_interval=0.2)
+                    
+                    bpy.ops.uv.zenuv_set_texel_density(global_mode=True)
+                    
+                except Exception as e:
+                    print(f"Error: {e}")
+                    self.report({'ERROR'}, f"Error: {e}")
+                    o.select_set(False)
+                    
+            for obj in selected_objs:
+                obj.select_set(True)
+                
+            if active_obj:
+                bpy.context.view_layer.objects.active = active_obj
+        elif context_mode == u.OBJECT_MODES.EDIT_MESH:
+            # Add a small delay to ensure the selection is registered
+            bpy.app.timers.register(lambda: None, first_interval=0.2)
+            
+            bpy.ops.uv.zenuv_set_texel_density(global_mode=True)
+        
+        # u.show_notification(f"Texel density set to {TD} px/{TD_UNIT} for {len(selected_objs)} objects.")
+        self.report({'INFO'}, f"Texel density set to {TD} px/{TD_UNIT} for {len(selected_objs)} objects.")
+        
         return {'FINISHED'}
 
 
@@ -655,17 +754,20 @@ class SimpleToolbox_OT_ClearAxisSharpEdgesZ(bpy.types.Operator):
 classes = [
     R0TOOLS_update_property_list, # Useful to register them early
     
+    SimpleToolbox_OT_ExperimentalOP,
+    
     SimpleToolbox_OT_ReloadNamedScripts,
-    SimpleToolbox_OT_ClearCustomData,
+    SimpleToolbox_OT_ClearCustomSplitNormalsData,
     SimpleToolbox_OT_ClearCustomProperties,
     SimpleToolbox_OT_ClearMeshAttributes,
     SimpleToolbox_OT_ClearChildrenRecurse,
+    
+    SimpleToolbox_OT_DissolveNthEdge,
+    SimpleToolbox_OT_RestoreRotationFromSelection,
     SimpleToolbox_OT_ClearAxisSharpEdgesX,
     SimpleToolbox_OT_ClearAxisSharpEdgesY,
     SimpleToolbox_OT_ClearAxisSharpEdgesZ,
-    SimpleToolbox_OT_DissolveNthEdge,
     SimpleToolbox_OT_ApplyZenUVTD,
-    SimpleToolbox_OT_ExperimentalOP,
 ]
 
 def register():

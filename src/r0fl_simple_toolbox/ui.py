@@ -12,7 +12,7 @@ class PT_SimpleToolbox(bpy.types.Panel):
     # bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context):
-        addon_props = context.scene.r0fl_toolbox_props
+        addon_props = u.get_scene().r0fl_toolbox_props
         addon_prefs = bpy.context.preferences.addons[INTERNAL_NAME].preferences
         
         layout = self.layout
@@ -38,7 +38,7 @@ class PT_SimpleToolbox(bpy.types.Panel):
             # row = box.row(align=True)
             # row.label(text="Object Ops")
             row = box.row(align=True)
-            row.operator("r0tools.clear_custom_split_normals")
+            row.operator("r0tools.clear_custom_split_normals_data")
             # row = box.row(align=True)
             # row.operator("r0tools.clear_mesh_attributes")
             row = box.row(align=True)
@@ -51,9 +51,9 @@ class PT_SimpleToolbox(bpy.types.Panel):
                 row.template_list(
                     "RPROP_UL_custom_property_list",
                     "custom_property_list",
-                    context.scene.r0fl_toolbox_props,  # Collection owner
+                    u.get_scene().r0fl_toolbox_props,  # Collection owner
                     "custom_property_list",            # Collection property
-                    context.scene.r0fl_toolbox_props,  # Active item owner
+                    u.get_scene().r0fl_toolbox_props,  # Active item owner
                     "custom_property_list_index",      # Active item property
                     rows=6
                 )
@@ -69,6 +69,8 @@ class PT_SimpleToolbox(bpy.types.Panel):
             # Nth Edges Operator
             row = box.row(align=True)
             row.operator("r0tools.nth_edges")
+            row = box.row(align=True)
+            row.operator("r0tools.rotation_from_selection")
             box = box.box()
             row = box.row(align=True)
             # Clear Sharp Edges on Axis
@@ -91,7 +93,7 @@ class PT_SimpleToolbox(bpy.types.Panel):
             row.prop(addon_prefs, "zenuv_td_prop", text="TD:")
             row.prop(addon_prefs, "zenuv_td_unit_prop", text="Unit")
             row = box.row(align=True)
-            row.operator("r0tools.zenuv_set_td")
+            row.operator("r0tools.ext.zenuv_set_td")
 
         if addon_prefs.experimental_features:
             row = layout.row()

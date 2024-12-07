@@ -1,5 +1,5 @@
 import bpy
-from bpy.props import (StringProperty,
+from bpy.props import (StringProperty, #type: ignore
                        BoolProperty,
                        IntProperty,
                        FloatProperty,
@@ -10,8 +10,11 @@ from bpy.props import (StringProperty,
                        )
 
 from .const import INTERNAL_NAME
+from .utils import save_preferences
 
-# ============ ADDON PROPS =============
+# -------------------------------------------------------------------
+#   ADDON PROPS
+# -------------------------------------------------------------------
 # Properties which are not stored in preferences
 class RPROP_UL_custom_property_list(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
@@ -21,41 +24,41 @@ class RPROP_UL_custom_property_list(bpy.types.UIList):
 
 
 class CustomPropertyItem(bpy.types.PropertyGroup):
-    name: StringProperty()
-    selected: BoolProperty(default=False)
+    name: StringProperty() #type: ignore
+    selected: BoolProperty(default=False) #type: ignore
 
 
 class r0flToolboxProps(bpy.types.PropertyGroup):
-    show_dev_tools: BoolProperty(
+    show_dev_tools: BoolProperty( #type: ignore
         name="Dev Tools",
         description="Show or hide the development options section",
         default=False
     )
 
-    show_object_ops: BoolProperty(
+    show_object_ops: BoolProperty( #type: ignore
         name="Object Ops",
         description="Show or hide the Object operators section",
         default=True
     )
     
-    show_mesh_ops: BoolProperty(
+    show_mesh_ops: BoolProperty( #type: ignore
         name="Mesh Ops",
         description="Show or hide the Mesh operators section",
         default=True
     )
 
-    show_ext_ops: BoolProperty(
+    show_ext_ops: BoolProperty( #type: ignore
         name="External Ops",
         description="Show or hide the External operators section",
         default=False
     )
 
-    reload_modules_prop: StringProperty(
+    reload_modules_prop: StringProperty( #type: ignore
         name="Module(s)",
         description="Command-separated list of module names"
     )
 
-    screen_size_pct_prop: FloatProperty(
+    screen_size_pct_prop: FloatProperty( #type: ignore
         name="Screen Size Percentage",
         default=0.0,
         min=0.0,
@@ -63,7 +66,7 @@ class r0flToolboxProps(bpy.types.PropertyGroup):
         subtype="PERCENTAGE"
     )
 
-    polygon_threshold: FloatProperty(
+    polygon_threshold: FloatProperty( #type: ignore
         name="Screen Size Threshold (%)",
         default=1,
         min=0.0,
@@ -71,32 +74,34 @@ class r0flToolboxProps(bpy.types.PropertyGroup):
         description="Highlight meshes smaller than this screen size percentage"
     )
 
-    show_custom_property_list_prop: BoolProperty(
+    show_custom_property_list_prop: BoolProperty( #type: ignore
         name="Delete Custom Properties",
         description="List Custom Properties",
         default=False
     )
 
-    custom_property_list: CollectionProperty(type=CustomPropertyItem)
-    custom_property_list_index: IntProperty(default=0)
-    last_object_selection: StringProperty(
+    custom_property_list: CollectionProperty(type=CustomPropertyItem) #type: ignore
+    custom_property_list_index: IntProperty(default=0) #type: ignore
+    last_object_selection: StringProperty( #type: ignore
         name="Last Object Selection",
         description="Comma-separated names of last selected objects",
         default=''
     )
 
 
-# ============ ADDON PREFS =============
+# -------------------------------------------------------------------
+#   ADDON PREFS
+# -------------------------------------------------------------------
 class AddonPreferences(bpy.types.AddonPreferences):
     bl_idname = INTERNAL_NAME
 
-    experimental_features: BoolProperty(
+    experimental_features: BoolProperty( #type: ignore
         name="Experimental Features",
         description="Enable experimental features",
         default=False
     )
     
-    clear_sharp_axis_float_prop: FloatProperty(
+    clear_sharp_axis_float_prop: FloatProperty( #type: ignore
         name="Clear Sharp Axis Threshold",
         default=0.0,
         min=0.0,
@@ -104,7 +109,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         update=lambda self, context: save_preferences()
     )
     
-    zenuv_td_prop: FloatProperty(
+    zenuv_td_prop: FloatProperty( #type: ignore
         name="ZenUV Texel Density",
         default=10.0,
         min=0.0,
@@ -123,7 +128,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         ('PX_IN', "px/in", "Pixels per inch", 7),
         ('PX_TH', "px/th", "Pixels per thou", 8)
     ]
-    zenuv_td_unit_prop: EnumProperty(
+    zenuv_td_unit_prop: EnumProperty( #type: ignore
         name="zenuv_td_unit_prop",
         items=zenuv_unit_options,
         description="Texel Density value to apply to meshes",

@@ -3,14 +3,89 @@ import math
 
 from .const import INTERNAL_NAME
 
-def iter_scene_objects(selected=False, type: str = ''):
-        iters = bpy.data.objects
-        if selected:
-            iters = bpy.context.selected_objects
-            
-        for o in iters:
-            if not type or o.type == type:
-                yield o
+class OBJECT_MODES:
+    OBJECT = "OBJECT"
+    EDIT = "EDIT"
+    EDIT_MESH = "EDIT_MESH"
+    SCULPT = "SCULPT"
+    VERTEX_PAINT = "VERTEX_PAINT"
+    TEXTURE_PAINT = "TEXTURE_PAINT"
+    WEIGHT_PAINT = "WEIGHT_PAINT"
+
+
+def get_scene() -> bpy.types.Scene:
+    return bpy.context.scene
+
+def get_scene_name() -> str:
+    return get_scene().name
+
+def set_object_mode(mode: str):
+    """
+    Set the current mode to one of the following:
+    
+    - OBJECT
+    - EDIT
+    - SCULPT
+    - VERTEX_PAINT
+    - TEXTURE_PAINT
+    - WEIGHT_PAINT
+    """
+
+    print(f"Setting mode: {mode}")
+    bpy.ops.object.mode_set(mode=mode)
+
+def set_mode_object():
+    """
+    Sets the current mode to: Object Mode
+    """
+    set_object_mode("OBJECT")
+
+def set_mode_edit():
+    """
+    Sets the current mode to: Edit Mode
+    """
+    set_object_mode("EDIT")
+
+def select_object(obj: bpy.types.Object, add=True, set_active=False):
+    print(f"Selecting {obj.name} {add=} {set_active=}")
+    if not add:
+        deselect_all()
+    
+    obj.select_set(True)
+
+    if not add or set_active:
+        set_active_object(obj)
+
+def set_active_object(obj: bpy.types.Object):
+    bpy.context.view_layer.objects.active = obj
+
+# Set selection mode template
+def _set_mesh_selection_mode(use_extend=False, use_expand=False, type=""):
+    bpy.ops.mesh.select_mode(use_extend=use_extend, use_expand=use_expand, type=type)
+
+# Set selection mode Vertex
+def set_mesh_selection_vertex(*args, **kwargs):
+    kwargs["type"] = "VERT"
+    _set_mesh_selection_mode(*args, **kwargs)
+
+# Set selection mode Edge
+def set_mesh_selection_edge(*args, **kwargs):
+    kwargs["type"] = "EDGE"
+    _set_mesh_selection_mode(*args, **kwargs)
+
+# Set selection mode Face
+def set_mesh_selection_face(*args, **kwargs):
+    kwargs["type"] = "FACE"
+    _set_mesh_selection_mode(*args, **kwargs)
+
+def iter_scene_objects(selected=False, types: list[str] = []):
+    iters = bpy.data.objects
+    if selected:
+        iters = bpy.context.selected_objects
+        
+    for o in iters:
+        if not types or o.type in types:
+            yield o
                 
 def iter_children(p_obj, recursive=True):
     """
@@ -32,7 +107,14 @@ def show_notification(message, title="Script Finished"):
     bpy.context.workspace.status_text_set(message)
     
 def deselect_all():
-    bpy.ops.object.select_all(action="DESELECT")
+    context_mode = bpy.context.mode
+    edit_modes = ["EDIT", "EDIT_MODE"]
+    object_modes = ["OBJECT", "OBJECT_MODE"]
+
+    if context_mode in edit_modes:
+        bpy.ops.mesh.select_all(action="DESELECT")
+    elif context_mode in object_modes:
+        bpy.ops.object.select_all(action="DESELECT")
 
 def save_preferences():
     """Safely save user preferences without causing recursion"""
@@ -44,8 +126,8 @@ def save_preferences():
             save_preferences.is_saving = True
             bpy.context.preferences.use_preferences_save = True
             
-            bpy.data.scenes["Scene"].zen_uv.td_props.prp_current_td = get_td_value()
-            bpy.data.scenes["Scene"].zen_uv.td_props.td_unit = get_td_unit()
+            get_scene().zen_uv.td_props.prp_current_td = get_td_value()
+            get_scene().zen_uv.td_props.td_unit = get_td_unit()
             
             bpy.ops.wm.save_userpref()
             save_preferences.is_saving = False
@@ -109,7 +191,7 @@ def op_clear_sharp_along_axis(axis: str):
         
         # Store the selection mode
         # Tuple of Booleans for each of the 3 modes
-        selection_mode = tuple(bpy.context.scene.tool_settings.mesh_select_mode)
+        selection_mode = tuple(get_scene().tool_settings.mesh_select_mode)
         
         # Store initial selections
         # Vertices
@@ -122,10 +204,10 @@ def op_clear_sharp_along_axis(axis: str):
         selected_faces = [f.index for f in mesh.polygons if f.select]
         
         # Deselect all vertices
-        bpy.ops.object.mode_set(mode='EDIT')
-        bpy.ops.mesh.select_mode(type="VERT")
-        bpy.ops.mesh.select_all(action="DESELECT")
-        bpy.ops.object.mode_set(mode="OBJECT") # We're in Object mode so we can select stuff. Logic is weird.
+        set_mode_edit()
+        set_mesh_selection_vertex()
+        deselect_all()
+        set_mode_object() # We're in Object mode so we can select stuff. Logic is weird.
         
         for idx, vertex in enumerate(mesh.vertices):
             # print(f"Vertex {vertex.co}", end="")
@@ -146,39 +228,36 @@ def op_clear_sharp_along_axis(axis: str):
                     # print(f" Z isclose({vertex.co.z}, 0.0, abs_tol={threshold}): {math.isclose(vertex.co.z, 0.0, abs_tol=threshold)}")
         
         # Enter Edit mode
-        bpy.ops.object.mode_set(mode="EDIT")
+        set_mode_edit()
         
         # Switch to edge mode
-        bpy.ops.mesh.select_mode(use_extend=False, use_expand=False, type="EDGE")
+        set_mesh_selection_edge(use_extend=False, use_expand=False)
         
         # Clear the Sharp
         bpy.ops.mesh.mark_sharp(clear=True)
         
         # Restore the inital selections and mode
         if selection_mode[0] is True:
-            # Deselect all vertices
-            bpy.ops.mesh.select_mode(type="VERT")
-            bpy.ops.mesh.select_all(action="DESELECT")
-            bpy.ops.object.mode_set(mode="OBJECT") # We're in Object mode so we can select stuff. Logic is weird.
+            set_mesh_selection_vertex()
+            deselect_all()
+            set_mode_object()
             for vert_idx in selected_vertices:
                 mesh.vertices[vert_idx].select = True
         if selection_mode[1] is True:
-            # Deselect all vertices
-            bpy.ops.mesh.select_mode(type="EDGE")
-            bpy.ops.mesh.select_all(action="DESELECT")
-            bpy.ops.object.mode_set(mode="OBJECT") # We're in Object mode so we can select stuff. Logic is weird.
+            set_mesh_selection_edge()
+            deselect_all()
+            set_mode_object()
             for edge_idx in selected_edges:
                 mesh.edges[edge_idx].select = True
         if selection_mode[2] is True:
-            # Deselect all vertices
-            bpy.ops.mesh.select_mode(type="FACE")
-            bpy.ops.mesh.select_all(action="DESELECT")
-            bpy.ops.object.mode_set(mode="OBJECT") # We're in Object mode so we can select stuff. Logic is weird.
+            set_mesh_selection_face()
+            deselect_all()
+            set_mode_object()
             for face_idx in selected_faces:
                 mesh.polygons[face_idx].select = True
         
         # Set back to Object mode
-        bpy.ops.object.mode_set(mode=mode)
+        set_object_mode(mode)
 
 
 def continuous_property_list_update(scene, context):
@@ -187,7 +266,7 @@ def continuous_property_list_update(scene, context):
     
     if bpy.context.selected_objects:
         current_selection = {obj.name for obj in iter_scene_objects(selected=True)}
-        addon_props = context.scene.r0fl_toolbox_props
+        addon_props = get_scene().r0fl_toolbox_props
         prev_selection = set(addon_props.last_object_selection.split(',')) if addon_props.last_object_selection else set()
 
         if current_selection != prev_selection:
@@ -206,5 +285,24 @@ def continuous_property_list_update(scene, context):
             addon_props.last_object_selection = ','.join(current_selection)
     else:
         # Clear the property list if no objects are selected
-        context.scene.r0fl_toolbox_props.custom_property_list.clear()
-        context.scene.r0fl_toolbox_props.last_object_selection = ""
+        get_scene().r0fl_toolbox_props.custom_property_list.clear()
+        get_scene().r0fl_toolbox_props.last_object_selection = ""
+
+def delete_custom_orientation(name: str):
+    """
+    What a stupid workaround....
+    
+    - https://blender.stackexchange.com/a/196080
+    """
+
+    print(f"Want to delete Transform Orientation: {name}")
+
+    try:
+        get_scene().transform_orientation_slots[0].type = ""
+    except Exception as inst:
+        transforms = str(inst).split("'")[1::2]
+
+    transform_list = list(transforms)
+    for enum_type in transform_list[7:]: # The 7 first orientations are built-ins
+        get_scene().transform_orientation_slots[0].type = enum_type
+        bpy.ops.transform.delete_orientation()
