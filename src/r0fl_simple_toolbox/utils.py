@@ -289,21 +289,40 @@ def continuous_property_list_update(scene, context):
         get_scene().r0fl_toolbox_props.custom_property_list.clear()
         get_scene().r0fl_toolbox_props.last_object_selection = ""
 
-def delete_custom_orientation(name: str):
+def get_transform_orientations() -> list:
+    """
+    Returns a `list[str]` with all Transform Orientation Enum Type names
+    """
+
     """
     What a stupid workaround....
     
     - https://blender.stackexchange.com/a/196080
     """
-
-    print(f"Want to delete Transform Orientation: {name}")
-
     try:
+        # This is a problem because when trying to call this for a Pie Menu, it will error with:
+        # AttributeError('Writing to ID classes in this context is not allowed: Scene, Scene datablock, error setting TransformOrientationSlot.type')
+        # And won't produce any custom orientations
         get_scene().transform_orientation_slots[0].type = ""
     except Exception as inst:
         transforms = str(inst).split("'")[1::2]
 
     transform_list = list(transforms)
-    for enum_type in transform_list[7:]: # The 7 first orientations are built-ins
+
+    return transform_list
+
+def delete_custom_orientation(name: str):
+    transform_list = get_transform_orientations()[7:] # The 7 first orientations are built-ins
+    for enum_type in transform_list:
         get_scene().transform_orientation_slots[0].type = enum_type
         bpy.ops.transform.delete_orientation()
+
+def get_custom_transform_orientations() -> list:
+    """
+    Returns a `list[str]` with just Custom Transform Orientation Enum Type names
+    """
+
+    custom_transforms= get_transform_orientations()[7:] # The 7 first orientations are built-ins
+    print(f"{custom_transforms=}")
+
+    return custom_transforms

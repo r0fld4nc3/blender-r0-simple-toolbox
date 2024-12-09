@@ -626,7 +626,7 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
 
         # Delete custom orientations
         for orientation_name in transform_orientation_names:
-            u.delete_custom_orientation(orientation_name)
+            u.delete_custom_transform_orientation(orientation_name)
 
         # Restore effectors and transform orientation selections
         if self.keep_original_tool_configs:
