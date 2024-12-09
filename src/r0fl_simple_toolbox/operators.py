@@ -119,6 +119,66 @@ class SimpleToolbox_OT_ExperimentalOP(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class SimpleToolbox_OT_AddCustomTransformOrientationsToPieMenu(bpy.types.Operator):
+    bl_label = "Add Custom Orients"
+    bl_idname = "r0tools.exp_custom_transform_orientations_to_pie_menu"
+    bl_description = ""
+    bl_options = {'REGISTER'}
+
+    _orientations_pie = bpy.types.VIEW3D_MT_orientations_pie
+    _original_draw = _orientations_pie.draw
+
+    def invoke(self, context, event):
+        if event.ctrl:
+            return self.cleanup(context)
+        
+        return self.execute(context)
+
+    def execute(self, context):
+        print("\n=== Add Custom Transform Orientations To Pie Menu ===")
+
+        try:
+            # Store the original draw method if not already stored
+            if not hasattr(bpy.types.VIEW3D_MT_orientations_pie, "_original_draw"):
+                bpy.types.VIEW3D_MT_orientations_pie._original_draw = bpy.types.VIEW3D_MT_orientations_pie.draw
+        
+            def modified_draw(self, context):
+                # Call the original draw method first
+                bpy.types.VIEW3D_MT_orientations_pie._original_draw(self, context)
+                
+                # Additional drawing for the new custom orientation
+                layout = self.layout
+                pie = layout.menu_pie()
+                
+                for orientation_name in u.get_custom_transform_orientations():
+                    pie.prop_enum(
+                        context.scene.transform_orientation_slots[0], 
+                        "type", 
+                        orientation_name
+                    )
+                    print(f"Added {orientation_name} to Transform Orientation Pie menu")
+            
+            # Replace the draw method
+            bpy.types.VIEW3D_MT_orientations_pie.draw = modified_draw
+    
+        except Exception as e:
+            print(f"Error adding orientation to Pie menu: {e}")
+
+        return {'FINISHED'}
+    
+    def cleanup(self, context):
+        """
+        Restore the original pie menu draw method.
+        """
+
+        # Check if has the custom draw method defined above
+        if hasattr(bpy.types.VIEW3D_MT_orientations_pie, "_original_draw"):
+            # Replace the modified one with the original draw method
+            bpy.types.VIEW3D_MT_orientations_pie.draw = bpy.types.VIEW3D_MT_orientations_pie._original_draw
+            print("Original Transform Orientations Pie Menu restored")
+
+        return {'FINISHED'}
+
 # -------------------------------------------------------------------
 #   DEV OPS
 # -------------------------------------------------------------------
@@ -697,7 +757,7 @@ class SimpleToolbox_OT_ClearAxisSharpEdgesZ(bpy.types.Operator):
 # -------------------------------------------------------------------
 class SimpleToolbox_OT_ApplyZenUVTD(bpy.types.Operator):
     bl_label = "Set TD"
-    bl_idname = "r0tools.zenuv_set_td"
+    bl_idname = "r0tools.ext_zenuv_set_td"
     bl_description = "Apply Texel Density from ZenUV to objects"
     bl_options = {'REGISTER','UNDO'}
 
@@ -777,6 +837,7 @@ classes = [
     R0TOOLS_update_property_list, # Useful to register them early
     
     SimpleToolbox_OT_ExperimentalOP,
+    SimpleToolbox_OT_AddCustomTransformOrientationsToPieMenu,
     
     SimpleToolbox_OT_ReloadNamedScripts,
     SimpleToolbox_OT_ClearCustomSplitNormalsData,

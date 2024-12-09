@@ -93,7 +93,7 @@ class PT_SimpleToolbox(bpy.types.Panel):
             row.prop(addon_prefs, "zenuv_td_prop", text="TD:")
             row.prop(addon_prefs, "zenuv_td_unit_prop", text="Unit")
             row = box.row(align=True)
-            row.operator("r0tools.ext.zenuv_set_td")
+            row.operator("r0tools.ext_zenuv_set_td")
 
         if addon_prefs.experimental_features:
             row = layout.row()
@@ -105,6 +105,8 @@ class PT_SimpleToolbox(bpy.types.Panel):
             row.operator("r0tools.experimental_op_1")
             row = box.row()
             row.prop(addon_props, "screen_size_pct_prop", text="Screen Size (%):")
+            row = box.row()
+            row.operator("r0tools.exp_custom_transform_orientations_to_pie_menu")
 
 
 # -------------------------------------------------------------------
