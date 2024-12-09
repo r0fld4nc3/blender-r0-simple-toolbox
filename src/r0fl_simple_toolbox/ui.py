@@ -105,8 +105,6 @@ class PT_SimpleToolbox(bpy.types.Panel):
             row.operator("r0tools.experimental_op_1")
             row = box.row()
             row.prop(addon_props, "screen_size_pct_prop", text="Screen Size (%):")
-            row = box.row()
-            row.operator("r0tools.exp_custom_transform_orientations_to_pie_menu")
 
 
 # -------------------------------------------------------------------

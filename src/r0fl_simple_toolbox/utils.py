@@ -289,7 +289,7 @@ def continuous_property_list_update(scene, context):
         get_scene().r0fl_toolbox_props.custom_property_list.clear()
         get_scene().r0fl_toolbox_props.last_object_selection = ""
 
-def get_builtin_custom_transform_orientations(identifiers=False) -> list:
+def get_builtin_transform_orientations(identifiers=False) -> list:
     if identifiers:
         _ret = [i.identifier for i in bpy.types.TransformOrientationSlot.bl_rna.properties['type'].enum_items]
     else:
@@ -314,7 +314,6 @@ def get_transform_orientations() -> list:
         get_scene().transform_orientation_slots[0].type = ""
     except Exception as inst:
         transforms = str(inst).split("'")[1::2]
-        print(inst)
 
     transform_list = list(transforms)
     print(transform_list)

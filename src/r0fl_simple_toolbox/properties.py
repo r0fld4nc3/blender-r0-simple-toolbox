@@ -11,6 +11,7 @@ from bpy.props import (StringProperty, #type: ignore
 
 from .const import INTERNAL_NAME
 from .utils import save_preferences
+import rna_keymap_ui
 
 # -------------------------------------------------------------------
 #   ADDON PROPS
@@ -135,6 +136,36 @@ class AddonPreferences(bpy.types.AddonPreferences):
         default='PX_CM',
         update=lambda self, context: save_preferences()
     )
+
+    def draw_keymaps(self, context, layout):
+        from .operators import SimpleToolbox_OT_ShowCustomOrientationsPie
+
+        wm = context.window_manager
+        kc = wm.keyconfigs.addon
+
+        km = wm.keyconfigs.addon.keymaps["3D View"]
+
+        custom_keymaps = [
+            SimpleToolbox_OT_ShowCustomOrientationsPie.bl_idname
+        ]
+
+        for kmi in km.keymap_items:
+            if kmi.idname in custom_keymaps:
+                row = layout.row()
+                
+                # Keymap name
+                row.prop(km, "name", text="", emboss=False)
+                
+                # Draw the individual keymap item
+                rna_keymap_ui.draw_kmi(
+                    ['ADDON', 'USER', 'DEFAULT'], 
+                    kc, 
+                    km, 
+                    kmi, 
+                    layout, 
+                    0
+                )
+                break
     
     def draw(self, context):
         layout = self.layout
@@ -155,6 +186,10 @@ class AddonPreferences(bpy.types.AddonPreferences):
         
         row = td_box.row()
         row.prop(self, "zenuv_td_unit_prop")
+
+        row = layout.row()
+        row.label(text="Keymaps")
+        self.draw_keymaps(context, layout)
         
     def save_axis_threshold(self):
         addon_prefs = bpy.context.preferences.addons["r0fl_simple_toolbox"].preferences
