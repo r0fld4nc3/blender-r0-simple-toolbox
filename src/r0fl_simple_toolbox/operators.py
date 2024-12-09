@@ -34,6 +34,168 @@ class R0TOOLS_update_property_list(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class CustomTransformsOrientationsTracker:
+    # Class variable to store the list of custom orientations
+    _custom_orientations = []
+    _last_tracked_orientations = set()
+
+    @classmethod
+    def track_custom_orientations(cls, scene, context=None):
+        """
+        Monitor and track changes in custom transform orientations.
+        
+        :param scene: Current Blender scene
+        :param context: Optional context
+        """
+        try:
+            # Attempt to extract current orientations
+            current_orientations = cls.get_custom_transform_orientations()
+            current_orientation_set = set(current_orientations)
+            
+            # Check for added orientations
+            added_orientations = current_orientation_set - cls._last_tracked_orientations
+            
+            # Check for removed orientations
+            removed_orientations = cls._last_tracked_orientations - current_orientation_set
+            
+            # Update if there are changes
+            if added_orientations or removed_orientations:
+                cls._custom_orientations = list(current_orientations)
+                
+                # for orient in added_orientations:
+                    # print(f"Custom Orientation Added: {orient}")
+                
+                # for orient in removed_orientations:
+                    # print(f"Custom Orientation Removed: {orient}")
+                
+                # Update the last tracked set
+                cls._last_tracked_orientations = current_orientation_set
+                
+                # Optional: Trigger a UI update if needed
+                for area in bpy.context.screen.areas:
+                    area.tag_redraw()
+        except Exception as e:
+            print(f"Error tracking custom orientations: {e}")
+    
+    @classmethod
+    def get_custom_transform_orientations(cls):
+        return u.get_custom_transform_orientations()
+    
+    @classmethod
+    def get_tracked_custom_orientations(cls):
+        """
+        Retrieve the list of tracked custom orientations.
+        
+        :return: List of custom orientation names
+        """
+        return cls._custom_orientations
+    
+    @classmethod
+    def register_handler(cls):
+        """
+        Register the custom orientation tracking handler.
+        """
+        # Remove any existing handlers to prevent duplicates
+        cls.unregister_handler()
+        
+        bpy.app.handlers.depsgraph_update_post.append(cls.track_custom_orientations)
+        
+        # Initial population of custom orientations
+        cls._last_tracked_orientations = set(cls.get_custom_transform_orientations())
+        cls._custom_orientations = list(cls._last_tracked_orientations)
+    
+    @classmethod
+    def unregister_handler(cls):
+        """
+        Unregister the custom orientation tracking handler.
+        """
+        # Remove the handler if it exists
+        if cls.track_custom_orientations in bpy.app.handlers.depsgraph_update_post:
+            bpy.app.handlers.depsgraph_update_post.remove(cls.track_custom_orientations)
+
+
+class TRANSFORM_OT_SetCustomOrientation(bpy.types.Operator):
+    """
+    Operator responsible for picking the chosen Custom Transform Orientations from the Custom Transform Orientations Pie Menu
+    """
+    
+    bl_label = "Set Custom Orientation"
+    bl_idname = "r0tools.set_custom_orientation"
+    bl_description = "Sets the picked Custom Transform Orientation"
+
+    orientation: bpy.props.StringProperty(name="Orientation") # type: ignore
+
+    def execute(self, context):
+        try:
+            u.get_scene().transform_orientation_slots[0].type = self.orientation
+            return {'FINISHED'}
+        except Exception as err:
+            self.report({'ERROR'}, f"Could not set orientation: {err}")
+            return {'CANCELLED'}
+
+
+# -------------------------------------------------------------------
+#   PIE MENUS
+# -------------------------------------------------------------------
+# Pie menus are arranged in the order West, East, South, North, Northwest, Northeast Southwest Southeast
+class VIEW3D_MT_CustomOrientationsPieMenu(bpy.types.Menu):
+    bl_label = "Custom Orientations"
+    bl_idname = "VIEW3D_MT_r0_custom_orientations_pie"
+
+    def draw(self, context):
+        layout = self.layout
+        pie = layout.menu_pie()
+
+        custom_orientations = CustomTransformsOrientationsTracker.get_tracked_custom_orientations()
+
+        total = 0 # 8 is the maximum allowed
+        for orientation_name in custom_orientations:
+            # Make the last entry be a view all instead
+            # TODO: Last entry could be a redraw of pie menu, from last index to end of list? And repeat?
+            if total == 7 and len(custom_orientations) > 8:
+                try:
+                    op = pie.operator(
+                        "transform.select_orientation",
+                        text="View All",
+                        text_ctxt="Orientation"
+                    )
+                    op.orientation = orientation_name
+                    total += 1
+                except Exception as err:
+                    print(f"Error adding Custom Orientation to Pie Menu: {err}")
+
+            # Break the fill loop if we've successfully filled 8 entries
+            if total >= 8:
+                print("Menu entries limit reached!")
+                break
+
+            # Add custom transform to pie menu as an operator if not exceptions raised
+            try:
+                op = pie.operator(
+                    "r0tools.set_custom_orientation",
+                    text=orientation_name,
+                    text_ctxt="Orientation",
+                )
+                op.orientation = orientation_name
+                total += 1
+            except Exception as err:
+                print(f"Error adding Custom Orientation to Pie Menu: {err}")
+
+
+class SimpleToolbox_OT_ShowCustomOrientationsPie(bpy.types.Operator):
+    """
+    Operator that is responsible for calling the Pie Menu.
+    """
+    
+    bl_label = "Show Custom Orientations Pie Menu"
+    bl_idname = "r0tools.show_custom_orientations_pie"
+    bl_description = "Show a pie menu with a maximum of 8 custom transform orientations"
+
+    def execute(self, context):
+        bpy.ops.wm.call_menu_pie(name="VIEW3D_MT_r0_custom_orientations_pie")
+        return {'FINISHED'}
+
+
 # -------------------------------------------------------------------
 #   EXPERIMENTAL
 # -------------------------------------------------------------------
@@ -116,159 +278,6 @@ class SimpleToolbox_OT_ExperimentalOP(bpy.types.Operator):
 
         context.view_layer.objects.active = orig_active
 
-        return {'FINISHED'}
-
-
-class CustomOrientationsTracker:
-    # Class variable to store the list of custom orientations
-    _custom_orientations = []
-    _last_tracked_orientations = set()
-
-    @classmethod
-    def track_custom_orientations(cls, scene, context=None):
-        """
-        Monitor and track changes in custom transform orientations.
-        
-        :param scene: Current Blender scene
-        :param context: Optional context
-        """
-        try:
-            # Attempt to extract current orientations
-            current_orientations = cls.get_custom_transform_orientations()
-            current_orientation_set = set(current_orientations)
-            
-            # Check for added orientations
-            added_orientations = current_orientation_set - cls._last_tracked_orientations
-            
-            # Check for removed orientations
-            removed_orientations = cls._last_tracked_orientations - current_orientation_set
-            
-            # Update if there are changes
-            if added_orientations or removed_orientations:
-                # Update the class list
-                cls._custom_orientations = list(current_orientations)
-                
-                # Print debug information
-                for orient in added_orientations:
-                    print(f"Custom Orientation Added: {orient}")
-                
-                for orient in removed_orientations:
-                    print(f"Custom Orientation Removed: {orient}")
-                
-                # Update the last tracked set
-                cls._last_tracked_orientations = current_orientation_set
-                
-                # Optional: Trigger a UI update if needed
-                for area in bpy.context.screen.areas:
-                    area.tag_redraw()
-        
-        except Exception as e:
-            print(f"Error tracking custom orientations: {e}")
-    
-    @classmethod
-    def get_custom_transform_orientations(cls):
-        return u.get_custom_transform_orientations()
-    
-    @classmethod
-    def get_tracked_custom_orientations(cls):
-        """
-        Retrieve the list of tracked custom orientations.
-        
-        :return: List of custom orientation names
-        """
-        return cls._custom_orientations
-    
-    @classmethod
-    def register_handler(cls):
-        """
-        Register the custom orientation tracking handler.
-        """
-        # Remove any existing handlers to prevent duplicates
-        cls.unregister_handler()
-        
-        # Add the handler to be called after scene updates
-        bpy.app.handlers.depsgraph_update_post.append(cls.track_custom_orientations)
-        
-        # Initial population of custom orientations
-        cls._last_tracked_orientations = set(cls.get_custom_transform_orientations())
-        cls._custom_orientations = list(cls._last_tracked_orientations)
-    
-    @classmethod
-    def unregister_handler(cls):
-        """
-        Unregister the custom orientation tracking handler.
-        """
-        # Remove the handler if it exists
-        if cls.track_custom_orientations in bpy.app.handlers.depsgraph_update_post:
-            bpy.app.handlers.depsgraph_update_post.remove(cls.track_custom_orientations)
-
-
-# Pie menus are arranged in the order West, East, South, North, Northwest, Northeast Southwest Southeast
-class VIEW3D_MT_CustomOrientationsPieMenu(bpy.types.Menu):
-    bl_label = "Custom Orientations"
-    bl_idname = "VIEW3D_MT_custom_orientations_pie"
-
-    def draw(self, context):
-        layout = self.layout
-        pie = layout.menu_pie()
-
-        custom_orientations = CustomOrientationsTracker.get_tracked_custom_orientations()
-
-        total = 0 # 8 is the maximum allowed
-        for orientation_name in custom_orientations:
-            # Make the last entry be a view all instead.
-            # TODO: Last entry could be a redraw of pie menu, from last index to end of list? And repeat?
-            if total == 7 and len(custom_orientations) > 8:
-                try:
-                    op = pie.operator(
-                        "transform.select_orientation",
-                        text="View All",
-                        text_ctxt="Orientation"
-                    )
-                    op.orientation = orientation_name
-                    total += 1
-                except Exception as err:
-                    print(f"Error adding Custom Orientation to Pie Menu: {err}")
-
-            if total >= 8:
-                print("Menu entries limit reached!")
-                break
-
-            try:
-                op = pie.operator(
-                    "r0tools.set_custom_orientation",
-                    text=orientation_name,
-                    text_ctxt="Orientation",
-                )
-                op.orientation = orientation_name
-                total += 1
-            except Exception as err:
-                print(f"Error adding Custom Orientation to Pie Menu: {err}")
-
-
-class TRANSFORM_OT_SetCustomOrientation(bpy.types.Operator):
-    bl_label = "Set Custom Orientation"
-    bl_idname = "r0tools.set_custom_orientation"
-    bl_description = "Sets the picked Custom Transform Orientation"
-
-    orientation: bpy.props.StringProperty(name="Orientation") # type: ignore
-
-    def execute(self, context):
-        try:
-            u.get_scene().transform_orientation_slots[0].type = self.orientation
-            return {'FINISHED'}
-        except Exception as err:
-            self.report({'ERROR'}, f"Could not set orientation: {err}")
-            return {'CANCELLED'}
-
-
-class SimpleToolbox_OT_ShowCustomOrientationsPie(bpy.types.Operator):
-    bl_label = "Show Custom Orientations Pie Menu"
-    bl_idname = "r0tools.show_custom_orientations_pie"
-    bl_description = "Show a pie menu with a maximum of 8 custom transform orientations"
-
-    def execute(self, context):
-        bpy.ops.wm.call_menu_pie(name="VIEW3D_MT_custom_orientations_pie")
         return {'FINISHED'}
 
 
@@ -976,7 +985,7 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
     
-    CustomOrientationsTracker.register_handler()
+    CustomTransformsOrientationsTracker.register_handler()
     
     register_keymapping()
 
@@ -985,4 +994,4 @@ def unregister():
         bpy.utils.unregister_class(cls)
 
     unregister_keymapping()
-    CustomOrientationsTracker.unregister_handler()
+    CustomTransformsOrientationsTracker.unregister_handler()
