@@ -4,7 +4,7 @@ import math
 import bmesh
 import importlib
 
-from .const import INTERNAL_NAME
+from .const import INTERNAL_NAME, DEBUG
 from . import utils as u
 from .properties import BoolProperty
 
@@ -64,10 +64,12 @@ class CustomTransformsOrientationsTracker:
                 cls._custom_orientations = list(current_orientations)
                 
                 for orient in added_orientations:
-                    print(f"Custom Orientation Added: {orient}")
+                    if DEBUG:
+                        print(f"Custom Orientation Added: {orient}")
                 
                 for orient in removed_orientations:
-                    print(f"Custom Orientation Removed: {orient}")
+                    if DEBUG:
+                        print(f"Custom Orientation Removed: {orient}")
                 
                 # Update the last tracked set
                 cls._last_tracked_orientations = current_orientation_set
@@ -129,6 +131,9 @@ class TRANSFORM_OT_SetCustomOrientation(bpy.types.Operator):
     orientation: bpy.props.StringProperty(name="Orientation") # type: ignore
 
     def execute(self, context):
+        # Reset the _invoked flag after selecting an orientation
+        VIEW3D_MT_CustomOrientationsPieMenu._invoked = True
+
         try:
             u.get_scene().transform_orientation_slots[0].type = self.orientation
             return {'FINISHED'}
@@ -145,33 +150,37 @@ class VIEW3D_MT_CustomOrientationsPieMenu(bpy.types.Menu):
     bl_label = "Custom Transform Orientations Pie Menu"
     bl_idname = "VIEW3D_MT_r0_custom_orientations_pie"
 
+    _current_start_index = 0
+    _invoked = True
+
+    @classmethod
+    def reset(cls):
+        """Reset relevant class flags"""
+        cls._current_start_index = 0
+        cls._invoked = True
+
     def draw(self, context):
         layout = self.layout
         pie = layout.menu_pie()
 
+        # Reset index if never called or coming from a different context
+        if self.__class__._invoked:
+            self.__class__.reset()
+
         custom_orientations = CustomTransformsOrientationsTracker.get_tracked_custom_orientations()
 
-        total = 0 # 8 is the maximum allowed
-        for orientation_name in custom_orientations:
-            # Make the last entry be a view all instead
-            # TODO: Last entry could be a redraw of pie menu, from last index to end of list? And repeat?
-            if total == 7 and len(custom_orientations) > 8:
-                try:
-                    op = pie.operator(
-                        "transform.select_orientation",
-                        text="View All",
-                        text_ctxt="Orientation"
-                    )
-                    op.orientation = orientation_name
-                    total += 1
-                except Exception as err:
-                    print(f"Error adding Custom Orientation to Pie Menu: {err}")
+        # Calulate range of items to display
+        remaining_orientations = len(custom_orientations) - self._current_start_index
+        start_index = self._current_start_index
+        end_index = min(start_index + 8, len(custom_orientations))
 
-            # Break the fill loop if we've successfully filled 8 entries
-            if total >= 8:
-                print("Menu entries limit reached!")
-                break
+        if DEBUG:
+            print(f"{remaining_orientations=}")
+            print(f"{start_index=}")
+            print(f"{end_index=}")
 
+        total_added = 0 # 8 is the maximum allowed
+        for orientation_name in custom_orientations[self.__class__._current_start_index:]:
             # Add custom transform to pie menu as an operator if not exceptions raised
             try:
                 op = pie.operator(
@@ -180,9 +189,37 @@ class VIEW3D_MT_CustomOrientationsPieMenu(bpy.types.Menu):
                     text_ctxt="Orientation",
                 )
                 op.orientation = orientation_name
-                total += 1
+                total_added += 1
+                if DEBUG:
+                    print(f"({self.__class__._current_start_index}) {orientation_name}")
             except Exception as err:
                 print(f"Error adding Custom Orientation to Pie Menu: {err}")
+
+            # "View More" if there are additional orientations
+            if total_added == 7 and remaining_orientations > 1:
+                try:
+                    op = pie.operator(
+                        "wm.call_menu_pie",
+                        text="View More",
+                        text_ctxt="Orientation"
+                    )
+                    op.name = "VIEW3D_MT_r0_custom_orientations_pie"
+                    
+                    # Store the next starting index for the next call
+                    self.__class__._current_start_index = end_index
+                    # Ensure we're not treating it as invoked
+                    self.__class__._invoked = False
+                    total_added += 1
+                    if DEBUG:
+                        print(f"({self.__class__._current_start_index}) {orientation_name}")
+                except Exception as err:
+                    print(f"Error adding View More to Pie Menu: {err}")
+
+            # Break the fill loop if we've successfully filled 8 entries
+            if total_added >= 8:
+                if DEBUG:
+                    print(f"Menu entries limit reached! Total added: {total_added}")
+                break
 
 
 class SimpleToolbox_OT_ShowCustomOrientationsPie(bpy.types.Operator):
@@ -195,6 +232,9 @@ class SimpleToolbox_OT_ShowCustomOrientationsPie(bpy.types.Operator):
     bl_description = "Show a pie menu with a maximum of 8 custom transform orientations"
 
     def execute(self, context):
+        # Reset the _invoked flag after selecting an orientation
+        VIEW3D_MT_CustomOrientationsPieMenu._invoked = True
+
         bpy.ops.wm.call_menu_pie(name="VIEW3D_MT_r0_custom_orientations_pie")
         return {'FINISHED'}
 

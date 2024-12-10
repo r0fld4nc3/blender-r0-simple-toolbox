@@ -1,7 +1,7 @@
 import bpy
 import math
 
-from .const import INTERNAL_NAME
+from .const import INTERNAL_NAME, DEBUG
 
 class OBJECT_MODES:
     OBJECT = "OBJECT"
@@ -316,7 +316,8 @@ def get_transform_orientations() -> list:
         transforms = str(inst).split("'")[1::2]
 
     transform_list = list(transforms)
-    print(f"{transform_list=}")
+    if DEBUG:
+        print(f"{transform_list=}")
 
     return transform_list
 
@@ -332,6 +333,7 @@ def get_custom_transform_orientations() -> list:
     """
 
     custom_transforms= get_transform_orientations()[7:] # The 7 first orientations are built-ins
-    print(f"{custom_transforms=}")
+    if DEBUG:
+        print(f"{custom_transforms=}")
 
     return custom_transforms
