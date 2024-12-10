@@ -40,9 +40,10 @@ class CustomTransformsOrientationsTracker:
     _last_tracked_orientations = set()
 
     @classmethod
+    @bpy.app.handlers.persistent
     def track_custom_orientations(cls, scene, context=None):
         """
-        Monitor and track changes in custom transform orientations.
+        Persistent handler to monitor and track changes in custom transform orientations.
         
         :param scene: Current Blender scene
         :param context: Optional context
@@ -62,16 +63,16 @@ class CustomTransformsOrientationsTracker:
             if added_orientations or removed_orientations:
                 cls._custom_orientations = list(current_orientations)
                 
-                # for orient in added_orientations:
-                    # print(f"Custom Orientation Added: {orient}")
+                for orient in added_orientations:
+                    print(f"Custom Orientation Added: {orient}")
                 
-                # for orient in removed_orientations:
-                    # print(f"Custom Orientation Removed: {orient}")
+                for orient in removed_orientations:
+                    print(f"Custom Orientation Removed: {orient}")
                 
                 # Update the last tracked set
                 cls._last_tracked_orientations = current_orientation_set
                 
-                # Optional: Trigger a UI update if needed
+                # Update UI
                 for area in bpy.context.screen.areas:
                     area.tag_redraw()
         except Exception as e:
@@ -98,6 +99,7 @@ class CustomTransformsOrientationsTracker:
         # Remove any existing handlers to prevent duplicates
         cls.unregister_handler()
         
+        print(f"Registering Handler {cls.track_custom_orientations}")
         bpy.app.handlers.depsgraph_update_post.append(cls.track_custom_orientations)
         
         # Initial population of custom orientations
@@ -111,6 +113,7 @@ class CustomTransformsOrientationsTracker:
         """
         # Remove the handler if it exists
         if cls.track_custom_orientations in bpy.app.handlers.depsgraph_update_post:
+            print(f"Unregistering Handler {cls.track_custom_orientations}")
             bpy.app.handlers.depsgraph_update_post.remove(cls.track_custom_orientations)
 
 

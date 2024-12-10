@@ -316,11 +316,11 @@ def get_transform_orientations() -> list:
         transforms = str(inst).split("'")[1::2]
 
     transform_list = list(transforms)
-    print(transform_list)
+    print(f"{transform_list=}")
 
     return transform_list
 
-def delete_custom_orientation(name: str):
+def delete_custom_transform_orientation(name: str):
     transform_list = get_transform_orientations()[7:] # The 7 first orientations are built-ins
     for enum_type in transform_list:
         get_scene().transform_orientation_slots[0].type = enum_type
