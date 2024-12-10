@@ -142,7 +142,7 @@ class TRANSFORM_OT_SetCustomOrientation(bpy.types.Operator):
 # -------------------------------------------------------------------
 # Pie menus are arranged in the order West, East, South, North, Northwest, Northeast Southwest Southeast
 class VIEW3D_MT_CustomOrientationsPieMenu(bpy.types.Menu):
-    bl_label = "Custom Orientations"
+    bl_label = "Custom Transform Orientations Pie Menu"
     bl_idname = "VIEW3D_MT_r0_custom_orientations_pie"
 
     def draw(self, context):
@@ -190,7 +190,7 @@ class SimpleToolbox_OT_ShowCustomOrientationsPie(bpy.types.Operator):
     Operator that is responsible for calling the Pie Menu.
     """
     
-    bl_label = "Show Custom Orientations Pie Menu"
+    bl_label = "Show Custom Transform Orientations Pie Menu"
     bl_idname = "r0tools.show_custom_orientations_pie"
     bl_description = "Show a pie menu with a maximum of 8 custom transform orientations"
 
@@ -960,29 +960,23 @@ classes = [
     SimpleToolbox_OT_ApplyZenUVTD,
 ]
 
+addon_keymaps = []
 def register_keymapping():
-    # Get default View3D Keymap
     wm = bpy.context.window_manager
-    km = wm.keyconfigs.addon.keymaps.new(name="3D View", space_type="VIEW_3D")
-
-    # Create a new keymap item to trigger the pie menu
-    kmi = km.keymap_items.new(
+    
+    keymap = wm.keyconfigs.addon.keymaps.new(name="3D View", space_type="VIEW_3D")
+    keymap_item = keymap.keymap_items.new(
         SimpleToolbox_OT_ShowCustomOrientationsPie.bl_idname,
-        type="ZERO",
-        value="PRESS",
-        shift=True
+        type="NONE",
+        value="PRESS"
     )
-
-    return km, kmi
+    print(f"Added keymap item: {(keymap, keymap_item)}")
+    addon_keymaps.append((keymap, keymap_item))
 
 def unregister_keymapping():
-    wm = bpy.context.window_manager
-    for km in wm.keyconfigs.addon.keymaps:
-        if km.name == "3D View":
-            for kmi in km.keymap_items:
-                if kmi.idname == SimpleToolbox_OT_ShowCustomOrientationsPie.bl_idname:
-                    km.keymap_items.remove(kmi)
-                    break
+    for km, kmi in addon_keymaps:
+        km.keymap_items.remove(kmi)
+    addon_keymaps.clear()
 
 def register():
     for cls in classes:

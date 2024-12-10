@@ -129,6 +129,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         ('PX_IN', "px/in", "Pixels per inch", 7),
         ('PX_TH', "px/th", "Pixels per thou", 8)
     ]
+
     zenuv_td_unit_prop: EnumProperty( #type: ignore
         name="zenuv_td_unit_prop",
         items=zenuv_unit_options,
@@ -138,34 +139,33 @@ class AddonPreferences(bpy.types.AddonPreferences):
     )
 
     def draw_keymaps(self, context, layout):
+        # FIXME: Has no effect, shows almost correctly
         from .operators import SimpleToolbox_OT_ShowCustomOrientationsPie
 
         wm = context.window_manager
         kc = wm.keyconfigs.addon
 
-        km = wm.keyconfigs.addon.keymaps["3D View"]
+        if kc:
+            km = kc.keymaps.get("3D View")
 
-        custom_keymaps = [
-            SimpleToolbox_OT_ShowCustomOrientationsPie.bl_idname
-        ]
+            if km:
+                custom_keymaps = [
+                    SimpleToolbox_OT_ShowCustomOrientationsPie.bl_idname
+                ]
 
-        for kmi in km.keymap_items:
-            if kmi.idname in custom_keymaps:
-                row = layout.row()
-                
-                # Keymap name
-                row.prop(km, "name", text="", emboss=False)
-                
-                # Draw the individual keymap item
-                rna_keymap_ui.draw_kmi(
-                    ['ADDON', 'USER', 'DEFAULT'], 
-                    kc, 
-                    km, 
-                    kmi, 
-                    layout, 
-                    0
-                )
-                break
+                for kmi in km.keymap_items:
+                    if kmi.idname in custom_keymaps:
+                        row = layout.row()
+                        # row.prop(kmi, "name", text="", emboss=False)
+                        rna_keymap_ui.draw_kmi(
+                            ['ADDON', 'USER', 'DEFAULT'],
+                            kc,
+                            km,
+                            kmi,
+                            layout,
+                            0
+                        )
+                        break
     
     def draw(self, context):
         layout = self.layout
