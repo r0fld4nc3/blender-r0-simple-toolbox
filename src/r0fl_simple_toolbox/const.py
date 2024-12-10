@@ -9,3 +9,4 @@ VERSION = bl_info.get("version", (0, 0, 0))
 VERSION_STR = _version_str(VERSION)
 ADDON_NAME = bl_info.get("name")
 INTERNAL_NAME = "r0fl_simple_toolbox"
+DEBUG = True
