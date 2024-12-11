@@ -74,14 +74,15 @@ class PT_SimpleToolbox(bpy.types.Panel):
             box = box.box()
             row = box.row(align=True)
             # Clear Sharp Edges on Axis
-            row.label(text="Clear Sharp Edges on Axis:")
-            row = box.row(align=True)
-            row.prop(addon_prefs, "clear_sharp_axis_float_prop", text="Threshold")
-            row = box.row(align=True)
-            row.scale_x = 5
-            row.operator("r0tools.clear_sharp_axis_x", text="X")
-            row.operator("r0tools.clear_sharp_axis_y", text="Y")
-            row.operator("r0tools.clear_sharp_axis_z", text="Z")
+            box.prop(addon_props, "show_clear_sharps_on_axis", icon="TRIA_DOWN" if addon_props.show_clear_sharps_on_axis else "TRIA_RIGHT", emboss=False)
+            if addon_props.show_clear_sharps_on_axis:
+                row = box.row(align=True)
+                row.prop(addon_prefs, "clear_sharp_axis_float_prop", text="Threshold")
+                row = box.row(align=True)
+                row.scale_x = 5
+                row.operator("r0tools.clear_sharp_axis_x", text="X")
+                row.operator("r0tools.clear_sharp_axis_y", text="Y")
+                row.operator("r0tools.clear_sharp_axis_z", text="Z")
         
         # Externals
         box = layout.box()

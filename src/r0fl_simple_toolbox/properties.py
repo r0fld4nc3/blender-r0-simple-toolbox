@@ -48,6 +48,12 @@ class r0flToolboxProps(bpy.types.PropertyGroup):
         default=True
     )
 
+    show_clear_sharps_on_axis: BoolProperty( #type: ignore
+        name="Clear Sharp Edges on Axis",
+        description="Show or hide the Clear Sharps on Axis operator",
+        default=False
+    )
+
     show_ext_ops: BoolProperty( #type: ignore
         name="External Ops",
         description="Show or hide the External operators section",
