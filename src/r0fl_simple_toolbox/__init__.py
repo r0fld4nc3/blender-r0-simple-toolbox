@@ -20,13 +20,13 @@ modules = (
 
 def import_modules():
     for module in modules:
-        print(f"IMPORT {module} - {__package__}")
+        print(f"> IMPORT {module} - {__package__}")
         importlib.import_module(module, __package__)
 
 
 def reimport_modules():
     for module in modules:
-        print(f"RELOAD {module} - {__package__}")
+        print(f"> RELOAD {module} - {__package__}")
         to_reload_module = importlib.import_module(module, __package__)
         importlib.reload(to_reload_module)
 
