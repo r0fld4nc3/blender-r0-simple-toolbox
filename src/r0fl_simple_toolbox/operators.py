@@ -41,7 +41,7 @@ def modified_orientations_pie_draw(self, context):
     """
     Modified draw method for the built-in Transform Orientations Pie Menu.
 
-    Adds View More Operator and calls a custom Custom Transform Orientations Pie Menu to show all Custom Transform Orientations.
+    Adds View More Operator and calls a custom Custom Transform Orientations Pie to show all Custom Transform Orientations.
     """
 
     # Call the stored original draw method directly
@@ -144,7 +144,7 @@ class CustomTransformsOrientationsTracker:
 
 class TRANSFORM_OT_SetCustomOrientation(bpy.types.Operator):
     """
-    Operator responsible for picking the chosen Custom Transform Orientations from the Custom Transform Orientations Pie Menu
+    Operator responsible for picking the chosen Custom Transform Orientations from the Custom Transform Orientations Menu
     """
     
     bl_label = "Set Custom Orientation"
@@ -170,7 +170,7 @@ class TRANSFORM_OT_SetCustomOrientation(bpy.types.Operator):
 # -------------------------------------------------------------------
 # Pie menus are arranged in the order West, East, South, North, Northwest, Northeast Southwest Southeast
 class VIEW3D_MT_CustomOrientationsPieMenu(bpy.types.Menu):
-    bl_label = "Custom Transform Orientations Pie Menu"
+    bl_label = "Custom Transform Orientations"
     bl_idname = "VIEW3D_MT_r0_custom_orientations_pie"
 
     _current_start_index = 0
