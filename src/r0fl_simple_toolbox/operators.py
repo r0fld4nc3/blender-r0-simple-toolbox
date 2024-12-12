@@ -32,7 +32,30 @@ class R0TOOLS_update_property_list(bpy.types.Operator):
                     item.name = prop_name
 
         return {'FINISHED'}
+    
+# Store the original draw method BEFORE modifying it
+_BUILTIN_ORIENTATIONS_PIE = bpy.types.VIEW3D_MT_orientations_pie
+_ORIGINAL_ORIENTATIONS_PIE_DRAW = _BUILTIN_ORIENTATIONS_PIE.draw
 
+def modified_orientations_pie_draw(self, context):
+    """
+    Modified draw method for the built-in Transform Orientations Pie Menu.
+
+    Adds View More Operator and calls a custom Custom Transform Orientations Pie Menu to show all Custom Transform Orientations.
+    """
+
+    # Call the stored original draw method directly
+    _ORIGINAL_ORIENTATIONS_PIE_DRAW(self, context)
+
+    len_custom_orientations = len(CustomTransformsOrientationsTracker.get_tracked_custom_orientations())
+    if len_custom_orientations > 0:
+        layout = self.layout
+        pie = layout.menu_pie()
+        pie.operator(
+            "r0tools.show_custom_orientations_pie",
+            text="View Custom",
+            text_ctxt="Orientation",
+        )
 
 class CustomTransformsOrientationsTracker:
     # Class variable to store the list of custom orientations
@@ -1030,6 +1053,9 @@ def register():
     
     CustomTransformsOrientationsTracker.register_handler()
     
+    # Register modified draw method for Orientations Pie
+    _BUILTIN_ORIENTATIONS_PIE.draw = modified_orientations_pie_draw
+    
     register_keymapping()
 
 def unregister():
@@ -1038,3 +1064,5 @@ def unregister():
 
     unregister_keymapping()
     CustomTransformsOrientationsTracker.unregister_handler()
+
+    _BUILTIN_ORIENTATIONS_PIE.draw = _ORIGINAL_ORIENTATIONS_PIE_DRAW
