@@ -322,10 +322,13 @@ def get_transform_orientations() -> list:
     return transform_list
 
 def delete_custom_transform_orientation(name: str):
-    transform_list = get_transform_orientations()[7:] # The 7 first orientations are built-ins
+    transform_list = get_custom_transform_orientations()
     for enum_type in transform_list:
-        get_scene().transform_orientation_slots[0].type = enum_type
-        bpy.ops.transform.delete_orientation()
+        if DEBUG:
+            print(f"{enum_type=} == {name=}")
+        if enum_type == name or str(enum_type).lower() == str(name).lower():
+            get_scene().transform_orientation_slots[0].type = enum_type
+            bpy.ops.transform.delete_orientation()
 
 def get_custom_transform_orientations() -> list:
     """
