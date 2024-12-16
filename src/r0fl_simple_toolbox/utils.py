@@ -271,16 +271,22 @@ def continuous_property_list_update(scene, context):
         prev_selection = set(addon_props.last_object_selection.split(',')) if addon_props.last_object_selection else set()
 
         if current_selection != prev_selection:
-            addon_props.custom_property_list.clear()
+            try:
+                addon_props.custom_property_list.clear()
+            except Exception as e:
+                print(f"ERROR: {e}")
 
             # Add unique custom properties to the list
             unique_props = set()
             for obj in bpy.context.selected_objects:
                 for prop_name in obj.keys():
                     if not prop_name.startswith('_') and prop_name not in unique_props:
-                        unique_props.add(prop_name)
-                        item = addon_props.custom_property_list.add()
-                        item.name = prop_name
+                        try:
+                            unique_props.add(prop_name)
+                            item = addon_props.custom_property_list.add()
+                            item.name = prop_name
+                        except Exception as e:
+                            print(f"ERROR: {e}")
 
             # Update the last object selection
             addon_props.last_object_selection = ','.join(current_selection)
