@@ -500,7 +500,7 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
+        return context.mode in cls.accepted_contexts
 
     def invoke(self, context, event):
         self.add_to_selection = False # Always reset
