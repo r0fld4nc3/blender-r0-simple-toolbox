@@ -76,20 +76,22 @@ class PT_SimpleToolbox(bpy.types.Panel):
                     row.operator("r0tools.remove_from_object_set")
                     row.operator("r0tools.select_object_set")
 
-            # Scrollable list with checkboxes
-            row = box.row()
-            row.prop(addon_props, "show_custom_property_list_prop", icon="TRIA_DOWN" if addon_props.show_custom_property_list_prop else "TRIA_RIGHT", emboss=False)
-            if addon_props.show_custom_property_list_prop:
+                # Scrollable list with checkboxes
                 row = box.row()
-                row.template_list(
-                    "RPROP_UL_custom_property_list",
-                    "custom_property_list",
-                    u.get_scene().r0fl_toolbox_props,  # Collection owner
-                    "custom_property_list",            # Collection property
-                    u.get_scene().r0fl_toolbox_props,  # Active item owner
-                    "custom_property_list_index",      # Active item property
-                    rows=6
-                )
+                row.prop(addon_props, "show_custom_property_list_prop", icon="TRIA_DOWN" if addon_props.show_custom_property_list_prop else "TRIA_RIGHT", emboss=False)
+                if addon_props.show_custom_property_list_prop:
+                    row = box.row()
+                    row.template_list(
+                        "RPROP_UL_custom_property_list",
+                        "custom_property_list",
+                        u.get_scene().r0fl_toolbox_props,  # Collection owner
+                        "custom_property_list",            # Collection property
+                        u.get_scene().r0fl_toolbox_props,  # Active item owner
+                        "custom_property_list_index",      # Active item property
+                        rows=6
+                    )
+                
+                # Clear Custom Properties
                 row = box.row()
                 row.operator("r0tools.clear_custom_properties")
         
