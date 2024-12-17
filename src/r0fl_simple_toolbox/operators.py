@@ -473,18 +473,19 @@ class SimpleToolbox_OT_RemoveFromObjectSet(bpy.types.Operator):
         addon_props = u.get_scene().r0fl_toolbox_props
         index = addon_props.object_sets_index
 
+        total_removed = 0
+
         if 0 <= index < len(addon_props.object_sets):
             object_set = addon_props.object_sets[index]
 
-            selected_objects = [obj.name for obj in context.selected_objects]
-
             for item in object_set.objects:
                 obj = item.object
-                print(f"{obj.name} in {selected_objects}")
-                if obj.name in selected_objects:
+                if obj in context.selected_objects:
+                    print(f"{obj.name} in {[o.name for o in context.selected_objects]}")
                     object_set.remove_object(obj)
+                    total_removed += 1
 
-            self.report({'INFO'}, f"Removed {len(context.selected_objects)} objects of Set '{object_set.name}'")
+            self.report({'INFO'}, f"Removed {total_removed} objects of Set '{object_set.name}'")
         return {'FINISHED'}
     
 

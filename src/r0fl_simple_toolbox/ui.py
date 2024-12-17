@@ -24,12 +24,14 @@ class PT_SimpleToolbox(bpy.types.Panel):
         box.prop(addon_props, "show_dev_tools", icon="TRIA_DOWN" if addon_props.show_dev_tools else "TRIA_RIGHT", emboss=False)
         if addon_props.show_dev_tools:
             row = box.row()
-            row.operator("script.reload", text="Reload All Scripts", icon="NONE")
+            row.operator("script.reload", text="Reload All Scripts", icon="PACKAGE")
             box = box.box()
             row = box.row()
             row.prop(addon_props, "reload_modules_prop")
             row = box.row()
-            row.operator("r0tools.reload_named_scripts", icon="NONE")
+            row.operator("r0tools.reload_named_scripts", icon="TOOL_SETTINGS")
+            row = box.row()
+            row.operator("image.reload", icon="IMAGE_DATA")
         
         # Object Ops
         box = layout.box()
