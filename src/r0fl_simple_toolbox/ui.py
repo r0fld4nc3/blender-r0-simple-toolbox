@@ -43,9 +43,40 @@ class PT_SimpleToolbox(bpy.types.Panel):
             # row.operator("r0tools.clear_mesh_attributes")
             row = box.row(align=True)
             row.operator("r0tools.clear_all_objects_children")
+            # Object Sets Editor
+            row = box.row()
+            if addon_prefs.experimental_features:
+                row.prop(addon_props, "show_object_sets", icon="TRIA_DOWN" if addon_props.show_object_sets else "TRIA_RIGHT", emboss=False)
+                if addon_props.show_object_sets:
+                    row = box.row()
+                    split = row.split(factor=0.85)
+
+                    # Left Section
+                    col = split.column()
+                    col.template_list(
+                        "RPROP_UL_ObjectSetsList",
+                        "object_sets",
+                        u.get_scene().r0fl_toolbox_props,  # Collection owner
+                        "object_sets",                     # Collection property
+                        u.get_scene().r0fl_toolbox_props,  # Active item owner
+                        "object_sets_index",               # Active item property
+                        rows=6
+                    )
+
+                    # Right side
+                    col = split.column()
+                    col.operator("r0tools.add_object_set_popup")
+                    col.operator("r0tools.remove_object_set")
+
+                    # Bottom
+                    row = box.row()
+                    row.operator("r0tools.add_to_object_set")
+                    row.operator("r0tools.remove_from_object_set")
+                    row.operator("r0tools.select_object_set")
+
+            # Scrollable list with checkboxes
             row = box.row()
             row.prop(addon_props, "show_custom_property_list_prop", icon="TRIA_DOWN" if addon_props.show_custom_property_list_prop else "TRIA_RIGHT", emboss=False)
-            # Scrollable list with checkboxes
             if addon_props.show_custom_property_list_prop:
                 row = box.row()
                 row.template_list(

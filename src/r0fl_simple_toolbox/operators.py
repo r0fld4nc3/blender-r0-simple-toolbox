@@ -302,7 +302,6 @@ class SimpleToolbox_OT_ExperimentalOP(bpy.types.Operator):
                 # Exit the loop once we find a valid viewport
                 break
         
-        
         # Validate viewport
         if not (region and rv3d):
             self.report({'ERROR'}, "Could not find 3D viewport")
@@ -361,6 +360,164 @@ class SimpleToolbox_OT_ExperimentalOP(bpy.types.Operator):
 
         return {'FINISHED'}
 
+
+class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
+    bl_label = "+"
+    bl_idname = "r0tools.add_object_set_popup"
+    bl_description = ""
+    bl_options = {'REGISTER', 'UNDO'}
+
+    object_set_name: bpy.props.StringProperty(name="Set Name", default="New Set") # type: ignore
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
+    def execute(self, context):
+        addon_props = u.get_scene().r0fl_toolbox_props
+        new_set = addon_props.object_sets.add()
+        new_set.name = self.object_set_name
+        addon_props.object_sets_index = len(addon_props.object_sets) - 1
+
+        if context.area:
+            context.area.tag_redraw()
+
+        self.report({'INFO'}, f"Created Object Set: {self.object_set_name}")
+        return {'FINISHED'}
+    
+
+class SimpleToolbox_OT_RenameObjectSet(bpy.types.Operator):
+    bl_label = "Rename"
+    bl_idname = "r0tools.rename_object_set"
+    bl_description = ""
+
+    new_name: bpy.props.StringProperty(name="New Object Set Name", default="") # type: ignore
+
+    def invoke(self, context, event):
+        addon_props = u.get_scene().r0fl_toolbox_props
+        index = addon_props.object_sets_index
+
+        if 0 <= index < len(addon_props.object_sets):
+            object_set = addon_props.object_sets[index]
+            self.new_name = object_set.name
+
+        return context.window_manager.invoke_props_dialog(self)
+    
+    def execute(self, context):
+        addon_props = u.get_scene().r0fl_toolbox_props
+        index = addon_props.object_sets_index
+        old_name = addon_props.object_sets[index].name
+
+        if 0 <= index < len(addon_props.object_sets):
+            object_set = addon_props.object_sets[index]
+            object_set.name = self.new_name
+            self.report({'INFO'}, f"Renamed '{old_name}' to '{self.new_name}'")
+
+class SimpleToolbox_OT_RemoveObjectSet(bpy.types.Operator):
+    bl_label = "-"
+    bl_idname = "r0tools.remove_object_set"
+    bl_description = ""
+    bl_options = {'REGISTER'}
+
+    def execute(self, context):
+        addon_props = u.get_scene().r0fl_toolbox_props
+        index = addon_props.object_sets_index
+
+        if 0 <= index < len(addon_props.object_sets):
+            set_name = addon_props.object_sets[index].name
+            addon_props.object_sets.remove(index)
+            addon_props.object_sets_index = max(0, index - 1)
+            self.report({'INFO'}, f"Removed Object Set: {set_name}")
+        return {'FINISHED'}
+
+
+class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
+    bl_label = "Add"
+    bl_idname = "r0tools.add_to_object_set"
+    bl_description = ""
+    bl_options = {'REGISTER'}
+
+    def execute(self, context):
+        addon_props = u.get_scene().r0fl_toolbox_props
+        index = addon_props.object_sets_index
+
+        if 0 <= index < len(addon_props.object_sets):
+            object_set = addon_props.object_sets[index]
+
+            for obj in context.selected_objects:
+                object_set.add_object(obj)
+
+            self.report({'INFO'}, f"Added {len(context.selected_objects)} objects to Set '{object_set.name}'")
+        return {'FINISHED'}
+    
+
+class SimpleToolbox_OT_RemoveFromObjectSet(bpy.types.Operator):
+    bl_label = "Remove"
+    bl_idname = "r0tools.remove_from_object_set"
+    bl_description = ""
+    bl_options = {'REGISTER'}
+
+    def execute(self, context):
+        addon_props = u.get_scene().r0fl_toolbox_props
+        index = addon_props.object_sets_index
+
+        if 0 <= index < len(addon_props.object_sets):
+            object_set = addon_props.object_sets[index]
+
+            selected_objects = [obj.name for obj in context.selected_objects]
+
+            for item in object_set.objects:
+                obj = item.object
+                print(f"{obj.name} in {selected_objects}")
+                if obj.name in selected_objects:
+                    object_set.remove_object(obj)
+
+            self.report({'INFO'}, f"Removed {len(context.selected_objects)} objects of Set '{object_set.name}'")
+        return {'FINISHED'}
+    
+
+class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
+    bl_label = "Select"
+    bl_idname = "r0tools.select_object_set"
+    bl_description = ""
+    bl_options = {'REGISTER'}
+
+    def execute(self, context):
+        bpy.ops.r0tools.clean_object_sets_pointers()
+
+        addon_props = u.get_scene().r0fl_toolbox_props
+        index = addon_props.object_sets_index
+
+        if 0 <= index < len(addon_props.object_sets):
+            object_set = addon_props.object_sets[index]
+            u.deselect_all()
+
+            for item in object_set.objects:
+                obj = item.object
+                if obj and obj.name in bpy.data.objects:
+                    u.select_object(obj)
+
+            self.report({'INFO'}, f"Selected objects in '{object_set.name}'")
+        return {'FINISHED'}
+    
+
+class SimpleToolbox_OT_CleanObjectSetGroup(bpy.types.Operator):
+    bl_idname = "r0tools.clean_object_sets_pointers"
+    bl_label = "Clean Object Group"
+
+    def execute(self, context):
+        addon_props = u.get_scene().r0fl_toolbox_props
+
+        for object_set in addon_props.object_sets:
+            # Remove invalid references one by one
+            to_remove = [i for i, item in enumerate(object_set.objects) if not item.object]
+            if DEBUG:
+                print(f"{to_remove=}")
+            for index in reversed(to_remove):
+                object_set.objects.remove(index)
+
+        self.report({'INFO'}, "Cleaned up invalid references in object groups")
+        return {'FINISHED'}
 
 # -------------------------------------------------------------------
 #   DEV OPS
@@ -526,6 +683,7 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
                     total_objects += 1
         
         bpy.ops.r0tools.update_property_list()
+        
         # u.show_notification(f"Deleted {total_deletions} propertie(s) across {total_objects} object(s)")
         self.report({'INFO'}, f"Deleted {total_deletions} propertie(s) across {total_objects} object(s)")
         return {'FINISHED'}
@@ -1020,6 +1178,15 @@ classes = [
     R0TOOLS_update_property_list, # Useful to register them early
     
     SimpleToolbox_OT_ExperimentalOP,
+    
+    SimpleToolbox_OT_AddObjectSetPopup,
+    SimpleToolbox_OT_RenameObjectSet,
+    SimpleToolbox_OT_RemoveObjectSet,
+    SimpleToolbox_OT_AddToObjectSet,
+    SimpleToolbox_OT_RemoveFromObjectSet,
+    SimpleToolbox_OT_SelectObjectSet,
+    SimpleToolbox_OT_CleanObjectSetGroup,
+    
     VIEW3D_MT_CustomOrientationsPieMenu,
     SimpleToolbox_OT_ShowCustomOrientationsPie,
     TRANSFORM_OT_SetCustomOrientation,

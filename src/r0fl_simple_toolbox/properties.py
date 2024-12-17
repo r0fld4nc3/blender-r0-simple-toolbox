@@ -10,7 +10,7 @@ from bpy.props import (StringProperty, #type: ignore
                        )
 
 from .const import INTERNAL_NAME
-from .utils import save_preferences
+from . import utils as u
 import rna_keymap_ui
 
 # -------------------------------------------------------------------
@@ -22,6 +22,43 @@ class RPROP_UL_custom_property_list(bpy.types.UIList):
         row = layout.row(align=True)
         row.prop(item, "selected", text="")
         row.label(text=item.name)
+
+
+class RPROP_ObjectSetObjectItem(bpy.types.PropertyGroup):
+    object: bpy.props.PointerProperty(type=bpy.types.Object) # type: ignore
+
+
+class RPROP_ObjectSetItem(bpy.types.PropertyGroup):
+    name: bpy.props.StringProperty(name="Object Set Name", default="New Object Set") # type: ignore
+    objects: bpy.props.CollectionProperty(type=RPROP_ObjectSetObjectItem) # type: ignore
+
+    def add_object(self, obj):
+        if not any(o.object == obj for o in self.objects):
+            new_object = self.objects.add()
+            new_object.object = obj
+
+    def remove_object(self, obj):
+        for i, o in enumerate(self.objects):
+            if o.object == obj:
+                self.objects.remove(i)
+                break
+
+
+class RPROP_UL_ObjectSetsList(bpy.types.UIList):
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        if self.layout_type in {"DEFAULT", "COMPACT"}:
+            row = layout.row()
+            # layout.label(text=item.name, icon="MESH_CUBE")
+            row.prop(item, "name", text="", emboss=False, icon="MESH_CUBE")
+
+            # Double Click Rename
+            addon_props = u.get_scene().r0fl_toolbox_props
+            if addon_props.object_sets_index == index and context.window_manager.event_timer_add:
+                row.operator("r0tools.rename_object_set", text="", icon='GREASEPENCIL')
+
+        elif self.layout_type in {"GRID"}:
+            layout.alignment = "CENTER"
+            layout.label(text=item.name)
 
 
 class CustomPropertyItem(bpy.types.PropertyGroup):
@@ -95,6 +132,14 @@ class r0flToolboxProps(bpy.types.PropertyGroup):
         default=''
     )
 
+    show_object_sets: BoolProperty( # type: ignore
+        name="Object Sets",
+        description="Manage different object selections via a set editor",
+        default=False
+    )
+    object_sets: CollectionProperty(type=RPROP_ObjectSetItem) #type: ignore
+    object_sets_index: IntProperty(default=0) #type: ignore
+
 
 # -------------------------------------------------------------------
 #   ADDON PREFS
@@ -113,7 +158,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         default=0.0,
         min=0.0,
         description="Threshold value for vertex/edge selection",
-        update=lambda self, context: save_preferences()
+        update=lambda self, context: u.save_preferences()
     )
     
     zenuv_td_prop: FloatProperty( #type: ignore
@@ -121,7 +166,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         default=10.0,
         min=0.0,
         description="Texel Density value to apply to meshes",
-        update=lambda self, context: save_preferences()
+        update=lambda self, context: u.save_preferences()
     )
     
     zenuv_unit_options = zenuv_unit_options = [
@@ -141,7 +186,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         items=zenuv_unit_options,
         description="Texel Density value to apply to meshes",
         default='PX_CM',
-        update=lambda self, context: save_preferences()
+        update=lambda self, context: u.save_preferences()
     )
 
     def draw_keymaps(self, context, layout):
@@ -210,6 +255,9 @@ class AddonPreferences(bpy.types.AddonPreferences):
 classes = [
     RPROP_UL_custom_property_list,
     CustomPropertyItem,
+    RPROP_ObjectSetObjectItem,
+    RPROP_ObjectSetItem,
+    RPROP_UL_ObjectSetsList,
     AddonPreferences,
     r0flToolboxProps,
 ]
