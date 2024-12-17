@@ -175,7 +175,15 @@ class VIEW3D_MT_CustomOrientationsPieMenu(bpy.types.Menu):
 
     _current_start_index = 0
     _invoked = True
+    _VALID_CONTEXTS = [u.AREA_TYPES.VIEW_3D]
 
+    @classmethod
+    def poll(cls, context):
+        if u.get_context_area() not in cls._VALID_CONTEXTS:
+            print(f"Not drawing Custom Transform Orientations Pie: '{u.get_context_area()} not in valid context areas: {cls._VALID_CONTEXTS}")
+            return False
+        return True
+    
     @classmethod
     def reset(cls):
         """Reset relevant class flags"""
@@ -183,6 +191,7 @@ class VIEW3D_MT_CustomOrientationsPieMenu(bpy.types.Menu):
         cls._invoked = True
 
     def draw(self, context):
+        print("Draw Custom Transform Orientations Pie Menu")
         layout = self.layout
         pie = layout.menu_pie()
 

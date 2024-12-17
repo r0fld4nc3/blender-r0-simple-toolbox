@@ -4,13 +4,33 @@ import math
 from .const import INTERNAL_NAME, DEBUG
 
 class OBJECT_MODES:
-    OBJECT = "OBJECT"
-    EDIT = "EDIT"
-    EDIT_MESH = "EDIT_MESH"
-    SCULPT = "SCULPT"
-    VERTEX_PAINT = "VERTEX_PAINT"
+    OBJECT        = "OBJECT"
+    EDIT          = "EDIT"
+    EDIT_MESH     = "EDIT_MESH"
+    SCULPT        = "SCULPT"
+    VERTEX_PAINT  = "VERTEX_PAINT"
     TEXTURE_PAINT = "TEXTURE_PAINT"
-    WEIGHT_PAINT = "WEIGHT_PAINT"
+    WEIGHT_PAINT  = "WEIGHT_PAINT"
+
+
+class AREA_TYPES:
+    CLIP_EDITOR      = "CLIP_EDITOR"
+    CONSOLE          = "CONSOLE"
+    DOPESHEET_EDITOR = "DOPESHEET_EDITOR"
+    FILE_BROWSER     = "FILE_BROWSER"
+    GRAPH_EDITOR     = "GRAPH_EDITOR"
+    IMAGE_EDITOR     = "IMAGE_EDITOR"
+    INFO             = "INFO"
+    NLA_EDITOR       = "NLA_EDITOR"
+    NODE_EDITOR      = "NODE_EDITOR"
+    OUTLINER         = "OUTLINER"
+    PREFERENCES      = "PREFERENCES"
+    PROPERTIES       = "PROPERTIES"
+    SEQUENCE_EDITOR  = "SEQUENCE_EDITOR"
+    SPREADSHEET      = "SPREADSHEET"
+    TEXT_EDITOR      = "TEXT_EDITOR"
+    TOPBAR           = "TOPBAR"
+    VIEW_3D          = "VIEW_3D"
 
 
 def get_scene() -> bpy.types.Scene:
@@ -18,6 +38,12 @@ def get_scene() -> bpy.types.Scene:
 
 def get_scene_name() -> str:
     return get_scene().name
+
+def get_context_area() -> str | None:
+    if not bpy.context.area:
+        return None
+    
+    return bpy.context.area.ui_type
 
 def set_object_mode(mode: str):
     """
@@ -264,6 +290,12 @@ def op_clear_sharp_along_axis(axis: str):
 def continuous_property_list_update(scene, context):
     # This method is required to assess the last object selection, otherwise
     # this is triggered on every click and the list is updated, and the checkboxes are reset
+
+    valid_contexts = [AREA_TYPES.VIEW_3D]
+
+    if get_context_area() in valid_contexts:
+        print(f"Preventing Property Update: '{bpy.context.area.ui_type}' not in valid area type contexts: {valid_contexts}")
+        return
     
     if bpy.context.selected_objects:
         current_selection = {obj.name for obj in iter_scene_objects(selected=True)}
@@ -274,7 +306,8 @@ def continuous_property_list_update(scene, context):
             try:
                 addon_props.custom_property_list.clear()
             except Exception as e:
-                print(f"ERROR: {e}")
+                print(f"ERROR clearing custom property list: {e}")
+                raise e
 
             # Add unique custom properties to the list
             unique_props = set()
@@ -286,7 +319,8 @@ def continuous_property_list_update(scene, context):
                             item = addon_props.custom_property_list.add()
                             item.name = prop_name
                         except Exception as e:
-                            print(f"ERROR: {e}")
+                            print(f"ERROR adding unique custom properties: {e}")
+                            raise e
 
             # Update the last object selection
             addon_props.last_object_selection = ','.join(current_selection)
