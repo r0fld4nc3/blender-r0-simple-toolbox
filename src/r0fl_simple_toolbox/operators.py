@@ -437,6 +437,12 @@ class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
     bl_description = ""
     bl_options = {'REGISTER'}
 
+    accepted_contexts = [u.OBJECT_MODES.OBJECT]
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
+
     def execute(self, context):
         addon_props = u.get_scene().r0fl_toolbox_props
         index = addon_props.object_sets_index
@@ -456,6 +462,12 @@ class SimpleToolbox_OT_RemoveFromObjectSet(bpy.types.Operator):
     bl_idname = "r0tools.remove_from_object_set"
     bl_description = ""
     bl_options = {'REGISTER'}
+
+    accepted_contexts = [u.OBJECT_MODES.OBJECT]
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
 
     def execute(self, context):
         addon_props = u.get_scene().r0fl_toolbox_props
@@ -479,8 +491,24 @@ class SimpleToolbox_OT_RemoveFromObjectSet(bpy.types.Operator):
 class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
     bl_label = "Select"
     bl_idname = "r0tools.select_object_set"
-    bl_description = ""
+    bl_description = "SHIFT: Add to Selection"
     bl_options = {'REGISTER'}
+
+    add_to_selection = False
+
+    accepted_contexts = accepted_contexts = [u.OBJECT_MODES.OBJECT]
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
+
+    def invoke(self, context, event):
+        self.add_to_selection = False # Always reset
+
+        if event.shift:
+            self.add_to_selection = True
+
+        return self.execute(context)
 
     def execute(self, context):
         bpy.ops.r0tools.clean_object_sets_pointers()
@@ -490,12 +518,14 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
 
         if 0 <= index < len(addon_props.object_sets):
             object_set = addon_props.object_sets[index]
-            u.deselect_all()
+            print(f"{self.add_to_selection=}")
+            if not self.add_to_selection:
+                u.deselect_all()
 
             for item in object_set.objects:
                 obj = item.object
                 if obj and obj.name in bpy.data.objects:
-                    u.select_object(obj)
+                        u.select_object(obj)
 
             self.report({'INFO'}, f"Selected objects in '{object_set.name}'")
         return {'FINISHED'}
