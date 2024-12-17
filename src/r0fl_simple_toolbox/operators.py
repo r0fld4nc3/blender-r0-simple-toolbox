@@ -525,7 +525,7 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
             for item in object_set.objects:
                 obj = item.object
                 if obj and obj.name in bpy.data.objects:
-                        u.select_object(obj)
+                    u.select_object(obj)
 
             self.report({'INFO'}, f"Selected objects in '{object_set.name}'")
         return {'FINISHED'}
