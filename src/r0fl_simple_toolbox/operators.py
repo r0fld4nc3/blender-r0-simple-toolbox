@@ -395,6 +395,9 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
         new_set.name = self.add_non_conflicting_name()
         addon_props.object_sets_index = len(addon_props.object_sets) - 1
 
+        # Immediately add selected objects to set, for convenience
+        bpy.ops.r0tools.add_to_object_set()
+
         if context.area:
             context.area.tag_redraw()
 
