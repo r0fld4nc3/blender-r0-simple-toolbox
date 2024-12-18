@@ -47,42 +47,42 @@ class PT_SimpleToolbox(bpy.types.Panel):
             row.operator("r0tools.clear_all_objects_children")
             
             # Object Sets Editor
-            if addon_prefs.experimental_features:
-                object_sets_box = object_ops_box.box()
+            object_sets_box = object_ops_box.box()
+            row = object_sets_box.row()
+            row.prop(addon_props, "show_object_sets", icon="TRIA_DOWN" if addon_props.show_object_sets else "TRIA_RIGHT", emboss=False)
+            if addon_props.show_object_sets:
                 row = object_sets_box.row()
-                row.prop(addon_props, "show_object_sets", icon="TRIA_DOWN" if addon_props.show_object_sets else "TRIA_RIGHT", emboss=False)
-                if addon_props.show_object_sets:
-                    row = object_sets_box.row()
-                    split = row.split(factor=0.9)
+                split = row.split(factor=0.9)
 
-                    # Left Section
-                    col = split.column()
-                    col.template_list(
-                        "R0PROP_UL_ObjectSetsList",
-                        "object_sets",
-                        u.get_addon_props(),  # Collection owner
-                        "object_sets",                     # Collection property
-                        u.get_addon_props(),  # Active item owner
-                        "object_sets_index",               # Active item property
-                        rows=6
-                    )
+                # Left Section
+                col = split.column()
+                col.template_list(
+                    "R0PROP_UL_ObjectSetsList",
+                    "object_sets",
+                    u.get_addon_props(),  # Collection owner
+                    "object_sets",                     # Collection property
+                    u.get_addon_props(),  # Active item owner
+                    "object_sets_index",               # Active item property
+                    rows=6
+                )
 
-                    # Right side
-                    col = split.column(align=True)
-                    col.operator("r0tools.add_object_set_popup")
-                    col.operator("r0tools.remove_object_set")
+                # Right side
+                col = split.column(align=True)
+                col.operator("r0tools.add_object_set_popup")
+                col.operator("r0tools.remove_object_set")
 
-                    # Bottom
-                    row = object_sets_box.row(align=True)
-                    split = row.split(factor=0.65)
-                    row_col = split.row(align=True)
-                    row_col.operator("r0tools.add_to_object_set")
-                    row_col.operator("r0tools.remove_from_object_set")
-                    #
-                    row_col = split.row()
-                    row_col.operator("r0tools.select_object_set")
+                # Bottom
+                row = object_sets_box.row(align=True)
+                split = row.split(factor=0.65)
+                row_col = split.row(align=True)
+                row_col.operator("r0tools.add_to_object_set")
+                row_col.operator("r0tools.remove_from_object_set")
+                #
+                row_col = split.row()
+                row_col.operator("r0tools.select_object_set")
 
-                # Custom Properties UI List
+            # Custom Properties UI List
+            if addon_prefs.experimental_features:
                 custom_properties_box = object_ops_box.box()
                 row = custom_properties_box.row()
                 row.prop(addon_props, "show_custom_property_list_prop", icon="TRIA_DOWN" if addon_props.show_custom_property_list_prop else "TRIA_RIGHT", emboss=False)
@@ -97,7 +97,6 @@ class PT_SimpleToolbox(bpy.types.Panel):
                         "custom_property_list_index",      # Active item property
                         rows=6
                     )
-                
                 # Clear Custom Properties
                 row = custom_properties_box.row()
                 row.operator("r0tools.delete_custom_properties")
