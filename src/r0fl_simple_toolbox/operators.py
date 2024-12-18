@@ -408,6 +408,9 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
         return f"{self.object_set_name}.{suffix:03}"
 
     def execute(self, context):
+        # Update cleanup dangling references
+        u.handler_cleanup_object_set_invalid_references()
+
         addon_props = u.get_addon_props()
         new_set = addon_props.object_sets.add()
         new_set.name = self.add_non_conflicting_name()
@@ -438,6 +441,9 @@ class SimpleToolbox_OT_RenameObjectSet(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
     
     def execute(self, context):
+        # Update cleanup dangling references
+        u.handler_cleanup_object_set_invalid_references()
+
         addon_props = u.get_addon_props()
         index = addon_props.object_sets_index
 
@@ -460,6 +466,9 @@ class SimpleToolbox_OT_RemoveObjectSet(bpy.types.Operator):
         return len(u.get_addon_props().object_sets) > 0
 
     def execute(self, context):
+        # Update cleanup dangling references
+        u.handler_cleanup_object_set_invalid_references()
+
         addon_props = u.get_addon_props()
         index = addon_props.object_sets_index
 
@@ -484,6 +493,9 @@ class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
         return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
 
     def execute(self, context):
+        # Update cleanup dangling references
+        u.handler_cleanup_object_set_invalid_references()
+
         addon_props = u.get_addon_props()
         index = addon_props.object_sets_index
 
@@ -510,6 +522,9 @@ class SimpleToolbox_OT_RemoveFromObjectSet(bpy.types.Operator):
         return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
 
     def execute(self, context):
+        # Update cleanup dangling references
+        u.handler_cleanup_object_set_invalid_references()
+
         addon_props = u.get_addon_props()
         index = addon_props.object_sets_index
 
@@ -552,7 +567,8 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
-        bpy.ops.r0tools.clean_object_sets_pointers()
+        # Update cleanup dangling references
+        u.handler_cleanup_object_set_invalid_references()
 
         addon_props = u.get_addon_props()
         index = addon_props.object_sets_index
@@ -563,32 +579,14 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
             if not self.add_to_selection:
                 u.deselect_all()
 
-            for item in object_set.objects:
+            for item in reversed(object_set.objects):
                 obj = item.object
-                if obj and obj.name in bpy.data.objects:
-                    u.select_object(obj)
+                if not u.select_object(obj):
+                    object_set.remove_object(obj)
 
             self.report({'INFO'}, f"Selected objects in '{object_set.name}'")
         return {'FINISHED'}
-    
 
-class SimpleToolbox_OT_CleanObjectSetGroup(bpy.types.Operator):
-    bl_idname = "r0tools.clean_object_sets_pointers"
-    bl_label = "Clean Object Group"
-
-    def execute(self, context):
-        addon_props = u.get_addon_props()
-
-        for object_set in addon_props.object_sets:
-            # Remove invalid references one by one
-            to_remove = [i for i, item in enumerate(object_set.objects) if not item.object]
-            if DEBUG:
-                print(f"{to_remove=}")
-            for index in reversed(to_remove):
-                object_set.objects.remove(index)
-
-        self.report({'INFO'}, "Cleaned up invalid references in object groups")
-        return {'FINISHED'}
 
 # -------------------------------------------------------------------
 #   DEV OPS
@@ -1256,7 +1254,6 @@ classes = [
     SimpleToolbox_OT_AddToObjectSet,
     SimpleToolbox_OT_RemoveFromObjectSet,
     SimpleToolbox_OT_SelectObjectSet,
-    SimpleToolbox_OT_CleanObjectSetGroup,
     
     VIEW3D_MT_CustomOrientationsPieMenu,
     SimpleToolbox_OT_ShowCustomOrientationsPie,

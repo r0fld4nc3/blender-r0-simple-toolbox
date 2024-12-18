@@ -1,5 +1,4 @@
 import bpy
-import addon_utils
 import math
 
 from .const import INTERNAL_NAME, ADDON_NAME, DEBUG
@@ -76,15 +75,20 @@ def set_mode_edit():
     """
     set_object_mode("EDIT")
 
-def select_object(obj: bpy.types.Object, add=True, set_active=False):
+def select_object(obj: bpy.types.Object, add=True, set_active=False) -> bpy.types.Object | None:
     print(f"Selecting {obj.name} {add=} {set_active=}")
     if not add:
         deselect_all()
+    
+    if not is_valid_object_global(obj):
+        return None
     
     obj.select_set(True)
 
     if not add or set_active:
         set_active_object(obj)
+
+    return obj
 
 def set_active_object(obj: bpy.types.Object):
     bpy.context.view_layer.objects.active = obj
@@ -385,6 +389,18 @@ def get_custom_transform_orientations() -> list:
 
     return custom_transforms
 
+def is_valid_object_global(obj):
+    """Check if an object pointer is valid and exists in any scene. If not, assume dangling reference."""
+    exists_mesh = obj and obj.name in bpy.data.objects and any(
+        obj.name in scene.objects for scene in bpy.data.scenes
+    )
+    
+    if not exists_mesh:
+        print(f"Dangling reference: {obj.name}")
+        return False
+    
+    return True
+
 @bpy.app.handlers.persistent
 def handler_update_object_set_count(context):
     try:
@@ -393,3 +409,20 @@ def handler_update_object_set_count(context):
             object_set.update_count()
     except Exception as e:
         print(f"Error updating object sets: {e}")
+
+@bpy.app.handlers.persistent
+def handler_cleanup_object_set_invalid_references(context):
+    addon_props = get_addon_props()
+
+    for object_set in addon_props.object_sets:
+        old_len = len(object_set.objects)
+
+        # Collect objects
+        for object_item in reversed(object_set.objects):
+            obj = object_item.object
+            if not is_valid_object_global(obj):
+                object_set.remove_object(obj)
+        
+        cleaned_up = old_len - len(object_set.objects)
+
+        print(f"Cleaned up {cleaned_up} references for Object Set '{object_set.name}")

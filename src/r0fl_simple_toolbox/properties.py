@@ -291,7 +291,8 @@ classes = [
 depsgraph_handlers = []
 
 load_post_handlers = [
-    u.handler_update_object_set_count
+    u.handler_update_object_set_count,
+    u.handler_cleanup_object_set_invalid_references
 ]
 
 def register():
