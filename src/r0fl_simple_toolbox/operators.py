@@ -409,7 +409,7 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
 
     def execute(self, context):
         # Update cleanup dangling references
-        u.handler_cleanup_object_set_invalid_references(context)
+        # u.handler_cleanup_object_set_invalid_references(context)
 
         addon_props = u.get_addon_props()
         new_set = addon_props.object_sets.add()
@@ -442,7 +442,7 @@ class SimpleToolbox_OT_RenameObjectSet(bpy.types.Operator):
     
     def execute(self, context):
         # Update cleanup dangling references
-        u.handler_cleanup_object_set_invalid_references(context)
+        # u.handler_cleanup_object_set_invalid_references(context)
 
         addon_props = u.get_addon_props()
         index = addon_props.object_sets_index
@@ -467,7 +467,7 @@ class SimpleToolbox_OT_RemoveObjectSet(bpy.types.Operator):
 
     def execute(self, context):
         # Update cleanup dangling references
-        u.handler_cleanup_object_set_invalid_references(context)
+        # u.handler_cleanup_object_set_invalid_references(context)
 
         addon_props = u.get_addon_props()
         index = addon_props.object_sets_index
@@ -494,7 +494,7 @@ class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
 
     def execute(self, context):
         # Update cleanup dangling references
-        u.handler_cleanup_object_set_invalid_references(context)
+        # u.handler_cleanup_object_set_invalid_references(context)
 
         addon_props = u.get_addon_props()
         index = addon_props.object_sets_index
@@ -523,7 +523,7 @@ class SimpleToolbox_OT_RemoveFromObjectSet(bpy.types.Operator):
 
     def execute(self, context):
         # Update cleanup dangling references
-        u.handler_cleanup_object_set_invalid_references(context)
+        # u.handler_cleanup_object_set_invalid_references(context)
 
         addon_props = u.get_addon_props()
         index = addon_props.object_sets_index
@@ -533,12 +533,10 @@ class SimpleToolbox_OT_RemoveFromObjectSet(bpy.types.Operator):
         if 0 <= index < len(addon_props.object_sets):
             object_set = addon_props.object_sets[index]
 
-            for item in object_set.objects:
-                obj = item.object
-                if obj in context.selected_objects:
-                    print(f"{obj.name} in {[o.name for o in context.selected_objects]}")
-                    object_set.remove_object(obj)
-                    total_removed += 1
+            for obj in context.selected_objects:
+                print(f"{obj.name} in {[o.name for o in context.selected_objects]}")
+                object_set.remove_object(obj)
+                total_removed += 1
 
             self.report({'INFO'}, f"Removed {total_removed} objects of Set '{object_set.name}'")
         return {'FINISHED'}
@@ -568,7 +566,7 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
 
     def execute(self, context):
         # Update cleanup dangling references
-        u.handler_cleanup_object_set_invalid_references(context)
+        # u.handler_cleanup_object_set_invalid_references(context)
 
         addon_props = u.get_addon_props()
         index = addon_props.object_sets_index

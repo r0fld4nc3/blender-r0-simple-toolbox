@@ -56,8 +56,8 @@ class R0PROP_ObjectSetItem(bpy.types.PropertyGroup):
         for i, o in enumerate(self.objects):
             if o.object == obj:
                 self.objects.remove(i)
-                self.update_count()
                 break
+        self.update_count()
 
     def update_count(self):
         self.count = len(self.objects)
@@ -288,7 +288,9 @@ classes = [
     r0flToolboxProps,
 ]
 
-depsgraph_handlers = []
+depsgraph_handlers = [
+    u.handler_cleanup_object_set_invalid_references
+]
 
 load_post_handlers = [
     u.handler_update_object_set_count,
