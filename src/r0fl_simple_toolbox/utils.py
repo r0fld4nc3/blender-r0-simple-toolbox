@@ -3,6 +3,12 @@ import math
 
 from .const import INTERNAL_NAME, ADDON_NAME, DEBUG
 
+
+class CUSTOM_PROPERTIES_TYPES:
+    OBJECT_DATA = "OBJECT DATA"
+    MESH_DATA   = "MESH DATA"
+
+
 class OBJECT_MODES:
     OBJECT        = "OBJECT"
     EDIT          = "EDIT"
@@ -295,46 +301,68 @@ def op_clear_sharp_along_axis(axis: str):
         set_object_mode(mode)
 
 
-def continuous_property_list_update(scene, context):
+@bpy.app.handlers.persistent
+def handler_continuous_property_list_update(scene, context, skip_sel_check=False):
     # This method is required to assess the last object selection, otherwise
     # this is triggered on every click and the list is updated, and the checkboxes are reset
-
-    valid_contexts = [AREA_TYPES.VIEW_3D]
-
-    if get_context_area() in valid_contexts:
-        print(f"Preventing Property Update: '{bpy.context.area.ui_type}' not in valid area type contexts: {valid_contexts}")
-        return
     
     if bpy.context.selected_objects:
         current_selection = {obj.name for obj in iter_scene_objects(selected=True)}
         addon_props = get_addon_props()
         prev_selection = set(addon_props.last_object_selection.split(',')) if addon_props.last_object_selection else set()
 
-        if current_selection != prev_selection:
+        print(f"{skip_sel_check=}")
+        if skip_sel_check or current_selection != prev_selection:
             try:
                 addon_props.custom_property_list.clear()
             except Exception as e:
-                print(f"ERROR clearing custom property list: {e}")
+                print(f"ERROR clearing custom property list in loop: {e}")
                 raise e
 
-            # Add unique custom properties to the list
-            unique_props = set()
+            # Add unique custom properties to the set
+            unique_object_data_props = set()
+            unique_mesh_data_props = set()
             for obj in bpy.context.selected_objects:
+                # Object Properties
                 for prop_name in obj.keys():
-                    if not prop_name.startswith('_') and prop_name not in unique_props:
+                    if DEBUG:
+                        print(f"(OP) {obj.name} - {prop_name=}")
+                    if not prop_name.startswith('_') and prop_name not in unique_object_data_props:
                         try:
-                            unique_props.add(prop_name)
+                            unique_object_data_props.add(prop_name)
                             item = addon_props.custom_property_list.add()
                             item.name = prop_name
+                            # Type is defaulted to Object
                         except Exception as e:
                             print(f"ERROR adding unique custom properties: {e}")
                             raise e
+                        
+                # Object Data Properties
+                if obj.data and obj.type == 'MESH':
+                    for prop_name in obj.data.keys():
+                        if DEBUG:
+                            print(f"(ODP) {obj.name} - {prop_name=}")
+                        if not prop_name.startswith('_') and prop_name not in unique_mesh_data_props:
+                            try:
+                                unique_mesh_data_props.add(prop_name)
+                                item = addon_props.custom_property_list.add()
+                                item.name = prop_name
+                                item.type = CUSTOM_PROPERTIES_TYPES.MESH_DATA
+                                # Type is defaulted to Object
+                            except Exception as e:
+                                print(f"ERROR adding unique custom properties: {e}")
+                                raise e
 
             # Update the last object selection
             addon_props.last_object_selection = ','.join(current_selection)
     else:
         # Clear the property list if no objects are selected
-        get_addon_props().custom_property_list.clear()
+        try:
+            get_addon_props().custom_property_list.clear()
+        except Exception as e:
+            print(f"ERROR clearing custom property list when no selected objects: {e}")
+            raise e
+        
         get_addon_props().last_object_selection = ""
 
 def get_builtin_transform_orientations(identifiers=False) -> list:

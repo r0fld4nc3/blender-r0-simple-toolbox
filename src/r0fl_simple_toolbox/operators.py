@@ -11,28 +11,7 @@ from .properties import BoolProperty
 # -------------------------------------------------------------------
 #   MISC
 # -------------------------------------------------------------------
-class R0TOOLS_update_property_list(bpy.types.Operator):
-    bl_idname = "r0tools.update_property_list"
-    bl_label = "Update Property List"
 
-    @classmethod
-    def poll(cls, context):
-        return len(context.selected_objects) > 0
-
-    def execute(self, context):
-        addon_props = u.get_addon_props()
-        addon_props.custom_property_list.clear()
-
-        unique_props = set()
-        for obj in context.selected_objects:
-            for prop_name in obj.keys():
-                if not prop_name.startswith('_') and prop_name not in unique_props:
-                    unique_props.add(prop_name)
-                    item = addon_props.custom_property_list.add()
-                    item.name = prop_name
-
-        return {'FINISHED'}
-    
 # Store the original draw method BEFORE modifying it
 _BUILTIN_ORIENTATIONS_PIE = bpy.types.VIEW3D_MT_orientations_pie
 _ORIGINAL_ORIENTATIONS_PIE_DRAW = _BUILTIN_ORIENTATIONS_PIE.draw
@@ -717,39 +696,52 @@ class SimpleToolbox_OT_ClearCustomSplitNormalsData(bpy.types.Operator):
 
 class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
     bl_label = "Delete"
-    bl_idname = "r0tools.clear_custom_properties"
+    bl_idname = "r0tools.delete_custom_properties"
     bl_description = "Delete Custom Properties from Object(s)"
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(cls, context):
-        # FIXME: There has to be a better way to solve this shit...
-        if u.continuous_property_list_update not in bpy.app.handlers.depsgraph_update_post:
-            bpy.app.handlers.depsgraph_update_post.append(u.continuous_property_list_update)
-
         return len(context.selected_objects) > 0
 
     def execute(self, context):
         print("\n=== Clear Custom Properties ===")
+        object_data_property_deletions = set()
+        mesh_data_property_deletions = set()
         total_deletions = 0
         total_objects = 0
         
-        for obj in context.selected_objects:
-            # Find selected properties to remove
-            props_to_remove = [
-                item.name for item in u.get_addon_props().custom_property_list 
-                if item.selected
-            ]
-            
+        # Find selected properties to remove
+        props_to_remove = [
+            item for item in u.get_addon_props().custom_property_list 
+            if item.selected
+        ]
+
+        for obj in context.selected_objects:    
             # Remove selected properties
-            for prop_name in props_to_remove:
-                if prop_name in obj.keys():
-                    print(f"Deleting property '{prop_name}' of object {obj.name}")
-                    del obj[prop_name]
-                    total_deletions += 1
-                    total_objects += 1
+            for custom_prop in props_to_remove:
+                prop_name = custom_prop.name
+                prop_type = custom_prop.type
+
+                # Object Data
+                if prop_type == u.CUSTOM_PROPERTIES_TYPES.OBJECT_DATA:
+                    if prop_name in reversed(obj.keys()):
+                        print(f"Deleting Object Data Property '{prop_name}' of object {obj.name}")
+                        del obj[prop_name]
+                        object_data_property_deletions.add(prop_name)
+                        total_objects += 1
+                # Mesh Data
+                elif prop_type == u.CUSTOM_PROPERTIES_TYPES.MESH_DATA:
+                    if prop_name in reversed(obj.data.keys()):
+                        print(f"Deleting Mesh Data Property '{prop_name}' of object {obj.name}")
+                        del obj.data[prop_name]
+                        mesh_data_property_deletions.add(prop_name)
+                        total_objects += 1
         
-        bpy.ops.r0tools.update_property_list()
+        total_deletions = len(object_data_property_deletions) + len(mesh_data_property_deletions)
+
+        # Update the list
+        u.handler_continuous_property_list_update(u.get_scene(), context, skip_sel_check=True)
         
         # u.show_notification(f"Deleted {total_deletions} propertie(s) across {total_objects} object(s)")
         self.report({'INFO'}, f"Deleted {total_deletions} propertie(s) across {total_objects} object(s)")
@@ -821,7 +813,7 @@ class SimpleToolbox_OT_ClearChildrenRecurse(bpy.types.Operator):
     def poll(cls, context):
         return any(u.iter_scene_objects(selected=True, types=["MESH"])) and context.mode == u.OBJECT_MODES.OBJECT
 
-    recurse: BoolProperty(name="Recursively clear all children", default=False) #type: ignore
+    recurse: BoolProperty(name="Recursively clear all children", default=False) # type: ignore
         
     def process_child_object(self, child):
         """Handle visibility and selection state for a child object"""
@@ -906,8 +898,8 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
     bl_description = "Remove Nth (every other) edges from edge loops.\nSelect one edge per disconnected mesh to define the starting point.\n\nBy default, the selection automatically expands to include all connected edges in the loop. To limit the operation to only the manually selected contiguous edges or restrict it to the original ring selection, disable 'Expand Edges.'"
     bl_options = {'REGISTER', 'UNDO'}
 
-    expand_edges: BoolProperty(name="Expand Edges", default=True) #type: ignore
-    keep_initial_selection: BoolProperty(name="Keep Selected Edges", default=True) #type: ignore
+    expand_edges: BoolProperty(name="Expand Edges", default=True) # type: ignore
+    keep_initial_selection: BoolProperty(name="Keep Selected Edges", default=True) # type: ignore
 
     @classmethod
     def poll(cls, context):
@@ -1016,9 +1008,9 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
     bl_description = "Given a selection of vertices/edges/faces, align each object such that the selection aligns to the Z Axis.\n\n- SHIFT: Clear object rotations on finish. (Also present in Redo panel)."
     bl_options = {'REGISTER', 'UNDO'}
 
-    clear_rotation_on_align: BoolProperty(name="Clear Rotation(s)", default=False) #type: ignore
-    origin_to_selection: BoolProperty(name="Origin to selection", default=False) #type: ignore
-    keep_original_tool_configs: BoolProperty(name="Restore Tool Configurations", default=True) #type: ignore
+    clear_rotation_on_align: BoolProperty(name="Clear Rotation(s)", default=False) # type: ignore
+    origin_to_selection: BoolProperty(name="Origin to selection", default=False) # type: ignore
+    keep_original_tool_configs: BoolProperty(name="Restore Tool Configurations", default=True) # type: ignore
 
     @classmethod
     def poll(cls, context):
@@ -1242,8 +1234,6 @@ class SimpleToolbox_OT_ApplyZenUVTD(bpy.types.Operator):
 # -------------------------------------------------------------------
 
 classes = [
-    R0TOOLS_update_property_list, # Useful to register them early
-    
     SimpleToolbox_OT_ExperimentalOP,
     
     SimpleToolbox_OT_AddObjectSetPopup,

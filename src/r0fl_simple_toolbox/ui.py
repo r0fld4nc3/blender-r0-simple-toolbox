@@ -100,7 +100,7 @@ class PT_SimpleToolbox(bpy.types.Panel):
                 
                 # Clear Custom Properties
                 row = custom_properties_box.row()
-                row.operator("r0tools.clear_custom_properties")
+                row.operator("r0tools.delete_custom_properties")
         
         # Mesh Ops
         mesh_ops_box = layout.box()
@@ -159,7 +159,7 @@ classes = [
 ]
 
 depsgraph_handlers = [
-    u.continuous_property_list_update
+    u.handler_continuous_property_list_update
 ]
 
 def register():

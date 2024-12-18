@@ -1,5 +1,5 @@
 import bpy
-from bpy.props import (StringProperty, #type: ignore
+from bpy.props import (StringProperty, # type: ignore
                        BoolProperty,
                        IntProperty,
                        FloatProperty,
@@ -25,12 +25,17 @@ class R0PROP_UL_CustomPropertiesList(bpy.types.UIList):
         row = layout.row(align=True)
         row.prop(item, "selected", text="")
         row.label(text=item.name)
+        if item.type == u.CUSTOM_PROPERTIES_TYPES.OBJECT_DATA:
+            row.label(text="", icon="OBJECT_DATA")
+        elif item.type == u.CUSTOM_PROPERTIES_TYPES.MESH_DATA:
+            row.label(text="", icon="MESH_DATA")
 
 
 class R0PROP_PG_CustomPropertyItem(bpy.types.PropertyGroup):
     """Property that represents an entry in the Custom Property UI List"""
-    name: StringProperty() #type: ignore
-    selected: BoolProperty(default=False) #type: ignore
+    name: StringProperty() # type: ignore
+    selected: BoolProperty(default=False) # type: ignore
+    type: StringProperty(default=u.CUSTOM_PROPERTIES_TYPES.OBJECT_DATA) # type: ignore
 
 
 # ----- Object Sets & Object Items -----
@@ -94,42 +99,42 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
 #   ADDON PROPERTIES
 # -------------------------------------------------------------------
 class r0flToolboxProps(bpy.types.PropertyGroup):
-    show_dev_tools: BoolProperty( #type: ignore
+    show_dev_tools: BoolProperty( # type: ignore
         name="Dev Tools",
         description="Show or hide the development options section",
         default=False
     )
 
-    show_object_ops: BoolProperty( #type: ignore
+    show_object_ops: BoolProperty( # type: ignore
         name="Object Ops",
         description="Show or hide the Object operators section",
         default=True
     )
     
-    show_mesh_ops: BoolProperty( #type: ignore
+    show_mesh_ops: BoolProperty( # type: ignore
         name="Mesh Ops",
         description="Show or hide the Mesh operators section",
         default=True
     )
 
-    show_clear_sharps_on_axis: BoolProperty( #type: ignore
+    show_clear_sharps_on_axis: BoolProperty( # type: ignore
         name="Clear Sharp Edges on Axis",
         description="Show or hide the Clear Sharps on Axis operator",
         default=False
     )
 
-    show_ext_ops: BoolProperty( #type: ignore
+    show_ext_ops: BoolProperty( # type: ignore
         name="External Ops",
         description="Show or hide the External operators section",
         default=False
     )
 
-    reload_modules_prop: StringProperty( #type: ignore
+    reload_modules_prop: StringProperty( # type: ignore
         name="Module(s)",
         description="Command-separated list of module names"
     )
 
-    screen_size_pct_prop: FloatProperty( #type: ignore
+    screen_size_pct_prop: FloatProperty( # type: ignore
         name="Screen Size Percentage",
         default=0.0,
         min=0.0,
@@ -137,7 +142,7 @@ class r0flToolboxProps(bpy.types.PropertyGroup):
         subtype="PERCENTAGE"
     )
 
-    polygon_threshold: FloatProperty( #type: ignore
+    polygon_threshold: FloatProperty( # type: ignore
         name="Screen Size Threshold (%)",
         default=1,
         min=0.0,
@@ -145,15 +150,15 @@ class r0flToolboxProps(bpy.types.PropertyGroup):
         description="Highlight meshes smaller than this screen size percentage"
     )
 
-    show_custom_property_list_prop: BoolProperty( #type: ignore
+    show_custom_property_list_prop: BoolProperty( # type: ignore
         name="Delete Custom Properties",
         description="List Custom Properties",
         default=False
     )
 
-    custom_property_list: CollectionProperty(type=R0PROP_PG_CustomPropertyItem) #type: ignore
-    custom_property_list_index: IntProperty(default=0) #type: ignore
-    last_object_selection: StringProperty( #type: ignore
+    custom_property_list: CollectionProperty(type=R0PROP_PG_CustomPropertyItem) # type: ignore
+    custom_property_list_index: IntProperty(default=0) # type: ignore
+    last_object_selection: StringProperty( # type: ignore
         name="Last Object Selection",
         description="Comma-separated names of last selected objects",
         default=''
@@ -164,8 +169,8 @@ class r0flToolboxProps(bpy.types.PropertyGroup):
         description="Manage different object selections via an Object Set editor",
         default=False
     )
-    object_sets: CollectionProperty(type=R0PROP_ObjectSetItem) #type: ignore
-    object_sets_index: IntProperty(default=0) #type: ignore
+    object_sets: CollectionProperty(type=R0PROP_ObjectSetItem) # type: ignore
+    object_sets_index: IntProperty(default=0) # type: ignore
 
 
 # -------------------------------------------------------------------
@@ -174,13 +179,13 @@ class r0flToolboxProps(bpy.types.PropertyGroup):
 class AddonPreferences(bpy.types.AddonPreferences):
     bl_idname = INTERNAL_NAME
 
-    experimental_features: BoolProperty( #type: ignore
+    experimental_features: BoolProperty( # type: ignore
         name="Experimental Features",
         description="Enable experimental features",
         default=False
     )
     
-    clear_sharp_axis_float_prop: FloatProperty( #type: ignore
+    clear_sharp_axis_float_prop: FloatProperty( # type: ignore
         name="Clear Sharp Axis Threshold",
         default=0.0,
         min=0.0,
@@ -188,7 +193,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         update=lambda self, context: u.save_preferences()
     )
     
-    zenuv_td_prop: FloatProperty( #type: ignore
+    zenuv_td_prop: FloatProperty( # type: ignore
         name="ZenUV Texel Density",
         default=10.0,
         min=0.0,
@@ -208,7 +213,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         ('PX_TH', "px/th", "Pixels per thou", 8)
     ]
 
-    zenuv_td_unit_prop: EnumProperty( #type: ignore
+    zenuv_td_unit_prop: EnumProperty( # type: ignore
         name="zenuv_td_unit_prop",
         items=zenuv_unit_options,
         description="Texel Density value to apply to meshes",
@@ -289,6 +294,7 @@ classes = [
 ]
 
 depsgraph_handlers = [
+    u.handler_continuous_property_list_update,
     u.handler_cleanup_object_set_invalid_references
 ]
 
