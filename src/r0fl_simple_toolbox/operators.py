@@ -409,7 +409,7 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
 
     def execute(self, context):
         # Update cleanup dangling references
-        u.handler_cleanup_object_set_invalid_references()
+        u.handler_cleanup_object_set_invalid_references(context)
 
         addon_props = u.get_addon_props()
         new_set = addon_props.object_sets.add()
@@ -442,7 +442,7 @@ class SimpleToolbox_OT_RenameObjectSet(bpy.types.Operator):
     
     def execute(self, context):
         # Update cleanup dangling references
-        u.handler_cleanup_object_set_invalid_references()
+        u.handler_cleanup_object_set_invalid_references(context)
 
         addon_props = u.get_addon_props()
         index = addon_props.object_sets_index
@@ -467,7 +467,7 @@ class SimpleToolbox_OT_RemoveObjectSet(bpy.types.Operator):
 
     def execute(self, context):
         # Update cleanup dangling references
-        u.handler_cleanup_object_set_invalid_references()
+        u.handler_cleanup_object_set_invalid_references(context)
 
         addon_props = u.get_addon_props()
         index = addon_props.object_sets_index
@@ -494,7 +494,7 @@ class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
 
     def execute(self, context):
         # Update cleanup dangling references
-        u.handler_cleanup_object_set_invalid_references()
+        u.handler_cleanup_object_set_invalid_references(context)
 
         addon_props = u.get_addon_props()
         index = addon_props.object_sets_index
@@ -523,7 +523,7 @@ class SimpleToolbox_OT_RemoveFromObjectSet(bpy.types.Operator):
 
     def execute(self, context):
         # Update cleanup dangling references
-        u.handler_cleanup_object_set_invalid_references()
+        u.handler_cleanup_object_set_invalid_references(context)
 
         addon_props = u.get_addon_props()
         index = addon_props.object_sets_index
@@ -568,7 +568,7 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
 
     def execute(self, context):
         # Update cleanup dangling references
-        u.handler_cleanup_object_set_invalid_references()
+        u.handler_cleanup_object_set_invalid_references(context)
 
         addon_props = u.get_addon_props()
         index = addon_props.object_sets_index
