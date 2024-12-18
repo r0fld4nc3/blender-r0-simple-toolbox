@@ -20,7 +20,7 @@ class R0TOOLS_update_property_list(bpy.types.Operator):
         return len(context.selected_objects) > 0
 
     def execute(self, context):
-        addon_props = u.get_scene().r0fl_toolbox_props
+        addon_props = u.get_addon_props()
         addon_props.custom_property_list.clear()
 
         unique_props = set()
@@ -367,16 +367,50 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
     bl_description = ""
     bl_options = {'REGISTER', 'UNDO'}
 
-    object_set_name: bpy.props.StringProperty(name="Set Name", default="New Set") # type: ignore
+    _default_name = "New Set"
+    object_set_name: bpy.props.StringProperty(name="Set Name", default=_default_name) # type: ignore
 
     def invoke(self, context, event):
+        # Reset Name
+        self.object_set_name = self._default_name
         wm = context.window_manager
         return wm.invoke_props_dialog(self)
+    
+    def add_non_conflicting_name(self) -> str:
+        addon_props = u.get_addon_props()
+        existing_names = [object_set.name for object_set in addon_props.object_sets]
+
+        if self.object_set_name not in existing_names:
+            return self.object_set_name
+        
+        # Base name without suffix
+        base_prefix = self.object_set_name.split('.')[0]
+        
+        # Collect all existing suffixes for this base name
+        used_suffixes = set()
+        for name in existing_names:
+            if name.startswith(base_prefix):
+                # Try to extract the numerical suffix
+                parts = name.split('.')
+                if len(parts) > 1:
+                    try:
+                        suffix = int(parts[-1])
+                        used_suffixes.add(suffix)
+                    except ValueError:
+                        # Ignore names without valid numerical suffixes
+                        pass
+        
+        # Lowest available suffix
+        suffix = 1
+        while suffix in used_suffixes:
+            suffix += 1
+        
+        return f"{self.object_set_name}.{suffix:03}"
 
     def execute(self, context):
-        addon_props = u.get_scene().r0fl_toolbox_props
+        addon_props = u.get_addon_props()
         new_set = addon_props.object_sets.add()
-        new_set.name = self.object_set_name
+        new_set.name = self.add_non_conflicting_name()
         addon_props.object_sets_index = len(addon_props.object_sets) - 1
 
         if context.area:
@@ -394,7 +428,7 @@ class SimpleToolbox_OT_RenameObjectSet(bpy.types.Operator):
     new_name: bpy.props.StringProperty(name="New Object Set Name", default="") # type: ignore
 
     def invoke(self, context, event):
-        addon_props = u.get_scene().r0fl_toolbox_props
+        addon_props = u.get_addon_props()
         index = addon_props.object_sets_index
 
         if 0 <= index < len(addon_props.object_sets):
@@ -404,14 +438,16 @@ class SimpleToolbox_OT_RenameObjectSet(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
     
     def execute(self, context):
-        addon_props = u.get_scene().r0fl_toolbox_props
+        addon_props = u.get_addon_props()
         index = addon_props.object_sets_index
-        old_name = addon_props.object_sets[index].name
 
         if 0 <= index < len(addon_props.object_sets):
             object_set = addon_props.object_sets[index]
+            old_name = object_set.name
             object_set.name = self.new_name
             self.report({'INFO'}, f"Renamed '{old_name}' to '{self.new_name}'")
+
+        return {'FINISHED'}
 
 class SimpleToolbox_OT_RemoveObjectSet(bpy.types.Operator):
     bl_label = "-"
@@ -419,8 +455,12 @@ class SimpleToolbox_OT_RemoveObjectSet(bpy.types.Operator):
     bl_description = ""
     bl_options = {'REGISTER'}
 
+    @classmethod
+    def poll(cls, context):
+        return len(u.get_addon_props().object_sets) > 0
+
     def execute(self, context):
-        addon_props = u.get_scene().r0fl_toolbox_props
+        addon_props = u.get_addon_props()
         index = addon_props.object_sets_index
 
         if 0 <= index < len(addon_props.object_sets):
@@ -444,7 +484,7 @@ class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
         return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
 
     def execute(self, context):
-        addon_props = u.get_scene().r0fl_toolbox_props
+        addon_props = u.get_addon_props()
         index = addon_props.object_sets_index
 
         if 0 <= index < len(addon_props.object_sets):
@@ -470,7 +510,7 @@ class SimpleToolbox_OT_RemoveFromObjectSet(bpy.types.Operator):
         return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
 
     def execute(self, context):
-        addon_props = u.get_scene().r0fl_toolbox_props
+        addon_props = u.get_addon_props()
         index = addon_props.object_sets_index
 
         total_removed = 0
@@ -514,7 +554,7 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
     def execute(self, context):
         bpy.ops.r0tools.clean_object_sets_pointers()
 
-        addon_props = u.get_scene().r0fl_toolbox_props
+        addon_props = u.get_addon_props()
         index = addon_props.object_sets_index
 
         if 0 <= index < len(addon_props.object_sets):
@@ -537,7 +577,7 @@ class SimpleToolbox_OT_CleanObjectSetGroup(bpy.types.Operator):
     bl_label = "Clean Object Group"
 
     def execute(self, context):
-        addon_props = u.get_scene().r0fl_toolbox_props
+        addon_props = u.get_addon_props()
 
         for object_set in addon_props.object_sets:
             # Remove invalid references one by one
@@ -560,7 +600,7 @@ class SimpleToolbox_OT_ReloadNamedScripts(bpy.types.Operator):
     bl_options = {'REGISTER'}
 
     def get_input_modules(self) -> list[str]:
-        text = u.get_scene().r0fl_toolbox_props.reload_modules_prop
+        text = u.get_addon_props().reload_modules_prop
         modules = []
         if text:
             modules.extend([t.strip() for t in text.split(',')])
@@ -701,7 +741,7 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
         for obj in context.selected_objects:
             # Find selected properties to remove
             props_to_remove = [
-                item.name for item in u.get_scene().r0fl_toolbox_props.custom_property_list 
+                item.name for item in u.get_addon_props().custom_property_list 
                 if item.selected
             ]
             

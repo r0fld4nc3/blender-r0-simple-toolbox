@@ -1,7 +1,8 @@
 import bpy
+import addon_utils
 import math
 
-from .const import INTERNAL_NAME, DEBUG
+from .const import INTERNAL_NAME, ADDON_NAME, DEBUG
 
 class OBJECT_MODES:
     OBJECT        = "OBJECT"
@@ -44,6 +45,9 @@ def get_context_area() -> str | None:
         return None
     
     return bpy.context.area.ui_type
+
+def get_addon_props():
+    return get_scene().r0fl_toolbox_props
 
 def set_object_mode(mode: str):
     """
@@ -299,7 +303,7 @@ def continuous_property_list_update(scene, context):
     
     if bpy.context.selected_objects:
         current_selection = {obj.name for obj in iter_scene_objects(selected=True)}
-        addon_props = get_scene().r0fl_toolbox_props
+        addon_props = get_addon_props()
         prev_selection = set(addon_props.last_object_selection.split(',')) if addon_props.last_object_selection else set()
 
         if current_selection != prev_selection:
@@ -326,8 +330,8 @@ def continuous_property_list_update(scene, context):
             addon_props.last_object_selection = ','.join(current_selection)
     else:
         # Clear the property list if no objects are selected
-        get_scene().r0fl_toolbox_props.custom_property_list.clear()
-        get_scene().r0fl_toolbox_props.last_object_selection = ""
+        get_addon_props().custom_property_list.clear()
+        get_addon_props().last_object_selection = ""
 
 def get_builtin_transform_orientations(identifiers=False) -> list:
     if identifiers:
@@ -380,3 +384,12 @@ def get_custom_transform_orientations() -> list:
         print(f"{custom_transforms=}")
 
     return custom_transforms
+
+@bpy.app.handlers.persistent
+def handler_update_object_set_count(context):
+    try:
+        addon_props = get_addon_props()
+        for object_set in addon_props.object_sets:
+            object_set.update_count()
+    except Exception as e:
+        print(f"Error updating object sets: {e}")

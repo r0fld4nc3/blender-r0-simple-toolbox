@@ -12,7 +12,7 @@ class PT_SimpleToolbox(bpy.types.Panel):
     # bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context):
-        addon_props = u.get_scene().r0fl_toolbox_props
+        addon_props = u.get_addon_props()
         addon_prefs = bpy.context.preferences.addons[INTERNAL_NAME].preferences
         
         layout = self.layout
@@ -20,126 +20,133 @@ class PT_SimpleToolbox(bpy.types.Panel):
         row = layout.row()
         row.prop(addon_prefs, "experimental_features", text="Experimental Features", icon="EXPERIMENTAL")
 
-        box = layout.box()
-        box.prop(addon_props, "show_dev_tools", icon="TRIA_DOWN" if addon_props.show_dev_tools else "TRIA_RIGHT", emboss=False)
+        # Dev Tools
+        dev_tools_box = layout.box()
+        dev_tools_box.prop(addon_props, "show_dev_tools", icon="TRIA_DOWN" if addon_props.show_dev_tools else "TRIA_RIGHT", emboss=False)
         if addon_props.show_dev_tools:
-            row = box.row()
+            row = dev_tools_box.row()
             row.operator("script.reload", text="Reload All Scripts", icon="PACKAGE")
-            box = box.box()
-            row = box.row()
+            reload_user_defined_box = dev_tools_box.box()
+            row = reload_user_defined_box.row()
             row.prop(addon_props, "reload_modules_prop")
-            row = box.row()
+            row = reload_user_defined_box.row()
             row.operator("r0tools.reload_named_scripts", icon="TOOL_SETTINGS")
-            row = box.row()
-            row.operator("image.reload", icon="IMAGE_DATA")
+            if addon_prefs.experimental_features:
+                row = dev_tools_box.row()
+                row.operator("image.reload", icon="IMAGE_DATA")
         
         # Object Ops
-        box = layout.box()
-        box.prop(addon_props, "show_object_ops", icon="TRIA_DOWN" if addon_props.show_object_ops else "TRIA_RIGHT", emboss=False)
+        object_ops_box = layout.box()
+        object_ops_box.prop(addon_props, "show_object_ops", icon="TRIA_DOWN" if addon_props.show_object_ops else "TRIA_RIGHT", emboss=False)
         if addon_props.show_object_ops:
-            # row = box.row(align=True)
-            # row.label(text="Object Ops")
-            row = box.row(align=True)
+
+            row = object_ops_box.row(align=True)
             row.operator("r0tools.clear_custom_split_normals_data")
-            # row = box.row(align=True)
-            # row.operator("r0tools.clear_mesh_attributes")
-            row = box.row(align=True)
+
+            row = object_ops_box.row(align=True)
             row.operator("r0tools.clear_all_objects_children")
+            
             # Object Sets Editor
-            row = box.row()
             if addon_prefs.experimental_features:
+                object_sets_box = object_ops_box.box()
+                row = object_sets_box.row()
                 row.prop(addon_props, "show_object_sets", icon="TRIA_DOWN" if addon_props.show_object_sets else "TRIA_RIGHT", emboss=False)
                 if addon_props.show_object_sets:
-                    row = box.row()
-                    split = row.split(factor=0.85)
+                    row = object_sets_box.row()
+                    split = row.split(factor=0.9)
 
                     # Left Section
                     col = split.column()
                     col.template_list(
-                        "RPROP_UL_ObjectSetsList",
+                        "R0PROP_UL_ObjectSetsList",
                         "object_sets",
-                        u.get_scene().r0fl_toolbox_props,  # Collection owner
+                        u.get_addon_props(),  # Collection owner
                         "object_sets",                     # Collection property
-                        u.get_scene().r0fl_toolbox_props,  # Active item owner
+                        u.get_addon_props(),  # Active item owner
                         "object_sets_index",               # Active item property
                         rows=6
                     )
 
                     # Right side
-                    col = split.column()
+                    col = split.column(align=True)
                     col.operator("r0tools.add_object_set_popup")
                     col.operator("r0tools.remove_object_set")
 
                     # Bottom
-                    row = box.row()
-                    row.operator("r0tools.add_to_object_set")
-                    row.operator("r0tools.remove_from_object_set")
-                    row.operator("r0tools.select_object_set")
+                    row = object_sets_box.row(align=True)
+                    split = row.split(factor=0.65)
+                    row_col = split.row(align=True)
+                    row_col.operator("r0tools.add_to_object_set")
+                    row_col.operator("r0tools.remove_from_object_set")
+                    #
+                    row_col = split.row()
+                    row_col.operator("r0tools.select_object_set")
 
-                # Scrollable list with checkboxes
-                row = box.row()
+                # Custom Properties UI List
+                custom_properties_box = object_ops_box.box()
+                row = custom_properties_box.row()
                 row.prop(addon_props, "show_custom_property_list_prop", icon="TRIA_DOWN" if addon_props.show_custom_property_list_prop else "TRIA_RIGHT", emboss=False)
                 if addon_props.show_custom_property_list_prop:
-                    row = box.row()
+                    row = custom_properties_box.row()
                     row.template_list(
-                        "RPROP_UL_custom_property_list",
+                        "R0PROP_UL_CustomPropertiesList",
                         "custom_property_list",
-                        u.get_scene().r0fl_toolbox_props,  # Collection owner
+                        u.get_addon_props(),  # Collection owner
                         "custom_property_list",            # Collection property
-                        u.get_scene().r0fl_toolbox_props,  # Active item owner
+                        u.get_addon_props(),  # Active item owner
                         "custom_property_list_index",      # Active item property
                         rows=6
                     )
                 
                 # Clear Custom Properties
-                row = box.row()
+                row = custom_properties_box.row()
                 row.operator("r0tools.clear_custom_properties")
         
         # Mesh Ops
-        box = layout.box()
-        box.prop(addon_props, "show_mesh_ops", icon="TRIA_DOWN" if addon_props.show_mesh_ops else "TRIA_RIGHT", emboss=False)
+        mesh_ops_box = layout.box()
+        mesh_ops_box.prop(addon_props, "show_mesh_ops", icon="TRIA_DOWN" if addon_props.show_mesh_ops else "TRIA_RIGHT", emboss=False)
         if addon_props.show_mesh_ops:
-            # row = box.row(align=True)
-            # row.label(text="Mesh Ops")
             # Nth Edges Operator
-            row = box.row(align=True)
+            row = mesh_ops_box.row(align=True)
             row.operator("r0tools.nth_edges")
-            row = box.row(align=True)
+            row = mesh_ops_box.row(align=True)
             row.operator("r0tools.rotation_from_selection")
-            box = box.box()
-            row = box.row(align=True)
+            
             # Clear Sharp Edges on Axis
-            box.prop(addon_props, "show_clear_sharps_on_axis", icon="TRIA_DOWN" if addon_props.show_clear_sharps_on_axis else "TRIA_RIGHT", emboss=False)
+            clear_sharp_edges_box = mesh_ops_box.box()
+            row = clear_sharp_edges_box.row(align=True)
+            clear_sharp_edges_box.prop(addon_props, "show_clear_sharps_on_axis", icon="TRIA_DOWN" if addon_props.show_clear_sharps_on_axis else "TRIA_RIGHT", emboss=False)
             if addon_props.show_clear_sharps_on_axis:
-                row = box.row(align=True)
+                row = clear_sharp_edges_box.row(align=True)
                 row.prop(addon_prefs, "clear_sharp_axis_float_prop", text="Threshold")
-                row = box.row(align=True)
+                row = clear_sharp_edges_box.row(align=True)
                 row.scale_x = 5
                 row.operator("r0tools.clear_sharp_axis_x", text="X")
                 row.operator("r0tools.clear_sharp_axis_y", text="Y")
                 row.operator("r0tools.clear_sharp_axis_z", text="Z")
         
         # Externals
-        box = layout.box()
-        box.prop(addon_props, "show_ext_ops", icon="TRIA_DOWN" if addon_props.show_ext_ops else "TRIA_RIGHT", emboss=False)
+        externals_box = layout.box()
+        externals_box.prop(addon_props, "show_ext_ops", icon="TRIA_DOWN" if addon_props.show_ext_ops else "TRIA_RIGHT", emboss=False)
         if addon_props.show_ext_ops:
-            row = box.row(align=True)
+            row = externals_box.row(align=True)
             row.label(text="ZenUV Texel Density")
-            row = box.row(align=True)
+            row = externals_box.row(align=True)
             row.prop(addon_prefs, "zenuv_td_prop", text="TD:")
             row.prop(addon_prefs, "zenuv_td_unit_prop", text="Unit")
-            row = box.row(align=True)
+            row = externals_box.row(align=True)
             row.operator("r0tools.ext_zenuv_set_td")
 
+        # Heavy Experimentals
         if addon_prefs.experimental_features:
             row = layout.row()
             row.label(text="EXPERIMENTAL", icon="EXPERIMENTAL")
-            box = layout.box()
-            row = box.row()
+            lods_box = layout.box()
+            row = lods_box.row()
             row.label(text="LODs")
-            row = box.row()
+            row = lods_box.row()
             row.operator("r0tools.experimental_op_1")
-            row = box.row()
+            row = lods_box.row()
             row.prop(addon_props, "screen_size_pct_prop", text="Screen Size (%):")
 
 

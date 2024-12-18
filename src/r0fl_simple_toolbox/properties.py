@@ -9,7 +9,7 @@ from bpy.props import (StringProperty, #type: ignore
                        PointerProperty,
                        )
 
-from .const import INTERNAL_NAME
+from .const import INTERNAL_NAME, DEBUG
 from . import utils as u
 import rna_keymap_ui
 
@@ -17,55 +17,82 @@ import rna_keymap_ui
 #   ADDON PROPS
 # -------------------------------------------------------------------
 # Properties which are not stored in preferences
-class RPROP_UL_custom_property_list(bpy.types.UIList):
+
+# ----- Custom Object Properties -----
+class R0PROP_UL_CustomPropertiesList(bpy.types.UIList):
+    """UI List where each entry is a custom property belonging to at least 1 selected object"""
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
         row = layout.row(align=True)
         row.prop(item, "selected", text="")
         row.label(text=item.name)
 
 
-class RPROP_ObjectSetObjectItem(bpy.types.PropertyGroup):
+class R0PROP_PG_CustomPropertyItem(bpy.types.PropertyGroup):
+    """Property that represents an entry in the Custom Property UI List"""
+    name: StringProperty() #type: ignore
+    selected: BoolProperty(default=False) #type: ignore
+
+
+# ----- Object Sets & Object Items -----
+class R0PROP_ObjectSetObjectItem(bpy.types.PropertyGroup):
+    """Property representing a refernece to an Object within an Object Set"""
     object: bpy.props.PointerProperty(type=bpy.types.Object) # type: ignore
 
 
-class RPROP_ObjectSetItem(bpy.types.PropertyGroup):
+class R0PROP_ObjectSetItem(bpy.types.PropertyGroup):
+    """Property that represents an Object Set that contains a reference to a collection of objects added to the set"""
     name: bpy.props.StringProperty(name="Object Set Name", default="New Object Set") # type: ignore
-    objects: bpy.props.CollectionProperty(type=RPROP_ObjectSetObjectItem) # type: ignore
+    objects: bpy.props.CollectionProperty(type=R0PROP_ObjectSetObjectItem) # type: ignore
+    count: bpy.props.IntProperty(name="Count", default=0) # type: ignore
 
     def add_object(self, obj):
         if not any(o.object == obj for o in self.objects):
             new_object = self.objects.add()
             new_object.object = obj
 
+            self.update_count()
+
     def remove_object(self, obj):
         for i, o in enumerate(self.objects):
             if o.object == obj:
                 self.objects.remove(i)
+                self.update_count()
                 break
 
+    def update_count(self):
+        self.count = len(self.objects)
+        if DEBUG:
+            print(f"Updated count for Set '{self.name}': {self.count}")
 
-class RPROP_UL_ObjectSetsList(bpy.types.UIList):
+
+class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
+    """UI List where each entry is an Object Set that itself contains references to Objects added to the set"""
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             row = layout.row()
-            # layout.label(text=item.name, icon="MESH_CUBE")
+            
             row.prop(item, "name", text="", emboss=False, icon="MESH_CUBE")
 
-            # Double Click Rename
-            addon_props = u.get_scene().r0fl_toolbox_props
-            if addon_props.object_sets_index == index and context.window_manager.event_timer_add:
-                row.operator("r0tools.rename_object_set", text="", icon='GREASEPENCIL')
+            # Display object count
+            count_text = f"({item.count})"
+            row.label(text=count_text, icon="OBJECT_DATAMODE")
 
         elif self.layout_type in {"GRID"}:
             layout.alignment = "CENTER"
             layout.label(text=item.name)
 
+    def invoke(self, context, event):
+        # Handle double-click event
+        if event.type == 'LEFTMOUSE' and event.value == 'DOUBLE_CLICK':
+            # Trigger rename operator
+            bpy.ops.r0tools.rename_object_set('INVOKE_DEFAULT')
+            return {'HANDLED'}
+        return {'PASS_THROUGH'}
 
-class CustomPropertyItem(bpy.types.PropertyGroup):
-    name: StringProperty() #type: ignore
-    selected: BoolProperty(default=False) #type: ignore
 
-
+# -------------------------------------------------------------------
+#   ADDON PROPERTIES
+# -------------------------------------------------------------------
 class r0flToolboxProps(bpy.types.PropertyGroup):
     show_dev_tools: BoolProperty( #type: ignore
         name="Dev Tools",
@@ -124,7 +151,7 @@ class r0flToolboxProps(bpy.types.PropertyGroup):
         default=False
     )
 
-    custom_property_list: CollectionProperty(type=CustomPropertyItem) #type: ignore
+    custom_property_list: CollectionProperty(type=R0PROP_PG_CustomPropertyItem) #type: ignore
     custom_property_list_index: IntProperty(default=0) #type: ignore
     last_object_selection: StringProperty( #type: ignore
         name="Last Object Selection",
@@ -134,10 +161,10 @@ class r0flToolboxProps(bpy.types.PropertyGroup):
 
     show_object_sets: BoolProperty( # type: ignore
         name="Object Sets",
-        description="Manage different object selections via a set editor",
+        description="Manage different object selections via an Object Set editor",
         default=False
     )
-    object_sets: CollectionProperty(type=RPROP_ObjectSetItem) #type: ignore
+    object_sets: CollectionProperty(type=R0PROP_ObjectSetItem) #type: ignore
     object_sets_index: IntProperty(default=0) #type: ignore
 
 
@@ -251,15 +278,20 @@ class AddonPreferences(bpy.types.AddonPreferences):
 # -------------------------------------------------------------------
 #   Register & Unregister
 # -------------------------------------------------------------------
-
 classes = [
-    RPROP_UL_custom_property_list,
-    CustomPropertyItem,
-    RPROP_ObjectSetObjectItem,
-    RPROP_ObjectSetItem,
-    RPROP_UL_ObjectSetsList,
+    R0PROP_UL_CustomPropertiesList,
+    R0PROP_PG_CustomPropertyItem,
+    R0PROP_ObjectSetObjectItem,
+    R0PROP_ObjectSetItem,
+    R0PROP_UL_ObjectSetsList,
     AddonPreferences,
     r0flToolboxProps,
+]
+
+depsgraph_handlers = []
+
+load_post_handlers = [
+    u.handler_update_object_set_count
 ]
 
 def register():
@@ -268,10 +300,36 @@ def register():
         bpy.utils.register_class(cls)
     
     print("[PROPERTIES] Registering bpy.types.Scene.r0fl_toolbox_props")
+    # Registering to Scene also has the side effect of saving properties on a per scene/file basis, which is nice!
     bpy.types.Scene.r0fl_toolbox_props = PointerProperty(type=r0flToolboxProps)
 
+    for handler in depsgraph_handlers:
+        if handler not in bpy.app.handlers.depsgraph_update_post:
+            print(f"[DEBUG] Registering depsgraph handler {handler}")
+            bpy.app.handlers.depsgraph_update_post.append(handler)
+
+    for handler in load_post_handlers:
+        if handler not in bpy.app.handlers.load_post:
+            print(f"[DEBUG] Registering load_post handler {handler}")
+            bpy.app.handlers.load_post.append(handler)
+
+
 def unregister():
+    for handler in depsgraph_handlers:
+        try:
+            if handler in bpy.app.handlers.depsgraph_update_post:
+                bpy.app.handlers.depsgraph_update_post.remove(handler)
+        except Exception as e:
+            print(f"Error removing handler {handler}: {e}")
+
+    for handler in load_post_handlers:
+        try:
+            if handler in bpy.app.handlers.load_post:
+                bpy.app.handlers.load_post.remove(handler)
+        except Exception as e:
+            print(f"Error removing handler {handler}: {e}")
+    
     for cls in classes:
         bpy.utils.unregister_class(cls)
-    
+
     del bpy.types.Scene.r0fl_toolbox_props
