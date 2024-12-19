@@ -23,12 +23,12 @@ class R0PROP_UL_CustomPropertiesList(bpy.types.UIList):
     """UI List where each entry is a custom property belonging to at least 1 selected object"""
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
         row = layout.row(align=True)
-        row.prop(item, "selected", text="")
-        row.label(text=item.name)
         if item.type == u.CUSTOM_PROPERTIES_TYPES.OBJECT_DATA:
             row.label(text="", icon="OBJECT_DATA")
         elif item.type == u.CUSTOM_PROPERTIES_TYPES.MESH_DATA:
             row.label(text="", icon="MESH_DATA")
+        row.label(text=item.name)
+        row.prop(item, "selected", text="")
 
 
 class R0PROP_PG_CustomPropertyItem(bpy.types.PropertyGroup):
