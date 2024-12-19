@@ -361,9 +361,10 @@ def handler_continuous_property_list_update(scene, context, skip_sel_check=False
             get_addon_props().custom_property_list.clear()
         except Exception as e:
             print(f"ERROR clearing custom property list when no selected objects: {e}")
-            raise e
-        
-        get_addon_props().last_object_selection = ""
+        try:
+            get_addon_props().last_object_selection = ""
+        except Exception as e:
+            print(f"ERROR setting last object selection when no selected objects: {e}")
 
 def get_builtin_transform_orientations(identifiers=False) -> list:
     if identifiers:
