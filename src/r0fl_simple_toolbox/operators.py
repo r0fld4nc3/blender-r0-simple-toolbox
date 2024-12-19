@@ -625,7 +625,11 @@ class SimpleToolbox_OT_ReloadNamedScripts(bpy.types.Operator):
         successes = []
         if modules:
             for module in modules:
-                success = self.reload_module(module)
+                try:
+                    success = self.reload_module(module)
+                except Exception as e:
+                    print(e)
+                    success = False
                 if success:
                     successes.append(module)
                 else:
