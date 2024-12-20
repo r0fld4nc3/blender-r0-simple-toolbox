@@ -40,11 +40,11 @@ class R0PROP_PG_CustomPropertyItem(bpy.types.PropertyGroup):
 
 # ----- Object Sets & Object Items -----
 class R0PROP_ObjectSetObjectItem(bpy.types.PropertyGroup):
-    """Property representing a refernece to an Object within an Object Set"""
+    """Property representing a reference to an Object within an Object Set"""
     object: bpy.props.PointerProperty(type=bpy.types.Object) # type: ignore
 
 
-class R0PROP_ObjectSetItem(bpy.types.PropertyGroup):
+class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
     """Property that represents an Object Set that contains a reference to a collection of objects added to the set"""
     name: bpy.props.StringProperty(name="Object Set Name", default="New Object Set") # type: ignore
     objects: bpy.props.CollectionProperty(type=R0PROP_ObjectSetObjectItem) # type: ignore
@@ -169,7 +169,7 @@ class r0flToolboxProps(bpy.types.PropertyGroup):
         description="Manage different object selections via an Object Set editor",
         default=False
     )
-    object_sets: CollectionProperty(type=R0PROP_ObjectSetItem) # type: ignore
+    object_sets: CollectionProperty(type=R0PROP_ObjectSetEntryItem) # type: ignore
     object_sets_index: IntProperty(default=0) # type: ignore
 
 
@@ -287,7 +287,7 @@ classes = [
     R0PROP_UL_CustomPropertiesList,
     R0PROP_PG_CustomPropertyItem,
     R0PROP_ObjectSetObjectItem,
-    R0PROP_ObjectSetItem,
+    R0PROP_ObjectSetEntryItem,
     R0PROP_UL_ObjectSetsList,
     AddonPreferences,
     r0flToolboxProps,
