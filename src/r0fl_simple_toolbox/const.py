@@ -4,8 +4,24 @@ def _version_str(version_tuple: tuple):
     v_str = '.'.join([str(n) for n in version_tuple])
     return v_str
 
+def _set_addon_internal_name(from_name: str):
+    """ Utility function to set the constant addon Internal Name at startup.
+    The issue stems from when the addon is an extension and the internal name becomes
+    bl_ext.module_name.internal_name """
+
+    if __package__:
+        split = __package__.split('.')
+        if len(split) >= 3 and split[0].lower() == "bl_ext": # Probably an extension
+            if from_name in split:
+                print(f"{from_name} is an extension: {__package__}")
+                return __package__
+    
+    # Extension name not found
+    print(f"{from_name} not found as an extension")
+    return from_name
+
 VERSION = bl_info.get("version", (0, 0, 0))
 VERSION_STR = _version_str(VERSION)
 ADDON_NAME = bl_info.get("name")
-INTERNAL_NAME = "r0fl_simple_toolbox"
+INTERNAL_NAME = _set_addon_internal_name("r0fl_simple_toolbox")
 DEBUG = True
