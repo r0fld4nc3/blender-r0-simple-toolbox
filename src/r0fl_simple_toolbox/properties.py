@@ -298,7 +298,9 @@ depsgraph_handlers = [
     u.handler_cleanup_object_set_invalid_references
 ]
 
-load_post_handlers = []
+load_post_handlers = [
+    u.handler_cleanup_object_set_invalid_references
+]
 
 def register():
     for cls in classes:
