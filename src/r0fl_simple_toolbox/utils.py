@@ -455,3 +455,4 @@ def handler_cleanup_object_set_invalid_references(context):
         cleaned_up = old_len - len(object_set.objects)
 
         print(f"Cleaned up {cleaned_up} references for Object Set '{object_set.name}")
+        

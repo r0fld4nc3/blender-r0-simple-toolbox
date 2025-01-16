@@ -299,8 +299,6 @@ depsgraph_handlers = [
 ]
 
 load_post_handlers = [
-    u.handler_update_object_set_count,
-    u.handler_cleanup_object_set_invalid_references
 ]
 
 def register():
@@ -337,8 +335,16 @@ def unregister():
                 bpy.app.handlers.load_post.remove(handler)
         except Exception as e:
             print(f"Error removing handler {handler}: {e}")
+
+    for handler in load_post_handlers:
+        try:
+            if handler in bpy.app.handlers.load_post:
+                bpy.app.handlers.load_post.remove(handler)
+        except Exception as e:
+            print(f"Error removing handler {handler}: {e}")
     
     for cls in classes:
         bpy.utils.unregister_class(cls)
 
+    print(f"[PROPERTIES] Unregistering bpy.types.Scene.r0fl_toolbox_props")
     del bpy.types.Scene.r0fl_toolbox_props
