@@ -50,6 +50,10 @@ class CustomTransformsOrientationsTracker:
         :param scene: Current Blender scene
         :param context: Optional context
         """
+        
+        if DEBUG:
+            print(f"------------- Track Custom Orientations -------------")
+
         try:
             # Attempt to extract current orientations
             current_orientations = cls.get_custom_transform_orientations()

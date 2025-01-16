@@ -37,7 +37,6 @@ class R0PROP_PG_CustomPropertyItem(bpy.types.PropertyGroup):
     selected: BoolProperty(default=False) # type: ignore
     type: StringProperty(default=u.CUSTOM_PROPERTIES_TYPES.OBJECT_DATA) # type: ignore
 
-
 # ----- Object Sets & Object Items -----
 class R0PROP_ObjectSetObjectItem(bpy.types.PropertyGroup):
     """Property representing a reference to an Object within an Object Set"""
@@ -171,6 +170,9 @@ class r0flToolboxProps(bpy.types.PropertyGroup):
     )
     object_sets: CollectionProperty(type=R0PROP_ObjectSetEntryItem) # type: ignore
     object_sets_index: IntProperty(default=0) # type: ignore
+    data_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem) # type: ignore
+    scene_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem) # type: ignore
+    objects_updated: BoolProperty(default=False) # type: ignore
 
 
 # -------------------------------------------------------------------
@@ -294,6 +296,7 @@ classes = [
 ]
 
 depsgraph_handlers = [
+    u.update_data_scene_objects,
     u.handler_continuous_property_list_update,
     u.handler_cleanup_object_set_invalid_references
 ]
@@ -313,12 +316,14 @@ def register():
 
     for handler in depsgraph_handlers:
         if handler not in bpy.app.handlers.depsgraph_update_post:
-            print(f"[DEBUG] Registering depsgraph handler {handler}")
+            if DEBUG:
+                print(f"[DEBUG] Registering depsgraph handler {handler}")
             bpy.app.handlers.depsgraph_update_post.append(handler)
 
     for handler in load_post_handlers:
         if handler not in bpy.app.handlers.load_post:
-            print(f"[DEBUG] Registering load_post handler {handler}")
+            if DEBUG:
+                print(f"[DEBUG] Registering load_post handler {handler}")
             bpy.app.handlers.load_post.append(handler)
 
 
@@ -333,6 +338,8 @@ def unregister():
     for handler in load_post_handlers:
         try:
             if handler in bpy.app.handlers.load_post:
+                if DEBUG:
+                    print(f"[DEBUG] Unregistering load_post handler {handler}")
                 bpy.app.handlers.load_post.remove(handler)
         except Exception as e:
             print(f"Error removing handler {handler}: {e}")
@@ -340,6 +347,8 @@ def unregister():
     for handler in load_post_handlers:
         try:
             if handler in bpy.app.handlers.load_post:
+                if DEBUG:
+                    print(f"[DEBUG] Unregistering depsgraph handler {handler}")
                 bpy.app.handlers.load_post.remove(handler)
         except Exception as e:
             print(f"Error removing handler {handler}: {e}")

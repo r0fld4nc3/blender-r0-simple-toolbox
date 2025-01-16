@@ -311,7 +311,10 @@ def handler_continuous_property_list_update(scene, context, skip_sel_check=False
         addon_props = get_addon_props()
         prev_selection = set(addon_props.last_object_selection.split(',')) if addon_props.last_object_selection else set()
 
-        print(f"{skip_sel_check=}")
+        if DEBUG:
+            print("------------- Continuous Property List Update -------------")
+            print(f"{skip_sel_check=}")
+            
         if skip_sel_check or current_selection != prev_selection:
             try:
                 addon_props.custom_property_list.clear()
@@ -430,8 +433,39 @@ def is_valid_object_global(obj):
     
     return True
 
+def get_depsgraph():
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    return depsgraph
+
+def get_depsgraph_is_updated_geometry() -> bool:
+    d = get_depsgraph()
+
+    for update in d.updates:
+        return update.is_updated_geometry
+    
+    return False
+
+def get_depsgraph_is_updated_shading() -> bool:
+    d = get_depsgraph()
+
+    for update in d.updates:
+        return update.is_updated_shading
+    
+    return False
+
+def get_depsgraph_is_updated_transform() -> bool:
+    d = get_depsgraph()
+
+    for update in d.updates:
+        return update.is_updated_transform
+    
+    return False
+
 @bpy.app.handlers.persistent
 def handler_update_object_set_count(context):
+    if DEBUG:
+        print("------------- Update Object Sets -------------")
+
     try:
         addon_props = get_addon_props()
         for object_set in addon_props.object_sets:
@@ -440,19 +474,76 @@ def handler_update_object_set_count(context):
         print(f"Error updating object sets: {e}")
 
 @bpy.app.handlers.persistent
-def handler_cleanup_object_set_invalid_references(context):
+def handler_cleanup_object_set_invalid_references(scene):
+    if DEBUG:
+        print("------------- Cleanup Object Sets Invalid References -------------")
+
     addon_props = get_addon_props()
 
-    for object_set in addon_props.object_sets:
-        old_len = len(object_set.objects)
+    print(f"{addon_props.objects_updated=}")
 
-        # Collect objects
-        for object_item in reversed(object_set.objects):
-            obj = object_item.object
-            if not is_valid_object_global(obj):
-                object_set.remove_object(obj)
-        
-        cleaned_up = old_len - len(object_set.objects)
+    if addon_props.objects_updated:
+        for object_set in addon_props.object_sets:
+            old_len = len(object_set.objects)
 
-        print(f"Cleaned up {cleaned_up} references for Object Set '{object_set.name}")
+            # Collect objects
+            for object_item in reversed(object_set.objects):
+                obj = object_item.object
+                if not is_valid_object_global(obj):
+                    object_set.remove_object(obj)
+            
+            cleaned_up = old_len - len(object_set.objects)
+
+            if cleaned_up > 0:
+                print(f"Cleaned up {cleaned_up} references for Object Set '{object_set.name}'")
+
+@bpy.app.handlers.persistent
+def update_data_scene_objects(scene):
+    """
+    Handler method to keep track of objects in `bpy.data.objects` and `bpy.context.scene.objects`
+    in order to determine if there were changes in object count.
+
+    Used to trigger or accept certain methods that better rely on object count changes.
+
+    To determine if there was an object change, it can be tested with:
+
+    `if bpy.context.scene.r0fl_toolbox_props.objects_updated == bool:`
+
+    `if bpy.context.scene.r0fl_toolbox_props.objects_updated:`
+    """
+    addon_props = get_addon_props()
+    
+    data_objects = addon_props.data_objects
+    scene_objects = addon_props.scene_objects
+    
+    bpy_scene_objects_len = len(bpy.context.scene.objects)
+    bpy_data_objects_len = len(bpy.data.objects)
+
+    if DEBUG:
+        print("------------- Update Data Scene Objects -------------")
+        print(f"Data  {bpy_data_objects_len} == {len(data_objects)}")
+        print(f"Scene {bpy_scene_objects_len} == {len(scene_objects)}")
+
+    if bpy_data_objects_len != len(data_objects) or bpy_scene_objects_len != len(scene_objects):
+        if DEBUG:
+            print("------------- Update Data Scene Objects -------------")
         
+        # Data objects
+        addon_props.data_objects.clear()
+        for obj in bpy.data.objects:
+            item = addon_props.data_objects.add()
+            item.object = obj
+
+        # Scene Objects
+        addon_props.scene_objects.clear()
+        for obj in bpy.context.scene.objects:
+            item = addon_props.scene_objects.add()
+            item.object = obj
+
+        if DEBUG:
+            print(f"{addon_props.data_objects}")
+            print(f"{addon_props.scene_objects}")
+        
+        addon_props.objects_updated = True
+    else:
+        addon_props.objects_updated = False
