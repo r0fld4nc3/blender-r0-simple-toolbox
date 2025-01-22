@@ -66,7 +66,7 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
     def update_count(self):
         self.count = len(self.objects)
         if DEBUG:
-            print(f"Updated count for Set '{self.name}': {self.count}")
+            print(f"[DEBUG] Updated count for Set '{self.name}': {self.count}")
 
 
 class R0PROP_UL_ObjectSetsList(bpy.types.UIList):

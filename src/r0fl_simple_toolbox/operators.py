@@ -71,11 +71,11 @@ class CustomTransformsOrientationsTracker:
                 
                 for orient in added_orientations:
                     if DEBUG:
-                        print(f"Custom Orientation Added: {orient}")
+                        print(f"[DEBUG] Custom Orientation Added: {orient}")
                 
                 for orient in removed_orientations:
                     if DEBUG:
-                        print(f"Custom Orientation Removed: {orient}")
+                        print(f"[DEBUG] Custom Orientation Removed: {orient}")
                 
                 # Update the last tracked set
                 cls._last_tracked_orientations = current_orientation_set
@@ -190,9 +190,9 @@ class VIEW3D_MT_CustomOrientationsPieMenu(bpy.types.Menu):
         end_index = min(start_index + 8, len(custom_orientations))
 
         if DEBUG:
-            print(f"{remaining_orientations=}")
-            print(f"{start_index=}")
-            print(f"{end_index=}")
+            print(f"[DEBUG] {remaining_orientations=}")
+            print(f"[DEBUG] {start_index=}")
+            print(f"[DEBUG] {end_index=}")
 
         total_added = 0 # 8 is the maximum allowed
         for orientation_name in custom_orientations[self.__class__._current_start_index:]:
@@ -209,7 +209,7 @@ class VIEW3D_MT_CustomOrientationsPieMenu(bpy.types.Menu):
                 # Update iterations
                 total_added += 1
                 if DEBUG:
-                    print(f"({self.__class__._current_start_index}) {orientation_name}")
+                    print(f"[DEBUG] ({self.__class__._current_start_index}) {orientation_name}")
             except Exception as err:
                 print(f"Error adding Custom Orientation to Pie Menu: {err}")
 
@@ -232,14 +232,14 @@ class VIEW3D_MT_CustomOrientationsPieMenu(bpy.types.Menu):
                     # Update iterations
                     total_added += 1
                     if DEBUG:
-                        print(f"({self.__class__._current_start_index}) {orientation_name}")
+                        print(f"[DEBUG] ({self.__class__._current_start_index}) {orientation_name}")
                 except Exception as err:
                     print(f"Error adding View More to Pie Menu: {err}")
 
             # Break the fill loop if we've successfully filled 8 entries
             if total_added >= 8:
                 if DEBUG:
-                    print(f"Menu entries limit reached! Total added: {total_added}")
+                    print(f"[DEBUG] Menu entries limit reached! Total added: {total_added}")
                 break
 
 

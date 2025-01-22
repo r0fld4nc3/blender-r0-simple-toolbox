@@ -313,7 +313,7 @@ def handler_continuous_property_list_update(scene, context, skip_sel_check=False
 
         if DEBUG:
             print("------------- Continuous Property List Update -------------")
-            print(f"{skip_sel_check=}")
+            print(f"[DEBUG] {skip_sel_check=}")
             
         if skip_sel_check or current_selection != prev_selection:
             try:
@@ -329,7 +329,7 @@ def handler_continuous_property_list_update(scene, context, skip_sel_check=False
                 # Object Properties
                 for prop_name in obj.keys():
                     if DEBUG:
-                        print(f"(OP) {obj.name} - {prop_name=}")
+                        print(f"[DEBUG] (OP) {obj.name} - {prop_name=}")
                     if not prop_name.startswith('_') and prop_name not in unique_object_data_props:
                         try:
                             unique_object_data_props.add(prop_name)
@@ -344,7 +344,7 @@ def handler_continuous_property_list_update(scene, context, skip_sel_check=False
                 if obj.data and obj.type == 'MESH':
                     for prop_name in obj.data.keys():
                         if DEBUG:
-                            print(f"(ODP) {obj.name} - {prop_name=}")
+                            print(f"[DEBUG] (ODP) {obj.name} - {prop_name=}")
                         if not prop_name.startswith('_') and prop_name not in unique_mesh_data_props:
                             try:
                                 unique_mesh_data_props.add(prop_name)
@@ -397,7 +397,7 @@ def get_transform_orientations() -> list:
 
     transform_list = list(transforms)
     if DEBUG:
-        print(f"{transform_list=}")
+        print(f"[DEBUG] {transform_list=}")
 
     return transform_list
 
@@ -405,7 +405,7 @@ def delete_custom_transform_orientation(name: str):
     transform_list = get_custom_transform_orientations()
     for enum_type in transform_list:
         if DEBUG:
-            print(f"{enum_type=} == {name=}")
+            print(f"[DEBUG] {enum_type=} == {name=}")
         if enum_type == name or str(enum_type).lower() == str(name).lower():
             get_scene().transform_orientation_slots[0].type = enum_type
             bpy.ops.transform.delete_orientation()
@@ -417,7 +417,7 @@ def get_custom_transform_orientations() -> list:
 
     custom_transforms= get_transform_orientations()[7:] # The 7 first orientations are built-ins
     if DEBUG:
-        print(f"{custom_transforms=}")
+        print(f"[DEBUG] {custom_transforms=}")
 
     return custom_transforms
 
@@ -480,7 +480,8 @@ def handler_cleanup_object_set_invalid_references(scene):
 
     addon_props = get_addon_props()
 
-    print(f"{addon_props.objects_updated=}")
+    if DEBUG:
+        print(f"[DEBUG] {addon_props.objects_updated=}")
 
     if addon_props.objects_updated:
         for object_set in addon_props.object_sets:
@@ -498,7 +499,7 @@ def handler_cleanup_object_set_invalid_references(scene):
                 print(f"Cleaned up {cleaned_up} references for Object Set '{object_set.name}'")
 
 @bpy.app.handlers.persistent
-def update_data_scene_objects(scene):
+def update_data_scene_objects(scene, force_run=False):
     """
     Handler method to keep track of objects in `bpy.data.objects` and `bpy.context.scene.objects`
     in order to determine if there were changes in object count.
@@ -521,28 +522,38 @@ def update_data_scene_objects(scene):
 
     if DEBUG:
         print("------------- Update Data Scene Objects -------------")
-        print(f"Data  {bpy_data_objects_len} == {len(data_objects)}")
-        print(f"Scene {bpy_scene_objects_len} == {len(scene_objects)}")
+        print(f"[DEBUG] Data  {bpy_data_objects_len} == {len(data_objects)}")
+        print(f"[DEBUG] Scene {bpy_scene_objects_len} == {len(scene_objects)}")
 
-    if bpy_data_objects_len != len(data_objects) or bpy_scene_objects_len != len(scene_objects):
+    if force_run or bpy_data_objects_len != len(data_objects) or bpy_scene_objects_len != len(scene_objects):
         if DEBUG:
             print("------------- Update Data Scene Objects -------------")
-        
-        # Data objects
-        addon_props.data_objects.clear()
-        for obj in bpy.data.objects:
-            item = addon_props.data_objects.add()
-            item.object = obj
+
+        unused_count = 0
 
         # Scene Objects
         addon_props.scene_objects.clear()
         for obj in bpy.context.scene.objects:
             item = addon_props.scene_objects.add()
             item.object = obj
+        
+        # Data objects
+        addon_props.data_objects.clear()
+        for obj in bpy.data.objects:
+            if obj.name in bpy.context.scene.objects:
+                item = addon_props.data_objects.add()
+                item.object = obj
+            else:
+                unused_count += 1
+                if DEBUG:
+                    print(f"[DEBUG] (DATA) {obj.name} not in Scene.")
 
         if DEBUG:
-            print(f"{addon_props.data_objects}")
-            print(f"{addon_props.scene_objects}")
+            print(f"[DEBUG] {addon_props.data_objects}")
+            print(f"[DEBUG] {addon_props.scene_objects}")
+
+        if unused_count > 0:
+            print(f"Unused blocks to be cleared: {unused_count}")
         
         addon_props.objects_updated = True
     else:
