@@ -174,6 +174,18 @@ class r0flToolboxProps(bpy.types.PropertyGroup):
     scene_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem) # type: ignore
     objects_updated: BoolProperty(default=False) # type: ignore
 
+    show_find_modifier_search: BoolProperty( # type: ignore
+        name="Find Modifier(s)",
+        description="Show Find Object with Modifiers Controls",
+        default=False
+    )
+
+    find_modifier_search_text: StringProperty( # type: ignore
+        name="Modifier Type/Name",
+        description="Name or Type of Modifier to find.\nTo search for a mix of name and type and/or multiple criteria, use a comma-separated string, ex.: \"!!, weld, nodes\"\nNote: Case Insensitive",
+        default=""
+    )
+
 
 # -------------------------------------------------------------------
 #   ADDON PREFS

@@ -20,7 +20,7 @@ class PT_SimpleToolbox(bpy.types.Panel):
         row = layout.row()
         row.prop(addon_prefs, "experimental_features", text="Experimental Features", icon="EXPERIMENTAL")
 
-        # Dev Tools
+        # ====== Dev Tools ======
         dev_tools_box = layout.box()
         dev_tools_box.prop(addon_props, "show_dev_tools", icon="TRIA_DOWN" if addon_props.show_dev_tools else "TRIA_RIGHT", emboss=False)
         if addon_props.show_dev_tools:
@@ -35,16 +35,26 @@ class PT_SimpleToolbox(bpy.types.Panel):
                 row = dev_tools_box.row()
                 row.operator("image.reload", icon="IMAGE_DATA")
         
-        # Object Ops
+        # ====== Object Ops ======
         object_ops_box = layout.box()
         object_ops_box.prop(addon_props, "show_object_ops", icon="TRIA_DOWN" if addon_props.show_object_ops else "TRIA_RIGHT", emboss=False)
         if addon_props.show_object_ops:
-
             row = object_ops_box.row(align=True)
             row.operator("r0tools.clear_custom_split_normals_data")
 
             row = object_ops_box.row(align=True)
             row.operator("r0tools.clear_all_objects_children")
+
+            # Find Modifiers on Objects
+            find_modifiers_box = object_ops_box.box()
+            row = find_modifiers_box.row()
+            row.prop(addon_props, "show_find_modifier_search", icon="TRIA_DOWN" if addon_props.show_find_modifier_search else "TRIA_RIGHT", emboss=False)
+            # if addon_props.show_find_modifier_search:
+            row = find_modifiers_box.row()
+            row.label(text="Name or Type:")
+            row = find_modifiers_box.row()
+            row.prop(addon_props, "find_modifier_search_text", icon="SORTALPHA", text="")
+            row.operator("r0tools.find_modifier_search", icon="VIEWZOOM", text="")
             
             # Object Sets Editor
             object_sets_box = object_ops_box.box()
@@ -60,9 +70,9 @@ class PT_SimpleToolbox(bpy.types.Panel):
                     "R0PROP_UL_ObjectSetsList",
                     "object_sets",
                     u.get_addon_props(),  # Collection owner
-                    "object_sets",                     # Collection property
+                    "object_sets",        # Collection property
                     u.get_addon_props(),  # Active item owner
-                    "object_sets_index",               # Active item property
+                    "object_sets_index",  # Active item property
                     rows=6
                 )
 
@@ -91,17 +101,17 @@ class PT_SimpleToolbox(bpy.types.Panel):
                     row.template_list(
                         "R0PROP_UL_CustomPropertiesList",
                         "custom_property_list",
-                        u.get_addon_props(),  # Collection owner
-                        "custom_property_list",            # Collection property
-                        u.get_addon_props(),  # Active item owner
-                        "custom_property_list_index",      # Active item property
+                        u.get_addon_props(),           # Collection owner
+                        "custom_property_list",        # Collection property
+                        u.get_addon_props(),           # Active item owner
+                        "custom_property_list_index",  # Active item property
                         rows=6
                     )
                 # Clear Custom Properties
                 row = custom_properties_box.row()
                 row.operator("r0tools.delete_custom_properties")
         
-        # Mesh Ops
+        # ====== Mesh Ops ======
         mesh_ops_box = layout.box()
         mesh_ops_box.prop(addon_props, "show_mesh_ops", icon="TRIA_DOWN" if addon_props.show_mesh_ops else "TRIA_RIGHT", emboss=False)
         if addon_props.show_mesh_ops:
@@ -124,7 +134,7 @@ class PT_SimpleToolbox(bpy.types.Panel):
                 row.operator("r0tools.clear_sharp_axis_y", text="Y")
                 row.operator("r0tools.clear_sharp_axis_z", text="Z")
         
-        # Externals
+        # ====== Externals ======
         externals_box = layout.box()
         externals_box.prop(addon_props, "show_ext_ops", icon="TRIA_DOWN" if addon_props.show_ext_ops else "TRIA_RIGHT", emboss=False)
         if addon_props.show_ext_ops:
@@ -136,7 +146,7 @@ class PT_SimpleToolbox(bpy.types.Panel):
             row = externals_box.row(align=True)
             row.operator("r0tools.ext_zenuv_set_td")
 
-        # Heavy Experimentals
+        # ====== Heavy Experimentals ======
         if addon_prefs.experimental_features:
             row = layout.row()
             row.label(text="EXPERIMENTAL", icon="EXPERIMENTAL")

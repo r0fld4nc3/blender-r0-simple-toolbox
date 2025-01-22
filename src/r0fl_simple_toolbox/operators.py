@@ -322,7 +322,7 @@ class SimpleToolbox_OT_ExperimentalOP(bpy.types.Operator):
         return loose_verts
 
     def execute(self, context):
-        print("\n=== Experimental Operator 1 ===")
+        print("\n------------- Experimental Operator 1 -------------")
         region, rv3d = self.get_viewport(context)
 
         # Get the actual viewport dimensions
@@ -620,7 +620,7 @@ class SimpleToolbox_OT_ReloadNamedScripts(bpy.types.Operator):
             return False
 
     def execute(self, context):
-        print("\n=== Reload Named Scripts ===")
+        print("\n------------- Reload Named Scripts -------------")
         modules = self.get_input_modules()
 
         if not modules:
@@ -686,7 +686,7 @@ class SimpleToolbox_OT_ClearCustomSplitNormalsData(bpy.types.Operator):
             # bpy.context.object.data.auto_smooth_angle = 3.14159
 
     def execute(self, context):
-        print("\n=== Clear Custom Split Normals Data ===")
+        print("\n------------- Clear Custom Split Normals Data -------------")
         orig_context = context.mode
         orig_active = bpy.context.view_layer.objects.active
 
@@ -717,7 +717,7 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
         return len(context.selected_objects) > 0
 
     def execute(self, context):
-        print("\n=== Clear Custom Properties ===")
+        print("\n------------- Clear Custom Properties -------------")
         object_data_property_deletions = set()
         mesh_data_property_deletions = set()
         total_deletions = 0
@@ -810,7 +810,7 @@ class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
         bpy.context.view_layer.objects.active = initial_obj
 
     def execute(self, context):
-        print("\n=== Clear Mesh Attributes ===")
+        print("\n------------- Clear Mesh Attributes -------------")
         self.op_clear_mesh_attributes()
         return {'FINISHED'}
 
@@ -858,7 +858,7 @@ class SimpleToolbox_OT_ClearChildrenRecurse(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
-        print("\n=== Clear Object(s) Children ===")
+        print("\n------------- Clear Object(s) Children -------------")
         parent_objs = 0
         total_children_cleared = 0
         
@@ -899,7 +899,90 @@ class SimpleToolbox_OT_ClearChildrenRecurse(bpy.types.Operator):
             self.report({'WARNING'}, issues_msg)
         
         return {'FINISHED'}
+    
 
+class SimpleToolbox_OT_FindModifierSearch(bpy.types.Operator):
+    bl_idname = "r0tools.find_modifier_search"
+    bl_label = "Find Modifiers"
+    bl_description = "Find and select objects whose modifier name(s) or type(s) match the given search text criteria.\nTo search for a mix of name and type and/or multiple criteria, use a comma-separated string, ex.: \"!!, weld, nodes\"\nNote: Case Insensitive\n\n- SHIFT: Add to selection"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    add_to_selection: BoolProperty(default=False, name="Add To Selection") # type: ignore
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == u.OBJECT_MODES.OBJECT
+
+    def invoke(self, context, event):
+        if event.shift:
+            self.add_to_selection = True
+
+        return self.execute(context)
+
+    def execute(self, context):
+        addon_props = u.get_addon_props()
+
+        print("\n------------- Find Modifier(s) Search -------------")
+
+        search_text = addon_props.find_modifier_search_text.lower()
+        search_text_split = [s.strip() for s in search_text.split(",")]
+        
+        view_layer_objs = bpy.context.view_layer.objects
+        scene_objects = bpy.context.scene.objects
+
+        if DEBUG:
+            print(f"[DEBUG] {search_text=}")
+            print(f"[DEBUG] (FLAG) {self.add_to_selection=}")
+
+        if not self.add_to_selection:
+            active_object = None
+        else:
+            active_object = context.active_object
+
+        if DEBUG:
+            print(f"[DEBUG] {active_object=}")
+
+        if not self.add_to_selection:
+            u.deselect_all()
+        
+        for obj in view_layer_objs:
+            if not u.object_visible(obj):
+                continue
+            
+            is_found = False
+            obj_modifiers = obj.modifiers
+
+            for modifier in obj_modifiers:
+                mod_name = modifier.name
+                mod_type = modifier.type
+
+                for search_term in search_text_split:
+                    if is_found:
+                        break
+                    if search_term in mod_name.lower() or search_text in mod_type.lower():
+                        if DEBUG:
+                            print(f"{search_term} in {mod_name} or {mod_type}")
+
+                        if not self.add_to_selection:
+                            if not active_object:
+                                active_object = obj
+                                u.select_object(obj, set_active=True)
+                                is_found = True
+                            else:
+                                u.select_object(obj)
+                                is_found = True
+                        else:
+                            if not active_object:
+                                active_object = obj
+                                u.select_object(obj, set_active=True)
+                                is_found = True
+                            else:
+                                u.select_object(obj)
+                                is_found = True
+
+                        break
+
+        return {'FINISHED'}
 
 # -------------------------------------------------------------------
 #   MESH OPS
@@ -989,7 +1072,7 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
                 edge.select = True
 
     def execute(self, context):
-        print("\n=== Dissolve Nth Edges ===")
+        print("\n------------- Dissolve Nth Edges -------------")
         original_active_obj = context.active_object
         original_mode = context.mode
 
@@ -1035,7 +1118,7 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
         return self.execute(context)
     
     def execute(self, context):
-        print("\n=== Restore Rotation From Selection ===")
+        print("\n------------- Restore Rotation From Selection -------------")
         # Store original configurations
         orig_affect_only_origins = u.get_scene().tool_settings.use_transform_data_origin
         orig_affect_only_locations = u.get_scene().tool_settings.use_transform_pivot_point_align
@@ -1180,7 +1263,7 @@ class SimpleToolbox_OT_ApplyZenUVTD(bpy.types.Operator):
         return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
     
     def execute(self, context):
-        print("\n=== (EXT) Apply Zen UV Texel Density ===")
+        print("\n------------- (EXT) Apply Zen UV Texel Density -------------")
         context_mode = context.mode
         
         if context_mode not in self.accepted_contexts:
@@ -1264,6 +1347,7 @@ classes = [
     SimpleToolbox_OT_ClearCustomProperties,
     SimpleToolbox_OT_ClearMeshAttributes,
     SimpleToolbox_OT_ClearChildrenRecurse,
+    SimpleToolbox_OT_FindModifierSearch,
     
     SimpleToolbox_OT_DissolveNthEdge,
     SimpleToolbox_OT_RestoreRotationFromSelection,

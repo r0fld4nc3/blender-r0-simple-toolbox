@@ -156,6 +156,19 @@ def deselect_all():
     elif context_mode in object_modes:
         bpy.ops.object.select_all(action="DESELECT")
 
+def object_in_view_layer(obj, context=None):
+    ctx = bpy.context
+    if context:
+        ctx = context
+
+    # print(f"Object '{obj.name}' visible view_layer {obj.visible_get(view_layer=ctx.view_layer)}")
+
+    return obj.visible_get(view_layer=ctx.view_layer)  # Returns True for visible objects
+
+def object_visible(obj):
+    # print(f"Object '{obj.name}' visible {obj.visible_get()}")
+    return obj.visible_get() # Returns True for visible objects
+
 def save_preferences():
     """Safely save user preferences without causing recursion"""
     try:
