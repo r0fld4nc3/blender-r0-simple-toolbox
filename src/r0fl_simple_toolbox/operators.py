@@ -347,7 +347,7 @@ class SimpleToolbox_OT_ExperimentalOP(bpy.types.Operator):
 class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
     bl_label = "+"
     bl_idname = "r0tools.add_object_set_popup"
-    bl_description = ""
+    bl_description = "Add a new Object Set Entry."
     bl_options = {'REGISTER', 'UNDO'}
 
     _default_name = "New Set"
@@ -391,9 +391,6 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
         return f"{self.object_set_name}.{suffix:03}"
 
     def execute(self, context):
-        # Update cleanup dangling references
-        # u.handler_cleanup_object_set_invalid_references(context)
-
         addon_props = u.get_addon_props()
         new_set = addon_props.object_sets.add()
         new_set.name = self.add_non_conflicting_name()
@@ -413,7 +410,7 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
 class SimpleToolbox_OT_RenameObjectSet(bpy.types.Operator):
     bl_label = "Rename"
     bl_idname = "r0tools.rename_object_set"
-    bl_description = ""
+    bl_description = "Rename the selected Object Set entry."
 
     new_name: bpy.props.StringProperty(name="New Object Set Name", default="") # type: ignore
 
@@ -445,7 +442,7 @@ class SimpleToolbox_OT_RenameObjectSet(bpy.types.Operator):
 class SimpleToolbox_OT_RemoveObjectSet(bpy.types.Operator):
     bl_label = "-"
     bl_idname = "r0tools.remove_object_set"
-    bl_description = ""
+    bl_description = "Remove the selected Object Set entry."
     bl_options = {'REGISTER'}
 
     @classmethod
@@ -465,12 +462,83 @@ class SimpleToolbox_OT_RemoveObjectSet(bpy.types.Operator):
             addon_props.object_sets_index = max(0, index - 1)
             self.report({'INFO'}, f"Removed Object Set: {set_name}")
         return {'FINISHED'}
+    
+
+class SimpleToolbox_OT_MoveObjectSetItemUp(bpy.types.Operator):
+    bl_label = "Move Object Set Up"
+    bl_idname = "r0tools.move_object_set_item_up"
+    bl_description = "Move the selected Object Set up.\n\n- SHIFT: Move to Top"
+    bl_options = {'INTERNAL'}
+
+    absolute: BoolProperty(default=False) # type: ignore
+
+    def invoke(self, context, event):
+        self.absolute = False # Always reset
+
+        if event.shift:
+            self.absolute = True
+
+        return self.execute(context)
+
+    def execute(self, context):
+        addon_props = u.get_addon_props()
+        object_sets = addon_props.object_sets
+        active_index = addon_props.object_sets_index
+
+        if active_index > 0:
+            if self.absolute:
+                to_index = 0 # All the way down
+            else:
+                to_index = active_index - 1
+
+            object_sets.move(active_index, to_index)
+            addon_props.object_sets_index = to_index
+            addon_props.object_sets[active_index].update_count()
+            addon_props.object_sets[to_index].update_count()
+
+        return {'FINISHED'}
+    
+
+class SimpleToolbox_OT_MoveObjectSetItemDown(bpy.types.Operator):
+    """Move the active Object Set down in the list"""
+    bl_label = "Move Object Set Down"
+    bl_idname = "r0tools.move_object_set_item_down"
+    bl_description = "Move the selected Object Set down.\n\n- SHIFT: Move to Bottom"
+    bl_options = {'INTERNAL'}
+
+    absolute: BoolProperty(default=False) # type: ignore
+
+    def invoke(self, context, event):
+        self.absolute = False # Always reset
+
+        if event.shift:
+            self.absolute = True
+
+        return self.execute(context)
+
+    def execute(self, context):
+        addon_props = u.get_addon_props()
+        object_sets = addon_props.object_sets
+        active_index = addon_props.object_sets_index
+
+        if active_index < len(object_sets) - 1:
+            if self.absolute:
+                to_index = len(object_sets) - 1 # All the way down
+            else:
+                to_index = active_index + 1
+            
+            object_sets.move(active_index, to_index)
+            addon_props.object_sets_index = to_index
+            addon_props.object_sets[active_index].update_count()
+            addon_props.object_sets[to_index].update_count()
+
+        return {'FINISHED'}
 
 
 class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
     bl_label = "Add"
     bl_idname = "r0tools.add_to_object_set"
-    bl_description = ""
+    bl_description = "Add selected objects to selected Object Set Entry."
     bl_options = {'REGISTER'}
 
     accepted_contexts = [u.OBJECT_MODES.OBJECT]
@@ -499,7 +567,7 @@ class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
 class SimpleToolbox_OT_RemoveFromObjectSet(bpy.types.Operator):
     bl_label = "Remove"
     bl_idname = "r0tools.remove_from_object_set"
-    bl_description = ""
+    bl_description = "Remove selected objects from selected Object Set entry."
     bl_options = {'REGISTER'}
 
     accepted_contexts = [u.OBJECT_MODES.OBJECT]
@@ -1333,6 +1401,8 @@ classes = [
     
     SimpleToolbox_OT_AddObjectSetPopup,
     SimpleToolbox_OT_RenameObjectSet,
+    SimpleToolbox_OT_MoveObjectSetItemUp,
+    SimpleToolbox_OT_MoveObjectSetItemDown,
     SimpleToolbox_OT_RemoveObjectSet,
     SimpleToolbox_OT_AddToObjectSet,
     SimpleToolbox_OT_RemoveFromObjectSet,
@@ -1354,7 +1424,7 @@ classes = [
     SimpleToolbox_OT_ClearAxisSharpEdgesX,
     SimpleToolbox_OT_ClearAxisSharpEdgesY,
     SimpleToolbox_OT_ClearAxisSharpEdgesZ,
-    SimpleToolbox_OT_ApplyZenUVTD,
+    # SimpleToolbox_OT_ApplyZenUVTD,
 ]
 
 addon_keymaps = []

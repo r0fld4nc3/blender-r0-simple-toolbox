@@ -81,6 +81,11 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
             count_text = f"({item.count})"
             row.label(text=count_text, icon="OBJECT_DATAMODE")
 
+            # Alternative display, needs some work
+            # split = row.split(align=True)
+            # split.alignment = 'RIGHT'
+            # split.label(text=f"({item.count})", icon="OBJECT_DATAMODE")
+
         elif self.layout_type in {"GRID"}:
             layout.alignment = "CENTER"
             layout.label(text=item.name)

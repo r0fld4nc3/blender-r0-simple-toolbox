@@ -21,19 +21,20 @@ class PT_SimpleToolbox(bpy.types.Panel):
         row.prop(addon_prefs, "experimental_features", text="Experimental Features", icon="EXPERIMENTAL")
 
         # ====== Dev Tools ======
-        dev_tools_box = layout.box()
-        dev_tools_box.prop(addon_props, "show_dev_tools", icon="TRIA_DOWN" if addon_props.show_dev_tools else "TRIA_RIGHT", emboss=False)
-        if addon_props.show_dev_tools:
-            row = dev_tools_box.row()
-            row.operator("script.reload", text="Reload All Scripts", icon="PACKAGE")
-            reload_user_defined_box = dev_tools_box.box()
-            row = reload_user_defined_box.row()
-            row.prop(addon_props, "reload_modules_prop")
-            row = reload_user_defined_box.row()
-            row.operator("r0tools.reload_named_scripts", icon="TOOL_SETTINGS")
-            if addon_prefs.experimental_features:
+        if addon_prefs.experimental_features:
+            dev_tools_box = layout.box()
+            dev_tools_box.prop(addon_props, "show_dev_tools", icon="TRIA_DOWN" if addon_props.show_dev_tools else "TRIA_RIGHT", emboss=False)
+            if addon_props.show_dev_tools:
                 row = dev_tools_box.row()
-                row.operator("image.reload", icon="IMAGE_DATA")
+                row.operator("script.reload", text="Reload All Scripts", icon="PACKAGE")
+                reload_user_defined_box = dev_tools_box.box()
+                row = reload_user_defined_box.row()
+                row.prop(addon_props, "reload_modules_prop")
+                row = reload_user_defined_box.row()
+                row.operator("r0tools.reload_named_scripts", icon="TOOL_SETTINGS")
+                if addon_prefs.experimental_features:
+                    row = dev_tools_box.row()
+                    row.operator("image.reload", icon="IMAGE_DATA")
         
         # ====== Object Ops ======
         object_ops_box = layout.box()
@@ -80,6 +81,10 @@ class PT_SimpleToolbox(bpy.types.Panel):
                 col = split.column(align=True)
                 col.operator("r0tools.add_object_set_popup")
                 col.operator("r0tools.remove_object_set")
+                if len(addon_props.object_sets) > 1: # Show buttons only when applicable
+                    col.label(text="") # Spacer
+                    col.operator("r0tools.move_object_set_item_up", icon='TRIA_UP', text="")
+                    col.operator("r0tools.move_object_set_item_down", icon='TRIA_DOWN', text="")
 
                 # Bottom
                 row = object_sets_box.row(align=True)
@@ -92,21 +97,20 @@ class PT_SimpleToolbox(bpy.types.Panel):
                 row_col.operator("r0tools.select_object_set")
 
             # Custom Properties UI List
-            if addon_prefs.experimental_features:
-                custom_properties_box = object_ops_box.box()
+            custom_properties_box = object_ops_box.box()
+            row = custom_properties_box.row()
+            row.prop(addon_props, "show_custom_property_list_prop", icon="TRIA_DOWN" if addon_props.show_custom_property_list_prop else "TRIA_RIGHT", emboss=False)
+            if addon_props.show_custom_property_list_prop:
                 row = custom_properties_box.row()
-                row.prop(addon_props, "show_custom_property_list_prop", icon="TRIA_DOWN" if addon_props.show_custom_property_list_prop else "TRIA_RIGHT", emboss=False)
-                if addon_props.show_custom_property_list_prop:
-                    row = custom_properties_box.row()
-                    row.template_list(
-                        "R0PROP_UL_CustomPropertiesList",
-                        "custom_property_list",
-                        u.get_addon_props(),           # Collection owner
-                        "custom_property_list",        # Collection property
-                        u.get_addon_props(),           # Active item owner
-                        "custom_property_list_index",  # Active item property
-                        rows=6
-                    )
+                row.template_list(
+                    "R0PROP_UL_CustomPropertiesList",
+                    "custom_property_list",
+                    u.get_addon_props(),           # Collection owner
+                    "custom_property_list",        # Collection property
+                    u.get_addon_props(),           # Active item owner
+                    "custom_property_list_index",  # Active item property
+                    rows=6
+                )
                 # Clear Custom Properties
                 row = custom_properties_box.row()
                 row.operator("r0tools.delete_custom_properties")
@@ -135,6 +139,7 @@ class PT_SimpleToolbox(bpy.types.Panel):
                 row.operator("r0tools.clear_sharp_axis_z", text="Z")
         
         # ====== Externals ======
+        """
         externals_box = layout.box()
         externals_box.prop(addon_props, "show_ext_ops", icon="TRIA_DOWN" if addon_props.show_ext_ops else "TRIA_RIGHT", emboss=False)
         if addon_props.show_ext_ops:
@@ -145,6 +150,7 @@ class PT_SimpleToolbox(bpy.types.Panel):
             row.prop(addon_prefs, "zenuv_td_unit_prop", text="Unit")
             row = externals_box.row(align=True)
             row.operator("r0tools.ext_zenuv_set_td")
+        """
 
         # ====== Heavy Experimentals ======
         if addon_prefs.experimental_features:
