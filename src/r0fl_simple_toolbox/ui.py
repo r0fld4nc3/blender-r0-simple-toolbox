@@ -3,6 +3,7 @@ import bpy
 from .const import INTERNAL_NAME, ADDON_NAME, VERSION_STR
 from . import utils as u
 
+
 class PT_SimpleToolbox(bpy.types.Panel):
     bl_idname = 'OBJECT_PT_quick_toolbox'
     bl_label = f'{ADDON_NAME} ({VERSION_STR})'
@@ -50,51 +51,19 @@ class PT_SimpleToolbox(bpy.types.Panel):
             find_modifiers_box = object_ops_box.box()
             row = find_modifiers_box.row()
             row.prop(addon_props, "show_find_modifier_search", icon="TRIA_DOWN" if addon_props.show_find_modifier_search else "TRIA_RIGHT", emboss=False)
-            # if addon_props.show_find_modifier_search:
-            row = find_modifiers_box.row()
-            row.label(text="Name or Type:")
-            row = find_modifiers_box.row()
-            row.prop(addon_props, "find_modifier_search_text", icon="SORTALPHA", text="")
-            row.operator("r0tools.find_modifier_search", icon="VIEWZOOM", text="")
+            if addon_props.show_find_modifier_search:
+                row = find_modifiers_box.row()
+                row.label(text="Name or Type:")
+                row = find_modifiers_box.row()
+                row.prop(addon_props, "find_modifier_search_text", icon="SORTALPHA", text="")
+                row.operator("r0tools.find_modifier_search", icon="VIEWZOOM", text="")
             
             # Object Sets Editor
             object_sets_box = object_ops_box.box()
             row = object_sets_box.row()
             row.prop(addon_props, "show_object_sets", icon="TRIA_DOWN" if addon_props.show_object_sets else "TRIA_RIGHT", emboss=False)
             if addon_props.show_object_sets:
-                row = object_sets_box.row()
-                split = row.split(factor=0.9)
-
-                # Left Section
-                col = split.column()
-                col.template_list(
-                    "R0PROP_UL_ObjectSetsList",
-                    "object_sets",
-                    u.get_addon_props(),  # Collection owner
-                    "object_sets",        # Collection property
-                    u.get_addon_props(),  # Active item owner
-                    "object_sets_index",  # Active item property
-                    rows=6
-                )
-
-                # Right side
-                col = split.column(align=True)
-                col.operator("r0tools.add_object_set_popup")
-                col.operator("r0tools.remove_object_set")
-                if len(addon_props.object_sets) > 1: # Show buttons only when applicable
-                    col.label(text="") # Spacer
-                    col.operator("r0tools.move_object_set_item_up", icon='TRIA_UP', text="")
-                    col.operator("r0tools.move_object_set_item_down", icon='TRIA_DOWN', text="")
-
-                # Bottom
-                row = object_sets_box.row(align=True)
-                split = row.split(factor=0.65)
-                row_col = split.row(align=True)
-                row_col.operator("r0tools.add_to_object_set")
-                row_col.operator("r0tools.remove_from_object_set")
-                #
-                row_col = split.row()
-                row_col.operator("r0tools.select_object_set")
+                u.draw_objects_sets_uilist(self.layout, context, object_sets_box=object_sets_box)
 
             # Custom Properties UI List
             custom_properties_box = object_ops_box.box()

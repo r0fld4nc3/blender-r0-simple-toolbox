@@ -342,7 +342,36 @@ class SimpleToolbox_OT_ExperimentalOP(bpy.types.Operator):
         context.view_layer.objects.active = orig_active
 
         return {'FINISHED'}
+    
 
+class SimpleToolbox_OT_ObjectSetsModal(bpy.types.Operator):
+    bl_idname = "r0tools.object_sets_modal"
+    bl_label = "Object Sets Modal"
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self, event)
+    
+    def execute(self, context):
+        return {'FINISHED'}
+    
+    def modal(self, context, event):
+        if event.type == 'MOUSEMOVE':  # Ignore mouse movement events
+            return {'PASS_THROUGH'}
+
+        if event.type in {"ESC", "RIGHTMOUSE"}:
+            return {'CANCELLED'}
+        elif event.type == 'LEFTMOUSE' and event.value == 'RELEASE':
+            if context.window_manager.dialog_properties.is_property_set("clicked"):
+                if context.window_manager.dialog_properties.clicked == 'OK':
+                    return {'FINISHED'}
+                elif context.window_manager.dialog_properties.clicked == 'CANCEL':
+                    return {'CANCELLED'}
+
+        return {'RUNNING_MODAL'}
+    
+    def draw(self, context):
+        u.draw_objects_sets_uilist(self.layout, context, object_sets_box=self.layout)
+    
 
 class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
     bl_label = "+"
@@ -782,7 +811,7 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return len(context.selected_objects) > 0
+        return len(context.selected_objects) > 0 and context.area and context.area == u.AREA_TYPES.VIEW_3D
 
     def execute(self, context):
         print("\n------------- Clear Custom Properties -------------")
@@ -1399,6 +1428,7 @@ class SimpleToolbox_OT_ApplyZenUVTD(bpy.types.Operator):
 classes = [
     SimpleToolbox_OT_ExperimentalOP,
     
+    SimpleToolbox_OT_ObjectSetsModal,
     SimpleToolbox_OT_AddObjectSetPopup,
     SimpleToolbox_OT_RenameObjectSet,
     SimpleToolbox_OT_MoveObjectSetItemUp,

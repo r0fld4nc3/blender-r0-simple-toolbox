@@ -38,6 +38,57 @@ class AREA_TYPES:
     TOPBAR           = "TOPBAR"
     VIEW_3D          = "VIEW_3D"
 
+def draw_objects_sets_uilist(layout, context, object_sets_box=None):
+    addon_props = get_addon_props()
+
+    if DEBUG:
+        print(f"[DEBUG] {layout=}")
+        print(f"[DEBUG] {object_sets_box=}")
+
+    # Object Sets Editor
+    if object_sets_box:
+        row = object_sets_box.row()
+    elif layout:
+        row = layout.row()
+    else:
+        print(f"[ERROR] No valid layout to use:\n{layout=}\n{object_sets_box=}")
+        return False
+    
+    split = row.split(factor=0.9)
+
+    # Left Section
+    col = split.column()
+    col.template_list(
+        "R0PROP_UL_ObjectSetsList",
+        "object_sets",
+        addon_props,          # Collection owner
+        "object_sets",        # Collection property
+        addon_props,          # Active item owner
+        "object_sets_index",  # Active item property
+        rows=6
+    )
+
+    # Right side
+    col = split.column(align=True)
+    col.operator("r0tools.add_object_set_popup")
+    col.operator("r0tools.remove_object_set")
+    if len(addon_props.object_sets) > 1: # Show buttons only when applicable
+        col.label(text="") # Spacer
+        col.operator("r0tools.move_object_set_item_up", icon='TRIA_UP', text="")
+        col.operator("r0tools.move_object_set_item_down", icon='TRIA_DOWN', text="")
+
+    # Bottom
+    if object_sets_box:
+        row = object_sets_box.row(align=True)
+    else:
+        row = layout.row(align=True)
+    split = row.split(factor=0.65)
+    row_col = split.row(align=True)
+    row_col.operator("r0tools.add_to_object_set")
+    row_col.operator("r0tools.remove_from_object_set")
+    #
+    row_col = split.row()
+    row_col.operator("r0tools.select_object_set")
 
 def get_scene() -> bpy.types.Scene:
     return bpy.context.scene
@@ -317,9 +368,9 @@ def op_clear_sharp_along_axis(axis: str):
 @bpy.app.handlers.persistent
 def handler_continuous_property_list_update(scene, context, skip_sel_check=False):
     # This method is required to assess the last object selection, otherwise
-    # this is triggered on every click and the list is updated, and the checkboxes are reset
+    # this is triggered on every click and the list is updated, and the checkboxes are reset    
     
-    if bpy.context.selected_objects:
+    if bpy.context.selected_objects and bpy.context.area and bpy.context.area == AREA_TYPES.VIEW_3D:
         current_selection = {obj.name for obj in iter_scene_objects(selected=True)}
         addon_props = get_addon_props()
         prev_selection = set(addon_props.last_object_selection.split(',')) if addon_props.last_object_selection else set()
@@ -332,8 +383,8 @@ def handler_continuous_property_list_update(scene, context, skip_sel_check=False
             try:
                 addon_props.custom_property_list.clear()
             except Exception as e:
-                print(f"ERROR clearing custom property list in loop: {e}")
-                raise e
+                print(f"[ERROR] Error clearing Custom Property list: {e}")
+                # raise e
 
             # Add unique custom properties to the set
             unique_object_data_props = set()
@@ -350,8 +401,8 @@ def handler_continuous_property_list_update(scene, context, skip_sel_check=False
                             item.name = prop_name
                             # Type is defaulted to Object
                         except Exception as e:
-                            print(f"ERROR adding unique custom properties: {e}")
-                            raise e
+                            print(f"[ERROR] Error adding unique Custom Properties: {e}")
+                            # raise e
                         
                 # Object Data Properties
                 if obj.data and obj.type == 'MESH':
@@ -366,8 +417,8 @@ def handler_continuous_property_list_update(scene, context, skip_sel_check=False
                                 item.type = CUSTOM_PROPERTIES_TYPES.MESH_DATA
                                 # Type is defaulted to Object
                             except Exception as e:
-                                print(f"ERROR adding unique custom properties: {e}")
-                                raise e
+                                print(f"[ERROR] Error adding unique Object Data Custom Properties: {e}")
+                                # raise e
 
             # Update the last object selection
             addon_props.last_object_selection = ','.join(current_selection)
@@ -376,11 +427,11 @@ def handler_continuous_property_list_update(scene, context, skip_sel_check=False
         try:
             get_addon_props().custom_property_list.clear()
         except Exception as e:
-            print(f"ERROR clearing custom property list when no selected objects: {e}")
+            print(f"[ERROR] Error clearing custom property list when no selected objects: {e}")
         try:
             get_addon_props().last_object_selection = ""
         except Exception as e:
-            print(f"ERROR setting last object selection when no selected objects: {e}")
+            print(f"[ERROR] Error setting last object selection when no selected objects: {e}")
 
 def get_builtin_transform_orientations(identifiers=False) -> list:
     if identifiers:
@@ -545,13 +596,24 @@ def update_data_scene_objects(scene, force_run=False):
         unused_count = 0
 
         # Scene Objects
-        addon_props.scene_objects.clear()
+        try:
+            addon_props.scene_objects.clear()
+        except Exception as e:
+            print(f"[ERROR] Error clearing scene_objects: {e}")
+
         for obj in bpy.context.scene.objects:
-            item = addon_props.scene_objects.add()
-            item.object = obj
+            try:
+                item = addon_props.scene_objects.add()
+                item.object = obj
+            except Exception as e:
+                print(f"[ERROR] Error adding new entry to scene_objects")
         
         # Data objects
-        addon_props.data_objects.clear()
+        try:
+            addon_props.data_objects.clear()
+        except Exception as e:
+            print(f"[ERROR] Error clearing data_objects: {e}")
+            
         for obj in bpy.data.objects:
             if obj.name in bpy.context.scene.objects:
                 item = addon_props.data_objects.add()
