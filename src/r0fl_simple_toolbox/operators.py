@@ -349,7 +349,7 @@ class SimpleToolbox_OT_ObjectSetsModal(bpy.types.Operator):
     bl_label = "Object Sets Modal"
 
     def invoke(self, context, event):
-        return context.window_manager.invoke_props_dialog(self, event)
+        return context.window_manager.invoke_props_dialog(self, width=200)
     
     def execute(self, context):
         return {'FINISHED'}
