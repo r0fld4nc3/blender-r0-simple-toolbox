@@ -1573,6 +1573,12 @@ def register():
     
     # Register modified draw method for Orientations Pie
     _BUILTIN_ORIENTATIONS_PIE.draw = modified_orientations_pie_draw
+
+    # Register Objects Sets Modal Operator in Viewport > View
+    bpy.types.VIEW3D_MT_view.append(lambda self, context: self.layout.operator(SimpleToolbox_OT_ObjectSetsModal.bl_idname))
+    
+    # Register Objects Sets Modal Operator in Image Editor/UV > View
+    bpy.types.IMAGE_MT_view.append(lambda self, context: self.layout.operator(SimpleToolbox_OT_ObjectSetsModal.bl_idname))
     
     register_keymapping()
 
@@ -1584,3 +1590,9 @@ def unregister():
     CustomTransformsOrientationsTracker.unregister_handler()
 
     _BUILTIN_ORIENTATIONS_PIE.draw = _ORIGINAL_ORIENTATIONS_PIE_DRAW
+
+    # Unregister Objects Sets Modal Operator in Viewport > View
+    bpy.types.VIEW3D_MT_view.append(lambda self, context: self.layout.operator(SimpleToolbox_OT_ObjectSetsModal.bl_idname))
+
+    # Unregister Objects Sets Modal Operator in Image Editor/UV > View
+    bpy.types.IMAGE_MT_view.append(lambda self, context: self.layout.operator(SimpleToolbox_OT_ObjectSetsModal.bl_idname))
