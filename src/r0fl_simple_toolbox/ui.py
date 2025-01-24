@@ -14,7 +14,7 @@ class PT_SimpleToolbox(bpy.types.Panel):
 
     def draw(self, context):
         addon_props = u.get_addon_props()
-        addon_prefs = bpy.context.preferences.addons[INTERNAL_NAME].preferences
+        addon_prefs = u.get_addon_prefs()
         
         layout = self.layout
 
@@ -78,7 +78,7 @@ class PT_SimpleToolbox(bpy.types.Panel):
                     "custom_property_list",        # Collection property
                     u.get_addon_props(),           # Active item owner
                     "custom_property_list_index",  # Active item property
-                    rows=6
+                    rows=addon_prefs.custom_properties_list_rows
                 )
                 # Clear Custom Properties
                 row = custom_properties_box.row()

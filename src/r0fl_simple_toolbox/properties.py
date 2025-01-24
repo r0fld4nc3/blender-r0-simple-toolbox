@@ -240,6 +240,25 @@ class AddonPreferences(bpy.types.AddonPreferences):
         update=lambda self, context: u.save_preferences()
     )
 
+    object_sets_modal_width: IntProperty( # type: ignore
+        name="Object Sets Modal Width",
+        default=250,
+        min=0,
+        max=400
+    )
+
+    object_sets_list_rows: IntProperty( # type: ignore
+        name="Object Sets List Rows",
+        default=6,
+        min=1
+    )
+
+    custom_properties_list_rows: IntProperty( # type: ignore
+        name="Custom Properties List Rows",
+        default=6,
+        min=1
+    )
+
     def draw_keymaps(self, context, layout):
         # FIXME: Has no effect, shows almost correctly
         from .operators import SimpleToolbox_OT_ShowCustomOrientationsPie
@@ -277,8 +296,25 @@ class AddonPreferences(bpy.types.AddonPreferences):
         row.prop(self, "experimental_features", text="Experimental Features")
 
         layout.prop(self, "clear_sharp_axis_float_prop", text="Clear Sharp Edges Threshold")
+
+        # Object Sets
+        object_sets_settings_box = layout.box()
+        row = object_sets_settings_box.row()
+        row.label(text="Object Sets Settings")
+        row = object_sets_settings_box.row()
+        row.prop(self, "object_sets_modal_width")
+        row = object_sets_settings_box.row()
+        row.prop(self, "object_sets_list_rows")
+
+        # Custom Properties
+        custom_properties_settings_box = layout.box()
+        row = custom_properties_settings_box.row()
+        row.label(text="Custom Properties Settings")
+        row = custom_properties_settings_box.row()
+        row.prop(self, "custom_properties_list_rows")
         
         # Box for texel density settings
+        """
         td_box = layout.box()
         td_box.label(text="Texel Density Settings")
         
@@ -288,6 +324,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         
         row = td_box.row()
         row.prop(self, "zenuv_td_unit_prop")
+        """
 
         row = layout.row()
         row.label(text="Keymaps")

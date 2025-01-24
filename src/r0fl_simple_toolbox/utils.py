@@ -39,6 +39,7 @@ class AREA_TYPES:
     VIEW_3D          = "VIEW_3D"
 
 def draw_objects_sets_uilist(layout, context, object_sets_box=None):
+    addon_prefs = get_addon_prefs()
     addon_props = get_addon_props()
 
     if DEBUG:
@@ -65,7 +66,7 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
         "object_sets",        # Collection property
         addon_props,          # Active item owner
         "object_sets_index",  # Active item property
-        rows=6
+        rows=addon_prefs.object_sets_list_rows
     )
 
     # Right side
@@ -104,6 +105,9 @@ def get_context_area() -> str | None:
 
 def get_addon_props():
     return get_scene().r0fl_toolbox_props
+
+def get_addon_prefs():
+    return bpy.context.preferences.addons[INTERNAL_NAME].preferences
 
 def set_object_mode(mode: str):
     """
@@ -242,7 +246,7 @@ def save_preferences():
 def get_td_value():
     """Get the texel density value from addon preferences"""
     try:
-        preferences = bpy.context.preferences.addons[INTERNAL_NAME].preferences
+        preferences = get_addon_prefs()
         value = preferences.zenuv_td_prop
         return value
     except Exception as e:
@@ -252,7 +256,7 @@ def get_td_value():
 def get_td_unit():
     """Get the texel density unit from addon preferences"""
     try:
-        preferences = bpy.context.preferences.addons[INTERNAL_NAME].preferences
+        preferences = get_addon_prefs()
         td_unit = preferences.zenuv_td_unit_prop
         td_split = td_unit.split('_')
         
@@ -270,7 +274,7 @@ def op_clear_sharp_along_axis(axis: str):
     print(f"\n=== Clear Sharp Along Axis {axis}")
     axis = str(axis).upper()
     
-    threshold = bpy.context.preferences.addons[INTERNAL_NAME].preferences.clear_sharp_axis_float_prop
+    threshold = get_addon_prefs().clear_sharp_axis_float_prop
     print(f"Threshold: {threshold}")
     
     # Collect select objects
