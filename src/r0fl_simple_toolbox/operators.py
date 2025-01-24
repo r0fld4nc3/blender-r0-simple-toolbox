@@ -812,7 +812,7 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return len(context.selected_objects) > 0 and context.area and context.area == u.AREA_TYPES.VIEW_3D
+        return len(context.selected_objects) > 0
 
     def execute(self, context):
         print("\n------------- Clear Custom Properties -------------")
