@@ -392,9 +392,9 @@ def op_clear_sharp_along_axis(axis: str):
 @bpy.app.handlers.persistent
 def handler_continuous_property_list_update(scene, context, skip_sel_check=False):
     # This method is required to assess the last object selection, otherwise
-    # this is triggered on every click and the list is updated, and the checkboxes are reset    
+    # this is triggered on every click and the list is updated, and the checkboxes are reset
     
-    if bpy.context.selected_objects and bpy.context.area and bpy.context.area == AREA_TYPES.VIEW_3D:
+    if bpy.context.selected_objects:
         current_selection = {obj.name for obj in iter_scene_objects(selected=True)}
         addon_props = get_addon_props()
         prev_selection = set(addon_props.last_object_selection.split(',')) if addon_props.last_object_selection else set()
