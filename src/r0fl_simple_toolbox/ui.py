@@ -41,9 +41,15 @@ class PT_SimpleToolbox(bpy.types.Panel):
         object_ops_box = layout.box()
         object_ops_box.prop(addon_props, "show_object_ops", icon="TRIA_DOWN" if addon_props.show_object_ops else "TRIA_RIGHT", emboss=False)
         if addon_props.show_object_ops:
+            # Clear Split Normals Data
             row = object_ops_box.row(align=True)
             row.operator("r0tools.clear_custom_split_normals_data")
 
+            # Select Empty Objects
+            row = object_ops_box.row(align=True)
+            row.operator("r0tools.select_empty_objects")
+
+            # Clear Objects Children
             row = object_ops_box.row(align=True)
             row.operator("r0tools.clear_all_objects_children")
 

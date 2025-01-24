@@ -791,7 +791,7 @@ class SimpleToolbox_OT_ClearCustomSplitNormalsData(bpy.types.Operator):
         if context.mode == u.OBJECT_MODES.EDIT_MESH:
             u.set_mode_object()
 
-        objects = [obj for obj in u.iter_scene_objects(selected=True, types=["MESH"])]
+        objects = [obj for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH])]
         self.op_clear_custom_split_normals_data(objects)
         bpy.context.view_layer.objects.active = orig_active
 
@@ -886,7 +886,7 @@ class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
                        )
         
         for obj in bpy.context.selected_objects:
-            if obj.type == "MESH":
+            if obj.type == u.OBJECT_TYPES.MESH:
                 bpy.context.view_layer.objects.active = obj
                 mesh = bpy.context.object.data
                 print(f"Object: {mesh.name}")
@@ -921,7 +921,7 @@ class SimpleToolbox_OT_ClearChildrenRecurse(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return any(u.iter_scene_objects(selected=True, types=["MESH"])) and context.mode == u.OBJECT_MODES.OBJECT
+        return any(u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH])) and context.mode == u.OBJECT_MODES.OBJECT
 
     recurse: BoolProperty(name="Recursively clear all children", default=False) # type: ignore
         
@@ -948,10 +948,10 @@ class SimpleToolbox_OT_ClearChildrenRecurse(bpy.types.Operator):
             child.hide_viewport = True
 
     def invoke(self, context, event):
+        self.recurse = False # Always reset
+
         if event.shift:
             self.recurse = True
-        else:
-            self.recurse = False
 
         return self.execute(context)
 
@@ -1012,6 +1012,8 @@ class SimpleToolbox_OT_FindModifierSearch(bpy.types.Operator):
         return context.mode == u.OBJECT_MODES.OBJECT
 
     def invoke(self, context, event):
+        self.add_to_selection = False # Always reset
+
         if event.shift:
             self.add_to_selection = True
 
@@ -1097,7 +1099,7 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         # Ensure at least one object is selected
-        return any(u.iter_scene_objects(selected=True, types=["MESH"])) and context.mode == u.OBJECT_MODES.EDIT_MESH
+        return any(u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH])) and context.mode == u.OBJECT_MODES.EDIT_MESH
 
     def process_object(self, obj, context):
         # Make active
@@ -1178,7 +1180,7 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
             u.set_mode_object()
 
         # Collect selected mesh objects
-        selected_objects = [obj for obj in context.selected_objects if obj.type == "MESH"]
+        selected_objects = [obj for obj in context.selected_objects if obj.type == u.OBJECT_TYPES.MESH]
         for obj in selected_objects:
             self.process_object(obj, context)
 
@@ -1207,9 +1209,12 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return any(u.iter_scene_objects(selected=True, types=["MESH"])) and context.mode == u.OBJECT_MODES.EDIT_MESH
+        return any(u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH])) and context.mode == u.OBJECT_MODES.EDIT_MESH
     
     def invoke(self, context, event):
+        self.clear_rotation_on_align = False # Always reset
+        self.origin_to_selection = False # Always reset
+
         if event.shift:
             self.clear_rotation_on_align = True
 
@@ -1225,7 +1230,7 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
         orig_cursor_location = tuple(u.get_scene().cursor.location.xyz)
         orig_cursor_rotation = tuple(u.get_scene().cursor.rotation_euler)
         orig_active_obj = context.active_object
-        orig_selected_objects = list(u.iter_scene_objects(selected=True, types=["MESH"]))
+        orig_selected_objects = list(u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]))
         
         transform_orientation_names = []
         
@@ -1292,6 +1297,89 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
 
         self.report({'INFO'}, "Restore Rotation From Face: Done")
         return {"FINISHED"}
+    
+
+class SimpleToolbox_OT_SelectEmptyObjects(bpy.types.Operator):
+    bl_label = "Check Empty Objects"
+    bl_idname = "r0tools.select_empty_objects"
+    bl_description = "Evaluates which objects in the scene have no or potentially unusable geometry data.\nCondition for a potentially invalid mesh is:\n    - No vertices, edges and faces\n    - No faces but has vertices (non manifold)\n\n- SHIFT: Add to current selection"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    accepted_contexts = [u.OBJECT_MODES.OBJECT]
+
+    add_to_selection: BoolProperty( # type: ignore
+        name="Add to Selection",
+        default=False
+    )
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode in cls.accepted_contexts
+
+    def invoke(self, context, event):
+        self.add_to_selection = False # Always reset
+
+        if event.shift:
+            self.add_to_selection = True
+
+        return self.execute(context)
+    
+    def execute(self, context):
+        print("\n------------- Select Empty Objects -------------")
+        
+        if not self.add_to_selection:
+            u.deselect_all()
+
+        flagged = []
+
+        for i, obj in enumerate(u.iter_scene_objects(types=[u.OBJECT_TYPES.MESH])):
+            bm = bmesh.new()
+            bm.from_mesh(obj.data)
+            bm.verts.ensure_lookup_table()
+
+            verts = bm.verts
+
+            if DEBUG:
+                print(f"\n[DEBUG] {obj.name} Vertices:     {len(verts)}")
+
+            if len(verts) < 3:
+                if i == 0:
+                    u.select_object(obj, set_active=True)
+                else:
+                    u.select_object(obj)
+                break
+
+            # Check if it has faces
+            faces = [f for f in bm.faces]
+
+            # Check non manifold bmesh
+            non_manifold = []
+            for v in bm.verts:
+                if not v.is_manifold:
+                    non_manifold.append(v)
+
+            if DEBUG:
+                print(f"[DEBUG] {obj.name} Non-Manifold: {True if non_manifold else False}")
+                print(f"[DEBUG] {obj.name} Faces:        {len(faces)}")
+
+            if non_manifold and not faces:
+                flagged.append(obj)
+
+                if i == 0:
+                    u.select_object(obj, set_active=True)
+                else:
+                    u.select_object(obj)
+
+            bm.free()
+        
+        msg = f"Found {len(flagged)} potentially invalid objects"
+
+        print(msg)
+        for iter, flagged_obj in enumerate(flagged, start=1):
+            print(f"({iter}) {flagged_obj.name}")
+        self.report({'INFO'}, msg)
+        
+        return {'FINISHED'}
    
 
 class SimpleToolbox_OT_ClearAxisSharpEdgesX(bpy.types.Operator):
@@ -1452,6 +1540,7 @@ classes = [
     
     SimpleToolbox_OT_DissolveNthEdge,
     SimpleToolbox_OT_RestoreRotationFromSelection,
+    SimpleToolbox_OT_SelectEmptyObjects,
     SimpleToolbox_OT_ClearAxisSharpEdgesX,
     SimpleToolbox_OT_ClearAxisSharpEdgesY,
     SimpleToolbox_OT_ClearAxisSharpEdgesZ,
