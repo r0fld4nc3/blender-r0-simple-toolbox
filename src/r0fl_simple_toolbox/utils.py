@@ -164,15 +164,56 @@ def select_object(obj: bpy.types.Object, add=True, set_active=False) -> bpy.type
     if not is_valid_object_global(obj):
         return None
     
-    obj.select_set(True)
+    try:
+        obj.select_set(True)
+    except Exception as e:
+        print(f"[ERROR] Selecting {obj.name} {e}")
 
     if not add or set_active:
         set_active_object(obj)
 
     return obj
 
+def deselect_object(obj: bpy.types.Object) -> bpy.types.Object | None:
+    print(f"Deselecting {obj.name}")
+    
+    if not is_valid_object_global(obj):
+        return None
+    
+    try:
+        obj.select_set(False)
+    except Exception as e:
+        print(f"[ERROR] Selecting {obj.name} {e}")
+
+    return obj
+
 def set_active_object(obj: bpy.types.Object):
     bpy.context.view_layer.objects.active = obj
+
+def is_object_visible_in_viewport(obj):
+    # Check if the object is set to be visible in the viewport
+    if not obj.visible_get():
+        if DEBUG:
+            print(f"[DEBUG] {obj.name} is not visible in viewport.")
+        return False
+    
+    if DEBUG:
+        print(f"[DEBUG] {obj.name} is visible in viewport.")
+        print(f"[DEBUG] Checking {obj.name} Collection(s).")
+
+    # Check if the object's collection is visible in the viewport
+    for collection in obj.users_collection:
+        if DEBUG:
+            print(f"[DEBUG]    - {collection.name}")
+        if not collection.hide_viewport:
+            if DEBUG:
+                print(f"[DEBUG]    - {collection.name} is visible.")
+            return True
+        else:
+            if DEBUG:
+                print(f"[DEBUG]    - {collection.name} is hidden.")
+
+    return False
 
 # Set selection mode template
 def _set_mesh_selection_mode(use_extend=False, use_expand=False, type=""):

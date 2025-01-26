@@ -1332,51 +1332,91 @@ class SimpleToolbox_OT_SelectEmptyObjects(bpy.types.Operator):
 
         flagged = []
 
-        for i, obj in enumerate(u.iter_scene_objects(types=[u.OBJECT_TYPES.MESH])):
+        for obj in u.iter_scene_objects(types=[u.OBJECT_TYPES.MESH]):
+            # Check if object is visible
+            if not u.is_object_visible_in_viewport(obj):
+                continue
+
+            print("\nProcessing:", obj.name)
+
+            temp_mesh = None
+            temp_obj = None
+
+            # Check for relevant modifiers that create geometry
+            for modifier in obj.modifiers:
+                if modifier.type in {"SOLIDIFY", "SCREW", "BOOLEAN"}:
+                    # Create a temporary mesh and object
+                    temp_mesh = bpy.data.meshes.new(f"{obj.name}-tempmesh-mod-check")
+                    temp_obj = bpy.data.objects.new(f"{obj.name}-tempobj-mod-check", temp_mesh)
+                    bpy.context.collection.objects.link(temp_obj)
+
+                    # Copy the original object's transformations
+                    temp_obj.location = obj.location.copy()
+                    temp_obj.rotation_euler = obj.rotation_euler.copy()
+                    temp_obj.scale = obj.scale.copy()
+
+                    # Copy original mesh data to temporary mesh
+                    temp_mesh.from_pydata(
+                        [v.co for v in obj.data.vertices],
+                        [list(edge.vertices) for edge in obj.data.edges],
+                        [list(face.vertices) for face in obj.data.polygons]
+                    )
+                    temp_mesh.update()
+
+                    # Copy relevant modifiers to the temporary object
+                    for mod in obj.modifiers:
+                        if mod.type in {"SOLIDIFY", "SCREW", "BOOLEAN"}:
+                            new_modifier = temp_obj.modifiers.new(name=mod.name, type=mod.type)
+                            for prop in dir(mod):
+                                if not prop.startswith("_") and prop not in {"name", "type"}:
+                                    try:
+                                        setattr(new_modifier, prop, getattr(mod, prop))
+                                    except AttributeError:
+                                        pass  # Skip properties that don't exist
+
+                    # Apply the modifiers
+                    u.set_active_object(temp_obj)
+                    for mod in temp_obj.modifiers:
+                        bpy.ops.object.modifier_apply(modifier=mod.name)
+
+                    u.deselect_object(temp_obj)
+                    break  # Exit the modifiers loop
+
+            # Create a BMesh from the temporary or original mesh
             bm = bmesh.new()
-            bm.from_mesh(obj.data)
+            bm.from_mesh(temp_mesh if temp_mesh else obj.data)
             bm.verts.ensure_lookup_table()
 
-            verts = bm.verts
-
-            if DEBUG:
-                print(f"\n[DEBUG] {obj.name} Vertices:     {len(verts)}")
-
-            if len(verts) < 3:
-                if i == 0:
-                    u.select_object(obj, set_active=True)
-                else:
-                    u.select_object(obj)
-                break
-
-            # Check if it has faces
+            # Check for non-manifold vertices and faces
+            non_manifold_verts = [v for v in bm.verts if not v.is_manifold] if bm.verts else True # True is Manifold
             faces = [f for f in bm.faces]
 
-            # Check non manifold bmesh
-            non_manifold = []
-            for v in bm.verts:
-                if not v.is_manifold:
-                    non_manifold.append(v)
-
             if DEBUG:
-                print(f"[DEBUG] {obj.name} Non-Manifold: {True if non_manifold else False}")
-                print(f"[DEBUG] {obj.name} Faces:        {len(faces)}")
+                print(f"[DEBUG] {obj.name} Vertices: {len(bm.verts)}")
+                print(f"[DEBUG] {obj.name} Non-Manifold: {bool(non_manifold_verts)}")
+                print(f"[DEBUG] {obj.name} Faces: {len(faces)}")
 
-            if non_manifold and not faces:
+            # Flag the object if it has non-manifold vertices and no faces
+            if non_manifold_verts and not faces:
                 flagged.append(obj)
 
-                if i == 0:
-                    u.select_object(obj, set_active=True)
-                else:
-                    u.select_object(obj)
+            # Clean up temporary objects and meshes
+            if temp_obj:
+                print(f"Deleting temporary object: {temp_obj.name}")
+                bpy.data.objects.remove(temp_obj)
+            if temp_mesh:
+                print(f"Deleting temporary mesh: {temp_mesh.name}")
+                bpy.data.meshes.remove(temp_mesh)
 
             bm.free()
-        
-        msg = f"Found {len(flagged)} potentially invalid objects"
 
+        # Report the results
+        msg = f"Found {len(flagged)} potentially invalid objects"
         print(msg)
-        for iter, flagged_obj in enumerate(flagged, start=1):
-            print(f"({iter}) {flagged_obj.name}")
+        for i, flagged_obj in enumerate(flagged, start=1):
+            print(f"({i}) {flagged_obj.name}")
+            u.select_object(flagged_obj, set_active=(i == 1))
+
         self.report({'INFO'}, msg)
         
         return {'FINISHED'}
@@ -1491,7 +1531,7 @@ class SimpleToolbox_OT_ApplyZenUVTD(bpy.types.Operator):
                 except Exception as e:
                     print(f"Error: {e}")
                     self.report({'ERROR'}, f"Error: {e}")
-                    o.select_set(False)
+                    u.deselect_object(o)
                     
             for obj in selected_objs:
                 obj.select_set(True)
