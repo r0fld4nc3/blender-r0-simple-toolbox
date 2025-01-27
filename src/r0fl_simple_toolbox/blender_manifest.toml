@@ -2,7 +2,7 @@ schema_version = "1.0.0"
 
 # Example of manifest file for a Blender extension
 # Change the values according to your extension
-id = "r0fl_simple_toolbox"
+id = "r0tools_simple_toolbox"
 version = "0.0.13"
 name = "r0Tools - Simple Toolbox"
 tagline = "General utilities that I find useful and adapt to my and other profressional colleagues workflows."

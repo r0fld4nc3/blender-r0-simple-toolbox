@@ -331,7 +331,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         self.draw_keymaps(context, layout)
         
     def save_axis_threshold(self):
-        addon_prefs = bpy.context.preferences.addons["r0fl_simple_toolbox"].preferences
+        addon_prefs = bpy.context.preferences.addons[INTERNAL_NAME].preferences
         addon_prefs.clear_sharp_axis_float_prop = self.clear_sharp_axis_float_prop
         # print(f"Saved Property: clear_sharp_axis_float_prop -> {self.clear_sharp_axis_float_prop}")
 

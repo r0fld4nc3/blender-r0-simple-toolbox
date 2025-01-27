@@ -12,9 +12,10 @@ def _set_addon_internal_name(from_name: str):
     if __package__:
         split = __package__.split('.')
         if len(split) >= 3 and split[0].lower() == "bl_ext": # Probably an extension
-            if from_name in split:
-                print(f"{from_name} is an extension: {__package__}")
-                return __package__
+            for split_item in split:
+                if from_name in split_item:
+                    print(f"{from_name} is an extension: {__package__}")
+                    return __package__
     
     # Extension name not found
     print(f"{from_name} not found as an extension")
@@ -23,5 +24,5 @@ def _set_addon_internal_name(from_name: str):
 VERSION = bl_info.get("version", (0, 0, 0))
 VERSION_STR = _version_str(VERSION)
 ADDON_NAME = bl_info.get("name")
-INTERNAL_NAME = _set_addon_internal_name("r0fl_simple_toolbox")
+INTERNAL_NAME = _set_addon_internal_name("r0tools_simple_toolbox")
 DEBUG = True
