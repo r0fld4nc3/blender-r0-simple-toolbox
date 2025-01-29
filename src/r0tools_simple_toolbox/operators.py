@@ -1587,6 +1587,9 @@ classes = [
     # SimpleToolbox_OT_ApplyZenUVTD,
 ]
 
+def object_sets_modal_menu_func(self, context):
+    self.layout.operator(SimpleToolbox_OT_ObjectSetsModal.bl_idname)
+
 addon_keymaps = []
 def register_keymapping():
     wm = bpy.context.window_manager
@@ -1615,10 +1618,10 @@ def register():
     _BUILTIN_ORIENTATIONS_PIE.draw = modified_orientations_pie_draw
 
     # Register Objects Sets Modal Operator in Viewport > View
-    bpy.types.VIEW3D_MT_view.append(lambda self, context: self.layout.operator(SimpleToolbox_OT_ObjectSetsModal.bl_idname))
+    bpy.types.VIEW3D_MT_view.append(object_sets_modal_menu_func)
     
     # Register Objects Sets Modal Operator in Image Editor/UV > View
-    bpy.types.IMAGE_MT_view.append(lambda self, context: self.layout.operator(SimpleToolbox_OT_ObjectSetsModal.bl_idname))
+    bpy.types.IMAGE_MT_view.append(object_sets_modal_menu_func)
     
     register_keymapping()
 
@@ -1632,7 +1635,7 @@ def unregister():
     _BUILTIN_ORIENTATIONS_PIE.draw = _ORIGINAL_ORIENTATIONS_PIE_DRAW
 
     # Unregister Objects Sets Modal Operator in Viewport > View
-    bpy.types.VIEW3D_MT_view.append(lambda self, context: self.layout.operator(SimpleToolbox_OT_ObjectSetsModal.bl_idname))
+    bpy.types.VIEW3D_MT_view.remove(object_sets_modal_menu_func)
 
     # Unregister Objects Sets Modal Operator in Image Editor/UV > View
-    bpy.types.IMAGE_MT_view.append(lambda self, context: self.layout.operator(SimpleToolbox_OT_ObjectSetsModal.bl_idname))
+    bpy.types.IMAGE_MT_view.remove(object_sets_modal_menu_func)
