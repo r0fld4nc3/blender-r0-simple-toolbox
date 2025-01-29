@@ -102,7 +102,7 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
 # -------------------------------------------------------------------
 #   ADDON PROPERTIES
 # -------------------------------------------------------------------
-class r0flToolboxProps(bpy.types.PropertyGroup):
+class r0SimpleToolboxProps(bpy.types.PropertyGroup):
     show_dev_tools: BoolProperty( # type: ignore
         name="Dev Tools",
         description="Show or hide the development options section",
@@ -346,7 +346,7 @@ classes = [
     R0PROP_ObjectSetEntryItem,
     R0PROP_UL_ObjectSetsList,
     AddonPreferences,
-    r0flToolboxProps,
+    r0SimpleToolboxProps,
 ]
 
 depsgraph_handlers = [
@@ -366,7 +366,7 @@ def register():
     
     print("[PROPERTIES] Registering bpy.types.Scene.r0fl_toolbox_props")
     # Registering to Scene also has the side effect of saving properties on a per scene/file basis, which is nice!
-    bpy.types.Scene.r0fl_toolbox_props = PointerProperty(type=r0flToolboxProps)
+    bpy.types.Scene.r0fl_toolbox_props = PointerProperty(type=r0SimpleToolboxProps)
 
     for handler in depsgraph_handlers:
         if handler not in bpy.app.handlers.depsgraph_update_post:
