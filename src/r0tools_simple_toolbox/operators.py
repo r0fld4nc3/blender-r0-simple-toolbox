@@ -85,7 +85,7 @@ class CustomTransformsOrientationsTracker:
                     area.tag_redraw()
         except Exception as e:
             print(f"Error tracking custom orientations: {e}")
-            print(f"{bpy.context=}")
+            u.context_error_debug(error=e)
     
     @classmethod
     def get_custom_transform_orientations(cls):
@@ -146,7 +146,8 @@ class TRANSFORM_OT_SetCustomOrientation(bpy.types.Operator):
             return {'FINISHED'}
         except Exception as err:
             self.report({'ERROR'}, f"Could not set orientation: {err}")
-            print(f"{bpy.context=}")
+            print(f"[ERROR] Could not set orientation: {err}")
+            u.context_error_debug(error=err)
             return {'CANCELLED'}
 
 
@@ -214,7 +215,7 @@ class VIEW3D_MT_CustomOrientationsPieMenu(bpy.types.Menu):
                     print(f"[DEBUG] ({self.__class__._current_start_index}) {orientation_name}")
             except Exception as err:
                 print(f"Error adding Custom Orientation to Pie Menu: {err}")
-                print(f"{bpy.context=}")
+                u.context_error_debug(error=err)
 
             # "View More" if there are additional orientations
             if total_added == 7 and remaining_orientations > 8:
@@ -238,7 +239,7 @@ class VIEW3D_MT_CustomOrientationsPieMenu(bpy.types.Menu):
                         print(f"[DEBUG] ({self.__class__._current_start_index}) {orientation_name}")
                 except Exception as err:
                     print(f"Error adding View More to Pie Menu: {err}")
-                    print(f"{bpy.context=}")
+                    u.context_error_debug(error=err)
 
             # Break the fill loop if we've successfully filled 8 entries
             if total_added >= 8:
@@ -920,7 +921,7 @@ class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
                             mesh.color_attributes.remove(at[1])
                 except Exception as e:
                     print(f"[ERROR] Error Clearing Mesh Attributes")
-                    print(f"{bpy.context=}")
+                    u.context_error_debug(error=e)
         
         bpy.context.view_layer.objects.active = initial_obj
 
@@ -992,7 +993,7 @@ class SimpleToolbox_OT_ClearChildrenRecurse(bpy.types.Operator):
                     total_children_cleared += 1
                 except Exception as e:
                     print(f"ERROR: {e}")
-                    print(f"{bpy.context=}")
+                    u.context_error_debug(error=e)
                     problem_objects.append(child)
             
             parent_objs += 1
@@ -1548,7 +1549,7 @@ class SimpleToolbox_OT_ApplyZenUVTD(bpy.types.Operator):
                     
                 except Exception as e:
                     print(f"[ERROR] Error: {e}")
-                    print(f"{bpy.context=}")
+                    u.context_error_debug(error=e)
                     self.report({'ERROR'}, f"Error: {e}")
                     u.deselect_object(o)
                     

@@ -388,7 +388,7 @@ def unregister():
                 bpy.app.handlers.depsgraph_update_post.remove(handler)
         except Exception as e:
             print(f"[ERROR]Error removing handler {handler}: {e}")
-            print(f"{bpy.context=}")
+            u.context_error_debug(error=e)
 
     for handler in load_post_handlers:
         try:
@@ -398,7 +398,7 @@ def unregister():
                 bpy.app.handlers.load_post.remove(handler)
         except Exception as e:
             print(f"[ERROR] Error removing handler {handler}: {e}")
-            print(f"{bpy.context=}")
+            u.context_error_debug(error=e)
     
     for cls in classes:
         bpy.utils.unregister_class(cls)

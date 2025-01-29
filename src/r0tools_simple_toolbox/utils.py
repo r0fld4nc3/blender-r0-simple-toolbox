@@ -1,5 +1,6 @@
 import bpy
 import math
+import uuid
 
 from .const import INTERNAL_NAME, ADDON_NAME, DEBUG
 
@@ -449,7 +450,7 @@ def handler_continuous_property_list_update(scene, context, skip_sel_check=False
                 addon_props.custom_property_list.clear()
             except Exception as e:
                 print(f"[ERROR] Error clearing Custom Property list: {e}")
-                print(f"{bpy.context=}")
+                context_error_debug(error=e)
                 # raise e
 
             # Add unique custom properties to the set
@@ -468,7 +469,7 @@ def handler_continuous_property_list_update(scene, context, skip_sel_check=False
                             # Type is defaulted to Object
                         except Exception as e:
                             print(f"[ERROR] Error adding unique Custom Properties: {e}")
-                            print(f"{bpy.context=}")
+                            context_error_debug(error=e)
                             # raise e
                         
                 # Object Data Properties
@@ -485,7 +486,7 @@ def handler_continuous_property_list_update(scene, context, skip_sel_check=False
                                 # Type is defaulted to Object
                             except Exception as e:
                                 print(f"[ERROR] Error adding unique Object Data Custom Properties: {e}")
-                                print(f"{bpy.context=}")
+                                context_error_debug(error=e)
                                 # raise e
 
             # Update the last object selection
@@ -496,12 +497,12 @@ def handler_continuous_property_list_update(scene, context, skip_sel_check=False
             get_addon_props().custom_property_list.clear()
         except Exception as e:
             print(f"[ERROR] Error clearing custom property list when no selected objects: {e}")
-            print(f"{bpy.context=}")
+            context_error_debug(error=e)
         try:
             get_addon_props().last_object_selection = ""
         except Exception as e:
             print(f"[ERROR] Error setting last object selection when no selected objects: {e}")
-            print(f"{bpy.context=}")
+            context_error_debug(error=e)
 
 def get_builtin_transform_orientations(identifiers=False) -> list:
     if identifiers:
@@ -528,7 +529,7 @@ def get_transform_orientations() -> list:
         get_scene().transform_orientation_slots[0].type = ""
     except Exception as inst:
         transforms = str(inst).split("'")[1::2]
-        print(f"{bpy.context=}")
+        context_error_debug(error=inst)
 
     transform_list = list(transforms)
     if DEBUG:
@@ -607,7 +608,7 @@ def handler_update_object_set_count(context):
             object_set.update_count()
     except Exception as e:
         print(f"[ERROR] Error updating object sets: {e}")
-        print(f"{bpy.context=}")
+        context_error_debug(error=e)
 
 @bpy.app.handlers.persistent
 def handler_cleanup_object_set_invalid_references(scene):
@@ -672,7 +673,7 @@ def update_data_scene_objects(scene, force_run=False):
             addon_props.scene_objects.clear()
         except Exception as e:
             print(f"[ERROR] Error clearing scene_objects: {e}")
-            print(f"{bpy.context=}")
+            context_error_debug(error=e)
 
         for obj in bpy.context.scene.objects:
             try:
@@ -680,15 +681,16 @@ def update_data_scene_objects(scene, force_run=False):
                 item.object = obj
             except Exception as e:
                 print(f"[ERROR] Error adding new entry to scene_objects: {e}")
-                print(f"{bpy.context=}")
+                context_error_debug(error=e)
         
         # Data objects
         try:
             addon_props.data_objects.clear()
         except Exception as e:
             print(f"[ERROR] Error clearing data_objects: {e}")
-            print(f"{bpy.context=}")
+            context_error_debug(error=e)
             
+        errors = []
         for obj in bpy.data.objects:
             try:
                 if obj.name in bpy.context.scene.objects:
@@ -700,12 +702,13 @@ def update_data_scene_objects(scene, force_run=False):
                         print(f"[DEBUG] (DATA) {obj.name} not in Scene.")
             except Exception as e:
                 print(f"[ERROR] Error adding new entry to data_objects: {e}")
-                print(f"{bpy.context=}")
+                context_error_debug(error=e)
+                errors.append(e)
 
         if DEBUG:
             print(f"[DEBUG] {addon_props.data_objects}")
             print(f"[DEBUG] {addon_props.scene_objects}")
-            print(f"[DEBUG] {bpy.context=}")
+            context_error_debug(error='\n'.join(errors))
 
         if unused_count > 0:
             print(f"Unused blocks to be cleared: {unused_count}")
@@ -713,3 +716,54 @@ def update_data_scene_objects(scene, force_run=False):
         addon_props.objects_updated = True
     else:
         addon_props.objects_updated = False
+
+def context_error_debug(error: str = None):
+    if not DEBUG:
+        return
+    
+    print_id = str(uuid.uuid4())
+    
+    import inspect
+
+    print(f'+'*16, f"({print_id})", f'+'*16)
+    if error:
+        print(f"[DEBUG] ({print_id}) Associated Error (below):")
+        print(f"[DEBUG] ({print_id}) {error}")
+        print()
+
+    if bpy.app.background:
+        print(f"[DEBUG] ({print_id}) Running in background mode - ID writing may be restricted.")
+
+    if bpy.ops.wm.save_as_mainfile.poll() == False:
+        print(f"[DEBUG] ({print_id}) Restricted context - file saving not allowed.")
+    
+    print(f"[DEBUG] ({print_id}) bpy.context:", bpy.context)
+    if bpy.context:
+        print(f"[DEBUG] ({print_id}) bpy.context.scene:", bpy.context.scene)
+        print(f"[DEBUG] ({print_id}) bpy.context.area:", bpy.context.area)
+        print(f"[DEBUG] ({print_id}) bpy.context.mode:", bpy.context.mode)
+        print(f"[DEBUG] ({print_id}) bpy.context.window:", bpy.context.window)
+        print(f"[DEBUG] ({print_id}) bpy.context.space_data:", bpy.context.space_data)
+        print(f"[DEBUG] ({print_id}) bpy.context.region:", bpy.context.region)
+        print(f"[DEBUG] ({print_id}) bpy.context.region_data:", bpy.context.region_data)
+    print(f"[DEBUG] Window Manager debug mode:", bpy.app.debug_wm)
+    
+    print(f"[DEBUG] ({print_id}) Current Handlers:")
+    for handler in bpy.app.handlers.depsgraph_update_post:
+        print(f"[DEBUG] ({print_id})    - {handler.__name__}")
+
+    print(f"[DEBUG] ({print_id}) Call Stack:")
+    for frame in inspect.stack():
+        print(f"[DEBUG] ({print_id})   File: {frame.filename}, Line: {frame.lineno}, Function: {frame.function}")
+
+    print(f'+'*16, f"({print_id})", f'+'*16)
+
+
+def set_show_all_operators(show: bool):
+    """While Blender logs operators in the Info editor, this only reports operators with the `REGISTER` option enabled so as not to flood the Info view with calls to `bpy.ops.view3d.smoothview` and `bpy.ops.view3d.zoom`.
+    
+    Yet for testing it can be useful to see every operator called in a terminal, do this by enabling the debug option either by passing the `--debug-wm` argument when starting Blender or by setting `bpy.app.debug_wm` to True while Blender is running."""
+
+    bpy.app.debug_wm = show
+
+    print(f"Set Show All Operators to {show}")
