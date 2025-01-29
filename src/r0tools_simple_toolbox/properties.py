@@ -399,16 +399,6 @@ def unregister():
         except Exception as e:
             print(f"[ERROR] Error removing handler {handler}: {e}")
             print(f"{bpy.context=}")
-
-    for handler in load_post_handlers:
-        try:
-            if handler in bpy.app.handlers.load_post:
-                if DEBUG:
-                    print(f"[DEBUG] Unregistering depsgraph handler {handler}")
-                bpy.app.handlers.load_post.remove(handler)
-        except Exception as e:
-            print(f"[ERROR] Error removing handler {handler}: {e}")
-            print(f"{bpy.context=}")
     
     for cls in classes:
         bpy.utils.unregister_class(cls)
