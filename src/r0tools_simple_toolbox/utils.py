@@ -449,6 +449,7 @@ def handler_continuous_property_list_update(scene, context, skip_sel_check=False
                 addon_props.custom_property_list.clear()
             except Exception as e:
                 print(f"[ERROR] Error clearing Custom Property list: {e}")
+                print(f"{bpy.context=}")
                 # raise e
 
             # Add unique custom properties to the set
@@ -467,6 +468,7 @@ def handler_continuous_property_list_update(scene, context, skip_sel_check=False
                             # Type is defaulted to Object
                         except Exception as e:
                             print(f"[ERROR] Error adding unique Custom Properties: {e}")
+                            print(f"{bpy.context=}")
                             # raise e
                         
                 # Object Data Properties
@@ -483,6 +485,7 @@ def handler_continuous_property_list_update(scene, context, skip_sel_check=False
                                 # Type is defaulted to Object
                             except Exception as e:
                                 print(f"[ERROR] Error adding unique Object Data Custom Properties: {e}")
+                                print(f"{bpy.context=}")
                                 # raise e
 
             # Update the last object selection
@@ -493,10 +496,12 @@ def handler_continuous_property_list_update(scene, context, skip_sel_check=False
             get_addon_props().custom_property_list.clear()
         except Exception as e:
             print(f"[ERROR] Error clearing custom property list when no selected objects: {e}")
+            print(f"{bpy.context=}")
         try:
             get_addon_props().last_object_selection = ""
         except Exception as e:
             print(f"[ERROR] Error setting last object selection when no selected objects: {e}")
+            print(f"{bpy.context=}")
 
 def get_builtin_transform_orientations(identifiers=False) -> list:
     if identifiers:
@@ -523,6 +528,7 @@ def get_transform_orientations() -> list:
         get_scene().transform_orientation_slots[0].type = ""
     except Exception as inst:
         transforms = str(inst).split("'")[1::2]
+        print(f"{bpy.context=}")
 
     transform_list = list(transforms)
     if DEBUG:
@@ -600,7 +606,8 @@ def handler_update_object_set_count(context):
         for object_set in addon_props.object_sets:
             object_set.update_count()
     except Exception as e:
-        print(f"Error updating object sets: {e}")
+        print(f"[ERROR] Error updating object sets: {e}")
+        print(f"{bpy.context=}")
 
 @bpy.app.handlers.persistent
 def handler_cleanup_object_set_invalid_references(scene):
@@ -665,32 +672,40 @@ def update_data_scene_objects(scene, force_run=False):
             addon_props.scene_objects.clear()
         except Exception as e:
             print(f"[ERROR] Error clearing scene_objects: {e}")
+            print(f"{bpy.context=}")
 
         for obj in bpy.context.scene.objects:
             try:
                 item = addon_props.scene_objects.add()
                 item.object = obj
             except Exception as e:
-                print(f"[ERROR] Error adding new entry to scene_objects")
+                print(f"[ERROR] Error adding new entry to scene_objects: {e}")
+                print(f"{bpy.context=}")
         
         # Data objects
         try:
             addon_props.data_objects.clear()
         except Exception as e:
             print(f"[ERROR] Error clearing data_objects: {e}")
+            print(f"{bpy.context=}")
             
         for obj in bpy.data.objects:
-            if obj.name in bpy.context.scene.objects:
-                item = addon_props.data_objects.add()
-                item.object = obj
-            else:
-                unused_count += 1
-                if DEBUG:
-                    print(f"[DEBUG] (DATA) {obj.name} not in Scene.")
+            try:
+                if obj.name in bpy.context.scene.objects:
+                    item = addon_props.data_objects.add()
+                    item.object = obj
+                else:
+                    unused_count += 1
+                    if DEBUG:
+                        print(f"[DEBUG] (DATA) {obj.name} not in Scene.")
+            except Exception as e:
+                print(f"[ERROR] Error adding new entry to data_objects: {e}")
+                print(f"{bpy.context=}")
 
         if DEBUG:
             print(f"[DEBUG] {addon_props.data_objects}")
             print(f"[DEBUG] {addon_props.scene_objects}")
+            print(f"[DEBUG] {bpy.context=}")
 
         if unused_count > 0:
             print(f"Unused blocks to be cleared: {unused_count}")

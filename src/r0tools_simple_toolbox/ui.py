@@ -167,7 +167,8 @@ def unregister():
             if handler in bpy.app.handlers.depsgraph_update_post:
                 bpy.app.handlers.depsgraph_update_post.remove(handler)
         except Exception as e:
-            print(f"Error removing handler {handler}: {e}")
+            print(f"[ERROR] Error removing handler {handler}: {e}")
+            print(f"{bpy.context=}")
 
     for cls in classes:
         bpy.utils.unregister_class(cls)
