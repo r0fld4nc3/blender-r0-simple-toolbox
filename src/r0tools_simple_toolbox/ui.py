@@ -1,6 +1,6 @@
 import bpy
 
-from .const import INTERNAL_NAME, ADDON_NAME, VERSION_STR
+from .const import ADDON_NAME, VERSION_STR
 from . import utils as u
 
 
