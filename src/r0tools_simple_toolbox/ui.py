@@ -4,7 +4,7 @@ from .const import ADDON_NAME, VERSION_STR
 from . import utils as u
 
 
-class PT_SimpleToolbox(bpy.types.Panel):
+class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
     bl_idname = 'OBJECT_PT_quick_toolbox'
     bl_label = f'{ADDON_NAME} ({VERSION_STR})'
     bl_space_type = 'VIEW_3D'
@@ -36,6 +36,8 @@ class PT_SimpleToolbox(bpy.types.Panel):
                 if addon_prefs.experimental_features:
                     row = dev_tools_box.row()
                     row.operator("image.reload", icon="IMAGE_DATA")
+                row = dev_tools_box.row()
+                row.prop(addon_prefs, "debug", text="Debug", icon="EXPERIMENTAL")
         
         # ====== Object Ops ======
         object_ops_box = layout.box()
@@ -113,6 +115,31 @@ class PT_SimpleToolbox(bpy.types.Panel):
                 row.operator("r0tools.clear_sharp_axis_y", text="Y")
                 row.operator("r0tools.clear_sharp_axis_z", text="Z")
         
+        # ====== UV Ops ======
+        uv_ops_box = layout.box()
+        uv_ops_box.prop(addon_props, "show_uv_ops", icon="TRIA_DOWN" if addon_props.show_uv_ops else "TRIA_RIGHT", emboss=False)
+        if addon_props.show_uv_ops:
+            # UV Map Target Resolution
+            uv_map_resolution_box = uv_ops_box.box()
+            row = uv_map_resolution_box.row()
+            row.label(text="UV Map")
+            
+            col = uv_map_resolution_box.column(align=True)
+            col.prop(addon_props, "uv_target_resolution_x", text="Width:")
+            col.prop(addon_props, "uv_target_resolution_y", text="Height:")
+
+            # UV Island Thresholds
+            uv_island_checks_thresholds_box = uv_ops_box.box()
+            uv_island_checks_thresholds_box.prop(addon_props, "show_uv_island_area_thresholds", icon="TRIA_DOWN" if addon_props.show_uv_island_area_thresholds else "TRIA_RIGHT", emboss=False)
+            if addon_props.show_uv_island_area_thresholds:
+                col = uv_island_checks_thresholds_box.column(align=True)
+                col.prop(addon_props, "uvisland_sizecheck_arearelative", text="Factor:")
+                col.prop(addon_props, "uvisland_sizecheck_area_pixelcoverage", text="Pixel Area (px²):")
+                col.prop(addon_props, "uvisland_sizecheck_area_pixelpercentage", text="Pixel Area %:")
+                
+                row = uv_island_checks_thresholds_box.row()
+                row.operator("r0tools.uv_check_island_thresholds")
+        
         # ====== Externals ======
         """
         externals_box = layout.box()
@@ -145,7 +172,7 @@ class PT_SimpleToolbox(bpy.types.Panel):
 # -------------------------------------------------------------------
 
 classes = [
-    PT_SimpleToolbox
+    r0Tools_PT_SimpleToolbox
 ]
 
 depsgraph_handlers = [

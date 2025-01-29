@@ -188,8 +188,14 @@ def deselect_object(obj: bpy.types.Object) -> bpy.types.Object | None:
 
     return obj
 
+
 def set_active_object(obj: bpy.types.Object):
     bpy.context.view_layer.objects.active = obj
+
+
+def get_active_object() -> bpy.types.Object | None:
+    return bpy.context.view_layer.objects.active
+
 
 def is_object_visible_in_viewport(obj):
     # Check if the object is set to be visible in the viewport
@@ -691,6 +697,7 @@ def update_data_scene_objects(scene, force_run=False):
             context_error_debug(error=e)
             
         errors = []
+        unused_objects = []
         for obj in bpy.data.objects:
             try:
                 if obj.name in bpy.context.scene.objects:
@@ -698,8 +705,7 @@ def update_data_scene_objects(scene, force_run=False):
                     item.object = obj
                 else:
                     unused_count += 1
-                    if DEBUG:
-                        print(f"[DEBUG] (DATA) {obj.name} not in Scene.")
+                    unused_objects.append(obj)
             except Exception as e:
                 print(f"[ERROR] Error adding new entry to data_objects: {e}")
                 context_error_debug(error=e)
@@ -712,6 +718,9 @@ def update_data_scene_objects(scene, force_run=False):
 
         if unused_count > 0:
             print(f"Unused blocks to be cleared: {unused_count}")
+            if DEBUG:
+                for unused in unused_objects:
+                    print(f"[DEBUG] (DATA) {unused.name} not in Scene.")
         
         addon_props.objects_updated = True
     else:
@@ -767,3 +776,15 @@ def set_show_all_operators(show: bool):
     bpy.app.debug_wm = show
 
     print(f"Set Show All Operators to {show}")
+
+
+@bpy.app.handlers.persistent
+def handler_update_debug_mode_set(dummy):
+    addon_prefs = get_addon_prefs()
+
+    global DEBUG
+    if addon_prefs.debug:
+        if not DEBUG:
+            DEBUG = True
+    else:
+        DEBUG = False

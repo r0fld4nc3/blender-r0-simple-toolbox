@@ -121,6 +121,52 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
         default=True
     )
 
+    show_uv_ops: BoolProperty( # type: ignore
+        name="UV Ops",
+        description="Show or hide the UV operators section",
+        default=False
+    )
+
+    uv_target_resolution_x: IntProperty( #type: ignore
+        name="Target UV Map Width",
+        default=4096,
+        min=2
+    )
+
+    uv_target_resolution_y: IntProperty( #type: ignore
+        name="Target UV Map Height",
+        default=4096,
+        min=2
+    )
+
+    show_uv_island_area_thresholds: BoolProperty( # type: ignore
+        name="UV Island Area Thresholds",
+        default=False
+    )
+
+    uvisland_sizecheck_arearelative: FloatProperty( # type: ignore
+        name="Area Size",
+        description="Area Factor occupied by the UV Island relative to 0 - 1 Space.",
+        default=0.000005,
+        min=0.0,
+        max=1.0
+    )
+
+    uvisland_sizecheck_area_pixelcoverage: FloatProperty( # type: ignore
+        name="Area Pixel Coverage",
+        description="Area Squared (px²) of UV Island",
+        default=80.0,
+        min=0.0
+    )
+
+    uvisland_sizecheck_area_pixelpercentage: FloatProperty( # type: ignore
+        name="Area Pixel Percentage",
+        description="Percentage Area occupied by the UV Island",
+        default=0.000475,
+        min=0.0,
+        max=100.0
+    )
+
     show_clear_sharps_on_axis: BoolProperty( # type: ignore
         name="Clear Sharp Edges on Axis",
         description="Show or hide the Clear Sharps on Axis operator",
@@ -197,6 +243,11 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
 # -------------------------------------------------------------------
 class AddonPreferences(bpy.types.AddonPreferences):
     bl_idname = INTERNAL_NAME
+
+    debug: BoolProperty( # type: ignore
+        name="Debug",
+        default=False
+    )
 
     experimental_features: BoolProperty( # type: ignore
         name="Experimental Features",
@@ -293,6 +344,9 @@ class AddonPreferences(bpy.types.AddonPreferences):
         layout.use_property_split = False
 
         row = layout.row()
+        row.prop(self, "debug", text="Debug Mode")
+
+        row = layout.row()
         row.prop(self, "experimental_features", text="Experimental Features")
 
         layout.prop(self, "clear_sharp_axis_float_prop", text="Clear Sharp Edges Threshold")
@@ -352,7 +406,8 @@ classes = [
 depsgraph_handlers = [
     u.update_data_scene_objects,
     u.handler_continuous_property_list_update,
-    u.handler_cleanup_object_set_invalid_references
+    u.handler_cleanup_object_set_invalid_references,
+    u.handler_update_debug_mode_set
 ]
 
 load_post_handlers = [
@@ -367,6 +422,15 @@ def register():
     print("[PROPERTIES] Registering bpy.types.Scene.r0fl_toolbox_props")
     # Registering to Scene also has the side effect of saving properties on a per scene/file basis, which is nice!
     bpy.types.Scene.r0fl_toolbox_props = PointerProperty(type=r0SimpleToolboxProps)
+
+    addon_prefs = u.get_addon_prefs()
+    global DEBUG
+    if addon_prefs.debug:
+        DEBUG = True
+        print(f"[PREFERENCES] Set Addon Debug to True")
+    else:
+        DEBUG = False
+        print(f"[PREFERENCES] Set Addon Debug to False")
 
     for handler in depsgraph_handlers:
         if handler not in bpy.app.handlers.depsgraph_update_post:
