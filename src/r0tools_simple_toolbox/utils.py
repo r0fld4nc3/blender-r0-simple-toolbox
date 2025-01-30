@@ -667,8 +667,8 @@ def update_data_scene_objects(scene, force_run=False):
 
     if DEBUG:
         print("------------- Update Data Scene Objects -------------")
-        print(f"[DEBUG] Data  {bpy_data_objects_len} == {len(data_objects)}")
         print(f"[DEBUG] Scene {bpy_scene_objects_len} == {len(scene_objects)}")
+        print(f"[DEBUG] Data  {bpy_data_objects_len} == {len(data_objects)}")
 
     if force_run or bpy_data_objects_len != len(data_objects) or bpy_scene_objects_len != len(scene_objects):
         if DEBUG:
@@ -725,9 +725,8 @@ def update_data_scene_objects(scene, force_run=False):
 
         if unused_count > 0:
             print(f"Unused blocks to be cleared: {unused_count}")
-            if DEBUG:
-                for unused in unused_objects:
-                    print(f"[DEBUG] (DATA) {unused.name} not in Scene.")
+            for unused in unused_objects:
+                print(f"[DEBUG] (DATA) {unused.name} not in Scene.")
         
         try:
             addon_props.objects_updated = True
