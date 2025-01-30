@@ -681,7 +681,8 @@ def update_data_scene_objects(scene, force_run=False):
             addon_props.scene_objects.clear()
         except Exception as e:
             print(f"[ERROR] Error clearing scene_objects: {e}")
-            context_error_debug(error=e)
+            if DEBUG:
+                context_error_debug(error=e)
 
         for obj in bpy.context.scene.objects:
             try:
@@ -689,14 +690,16 @@ def update_data_scene_objects(scene, force_run=False):
                 item.object = obj
             except Exception as e:
                 print(f"[ERROR] Error adding new entry to scene_objects: {e}")
-                context_error_debug(error=e)
+                if DEBUG:
+                    context_error_debug(error=e)
         
         # Data objects
         try:
             addon_props.data_objects.clear()
         except Exception as e:
             print(f"[ERROR] Error clearing data_objects: {e}")
-            context_error_debug(error=e)
+            if DEBUG:
+                context_error_debug(error=e)
             
         errors = []
         unused_objects = []
@@ -710,7 +713,8 @@ def update_data_scene_objects(scene, force_run=False):
                     unused_objects.append(obj)
             except Exception as e:
                 print(f"[ERROR] Error adding new entry to data_objects: {e}")
-                context_error_debug(error=e)
+                if DEBUG:
+                    context_error_debug(error=e)
                 errors.append(e)
 
         if DEBUG:
@@ -725,9 +729,19 @@ def update_data_scene_objects(scene, force_run=False):
                 for unused in unused_objects:
                     print(f"[DEBUG] (DATA) {unused.name} not in Scene.")
         
-        addon_props.objects_updated = True
+        try:
+            addon_props.objects_updated = True
+        except Exception as e:
+                print(f"[ERROR] Error setting objects_updated = True: {e}")
+                if DEBUG:
+                    context_error_debug(error=e)
     else:
-        addon_props.objects_updated = False
+        try:
+            addon_props.objects_updated = False
+        except Exception as e:
+                print(f"[ERROR] Error setting objects_updated = False: {e}")
+                if DEBUG:
+                    context_error_debug(error=e)
 
 def context_error_debug(error: str = None):
     if not DEBUG:
