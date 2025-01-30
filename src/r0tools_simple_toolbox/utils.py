@@ -158,7 +158,8 @@ def set_mode_edit():
     set_object_mode("EDIT")
 
 def select_object(obj: bpy.types.Object, add=True, set_active=False) -> bpy.types.Object | None:
-    print(f"Selecting {obj.name} {add=} {set_active=}")
+    if DEBUG:
+        print(f"Selecting {obj.name} {add=} {set_active=}")
     if not add:
         deselect_all()
     
@@ -176,7 +177,8 @@ def select_object(obj: bpy.types.Object, add=True, set_active=False) -> bpy.type
     return obj
 
 def deselect_object(obj: bpy.types.Object) -> bpy.types.Object | None:
-    print(f"Deselecting {obj.name}")
+    if DEBUG:
+        print(f"Deselecting {obj.name}")
     
     if not is_valid_object_global(obj):
         return None
