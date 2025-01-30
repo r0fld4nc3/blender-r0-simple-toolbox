@@ -2,6 +2,8 @@ import bpy
 import bmesh
 from mathutils import Vector
 
+from ..const import DEBUG
+
 THRESHOLD = 0.000005  # Minimum area for an island to be considered "too small"
 THRESHOLD_PX_COVERAGE = 80.0
 THRESHOLD_PCT = 0.000475 # Minimum pixel percentage coverage for an island to be considered "too small"
@@ -84,7 +86,8 @@ def calculate_uv_area(uv_x: int, uv_y: int, obj, islands):
         pixel_area = total_area * (uvmap_size)
         pixel_area_pct = (pixel_area * 100) / uvmap_size
         
-        print(f"Island {island_num}: Relative UV Area: {total_area}, Pixel Area: {pixel_area:.2f} px² Pixel Area Percentage: {pixel_area_pct}%")
+        if DEBUG:
+            print(f"{obj.name} | Island {island_num}: Relative UV Area: {total_area} | Pixel Area: {pixel_area:.2f} px² | Pixel Area Percentage: {pixel_area_pct}%")
 
         uv_areas.append((total_area, pixel_area, pixel_area_pct))  # Store UV area and pixel area coverage and pixel area percentage
 
@@ -111,7 +114,7 @@ def select_small_uv_islands(obj, uv_x: int, uv_y: int, threshold=THRESHOLD, thre
         # if pixel_area <= threshold_px_coverage or pixel_area_pct <= threshold_pct:
             small_islands.append(islands[i])
             selected_faces.update(islands[i])  # Store face indices
-            print(f"Island {i}: Relative UV Area: {relative_area}, Pixel Area: {pixel_area:.2f} px² Pixel Area Percentage: {pixel_area_pct}%. Too Small!")
+            print(f"{obj.name} | Island {i} too small: Relative UV Area: {relative_area} | Pixel Area: {pixel_area:.2f} px² | Pixel Area Percentage: {pixel_area_pct}%")
 
     # Switch to Edit Mode to select faces
     bpy.ops.object.mode_set(mode='EDIT')
