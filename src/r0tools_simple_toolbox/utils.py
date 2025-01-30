@@ -535,7 +535,7 @@ def get_transform_orientations() -> list:
         get_scene().transform_orientation_slots[0].type = ""
     except Exception as inst:
         transforms = str(inst).split("'")[1::2]
-        context_error_debug(error=inst)
+        # context_error_debug(error=inst) # Fake error as we want it to spit out the built-ins
 
     transform_list = list(transforms)
     if DEBUG:
@@ -714,7 +714,8 @@ def update_data_scene_objects(scene, force_run=False):
         if DEBUG:
             print(f"[DEBUG] {addon_props.data_objects}")
             print(f"[DEBUG] {addon_props.scene_objects}")
-            context_error_debug(error='\n'.join(errors))
+            if errors:
+                context_error_debug(error='\n'.join(errors))
 
         if unused_count > 0:
             print(f"Unused blocks to be cleared: {unused_count}")
