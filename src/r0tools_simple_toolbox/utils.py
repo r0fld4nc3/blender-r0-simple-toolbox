@@ -337,7 +337,7 @@ def save_preferences():
         save_preferences.is_saving = False
 
 
-def schedule_timer_run(func, *args, **kwargs):
+def schedule_timer_run(func, *args, interval=0.1, **kwargs):
     """Schedules the update function and ensures it runs only once per depsgraph update."""
     
     if func.__name__ in _TIMERS:
@@ -354,7 +354,7 @@ def schedule_timer_run(func, *args, **kwargs):
         return None  # Ensure the timer runs only once
     
     _TIMERS[func.__name__] = wrapper
-    bpy.app.timers.register(wrapper, first_interval=0.1)
+    bpy.app.timers.register(wrapper, first_interval=interval)
 
 
 def get_td_value():
@@ -487,7 +487,6 @@ def op_clear_sharp_along_axis(axis: str):
 
 @bpy.app.handlers.persistent
 def handler_continuous_property_list_update(scene, context):
-    """Depsgraph handler that schedules an update using a timer."""
     schedule_timer_run(continuous_property_list_update, scene, context)
 
 
@@ -695,9 +694,17 @@ def handler_update_object_set_count(context):
         print(f"[ERROR] Error updating object sets: {e}")
         context_error_debug(error=e)
 
+    for area in bpy.context.screen.areas:
+        if area.type in {'PROPERTIES', 'OUTLINER', 'VIEW_3D'}:
+            area.tag_redraw() # Force UI Update to reflect changes :)
+
 
 @bpy.app.handlers.persistent
 def handler_cleanup_object_set_invalid_references(scene):
+    schedule_timer_run(cleanup_object_set_invalid_references, scene)
+
+
+def cleanup_object_set_invalid_references(scene):
     if DEBUG:
         print("------------- Cleanup Object Sets Invalid References -------------")
 
@@ -721,8 +728,16 @@ def handler_cleanup_object_set_invalid_references(scene):
             if cleaned_up > 0:
                 print(f"Cleaned up {cleaned_up} references for Object Set '{object_set.name}'")
 
+    for area in bpy.context.screen.areas:
+        if area.type in {'PROPERTIES', 'OUTLINER', 'VIEW_3D'}:
+            area.tag_redraw() # Force UI Update to reflect changes :)
+
 
 @bpy.app.handlers.persistent
+def handler_update_data_scene_objects(scene, force_run=False):
+    schedule_timer_run(update_data_scene_objects, scene, force_run=force_run)
+
+
 def update_data_scene_objects(scene, force_run=False):
     """
     Handler method to keep track of objects in `bpy.data.objects` and `bpy.context.scene.objects`
@@ -864,8 +879,8 @@ def context_error_debug(error: str = None, extra_prints: list = []):
     if extra_prints:
         print()
         print(f"[DEBUG] Extra Prints")
-        for print in extra_prints:
-            print(f"[DEBUG] Extra: {print}")
+        for extra_print in extra_prints:
+            print(f"[DEBUG] Extra: {extra_print}")
 
     print(f'+'*16, f"({print_id})", f'+'*16)
 

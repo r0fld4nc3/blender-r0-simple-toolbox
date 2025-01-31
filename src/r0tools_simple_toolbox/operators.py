@@ -144,10 +144,17 @@ class TRANSFORM_OT_SetCustomOrientation(bpy.types.Operator):
         VIEW3D_MT_CustomOrientationsPieMenu._invoked = True
 
         try:
-            u.get_scene().transform_orientation_slots[0].type = self.orientation
+            if self.orientation in u.get_custom_transform_orientations():
+                u.get_scene().transform_orientation_slots[0].type = self.orientation
+            else:
+                CustomTransformsOrientationsTracker.track_custom_orientations(bpy.context.scene)
+                report_msg = f"Custom Transform Orientation '{self.orientation}' not found."
+                self.report({'WARNING'}, report_msg)
+                print(f"[WARN] {report_msg}")
             return {'FINISHED'}
         except Exception as err:
-            self.report({'ERROR'}, f"Could not set orientation: {err}")
+            report_msg = f"Could not set orientation: {err}"
+            self.report({'ERROR'}, report_msg)
             print(f"[ERROR] Could not set orientation: {err}")
             u.context_error_debug(error=err)
             return {'CANCELLED'}

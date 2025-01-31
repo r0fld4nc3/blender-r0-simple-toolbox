@@ -423,7 +423,7 @@ classes = [
 ]
 
 depsgraph_handlers = [
-    u.update_data_scene_objects,
+    u.handler_update_data_scene_objects,
     u.handler_continuous_property_list_update,
     u.handler_cleanup_object_set_invalid_references,
     u.handler_update_debug_mode_set
