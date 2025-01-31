@@ -59,13 +59,13 @@ class AREA_TYPES:
     TOPBAR           = "TOPBAR"
     VIEW_3D          = "VIEW_3D"
 
+
+_TIMERS = {}
+
+
 def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     addon_prefs = get_addon_prefs()
     addon_props = get_addon_props()
-
-    if DEBUG:
-        print(f"[DEBUG] {layout=}")
-        print(f"[DEBUG] {object_sets_box=}")
 
     # Object Sets Editor
     if object_sets_box:
@@ -112,11 +112,14 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     row_col = split.row()
     row_col.operator("r0tools.select_object_set")
 
+
 def get_scene() -> bpy.types.Scene:
     return bpy.context.scene
 
+
 def get_scene_name() -> str:
     return get_scene().name
+
 
 def get_context_area() -> str | None:
     if not bpy.context.area:
@@ -124,11 +127,14 @@ def get_context_area() -> str | None:
     
     return bpy.context.area.ui_type
 
+
 def get_addon_props():
     return get_scene().r0fl_toolbox_props
 
+
 def get_addon_prefs():
     return bpy.context.preferences.addons[INTERNAL_NAME].preferences
+
 
 def set_object_mode(mode: str):
     """
@@ -145,17 +151,20 @@ def set_object_mode(mode: str):
     print(f"Setting mode: {mode}")
     bpy.ops.object.mode_set(mode=mode)
 
+
 def set_mode_object():
     """
     Sets the current mode to: Object Mode
     """
     set_object_mode("OBJECT")
 
+
 def set_mode_edit():
     """
     Sets the current mode to: Edit Mode
     """
     set_object_mode("EDIT")
+
 
 def select_object(obj: bpy.types.Object, add=True, set_active=False) -> bpy.types.Object | None:
     if DEBUG:
@@ -176,6 +185,7 @@ def select_object(obj: bpy.types.Object, add=True, set_active=False) -> bpy.type
 
     return obj
 
+
 def deselect_object(obj: bpy.types.Object) -> bpy.types.Object | None:
     if DEBUG:
         print(f"Deselecting {obj.name}")
@@ -191,12 +201,15 @@ def deselect_object(obj: bpy.types.Object) -> bpy.types.Object | None:
     return obj
 
 
+
 def set_active_object(obj: bpy.types.Object):
     bpy.context.view_layer.objects.active = obj
 
 
+
 def get_active_object() -> bpy.types.Object | None:
     return bpy.context.view_layer.objects.active
+
 
 
 def is_object_visible_in_viewport(obj):
@@ -225,23 +238,28 @@ def is_object_visible_in_viewport(obj):
     return False
 
 # Set selection mode template
+
 def _set_mesh_selection_mode(use_extend=False, use_expand=False, type=""):
     bpy.ops.mesh.select_mode(use_extend=use_extend, use_expand=use_expand, type=type)
 
 # Set selection mode Vertex
+
 def set_mesh_selection_vertex(*args, **kwargs):
     kwargs["type"] = "VERT"
     _set_mesh_selection_mode(*args, **kwargs)
 
 # Set selection mode Edge
+
 def set_mesh_selection_edge(*args, **kwargs):
     kwargs["type"] = "EDGE"
     _set_mesh_selection_mode(*args, **kwargs)
 
 # Set selection mode Face
+
 def set_mesh_selection_face(*args, **kwargs):
     kwargs["type"] = "FACE"
     _set_mesh_selection_mode(*args, **kwargs)
+
 
 def iter_scene_objects(selected=False, types: list[str] = []):
     iters = bpy.data.objects
@@ -252,6 +270,7 @@ def iter_scene_objects(selected=False, types: list[str] = []):
         if not types or o.type in types:
             yield o
                 
+
 def iter_children(p_obj, recursive=True):
     """
     Iterate through all children of a given parent object.
@@ -271,6 +290,7 @@ def show_notification(message, title="Script Finished"):
     bpy.context.window_manager.popup_menu(lambda self, context: self.layout.label(text=message), title=title)
     bpy.context.workspace.status_text_set(message)
     
+
 def deselect_all():
     context_mode = bpy.context.mode
     edit_modes = ["EDIT", "EDIT_MODE"]
@@ -281,6 +301,7 @@ def deselect_all():
     elif context_mode in object_modes:
         bpy.ops.object.select_all(action="DESELECT")
 
+
 def object_in_view_layer(obj, context=None):
     ctx = bpy.context
     if context:
@@ -290,9 +311,11 @@ def object_in_view_layer(obj, context=None):
 
     return obj.visible_get(view_layer=ctx.view_layer)  # Returns True for visible objects
 
+
 def object_visible(obj):
     # print(f"Object '{obj.name}' visible {obj.visible_get()}")
     return obj.visible_get() # Returns True for visible objects
+
 
 def save_preferences():
     """Safely save user preferences without causing recursion"""
@@ -313,6 +336,27 @@ def save_preferences():
         print(f"Error saving preferences: {e}")
         save_preferences.is_saving = False
 
+
+def schedule_timer_run(func, *args, **kwargs):
+    """Schedules the update function and ensures it runs only once per depsgraph update."""
+    
+    if func.__name__ in _TIMERS:
+        return  # Prevent duplicate registrations
+
+    def wrapper():
+        try:
+            func(*args, **kwargs)  # Run the function
+        except Exception as e:
+            print(f"Timer function {func.__name__} failed: {e}")
+        finally:
+            _TIMERS.pop(func.__name__, None)  # Remove from tracking after execution
+        
+        return None  # Ensure the timer runs only once
+    
+    _TIMERS[func.__name__] = wrapper
+    bpy.app.timers.register(wrapper, first_interval=0.1)
+
+
 def get_td_value():
     """Get the texel density value from addon preferences"""
     try:
@@ -323,6 +367,7 @@ def get_td_value():
         print(e)
         return 10.0  # default value if preferences not found
     
+
 def get_td_unit():
     """Get the texel density unit from addon preferences"""
     try:
@@ -339,6 +384,7 @@ def get_td_unit():
     except Exception as e:
         print(e)
         return 'cm'  # default value if preferences not found
+
 
 def op_clear_sharp_along_axis(axis: str):
     print(f"\n=== Clear Sharp Along Axis {axis}")
@@ -440,77 +486,96 @@ def op_clear_sharp_along_axis(axis: str):
 
 
 @bpy.app.handlers.persistent
-def handler_continuous_property_list_update(scene, context, skip_sel_check=False):
+def handler_continuous_property_list_update(scene, context):
+    """Depsgraph handler that schedules an update using a timer."""
+    schedule_timer_run(continuous_property_list_update, scene, context)
+
+
+def continuous_property_list_update(scene, context):
     # This method is required to assess the last object selection, otherwise
     # this is triggered on every click and the list is updated, and the checkboxes are reset
     
+    addon_props = get_addon_props()
+
+    if not addon_props.show_custom_property_list_prop:
+        # Rerun if panel is now visible, alleviates some computation
+        if DEBUG:
+            print(f"[DEBUG] Custom Properties Panel is not visible, exiting from running continuous property list update.")
+        return None
+
     if bpy.context.selected_objects:
         current_selection = {obj.name for obj in iter_scene_objects(selected=True)}
-        addon_props = get_addon_props()
-        prev_selection = set(addon_props.last_object_selection.split(',')) if addon_props.last_object_selection else set()
+        # prev_selection = set(addon_props.last_object_selection.split(',')) if addon_props.last_object_selection else set()
 
         if DEBUG:
             print("------------- Continuous Property List Update -------------")
-            print(f"[DEBUG] {skip_sel_check=}")
-            
-        if skip_sel_check or current_selection != prev_selection:
-            try:
-                addon_props.custom_property_list.clear()
-            except Exception as e:
-                print(f"[ERROR] Error clearing Custom Property list: {e}")
-                context_error_debug(error=e)
-                # raise e
+        
+        addon_props.custom_property_list.clear()
 
-            # Add unique custom properties to the set
-            unique_object_data_props = set()
-            unique_mesh_data_props = set()
-            for obj in bpy.context.selected_objects:
-                # Object Properties
-                for prop_name in obj.keys():
+        # Add unique custom properties to the set
+        unique_object_data_props = set()
+        unique_mesh_data_props = set()
+        for obj in bpy.context.selected_objects:
+            # Object Properties
+            for prop_name in obj.keys():
+                if DEBUG:
+                    print(f"[DEBUG] (OP) {obj.name} - {prop_name=}")
+                if not prop_name.startswith('_') and prop_name not in unique_object_data_props:
+                    try:
+                        unique_object_data_props.add(prop_name)
+                        item = addon_props.custom_property_list.add()
+                        item.name = prop_name
+                        # Type is defaulted to Object
+                    except Exception as e:
+                        print(f"[ERROR] Error adding unique Custom Properties: {e}")
+                        context_error_debug(error=e)
+                        # raise e
+                    
+            # Object Data Properties
+            if obj.data and obj.type == 'MESH':
+                for prop_name in obj.data.keys():
                     if DEBUG:
-                        print(f"[DEBUG] (OP) {obj.name} - {prop_name=}")
-                    if not prop_name.startswith('_') and prop_name not in unique_object_data_props:
+                        print(f"[DEBUG] (ODP) {obj.name} - {prop_name=}")
+                    if not prop_name.startswith('_') and prop_name not in unique_mesh_data_props:
                         try:
-                            unique_object_data_props.add(prop_name)
+                            unique_mesh_data_props.add(prop_name)
                             item = addon_props.custom_property_list.add()
                             item.name = prop_name
+                            item.type = CUSTOM_PROPERTIES_TYPES.MESH_DATA
                             # Type is defaulted to Object
                         except Exception as e:
-                            print(f"[ERROR] Error adding unique Custom Properties: {e}")
+                            print(f"[ERROR] Error adding unique Object Data Custom Properties: {e}")
                             context_error_debug(error=e)
                             # raise e
-                        
-                # Object Data Properties
-                if obj.data and obj.type == 'MESH':
-                    for prop_name in obj.data.keys():
-                        if DEBUG:
-                            print(f"[DEBUG] (ODP) {obj.name} - {prop_name=}")
-                        if not prop_name.startswith('_') and prop_name not in unique_mesh_data_props:
-                            try:
-                                unique_mesh_data_props.add(prop_name)
-                                item = addon_props.custom_property_list.add()
-                                item.name = prop_name
-                                item.type = CUSTOM_PROPERTIES_TYPES.MESH_DATA
-                                # Type is defaulted to Object
-                            except Exception as e:
-                                print(f"[ERROR] Error adding unique Object Data Custom Properties: {e}")
-                                context_error_debug(error=e)
-                                # raise e
 
             # Update the last object selection
-            addon_props.last_object_selection = ','.join(current_selection)
+            try:
+                addon_props.last_object_selection = ','.join(current_selection)
+            except Exception as e:
+                context_error_debug(error=e, extra_prints=[f"addon_props.last_object_selection: {addon_props.last_object_selection}", f"{current_selection=}"])
     else:
         # Clear the property list if no objects are selected
         try:
-            get_addon_props().custom_property_list.clear()
+            addon_props.custom_property_list.clear()
+            if DEBUG:
+                print(f"Cleared UIList custom_property_list")
         except Exception as e:
             print(f"[ERROR] Error clearing custom property list when no selected objects: {e}")
             context_error_debug(error=e)
         try:
-            get_addon_props().last_object_selection = ""
+            addon_props.last_object_selection = ""
+            if DEBUG:
+                print(f"Cleared property last_object_selection")
         except Exception as e:
             print(f"[ERROR] Error setting last object selection when no selected objects: {e}")
             context_error_debug(error=e)
+
+    for area in bpy.context.screen.areas:
+        if area.type in {'PROPERTIES', 'OUTLINER', 'VIEW_3D'}:
+            area.tag_redraw() # Force UI Update to reflect changes :)
+    
+    return None
+
 
 def get_builtin_transform_orientations(identifiers=False) -> list:
     if identifiers:
@@ -519,6 +584,7 @@ def get_builtin_transform_orientations(identifiers=False) -> list:
         _ret = [i.name for i in bpy.types.TransformOrientationSlot.bl_rna.properties['type'].enum_items]
     
     return _ret
+
 
 def get_transform_orientations() -> list:
     """
@@ -545,6 +611,7 @@ def get_transform_orientations() -> list:
 
     return transform_list
 
+
 def delete_custom_transform_orientation(name: str):
     transform_list = get_custom_transform_orientations()
     for enum_type in transform_list:
@@ -553,6 +620,7 @@ def delete_custom_transform_orientation(name: str):
         if enum_type == name or str(enum_type).lower() == str(name).lower():
             get_scene().transform_orientation_slots[0].type = enum_type
             bpy.ops.transform.delete_orientation()
+
 
 def get_custom_transform_orientations() -> list:
     """
@@ -564,6 +632,7 @@ def get_custom_transform_orientations() -> list:
         print(f"[DEBUG] {custom_transforms=}")
 
     return custom_transforms
+
 
 def is_valid_object_global(obj):
     """Check if an object pointer is valid and exists in any scene. If not, assume dangling reference."""
@@ -580,9 +649,11 @@ def is_valid_object_global(obj):
     
     return True
 
+
 def get_depsgraph():
     depsgraph = bpy.context.evaluated_depsgraph_get()
     return depsgraph
+
 
 def get_depsgraph_is_updated_geometry() -> bool:
     d = get_depsgraph()
@@ -592,6 +663,7 @@ def get_depsgraph_is_updated_geometry() -> bool:
     
     return False
 
+
 def get_depsgraph_is_updated_shading() -> bool:
     d = get_depsgraph()
 
@@ -600,6 +672,7 @@ def get_depsgraph_is_updated_shading() -> bool:
     
     return False
 
+
 def get_depsgraph_is_updated_transform() -> bool:
     d = get_depsgraph()
 
@@ -607,6 +680,7 @@ def get_depsgraph_is_updated_transform() -> bool:
         return update.is_updated_transform
     
     return False
+
 
 @bpy.app.handlers.persistent
 def handler_update_object_set_count(context):
@@ -620,6 +694,7 @@ def handler_update_object_set_count(context):
     except Exception as e:
         print(f"[ERROR] Error updating object sets: {e}")
         context_error_debug(error=e)
+
 
 @bpy.app.handlers.persistent
 def handler_cleanup_object_set_invalid_references(scene):
@@ -645,6 +720,7 @@ def handler_cleanup_object_set_invalid_references(scene):
 
             if cleaned_up > 0:
                 print(f"Cleaned up {cleaned_up} references for Object Set '{object_set.name}'")
+
 
 @bpy.app.handlers.persistent
 def update_data_scene_objects(scene, force_run=False):
@@ -745,7 +821,8 @@ def update_data_scene_objects(scene, force_run=False):
                 if DEBUG:
                     context_error_debug(error=e)
 
-def context_error_debug(error: str = None):
+
+def context_error_debug(error: str = None, extra_prints: list = []):
     if not DEBUG:
         return
     
@@ -784,6 +861,12 @@ def context_error_debug(error: str = None):
     for frame in inspect.stack():
         print(f"[DEBUG] ({print_id})   File: {frame.filename}, Line: {frame.lineno}, Function: {frame.function}")
 
+    if extra_prints:
+        print()
+        print(f"[DEBUG] Extra Prints")
+        for print in extra_prints:
+            print(f"[DEBUG] Extra: {print}")
+
     print(f'+'*16, f"({print_id})", f'+'*16)
 
 
@@ -807,3 +890,15 @@ def handler_update_debug_mode_set(dummy):
             DEBUG = True
     else:
         DEBUG = False
+
+
+def unregister():
+    global _TIMERS
+    for func_name, wrapper in _TIMERS.items():
+        try:
+            print(f"[_TIMERS] Unregistering timer function: {func_name}")
+            bpy.app.timers.unregister(wrapper)
+        except Exception as e:
+            print(f"[_TIMERS] Unregistering timer function fail: At one point registered {func_name} but it is not longer registered in timers.")
+
+    _TIMERS.clear()

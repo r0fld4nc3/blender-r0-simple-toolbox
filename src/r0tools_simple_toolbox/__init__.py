@@ -18,7 +18,8 @@ modules = (
     ".properties",
     ".operators",
     ".ui",
-    ".const"
+    ".const",
+    ".utils"
 )
 
 def get_module_names() -> List[str]:

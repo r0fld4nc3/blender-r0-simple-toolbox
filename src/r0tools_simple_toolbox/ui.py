@@ -132,10 +132,18 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
             uv_island_checks_thresholds_box = uv_ops_box.box()
             uv_island_checks_thresholds_box.prop(addon_props, "show_uv_island_area_thresholds", icon="TRIA_DOWN" if addon_props.show_uv_island_area_thresholds else "TRIA_RIGHT", emboss=False)
             if addon_props.show_uv_island_area_thresholds:
-                col = uv_island_checks_thresholds_box.column(align=True)
-                col.prop(addon_props, "uvisland_sizecheck_arearelative", text="Factor:")
-                col.prop(addon_props, "uvisland_sizecheck_area_pixelcoverage", text="Pixel Area (px²):")
-                col.prop(addon_props, "uvisland_sizecheck_area_pixelpercentage", text="Pixel Area %:")
+                values_row = uv_island_checks_thresholds_box.row()
+                split = values_row.split(factor=0.9)
+
+                col_sliders = split.column(align=True)
+                col_sliders.prop(addon_props, "uvisland_sizecheck_arearelative", text="Factor:")
+                col_sliders.prop(addon_props, "uvisland_sizecheck_area_pixelcoverage", text="Pixel Area (px²):")
+                col_sliders.prop(addon_props, "uvisland_sizecheck_area_pixelpercentage", text="Pixel Area %:")
+                
+                col_locks = split.column(align=True)
+                col_locks.prop(addon_props, "use_uvisland_sizecheck_arearelative", text="")
+                col_locks.prop(addon_props, "use_uvisland_sizecheck_area_pixelcoverage", text="")
+                col_locks.prop(addon_props, "use_uvisland_sizecheck_area_pixelpercentage", text="")
                 
                 row = uv_island_checks_thresholds_box.row()
                 row.operator("r0tools.uv_check_island_thresholds")
@@ -175,9 +183,7 @@ classes = [
     r0Tools_PT_SimpleToolbox
 ]
 
-depsgraph_handlers = [
-    u.handler_continuous_property_list_update
-]
+depsgraph_handlers = []
 
 def register():
     for cls in classes:

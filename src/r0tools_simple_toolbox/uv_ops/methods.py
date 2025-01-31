@@ -110,11 +110,18 @@ def select_small_uv_islands(obj, uv_x: int, uv_y: int, threshold=THRESHOLD, thre
 
 
     for i, (relative_area, pixel_area, pixel_area_pct) in enumerate(areas):
-        if relative_area <= threshold or pixel_area <= threshold_px_coverage or pixel_area_pct <= threshold_pct:
-        # if pixel_area <= threshold_px_coverage or pixel_area_pct <= threshold_pct:
+        if relative_area <= threshold:
             small_islands.append(islands[i])
-            selected_faces.update(islands[i])  # Store face indices
-            print(f"{obj.name} | Island {i} too small: Relative UV Area: {relative_area} | Pixel Area: {pixel_area:.2f} px² | Pixel Area Percentage: {pixel_area_pct}%")
+            selected_faces.update(islands[i])
+            print(f"{obj.name} | Island {i} too small: Relative UV Area: {relative_area}")
+        elif pixel_area <= threshold_px_coverage:
+            small_islands.append(islands[i])
+            selected_faces.update(islands[i])
+            print(f"{obj.name} | Island {i} too small: Pixel Area: {pixel_area:.2f} px²")
+        elif pixel_area_pct <= threshold_pct:
+            small_islands.append(islands[i])
+            selected_faces.update(islands[i])
+            print(f"{obj.name} | Island {i} too small: Pixel Area Percentage: {pixel_area_pct}%")
 
     # Switch to Edit Mode to select faces
     bpy.ops.object.mode_set(mode='EDIT')

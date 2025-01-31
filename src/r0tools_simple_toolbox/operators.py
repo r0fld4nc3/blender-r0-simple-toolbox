@@ -529,9 +529,6 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
                         total_objects += 1
         
         total_deletions = len(object_data_property_deletions) + len(mesh_data_property_deletions)
-
-        # Update the list
-        u.handler_continuous_property_list_update(u.get_scene(), context, skip_sel_check=True)
         
         # u.show_notification(f"Deleted {total_deletions} propertie(s) across {total_objects} object(s)")
         self.report({'INFO'}, f"Deleted {total_deletions} propertie(s) across {total_objects} object(s)")
@@ -1490,21 +1487,30 @@ class SimpleToolbox_OT_UVCheckIslandThresholds(bpy.types.Operator):
         return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
 
     def execute(self, context):
+        print("\n------------- Check UV Islands Size Thresholds -------------")
+
         addon_props = u.get_addon_props()
 
         uv_x = addon_props.uv_target_resolution_x
         uv_y = addon_props.uv_target_resolution_y
 
-        size_relative_threshold = addon_props.uvisland_sizecheck_arearelative
-        size_pixel_coverage_threshold = addon_props.uvisland_sizecheck_area_pixelcoverage
-        size_pixel_coverate_pct_threshold = addon_props.uvisland_sizecheck_area_pixelpercentage
+        size_relative_threshold = addon_props.uvisland_sizecheck_arearelative if addon_props.use_uvisland_sizecheck_arearelative else 0
+        size_pixel_coverage_threshold = addon_props.uvisland_sizecheck_area_pixelcoverage if addon_props.use_uvisland_sizecheck_area_pixelcoverage else 0
+        size_pixel_coverate_pct_threshold = addon_props.uvisland_sizecheck_area_pixelpercentage if addon_props.use_uvisland_sizecheck_area_pixelpercentage else 0
 
         original_selection = bpy.context.selected_objects
         original_active = u.get_active_object()
+        
+        total_small_islands = 0
+
+        if size_relative_threshold == 0:
+            print(f"Not using Relative Area Size factor into account.")
+        if size_pixel_coverage_threshold == 0:
+            print(f"Not using Pixel Area Coverage into account.")
+        if size_pixel_coverate_pct_threshold == 0:
+            print(f"Not using Pixel Area Percentage factor into account.")
 
         u.deselect_all()
-
-        total_small_islands = 0
 
         for obj in original_selection:
             if obj.type == u.OBJECT_TYPES.MESH:
@@ -1524,7 +1530,9 @@ class SimpleToolbox_OT_UVCheckIslandThresholds(bpy.types.Operator):
 
         u.set_active_object(original_active)
 
-        self.report({'INFO'}, f"Selected {total_small_islands} small islands across {len(original_selection)} objects")
+        report_msg = f"Selected {total_small_islands} small island(s) across {len(original_selection)} object(s)"
+        print(report_msg)
+        self.report({'INFO'}, report_msg)
 
         return {'FINISHED'}
 

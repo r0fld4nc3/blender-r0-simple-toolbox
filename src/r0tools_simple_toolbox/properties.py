@@ -18,7 +18,7 @@ import rna_keymap_ui
 # -------------------------------------------------------------------
 # Properties which are not stored in preferences
 
-# ----- Custom Object Properties -----
+# ----- Custom Object Properties & Items -----
 class R0PROP_UL_CustomPropertiesList(bpy.types.UIList):
     """UI List where each entry is a custom property belonging to at least 1 selected object"""
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
@@ -36,6 +36,7 @@ class R0PROP_PG_CustomPropertyItem(bpy.types.PropertyGroup):
     name: StringProperty() # type: ignore
     selected: BoolProperty(default=False) # type: ignore
     type: StringProperty(default=u.CUSTOM_PROPERTIES_TYPES.OBJECT_DATA) # type: ignore
+
 
 # ----- Object Sets & Object Items -----
 class R0PROP_ObjectSetObjectItem(bpy.types.PropertyGroup):
@@ -145,11 +146,17 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
     )
 
     uvisland_sizecheck_arearelative: FloatProperty( # type: ignore
-        name="Area Size",
-        description="Area Factor occupied by the UV Island relative to 0 - 1 Space.",
+        name="Relative Area Size",
+        description="Area Factor occupied by the UV Island relative to 0 - 1 Space",
         default=0.000005,
         min=0.0,
         max=1.0
+    )
+
+    use_uvisland_sizecheck_arearelative: BoolProperty( # type: ignore
+        name="Use Relative Area Size",
+        description="Area Factor occupied by the UV Island relative to 0 - 1 Space",
+        default=True
     )
 
     uvisland_sizecheck_area_pixelcoverage: FloatProperty( # type: ignore
@@ -159,12 +166,24 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
         min=0.0
     )
 
+    use_uvisland_sizecheck_area_pixelcoverage: BoolProperty( # type: ignore
+        name="Use Area Pixel Coverage",
+        description="Use Area Squared (px²) of UV Island",
+        default=True
+    )
+
     uvisland_sizecheck_area_pixelpercentage: FloatProperty( # type: ignore
         name="Area Pixel Percentage",
         description="Percentage Area occupied by the UV Island",
         default=0.000475,
         min=0.0,
         max=100.0
+    )
+
+    use_uvisland_sizecheck_area_pixelpercentage: BoolProperty( # type: ignore
+        name="Use Area Pixel Percentage",
+        description="Percentage Area occupied by the UV Island",
+        default=True
     )
 
     show_clear_sharps_on_axis: BoolProperty( # type: ignore
