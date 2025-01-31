@@ -1,6 +1,5 @@
 import bpy
 import math
-import uuid
 
 from .const import INTERNAL_NAME, ADDON_NAME, DEBUG
 
@@ -841,40 +840,38 @@ def context_error_debug(error: str = None, extra_prints: list = []):
     if not DEBUG:
         return
     
-    print_id = str(uuid.uuid4())
-    
     import inspect
 
-    print(f'+'*16, f"({print_id})", f'+'*16)
+    print(f'+'*16, f'+'*16)
     if error:
-        print(f"[DEBUG] ({print_id}) Associated Error (below):")
-        print(f"[DEBUG] ({print_id}) {error}")
+        print(f"[DEBUG] Associated Error (below):")
+        print(f"[DEBUG] {error}")
         print()
 
     if bpy.app.background:
-        print(f"[DEBUG] ({print_id}) Running in background mode - ID writing may be restricted.")
+        print(f"[DEBUG] Running in background mode - ID writing may be restricted.")
 
     if bpy.ops.wm.save_as_mainfile.poll() == False:
-        print(f"[DEBUG] ({print_id}) Restricted context - file saving not allowed.")
+        print(f"[DEBUG] Restricted context - file saving not allowed.")
     
-    print(f"[DEBUG] ({print_id}) bpy.context:", bpy.context)
+    print(f"[DEBUG] bpy.context:", bpy.context)
     if bpy.context:
-        print(f"[DEBUG] ({print_id}) bpy.context.scene:", bpy.context.scene)
-        print(f"[DEBUG] ({print_id}) bpy.context.area:", bpy.context.area)
-        print(f"[DEBUG] ({print_id}) bpy.context.mode:", bpy.context.mode)
-        print(f"[DEBUG] ({print_id}) bpy.context.window:", bpy.context.window)
-        print(f"[DEBUG] ({print_id}) bpy.context.space_data:", bpy.context.space_data)
-        print(f"[DEBUG] ({print_id}) bpy.context.region:", bpy.context.region)
-        print(f"[DEBUG] ({print_id}) bpy.context.region_data:", bpy.context.region_data)
+        print(f"[DEBUG] bpy.context.scene:", bpy.context.scene)
+        print(f"[DEBUG] bpy.context.area:", bpy.context.area)
+        print(f"[DEBUG] bpy.context.mode:", bpy.context.mode)
+        print(f"[DEBUG] bpy.context.window:", bpy.context.window)
+        print(f"[DEBUG] bpy.context.space_data:", bpy.context.space_data)
+        print(f"[DEBUG] bpy.context.region:", bpy.context.region)
+        print(f"[DEBUG] bpy.context.region_data:", bpy.context.region_data)
     print(f"[DEBUG] Window Manager debug mode:", bpy.app.debug_wm)
     
-    print(f"[DEBUG] ({print_id}) Current Handlers:")
+    print(f"[DEBUG] Current Handlers:")
     for handler in bpy.app.handlers.depsgraph_update_post:
-        print(f"[DEBUG] ({print_id})    - {handler.__name__}")
+        print(f"[DEBUG]    - {handler.__name__}")
 
-    print(f"[DEBUG] ({print_id}) Call Stack:")
+    print(f"[DEBUG] Call Stack:")
     for frame in inspect.stack():
-        print(f"[DEBUG] ({print_id})   File: {frame.filename}, Line: {frame.lineno}, Function: {frame.function}")
+        print(f"[DEBUG]   File: {frame.filename}, Line: {frame.lineno}, Function: {frame.function}")
 
     if extra_prints:
         print()
@@ -882,7 +879,7 @@ def context_error_debug(error: str = None, extra_prints: list = []):
         for extra_print in extra_prints:
             print(f"[DEBUG] Extra: {extra_print}")
 
-    print(f'+'*16, f"({print_id})", f'+'*16)
+    print(f'+'*16, f'+'*16)
 
 
 def set_show_all_operators(show: bool):
