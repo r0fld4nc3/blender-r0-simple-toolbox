@@ -567,12 +567,15 @@ def get_custom_transform_orientations() -> list:
 
 def is_valid_object_global(obj):
     """Check if an object pointer is valid and exists in any scene. If not, assume dangling reference."""
-    exists_mesh = obj and obj.name in bpy.data.objects and any(
+    exists_mesh = obj is not None and obj and obj.name in bpy.data.objects and any(
         obj.name in scene.objects for scene in bpy.data.scenes
     )
     
     if not exists_mesh:
-        print(f"Dangling reference: {obj.name}")
+        if obj is not None:
+            print(f"Dangling reference: {obj.name}")
+        else:
+            print(f"Dangling reference: {obj}")
         return False
     
     return True
