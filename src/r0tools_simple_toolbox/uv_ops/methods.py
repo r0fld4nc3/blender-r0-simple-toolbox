@@ -7,8 +7,9 @@ from ..const import DEBUG
 THRESHOLD = 0.000005  # Minimum area for an island to be considered "too small"
 THRESHOLD_PX_COVERAGE = 80.0
 THRESHOLD_PCT = 0.000475 # Minimum pixel percentage coverage for an island to be considered "too small"
-TEXTURE_SIZE = 4096  # Texture resolution in pixels (e.g., 4096x4096)
-TEXTURE_SIZE_SQ = TEXTURE_SIZE ** 2
+TEXTURE_SIZE_X = 4096  # Texture resolution in pixels (e.g., 4096x4096)
+TEXTURE_SIZE_Y = 4096  # Texture resolution in pixels (e.g., 4096x4096)
+TEXTURE_SIZE_SQ = TEXTURE_SIZE_X * TEXTURE_SIZE_Y
 
 def get_uv_islands(obj):
     """Find UV islands in an object's active UV map while correctly handling overlapping islands."""
@@ -38,23 +39,24 @@ def get_uv_islands(obj):
 
     def flood_fill(face_idx, island):
         """Recursive function to collect connected faces in an island."""
-        mesh.faces.ensure_lookup_table()
-        mesh.edges.ensure_lookup_table()
-
         if face_idx in visited:
             return
         visited.add(face_idx)
         island.append(face_idx)
-        face_data = uv_faces[face_idx]  # (UV, VertexIndex) pairs
         
+        face_data = uv_faces[face_idx]  # (UV, VertexIndex) pairs
         for edge in mesh.faces[face_idx].edges:
             for linked_face in edge.link_faces:
                 if linked_face.index not in visited:
                     linked_data = uv_faces[linked_face.index]
 
-                    # Ensure UVs match but also belong to the same vertex index
-                    if any((uv1.xy == uv2.xy and v1 == v2) for (uv1, v1) in face_data for (uv2, v2) in linked_data):
+                    # Ensure UVs match but also belong to the same vertex index (avoid accidental merging)
+                    if any(
+                        (uv1.xy == uv2.xy and v1 == v2)  # Ensure both UV and vertex index match
+                        for (uv1, v1) in face_data for (uv2, v2) in linked_data
+                    ):
                         flood_fill(linked_face.index, island)
+
 
     for face_idx in uv_faces:
         if face_idx not in visited:
@@ -79,11 +81,11 @@ def calculate_uv_area(uv_x: int, uv_y: int, obj, islands):
             uvs = [uv_layer[loop_idx].uv for loop_idx in poly.loop_indices]
 
             # Shoelace formula for polygon area
-            area = 0.5 * abs(sum(uvs[i][0] * uvs[i-1][1] - uvs[i-1][0] * uvs[i][1] for i in range(len(uvs))))
+            area = 0.5 * abs(sum((uvs[i][0] * uvs[i-1][1] - uvs[i-1][0] * uvs[i][1])for i in range(len(uvs))))
             total_area += area
 
         # Convert relative UV area to pixel area
-        pixel_area = total_area * (uvmap_size)
+        pixel_area = total_area * uvmap_size
         pixel_area_pct = (pixel_area * 100) / uvmap_size
         
         if DEBUG:

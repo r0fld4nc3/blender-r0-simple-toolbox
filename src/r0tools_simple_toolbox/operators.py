@@ -1503,7 +1503,7 @@ class SimpleToolbox_OT_UVCheckIslandThresholds(bpy.types.Operator):
 
         size_relative_threshold = addon_props.uvisland_sizecheck_arearelative if addon_props.use_uvisland_sizecheck_arearelative else 0
         size_pixel_coverage_threshold = addon_props.uvisland_sizecheck_area_pixelcoverage if addon_props.use_uvisland_sizecheck_area_pixelcoverage else 0
-        size_pixel_coverate_pct_threshold = addon_props.uvisland_sizecheck_area_pixelpercentage if addon_props.use_uvisland_sizecheck_area_pixelpercentage else 0
+        size_pixel_coverage_pct_threshold = addon_props.uvisland_sizecheck_area_pixelpercentage if addon_props.use_uvisland_sizecheck_area_pixelpercentage else 0
 
         original_selection = bpy.context.selected_objects
         original_active = u.get_active_object()
@@ -1514,7 +1514,7 @@ class SimpleToolbox_OT_UVCheckIslandThresholds(bpy.types.Operator):
             print(f"Not using Relative Area Size factor into account.")
         if size_pixel_coverage_threshold == 0:
             print(f"Not using Pixel Area Coverage into account.")
-        if size_pixel_coverate_pct_threshold == 0:
+        if size_pixel_coverage_pct_threshold == 0:
             print(f"Not using Pixel Area Percentage factor into account.")
 
         u.deselect_all()
@@ -1527,7 +1527,7 @@ class SimpleToolbox_OT_UVCheckIslandThresholds(bpy.types.Operator):
                     uv_x, uv_y,
                     threshold=size_relative_threshold,
                     threshold_px_coverage=size_pixel_coverage_threshold,
-                    threshold_pct=size_pixel_coverate_pct_threshold
+                    threshold_pct=size_pixel_coverage_pct_threshold
                 )
                 total_small_islands += len(small_islands)
 
