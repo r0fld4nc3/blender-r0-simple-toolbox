@@ -2,7 +2,7 @@ import bpy
 import bmesh
 from mathutils import Vector
 
-from ..const import DEBUG
+from ..utils import IS_DEBUG
 
 THRESHOLD = 0.000005  # Minimum area for an island to be considered "too small"
 THRESHOLD_PX_COVERAGE = 80.0
@@ -88,7 +88,7 @@ def calculate_uv_area(uv_x: int, uv_y: int, obj, islands):
         pixel_area = total_area * uvmap_size
         pixel_area_pct = (pixel_area * 100) / uvmap_size
         
-        if DEBUG:
+        if IS_DEBUG():
             print(f"{obj.name} | Island {island_num}: Relative UV Area: {total_area} | Pixel Area: {pixel_area:.2f} px² | Pixel Area Percentage: {pixel_area_pct}%")
 
         uv_areas.append((total_area, pixel_area, pixel_area_pct))  # Store UV area and pixel area coverage and pixel area percentage

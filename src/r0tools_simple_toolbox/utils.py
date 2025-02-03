@@ -166,7 +166,7 @@ def set_mode_edit():
 
 
 def select_object(obj: bpy.types.Object, add=True, set_active=False) -> bpy.types.Object | None:
-    if DEBUG:
+    if IS_DEBUG():
         print(f"Selecting {obj.name} {add=} {set_active=}")
     if not add:
         deselect_all()
@@ -186,7 +186,7 @@ def select_object(obj: bpy.types.Object, add=True, set_active=False) -> bpy.type
 
 
 def deselect_object(obj: bpy.types.Object) -> bpy.types.Object | None:
-    if DEBUG:
+    if IS_DEBUG():
         print(f"Deselecting {obj.name}")
     
     if not is_valid_object_global(obj):
@@ -214,24 +214,24 @@ def get_active_object() -> bpy.types.Object | None:
 def is_object_visible_in_viewport(obj):
     # Check if the object is set to be visible in the viewport
     if not obj.visible_get():
-        if DEBUG:
+        if IS_DEBUG():
             print(f"[DEBUG] {obj.name} is not visible in viewport.")
         return False
     
-    if DEBUG:
+    if IS_DEBUG():
         print(f"[DEBUG] {obj.name} is visible in viewport.")
         print(f"[DEBUG] Checking {obj.name} Collection(s).")
 
     # Check if the object's collection is visible in the viewport
     for collection in obj.users_collection:
-        if DEBUG:
+        if IS_DEBUG():
             print(f"[DEBUG]    - {collection.name}")
         if not collection.hide_viewport:
-            if DEBUG:
+            if IS_DEBUG():
                 print(f"[DEBUG]    - {collection.name} is visible.")
             return True
         else:
-            if DEBUG:
+            if IS_DEBUG():
                 print(f"[DEBUG]    - {collection.name} is hidden.")
 
     return False
@@ -497,7 +497,7 @@ def continuous_property_list_update(scene, context):
 
     if not addon_props.show_custom_property_list_prop:
         # Rerun if panel is now visible, alleviates some computation
-        if DEBUG:
+        if IS_DEBUG():
             print(f"[DEBUG] Custom Properties Panel is not visible, exiting from running continuous property list update.")
         return None
 
@@ -505,7 +505,7 @@ def continuous_property_list_update(scene, context):
         current_selection = {obj.name for obj in iter_scene_objects(selected=True)}
         # prev_selection = set(addon_props.last_object_selection.split(',')) if addon_props.last_object_selection else set()
 
-        if DEBUG:
+        if IS_DEBUG():
             print("------------- Continuous Property List Update -------------")
         
         addon_props.custom_property_list.clear()
@@ -516,7 +516,7 @@ def continuous_property_list_update(scene, context):
         for obj in bpy.context.selected_objects:
             # Object Properties
             for prop_name in obj.keys():
-                if DEBUG:
+                if IS_DEBUG():
                     print(f"[DEBUG] (OP) {obj.name} - {prop_name=}")
                 if not prop_name.startswith('_') and prop_name not in unique_object_data_props:
                     try:
@@ -532,7 +532,7 @@ def continuous_property_list_update(scene, context):
             # Object Data Properties
             if obj.data and obj.type == 'MESH':
                 for prop_name in obj.data.keys():
-                    if DEBUG:
+                    if IS_DEBUG():
                         print(f"[DEBUG] (ODP) {obj.name} - {prop_name=}")
                     if not prop_name.startswith('_') and prop_name not in unique_mesh_data_props:
                         try:
@@ -555,14 +555,14 @@ def continuous_property_list_update(scene, context):
         # Clear the property list if no objects are selected
         try:
             addon_props.custom_property_list.clear()
-            if DEBUG:
+            if IS_DEBUG():
                 print(f"Cleared UIList custom_property_list")
         except Exception as e:
             print(f"[ERROR] Error clearing custom property list when no selected objects: {e}")
             context_error_debug(error=e)
         try:
             addon_props.last_object_selection = ""
-            if DEBUG:
+            if IS_DEBUG():
                 print(f"Cleared property last_object_selection")
         except Exception as e:
             print(f"[ERROR] Error setting last object selection when no selected objects: {e}")
@@ -604,7 +604,7 @@ def get_transform_orientations() -> list:
         # context_error_debug(error=inst) # Fake error as we want it to spit out the built-ins
 
     transform_list = list(transforms)
-    if DEBUG:
+    if IS_DEBUG():
         print(f"[DEBUG] {transform_list=}")
 
     return transform_list
@@ -613,7 +613,7 @@ def get_transform_orientations() -> list:
 def delete_custom_transform_orientation(name: str):
     transform_list = get_custom_transform_orientations()
     for enum_type in transform_list:
-        if DEBUG:
+        if IS_DEBUG():
             print(f"[DEBUG] {enum_type=} == {name=}")
         if enum_type == name or str(enum_type).lower() == str(name).lower():
             get_scene().transform_orientation_slots[0].type = enum_type
@@ -626,7 +626,7 @@ def get_custom_transform_orientations() -> list:
     """
 
     custom_transforms= get_transform_orientations()[7:] # The 7 first orientations are built-ins
-    if DEBUG:
+    if IS_DEBUG():
         print(f"[DEBUG] {custom_transforms=}")
 
     return custom_transforms
@@ -682,7 +682,7 @@ def get_depsgraph_is_updated_transform() -> bool:
 
 @bpy.app.handlers.persistent
 def handler_update_object_set_count(context):
-    if DEBUG:
+    if IS_DEBUG():
         print("------------- Update Object Sets -------------")
 
     try:
@@ -704,12 +704,12 @@ def handler_cleanup_object_set_invalid_references(scene):
 
 
 def cleanup_object_set_invalid_references(scene):
-    if DEBUG:
+    if IS_DEBUG():
         print("------------- Cleanup Object Sets Invalid References -------------")
 
     addon_props = get_addon_props()
 
-    if DEBUG:
+    if IS_DEBUG():
         print(f"[DEBUG] {addon_props.objects_updated=}")
 
     if addon_props.objects_updated:
@@ -758,13 +758,13 @@ def update_data_scene_objects(scene, force_run=False):
     bpy_scene_objects_len = len(bpy.context.scene.objects)
     bpy_data_objects_len = len(bpy.data.objects)
 
-    if DEBUG:
+    if IS_DEBUG():
         print("------------- Update Data Scene Objects -------------")
         print(f"[DEBUG] Scene {bpy_scene_objects_len} == {len(scene_objects)}")
         print(f"[DEBUG] Data  {bpy_data_objects_len} == {len(data_objects)}")
 
     if force_run or bpy_data_objects_len != len(data_objects) or bpy_scene_objects_len != len(scene_objects):
-        if DEBUG:
+        if IS_DEBUG():
             print("------------- Update Data Scene Objects -------------")
 
         unused_count = 0
@@ -774,7 +774,7 @@ def update_data_scene_objects(scene, force_run=False):
             addon_props.scene_objects.clear()
         except Exception as e:
             print(f"[ERROR] Error clearing scene_objects: {e}")
-            if DEBUG:
+            if IS_DEBUG():
                 context_error_debug(error=e)
 
         for obj in bpy.context.scene.objects:
@@ -783,7 +783,7 @@ def update_data_scene_objects(scene, force_run=False):
                 item.object = obj
             except Exception as e:
                 print(f"[ERROR] Error adding new entry to scene_objects: {e}")
-                if DEBUG:
+                if IS_DEBUG():
                     context_error_debug(error=e)
         
         # Data objects
@@ -791,7 +791,7 @@ def update_data_scene_objects(scene, force_run=False):
             addon_props.data_objects.clear()
         except Exception as e:
             print(f"[ERROR] Error clearing data_objects: {e}")
-            if DEBUG:
+            if IS_DEBUG():
                 context_error_debug(error=e)
             
         errors = []
@@ -806,11 +806,11 @@ def update_data_scene_objects(scene, force_run=False):
                     unused_objects.append(obj)
             except Exception as e:
                 print(f"[ERROR] Error adding new entry to data_objects: {e}")
-                if DEBUG:
+                if IS_DEBUG():
                     context_error_debug(error=e)
                 errors.append(e)
 
-        if DEBUG:
+        if IS_DEBUG():
             print(f"[DEBUG] {addon_props.data_objects}")
             print(f"[DEBUG] {addon_props.scene_objects}")
             if errors:
@@ -825,19 +825,19 @@ def update_data_scene_objects(scene, force_run=False):
             addon_props.objects_updated = True
         except Exception as e:
                 print(f"[ERROR] Error setting objects_updated = True: {e}")
-                if DEBUG:
+                if IS_DEBUG():
                     context_error_debug(error=e)
     else:
         try:
             addon_props.objects_updated = False
         except Exception as e:
                 print(f"[ERROR] Error setting objects_updated = False: {e}")
-                if DEBUG:
+                if IS_DEBUG():
                     context_error_debug(error=e)
 
 
 def context_error_debug(error: str = None, extra_prints: list = []):
-    if not DEBUG:
+    if not IS_DEBUG():
         return
     
     import inspect
@@ -892,16 +892,9 @@ def set_show_all_operators(show: bool):
     print(f"Set Show All Operators to {show}")
 
 
-@bpy.app.handlers.persistent
-def handler_update_debug_mode_set(dummy):
+def IS_DEBUG() -> bool:
     addon_prefs = get_addon_prefs()
-
-    global DEBUG
-    if addon_prefs.debug:
-        if not DEBUG:
-            DEBUG = True
-    else:
-        DEBUG = False
+    return DEBUG or addon_prefs.debug
 
 
 def unregister():

@@ -9,7 +9,7 @@ from bpy.props import (StringProperty, # type: ignore
                        PointerProperty,
                        )
 
-from .const import INTERNAL_NAME, DEBUG
+from .const import INTERNAL_NAME
 from . import utils as u
 import rna_keymap_ui
 
@@ -66,7 +66,7 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
 
     def update_count(self):
         self.count = len(self.objects)
-        if DEBUG:
+        if u.IS_DEBUG():
             print(f"[DEBUG] Updated count for Set '{self.name}': {self.count}")
 
 
@@ -425,8 +425,7 @@ classes = [
 depsgraph_handlers = [
     u.handler_update_data_scene_objects,
     u.handler_continuous_property_list_update,
-    u.handler_cleanup_object_set_invalid_references,
-    u.handler_update_debug_mode_set
+    u.handler_cleanup_object_set_invalid_references
 ]
 
 load_post_handlers = [
@@ -453,13 +452,13 @@ def register():
 
     for handler in depsgraph_handlers:
         if handler not in bpy.app.handlers.depsgraph_update_post:
-            if DEBUG:
+            if u.IS_DEBUG():
                 print(f"[DEBUG] Registering depsgraph handler {handler}")
             bpy.app.handlers.depsgraph_update_post.append(handler)
 
     for handler in load_post_handlers:
         if handler not in bpy.app.handlers.load_post:
-            if DEBUG:
+            if u.IS_DEBUG():
                 print(f"[DEBUG] Registering load_post handler {handler}")
             bpy.app.handlers.load_post.append(handler)
 
@@ -476,7 +475,7 @@ def unregister():
     for handler in load_post_handlers:
         try:
             if handler in bpy.app.handlers.load_post:
-                if DEBUG:
+                if u.IS_DEBUG():
                     print(f"[DEBUG] Unregistering load_post handler {handler}")
                 bpy.app.handlers.load_post.remove(handler)
         except Exception as e:

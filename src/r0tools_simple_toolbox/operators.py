@@ -4,7 +4,7 @@ import math
 import bmesh
 import importlib
 
-from .const import INTERNAL_NAME, DEBUG
+from .const import INTERNAL_NAME
 from . import utils as u
 from .properties import BoolProperty
 from .uv_ops import select_small_uv_islands
@@ -53,7 +53,7 @@ class CustomTransformsOrientationsTracker:
         :param context: Optional context
         """
         
-        if DEBUG:
+        if u.IS_DEBUG():
             print(f"------------- Track Custom Orientations -------------")
 
         try:
@@ -72,11 +72,11 @@ class CustomTransformsOrientationsTracker:
                 cls._custom_orientations = list(current_orientations)
                 
                 for orient in added_orientations:
-                    if DEBUG:
+                    if u.IS_DEBUG():
                         print(f"[DEBUG] Custom Orientation Added: {orient}")
                 
                 for orient in removed_orientations:
-                    if DEBUG:
+                    if u.IS_DEBUG():
                         print(f"[DEBUG] Custom Orientation Removed: {orient}")
                 
                 # Update the last tracked set
@@ -201,7 +201,7 @@ class VIEW3D_MT_CustomOrientationsPieMenu(bpy.types.Menu):
         start_index = self._current_start_index
         end_index = min(start_index + 8, len(custom_orientations))
 
-        if DEBUG:
+        if u.IS_DEBUG():
             print(f"[DEBUG] {remaining_orientations=}")
             print(f"[DEBUG] {start_index=}")
             print(f"[DEBUG] {end_index=}")
@@ -220,7 +220,7 @@ class VIEW3D_MT_CustomOrientationsPieMenu(bpy.types.Menu):
                 
                 # Update iterations
                 total_added += 1
-                if DEBUG:
+                if u.IS_DEBUG():
                     print(f"[DEBUG] ({self.__class__._current_start_index}) {orientation_name}")
             except Exception as err:
                 print(f"Error adding Custom Orientation to Pie Menu: {err}")
@@ -244,7 +244,7 @@ class VIEW3D_MT_CustomOrientationsPieMenu(bpy.types.Menu):
 
                     # Update iterations
                     total_added += 1
-                    if DEBUG:
+                    if u.IS_DEBUG():
                         print(f"[DEBUG] ({self.__class__._current_start_index}) {orientation_name}")
                 except Exception as err:
                     print(f"Error adding View More to Pie Menu: {err}")
@@ -252,7 +252,7 @@ class VIEW3D_MT_CustomOrientationsPieMenu(bpy.types.Menu):
 
             # Break the fill loop if we've successfully filled 8 entries
             if total_added >= 8:
-                if DEBUG:
+                if u.IS_DEBUG():
                     print(f"[DEBUG] Menu entries limit reached! Total added: {total_added}")
                 break
 
@@ -716,7 +716,7 @@ class SimpleToolbox_OT_FindModifierSearch(bpy.types.Operator):
         view_layer_objs = bpy.context.view_layer.objects
         scene_objects = bpy.context.scene.objects
 
-        if DEBUG:
+        if u.IS_DEBUG():
             print(f"[DEBUG] {search_text=}")
             print(f"[DEBUG] (FLAG) {self.add_to_selection=}")
 
@@ -725,7 +725,7 @@ class SimpleToolbox_OT_FindModifierSearch(bpy.types.Operator):
         else:
             active_object = context.active_object
 
-        if DEBUG:
+        if u.IS_DEBUG():
             print(f"[DEBUG] {active_object=}")
 
         if not self.add_to_selection:
@@ -746,7 +746,7 @@ class SimpleToolbox_OT_FindModifierSearch(bpy.types.Operator):
                     if is_found:
                         break
                     if search_term in mod_name.lower() or search_text in mod_type.lower():
-                        if DEBUG:
+                        if u.IS_DEBUG():
                             print(f"{search_term} in {mod_name} or {mod_type}")
 
                         if not self.add_to_selection:
@@ -1086,7 +1086,7 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
         if 0 <= index < len(addon_props.object_sets):
             object_set = addon_props.object_sets[index]
             
-            if DEBUG:
+            if u.IS_DEBUG():
                 print(f"{self.add_to_selection=}")
 
             if not self.add_to_selection:
@@ -1416,7 +1416,7 @@ class SimpleToolbox_OT_SelectEmptyObjects(bpy.types.Operator):
             non_manifold_verts = [v for v in bm.verts if not v.is_manifold] if bm.verts else True # True is Manifold
             faces = [f for f in bm.faces]
 
-            if DEBUG:
+            if u.IS_DEBUG():
                 print(f"[DEBUG] {obj.name} Vertices: {len(bm.verts)}")
                 print(f"[DEBUG] {obj.name} Non-Manifold: {bool(non_manifold_verts)}")
                 print(f"[DEBUG] {obj.name} Faces: {len(faces)}")
