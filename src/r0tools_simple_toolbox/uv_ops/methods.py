@@ -96,7 +96,12 @@ def calculate_uv_area(uv_x: int, uv_y: int, obj, islands):
     return uv_areas
 
 def select_small_uv_islands(obj, uv_x: int, uv_y: int, threshold=THRESHOLD, threshold_px_coverage=THRESHOLD_PX_COVERAGE, threshold_pct=THRESHOLD_PCT) -> tuple[list, set, set]:
-    """Selects UV islands that are below a given threshold and returns their faces and vertices."""
+    """
+    Selects UV islands that are below a given threshold and returns the respective UV Islands, their faces and vertices.
+    
+    :returns: Tuple of 3 `list`: Small Islands, Selected Faces, Selected Vertices
+    :rtype: Union[list, list, list]
+    """
 
     uv_island_sync = bpy.context.scene.tool_settings.use_uv_select_sync
     
@@ -148,5 +153,5 @@ if __name__ == "__main__":
     # Iterate through selected objects
     for obj in bpy.context.selected_objects:
         if obj.type == 'MESH':
-            small_faces, small_verts = select_small_uv_islands(obj, threshold=THRESHOLD)
+            small_islands, small_faces, small_verts = select_small_uv_islands(obj, TEXTURE_SIZE_X, TEXTURE_SIZE_Y, threshold=THRESHOLD)
             print(f"Object: {obj.name}, Small UV Islands Selected: {len(small_faces)} Faces, {len(small_verts)} Vertices")

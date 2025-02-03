@@ -1,7 +1,7 @@
 import bpy
 import math
 
-from .const import INTERNAL_NAME, ADDON_NAME, DEBUG
+from .const import INTERNAL_NAME, DEBUG
 
 
 class CUSTOM_PROPERTIES_TYPES:
