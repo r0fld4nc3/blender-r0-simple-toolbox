@@ -807,7 +807,7 @@ def update_data_scene_objects(scene, force_run=False):
             except Exception as e:
                 print(f"[ERROR] Error adding new entry to data_objects: {e}")
                 if IS_DEBUG():
-                    context_error_debug(error=e)
+                    context_error_debug(error=e, extra_prints=[f"Obj Name: {obj.name}"])
                 errors.append(e)
 
         if IS_DEBUG():
@@ -819,7 +819,8 @@ def update_data_scene_objects(scene, force_run=False):
         if unused_count > 0:
             print(f"Unused blocks to be cleared: {unused_count}")
             for unused in unused_objects:
-                print(f"[DEBUG] (DATA) {unused.name} not in Scene.")
+                if IS_DEBUG():
+                    print(f"[DEBUG] (DATA) {unused.name} not in Scene.")
         
         try:
             addon_props.objects_updated = True
@@ -842,7 +843,7 @@ def context_error_debug(error: str = None, extra_prints: list = []):
     
     import inspect
 
-    print(f'+'*16, f'+'*16)
+    print(f'+'*32)
     if error:
         print(f"[DEBUG] Associated Error (below):")
         print(f"[DEBUG] {error}")
@@ -879,7 +880,7 @@ def context_error_debug(error: str = None, extra_prints: list = []):
         for extra_print in extra_prints:
             print(f"[DEBUG] Extra: {extra_print}")
 
-    print(f'+'*16, f'+'*16)
+    print(f'+'*32)
 
 
 def set_show_all_operators(show: bool):
