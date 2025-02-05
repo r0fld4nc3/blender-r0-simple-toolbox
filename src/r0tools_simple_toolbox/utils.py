@@ -91,8 +91,8 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
 
     # Right side
     col = split.column(align=True)
-    col.operator("r0tools.add_object_set_popup")
-    col.operator("r0tools.remove_object_set")
+    col.operator("r0tools.add_object_set_popup", text='+')
+    col.operator("r0tools.remove_object_set", text='-')
     if len(addon_props.object_sets) > 1: # Show buttons only when applicable
         col.label(text="") # Spacer
         col.operator("r0tools.move_object_set_item_up", icon='TRIA_UP', text="")

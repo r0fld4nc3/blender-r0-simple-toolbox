@@ -802,13 +802,17 @@ class SimpleToolbox_OT_ObjectSetsModal(bpy.types.Operator):
     
 
 class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
-    bl_label = "+"
+    bl_label = "Add Object Set"
     bl_idname = "r0tools.add_object_set_popup"
     bl_description = "Add a new Object Set Entry."
     bl_options = {'REGISTER', 'UNDO'}
 
     _default_name = "New Set"
     object_set_name: bpy.props.StringProperty(name="Set Name", default=_default_name) # type: ignore
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == u.OBJECT_MODES.OBJECT and len(u.get_addon_props().object_sets) > 0
 
     def invoke(self, context, event):
         # Reset Name
@@ -864,6 +868,31 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
         return {'FINISHED'}
     
 
+class SimpleToolbox_OT_RemoveObjectSet(bpy.types.Operator):
+    bl_label = "Remove Object Set"
+    bl_idname = "r0tools.remove_object_set"
+    bl_description = "Remove the selected Object Set entry."
+    bl_options = {'REGISTER'}
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == u.OBJECT_MODES.OBJECT and len(u.get_addon_props().object_sets) > 0
+
+    def execute(self, context):
+        # Update cleanup dangling references
+        # u.handler_cleanup_object_set_invalid_references(context)
+
+        addon_props = u.get_addon_props()
+        index = addon_props.object_sets_index
+
+        if 0 <= index < len(addon_props.object_sets):
+            set_name = addon_props.object_sets[index].name
+            addon_props.object_sets.remove(index)
+            addon_props.object_sets_index = max(0, index - 1)
+            self.report({'INFO'}, f"Removed Object Set: {set_name}")
+        return {'FINISHED'}
+    
+
 class SimpleToolbox_OT_RenameObjectSet(bpy.types.Operator):
     bl_label = "Rename"
     bl_idname = "r0tools.rename_object_set"
@@ -894,30 +923,6 @@ class SimpleToolbox_OT_RenameObjectSet(bpy.types.Operator):
             object_set.name = self.new_name
             self.report({'INFO'}, f"Renamed '{old_name}' to '{self.new_name}'")
 
-        return {'FINISHED'}
-
-class SimpleToolbox_OT_RemoveObjectSet(bpy.types.Operator):
-    bl_label = "-"
-    bl_idname = "r0tools.remove_object_set"
-    bl_description = "Remove the selected Object Set entry."
-    bl_options = {'REGISTER'}
-
-    @classmethod
-    def poll(cls, context):
-        return len(u.get_addon_props().object_sets) > 0
-
-    def execute(self, context):
-        # Update cleanup dangling references
-        # u.handler_cleanup_object_set_invalid_references(context)
-
-        addon_props = u.get_addon_props()
-        index = addon_props.object_sets_index
-
-        if 0 <= index < len(addon_props.object_sets):
-            set_name = addon_props.object_sets[index].name
-            addon_props.object_sets.remove(index)
-            addon_props.object_sets_index = max(0, index - 1)
-            self.report({'INFO'}, f"Removed Object Set: {set_name}")
         return {'FINISHED'}
     
 
