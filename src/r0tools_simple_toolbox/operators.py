@@ -318,7 +318,8 @@ class SimpleToolbox_OT_ExperimentalOP(bpy.types.Operator):
             poly_verts = [p.vertices[0], p.vertices[1], p.vertices[2]]
             loop_verts.append(poly_verts)
 
-            print(f"P{poly_idx}: {poly_verts}")
+            if u.IS_DEBUG():
+                print(f"P{poly_idx}: {poly_verts}")
             
         for v in obj_verts:
             found = False
@@ -331,7 +332,8 @@ class SimpleToolbox_OT_ExperimentalOP(bpy.types.Operator):
                 loose_verts.append(v)
 
         if loose_verts:
-            print(f"{obj.name} has {len(loose_verts)} loose vertices: {loose_verts}")
+            if u.IS_DEBUG():
+                print(f"{obj.name} has {len(loose_verts)} loose vertices: {loose_verts}")
 
         return loose_verts
 
@@ -471,7 +473,8 @@ class SimpleToolbox_OT_ClearCustomSplitNormalsData(bpy.types.Operator):
             # bpy.context.object.data.auto_smooth_angle = 3.14159
 
     def execute(self, context):
-        print("\n------------- Clear Custom Split Normals Data -------------")
+        if u.IS_DEBUG():
+            print("\n------------- Clear Custom Split Normals Data -------------")
         orig_context = context.mode
         orig_active = bpy.context.view_layer.objects.active
 
@@ -502,7 +505,8 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
         return len(context.selected_objects) > 0
 
     def execute(self, context):
-        print("\n------------- Clear Custom Properties -------------")
+        if u.IS_DEBUG():
+            print("\n------------- Clear Custom Properties -------------")
         object_data_property_deletions = set()
         mesh_data_property_deletions = set()
         total_deletions = 0
@@ -523,14 +527,16 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
                 # Object Data
                 if prop_type == u.CUSTOM_PROPERTIES_TYPES.OBJECT_DATA:
                     if prop_name in reversed(obj.keys()):
-                        print(f"Deleting Object Data Property '{prop_name}' of object {obj.name}")
+                        if u.IS_DEBUG():
+                            print(f"Deleting Object Data Property '{prop_name}' of object {obj.name}")
                         del obj[prop_name]
                         object_data_property_deletions.add(prop_name)
                         total_objects += 1
                 # Mesh Data
                 elif prop_type == u.CUSTOM_PROPERTIES_TYPES.MESH_DATA:
                     if prop_name in reversed(obj.data.keys()):
-                        print(f"Deleting Mesh Data Property '{prop_name}' of object {obj.name}")
+                        if u.IS_DEBUG():
+                            print(f"Deleting Mesh Data Property '{prop_name}' of object {obj.name}")
                         del obj.data[prop_name]
                         mesh_data_property_deletions.add(prop_name)
                         total_objects += 1
@@ -555,7 +561,8 @@ class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
         Sometimes certain addons or operations will populate this list with attributes you wish to remove at a later date, be it for parsing or exporting.
         """
         
-        print(f"[CLEAR MESH ATTRIBUTES]")
+        if u.IS_DEBUG():
+            print(f"[CLEAR MESH ATTRIBUTES]")
         
         initial_obj = bpy.context.active_object
         
@@ -573,7 +580,8 @@ class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
             if obj.type == u.OBJECT_TYPES.MESH:
                 bpy.context.view_layer.objects.active = obj
                 mesh = bpy.context.object.data
-                print(f"Object: {mesh.name}")
+                if u.IS_DEBUG():
+                    print(f"Object: {mesh.name}")
                 try:
                     for at in reversed(mesh.attributes.items()):
                         # Check if not T4 Attribute
@@ -582,9 +590,11 @@ class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
                         
                         at_name = at[0]
                         if str(at_name).startswith(exclude_filter):
-                            print(f"{' '*2}Keeping Attribute: {at_name}")
-                        else:                    
-                            print(f"{' '*2}Removing Attribute: {at[0]}")
+                            if u.IS_DEBUG():
+                                print(f"{' '*2}Keeping Attribute: {at_name}")
+                        else:           
+                            if u.IS_DEBUG():         
+                                print(f"{' '*2}Removing Attribute: {at[0]}")
                             mesh.color_attributes.remove(at[1])
                 except Exception as e:
                     print(f"[ERROR] Error Clearing Mesh Attributes")
@@ -593,7 +603,8 @@ class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
         bpy.context.view_layer.objects.active = initial_obj
 
     def execute(self, context):
-        print("\n------------- Clear Mesh Attributes -------------")
+        if u.IS_DEBUG():
+            print("\n------------- Clear Mesh Attributes -------------")
         self.op_clear_mesh_attributes()
         return {'FINISHED'}
 
@@ -641,7 +652,8 @@ class SimpleToolbox_OT_ClearChildrenRecurse(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
-        print("\n------------- Clear Object(s) Children -------------")
+        if u.IS_DEBUG():
+            print("\n------------- Clear Object(s) Children -------------")
         parent_objs = 0
         total_children_cleared = 0
         
@@ -651,7 +663,8 @@ class SimpleToolbox_OT_ClearChildrenRecurse(bpy.types.Operator):
         
         # Match selected objects' data names to mesh names
         for o in u.iter_scene_objects(selected=True):
-            print(f"Iter {o.name}")
+            if u.IS_DEBUG():
+                print(f"Iter {o.name}")
             
             for child in u.iter_children(o, recursive=self.recurse):
                 # print(f"Child: {child.name}")
@@ -708,7 +721,8 @@ class SimpleToolbox_OT_FindModifierSearch(bpy.types.Operator):
     def execute(self, context):
         addon_props = u.get_addon_props()
 
-        print("\n------------- Find Modifier(s) Search -------------")
+        if u.IS_DEBUG():
+            print("\n------------- Find Modifier(s) Search -------------")
 
         search_text = addon_props.find_modifier_search_text.lower()
         search_text_split = [s.strip() for s in search_text.split(",")]
@@ -1188,7 +1202,8 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
         edges_delete = []
 
         for i, edge in enumerate(initial_selection):
-            print(f"{i} {edge.index}")
+            if u.IS_DEBUG():
+                print(f"{i} {edge.index}")
             
             # Deselect all bm edges
             for e in bm.edges:
@@ -1240,7 +1255,9 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
                 edge.select = True
 
     def execute(self, context):
-        print("\n------------- Dissolve Nth Edges -------------")
+        if u.IS_DEBUG():
+            print("\n------------- Dissolve Nth Edges -------------")
+        
         original_active_obj = context.active_object
         original_mode = context.mode
 
@@ -1303,7 +1320,8 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
         transform_orientation_names = []
         
         for obj in orig_selected_objects:
-            print(f"Iterating Object: {obj.name}")
+            if u.IS_DEBUG():
+                print(f"Iterating Object: {obj.name}")
             u.select_object(obj, add=False, set_active=True)
             u.set_mode_edit()
 
@@ -1329,15 +1347,18 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
 
             # Conditionally clear rotations based on property
             if self.clear_rotation_on_align:
-                print(f"Clearing Rotation for {obj.name}")
+                if u.IS_DEBUG():
+                    print(f"Clearing Rotation for {obj.name}")
                 obj.rotation_euler = (0, 0, 0)
             else:
-                print(f"Keeping Rotation for {obj.name}")
+                if u.IS_DEBUG():
+                    print(f"Keeping Rotation for {obj.name}")
 
             # Check if we're just setting origin to transform
             if self.origin_to_selection:
                 u.set_mode_edit()
-                print(f"Setting object origin to median of selection for {obj.name}")
+                if u.IS_DEBUG():
+                    print(f"Setting object origin to median of selection for {obj.name}")
                 bpy.ops.view3d.snap_cursor_to_selected()
                 u.set_mode_object()
                 bpy.ops.object.origin_set(type='ORIGIN_CURSOR', center='MEDIAN')

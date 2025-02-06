@@ -147,7 +147,8 @@ def set_object_mode(mode: str):
     - WEIGHT_PAINT
     """
 
-    print(f"Setting mode: {mode}")
+    if IS_DEBUG():
+        print(f"Setting mode: {mode}")
     bpy.ops.object.mode_set(mode=mode)
 
 
@@ -817,7 +818,8 @@ def update_data_scene_objects(scene, force_run=False):
                 context_error_debug(error='\n'.join(errors))
 
         if unused_count > 0:
-            print(f"Unused blocks to be cleared: {unused_count}")
+            if IS_DEBUG():
+                print(f"Unused blocks to be cleared: {unused_count}")
             for unused in unused_objects:
                 if IS_DEBUG():
                     print(f"[DEBUG] (DATA) {unused.name} not in Scene.")
