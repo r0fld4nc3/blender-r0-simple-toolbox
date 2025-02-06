@@ -156,7 +156,7 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
     use_uvisland_sizecheck_arearelative: BoolProperty( # type: ignore
         name="Use Relative Area Size",
         description="Area Factor occupied by the UV Island relative to 0 - 1 Space",
-        default=True
+        default=False
     )
 
     uvisland_sizecheck_area_pixelcoverage: FloatProperty( # type: ignore

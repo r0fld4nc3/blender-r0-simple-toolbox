@@ -5,7 +5,7 @@ from mathutils import Vector
 from ..utils import IS_DEBUG
 
 THRESHOLD = 0.00001  # Minimum area for an island to be considered "too small"
-THRESHOLD_PX_COVERAGE = 80.0
+THRESHOLD_PX_COVERAGE = 80.0  # The "pixel area squared", or coverage in this case, is essentially the area of the UV island expressed in pixel units rather than in UV space (which ranges from 0 to 1)
 THRESHOLD_PCT = 0.000475 # Minimum pixel percentage coverage for an island to be considered "too small"
 TEXTURE_SIZE_X = 4096  # Texture resolution in pixels (e.g., 4096x4096)
 TEXTURE_SIZE_Y = 4096  # Texture resolution in pixels (e.g., 4096x4096)
@@ -83,17 +83,18 @@ def calculate_uv_area(uv_x: int, uv_y: int, obj, islands):
             uvs = [uv_layer[loop_idx].uv for loop_idx in poly.loop_indices]
 
             # Shoelace formula for polygon area
-            area = 0.5 * abs(sum((uvs[i][0] * uvs[i-1][1] - uvs[i-1][0] * uvs[i][1])for i in range(len(uvs))))
+            area = 0.5 * abs(sum((uvs[i][0] * uvs[i-1][1] - uvs[i-1][0] * uvs[i][1]) for i in range(len(uvs))))
             total_area += area
 
         # Convert relative UV area to pixel area
-        pixel_area = total_area * uvmap_size
-        pixel_area_pct = (pixel_area * 100) / uvmap_size
+        island_pixel_area = total_area * uvmap_size
+        # Derive pixel area peercentage directly since total area is 0-1
+        pixel_area_pct = total_area * 100
         
         if IS_DEBUG():
-            batch_print.add(f"{obj.name} | Island {island_num}: Relative UV Area: {total_area} | Pixel Area: {pixel_area:.2f} px² | Pixel Area Percentage: {pixel_area_pct}%")
+            batch_print.add(f"{obj.name} | Island {island_num}: Relative UV Area: {total_area} | Pixel Area: {island_pixel_area:.2f} px² | Pixel Area Percentage: {pixel_area_pct}%")
 
-        uv_areas.append((total_area, pixel_area, pixel_area_pct))  # Store UV area and pixel area coverage and pixel area percentage
+        uv_areas.append((total_area, island_pixel_area, pixel_area_pct))  # Store UV area and pixel area coverage and pixel area percentage
 
     if IS_DEBUG():
         if batch_print:
@@ -124,17 +125,17 @@ def select_small_uv_islands(obj, uv_x: int, uv_y: int, threshold=THRESHOLD, thre
     batch_print = set()
 
 
-    for i, (relative_area, pixel_area, pixel_area_pct) in enumerate(areas):
+    for i, (relative_area, island_pixel_area, pixel_area_pct) in enumerate(areas):
         if relative_area <= threshold:
             small_islands.append(islands[i])
             selected_faces.update(islands[i])
             if IS_DEBUG():
                 batch_print.add(f"{obj.name} | Island {i} too small: Relative UV Area: {relative_area}")
-        elif pixel_area <= threshold_px_coverage:
+        elif island_pixel_area <= threshold_px_coverage:
             small_islands.append(islands[i])
             selected_faces.update(islands[i])
             if IS_DEBUG():
-                batch_print.add(f"{obj.name} | Island {i} too small: Pixel Area: {pixel_area:.2f} px²")
+                batch_print.add(f"{obj.name} | Island {i} too small: Pixel Area: {island_pixel_area:.2f} px²")
         elif pixel_area_pct <= threshold_pct:
             small_islands.append(islands[i])
             selected_faces.update(islands[i])

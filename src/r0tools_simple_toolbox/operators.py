@@ -1551,7 +1551,7 @@ class SimpleToolbox_OT_UVCheckIslandThresholds(bpy.types.Operator):
     bl_description = "Iterates over UV Islands of selected objects and selects islands below defined thresholds"
     bl_options = {'REGISTER', 'UNDO'}
 
-    accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
+    accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT, u.OBJECT_MODES.EDIT_MESH]
 
     @classmethod
     def poll(cls, context):
@@ -1569,8 +1569,15 @@ class SimpleToolbox_OT_UVCheckIslandThresholds(bpy.types.Operator):
         size_pixel_coverage_threshold = addon_props.uvisland_sizecheck_area_pixelcoverage if addon_props.use_uvisland_sizecheck_area_pixelcoverage else 0
         size_pixel_coverage_pct_threshold = addon_props.uvisland_sizecheck_area_pixelpercentage if addon_props.use_uvisland_sizecheck_area_pixelpercentage else 0
 
+        # Store object selection
         original_selection = bpy.context.selected_objects
+        # Store active object
         original_active = u.get_active_object()
+        # Object, Edit Modes?
+        original_mode = context.mode
+        if original_mode in [u.OBJECT_MODES.EDIT_MESH]:
+            # Need to hack edit mode, because there's EDIT and EDIT_MESH...
+            original_mode = u.OBJECT_MODES.EDIT
         
         total_small_islands = 0
 
@@ -1581,6 +1588,7 @@ class SimpleToolbox_OT_UVCheckIslandThresholds(bpy.types.Operator):
         if size_pixel_coverage_pct_threshold == 0:
             print(f"Not using Pixel Area Percentage factor into account.")
 
+        # Prepare to go 1 by 1 and select only that object
         u.deselect_all()
 
         for obj in original_selection:
@@ -1600,6 +1608,9 @@ class SimpleToolbox_OT_UVCheckIslandThresholds(bpy.types.Operator):
             u.select_object(obj)
 
         u.set_active_object(original_active)
+
+        # Restore mode
+        u.set_object_mode(original_mode)
 
         report_msg = f"Selected {total_small_islands} small island(s) across {len(original_selection)} object(s)"
         print(report_msg)

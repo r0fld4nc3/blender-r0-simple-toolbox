@@ -136,12 +136,12 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 split = values_row.split(factor=0.9)
 
                 col_sliders = split.column(align=True)
-                col_sliders.prop(addon_props, "uvisland_sizecheck_arearelative", text="Factor:")
+                # col_sliders.prop(addon_props, "uvisland_sizecheck_arearelative", text="Factor:")
                 col_sliders.prop(addon_props, "uvisland_sizecheck_area_pixelcoverage", text="Pixel Area (px²):")
                 col_sliders.prop(addon_props, "uvisland_sizecheck_area_pixelpercentage", text="Pixel Area %:")
                 
                 col_locks = split.column(align=True)
-                col_locks.prop(addon_props, "use_uvisland_sizecheck_arearelative", text="")
+                # col_locks.prop(addon_props, "use_uvisland_sizecheck_arearelative", text="")
                 col_locks.prop(addon_props, "use_uvisland_sizecheck_area_pixelcoverage", text="")
                 col_locks.prop(addon_props, "use_uvisland_sizecheck_area_pixelpercentage", text="")
                 
