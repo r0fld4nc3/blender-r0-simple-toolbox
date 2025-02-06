@@ -1117,7 +1117,7 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
 
 class SimpleToolbox_OT_ToggleWireDisplay(bpy.types.Operator):
     """Toggle Wire Display"""
-    bl_idname = "object.toggle_wire_display_mode"
+    bl_idname = "r0tools.toggle_wire_display_mode"
     bl_label = "Toggle Wire Display"
 
     def execute(self, context):
