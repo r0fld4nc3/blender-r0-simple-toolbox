@@ -100,6 +100,7 @@ def register_keymaps():
         for op_id, cfg in KEYMAP_CONFIGS.items():
             # Get (or create) the desired keymap by name.
             km = kc.keymaps.get(cfg["keymap_context_name"])
+            key = cfg.get("default_key", '')
             if km is None:
                 km = kc.keymaps.new(name=cfg["keymap_context_name"], space_type=cfg["space_type"], type=key)
 

@@ -11,7 +11,7 @@ from bpy.props import (StringProperty, # type: ignore
 
 from .const import INTERNAL_NAME
 from . import utils as u
-from .keymaps import draw_keymap_settings, KEYMAP_CONFIGS
+from .keymaps import draw_keymap_settings
 
 # -------------------------------------------------------------------
 #   ADDON PROPS
@@ -75,7 +75,7 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             row = layout.row()
-            
+
             row.prop(item, "name", text="", emboss=False, icon="MESH_CUBE")
 
             # Display object count
@@ -115,7 +115,7 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
         description="Show or hide the Object operators section",
         default=True
     )
-    
+
     show_mesh_ops: BoolProperty( # type: ignore
         name="Mesh Ops",
         description="Show or hide the Mesh operators section",
@@ -273,7 +273,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         description="Enable experimental features",
         default=False
     )
-    
+
     clear_sharp_axis_float_prop: FloatProperty( # type: ignore
         name="Clear Sharp Axis Threshold",
         default=0.0,
@@ -281,7 +281,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         description="Threshold value for vertex/edge selection",
         update=lambda self, context: u.save_preferences()
     )
-    
+
     zenuv_td_prop: FloatProperty( # type: ignore
         name="ZenUV Texel Density",
         default=10.0,
@@ -289,7 +289,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         description="Texel Density value to apply to meshes",
         update=lambda self, context: u.save_preferences()
     )
-    
+
     zenuv_unit_options = zenuv_unit_options = [
         ('PX_KM', "px/km", "Pixels per kilometer", 0),
         ('PX_M', "px/m", "Pixels per meter", 1),
@@ -328,7 +328,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         default=6,
         min=1
     )
-    
+
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = False
@@ -356,23 +356,23 @@ class AddonPreferences(bpy.types.AddonPreferences):
         row.label(text="Custom Properties Settings")
         row = custom_properties_settings_box.row()
         row.prop(self, "custom_properties_list_rows")
-        
+
         # Box for texel density settings
         """
         td_box = layout.box()
         td_box.label(text="Texel Density Settings")
-        
+
         # Add the dropdown and value field in separate rows
         row = td_box.row()
         row.prop(self, "zenuv_td_prop")
-        
+
         row = td_box.row()
         row.prop(self, "zenuv_td_unit_prop")
         """
 
         # Keymaps
         draw_keymap_settings(layout, self)
-        
+
     def save_axis_threshold(self):
         addon_prefs = bpy.context.preferences.addons[INTERNAL_NAME].preferences
         addon_prefs.clear_sharp_axis_float_prop = self.clear_sharp_axis_float_prop
@@ -406,7 +406,7 @@ def register():
     for cls in classes:
         print(f"[PROPERTIES] Registering {cls}")
         bpy.utils.register_class(cls)
-    
+
     print("[PROPERTIES] Registering bpy.types.Scene.r0fl_toolbox_props")
     # Registering to Scene also has the side effect of saving properties on a per scene/file basis, which is nice!
     bpy.types.Scene.r0fl_toolbox_props = PointerProperty(type=r0SimpleToolboxProps)
@@ -451,7 +451,7 @@ def unregister():
         except Exception as e:
             print(f"[ERROR] Error removing handler {handler}: {e}")
             u.context_error_debug(error=e)
-    
+
     for cls in classes:
         bpy.utils.unregister_class(cls)
 
