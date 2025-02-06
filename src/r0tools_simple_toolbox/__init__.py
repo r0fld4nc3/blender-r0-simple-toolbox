@@ -17,6 +17,7 @@ from typing import List, Tuple
 modules = (
     ".properties",
     ".operators",
+    ".keymaps",
     ".ui",
     ".const",
     ".utils"

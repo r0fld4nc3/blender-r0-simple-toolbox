@@ -1113,6 +1113,44 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
 
             self.report({'INFO'}, f"Selected objects in '{object_set.name}'")
         return {'FINISHED'}
+    
+
+class SimpleToolbox_OT_ToggleWireDisplay(bpy.types.Operator):
+    """Toggle Wire Display"""
+    bl_idname = "object.toggle_wire_display_mode"
+    bl_label = "Toggle Wire Display"
+
+    def execute(self, context):
+        wires = 0
+        textureds = 0
+        other = 0
+        objects = [obj for obj in bpy.context.selected_objects if obj and obj.type == 'MESH']
+
+        if not objects:
+            return {'FINISHED'}
+
+        for obj in objects:
+            if obj.display_type == 'WIRE':
+                wires += 1
+            elif obj.display_type == 'TEXTURED':
+                textureds += 1
+            else:
+                other += 1  # SOLID, BOUNDING_BOX, or other modes
+
+        if wires > textureds and textureds > 0:
+            display_mode = 'WIRE'
+        elif textureds > wires and wires > 0:
+            display_mode = 'TEXTURED'
+        elif other == len(objects):  # If all objects are neither wire nor textured
+            display_mode = 'WIRE'
+        else:
+            display_mode = 'WIRE' if wires == 0 else 'TEXTURED'
+
+        # Apply the new display type
+        for obj in objects:
+            obj.display_type = display_mode
+
+        return {'FINISHED'}
 
 # -------------------------------------------------------------------
 #   MESH OPS
@@ -1660,6 +1698,7 @@ classes = [
     SimpleToolbox_OT_AddToObjectSet,
     SimpleToolbox_OT_RemoveFromObjectSet,
     SimpleToolbox_OT_SelectObjectSet,
+    SimpleToolbox_OT_ToggleWireDisplay,
     
     VIEW3D_MT_CustomOrientationsPieMenu,
     SimpleToolbox_OT_ShowCustomOrientationsPie,

@@ -11,7 +11,7 @@ from bpy.props import (StringProperty, # type: ignore
 
 from .const import INTERNAL_NAME
 from . import utils as u
-import rna_keymap_ui
+from .keymaps import draw_keymap_settings, KEYMAP_CONFIGS
 
 # -------------------------------------------------------------------
 #   ADDON PROPS
@@ -328,35 +328,6 @@ class AddonPreferences(bpy.types.AddonPreferences):
         default=6,
         min=1
     )
-
-    def draw_keymaps(self, context, layout):
-        # FIXME: Has no effect, shows almost correctly
-        from .operators import SimpleToolbox_OT_ShowCustomOrientationsPie
-
-        wm = context.window_manager
-        kc = wm.keyconfigs.addon
-
-        if kc:
-            km = kc.keymaps.get("3D View")
-
-            if km:
-                custom_keymaps = [
-                    SimpleToolbox_OT_ShowCustomOrientationsPie.bl_idname
-                ]
-
-                for kmi in km.keymap_items:
-                    if kmi.idname in custom_keymaps:
-                        row = layout.row()
-                        # row.prop(kmi, "name", text="", emboss=False)
-                        rna_keymap_ui.draw_kmi(
-                            ['ADDON', 'USER', 'DEFAULT'],
-                            kc,
-                            km,
-                            kmi,
-                            layout,
-                            0
-                        )
-                        break
     
     def draw(self, context):
         layout = self.layout
@@ -399,9 +370,8 @@ class AddonPreferences(bpy.types.AddonPreferences):
         row.prop(self, "zenuv_td_unit_prop")
         """
 
-        row = layout.row()
-        row.label(text="Keymaps")
-        self.draw_keymaps(context, layout)
+        # Keymaps
+        draw_keymap_settings(layout, self)
         
     def save_axis_threshold(self):
         addon_prefs = bpy.context.preferences.addons[INTERNAL_NAME].preferences
@@ -469,7 +439,7 @@ def unregister():
             if handler in bpy.app.handlers.depsgraph_update_post:
                 bpy.app.handlers.depsgraph_update_post.remove(handler)
         except Exception as e:
-            print(f"[ERROR]Error removing handler {handler}: {e}")
+            print(f"[ERROR] Error removing handler {handler}: {e}")
             u.context_error_debug(error=e)
 
     for handler in load_post_handlers:
