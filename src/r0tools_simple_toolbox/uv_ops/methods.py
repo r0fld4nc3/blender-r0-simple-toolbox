@@ -4,7 +4,7 @@ from mathutils import Vector
 
 from ..utils import IS_DEBUG
 
-THRESHOLD = 0.000005  # Minimum area for an island to be considered "too small"
+THRESHOLD = 0.00001  # Minimum area for an island to be considered "too small"
 THRESHOLD_PX_COVERAGE = 80.0
 THRESHOLD_PCT = 0.000475 # Minimum pixel percentage coverage for an island to be considered "too small"
 TEXTURE_SIZE_X = 4096  # Texture resolution in pixels (e.g., 4096x4096)

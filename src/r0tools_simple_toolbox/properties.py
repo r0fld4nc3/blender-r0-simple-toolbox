@@ -148,7 +148,7 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
     uvisland_sizecheck_arearelative: FloatProperty( # type: ignore
         name="Relative Area Size",
         description="Area Factor occupied by the UV Island relative to 0 - 1 Space",
-        default=0.000005,
+        default=0.00001,
         min=0.0,
         max=1.0
     )
@@ -175,7 +175,7 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
     uvisland_sizecheck_area_pixelpercentage: FloatProperty( # type: ignore
         name="Area Pixel Percentage",
         description="Percentage Area occupied by the UV Island",
-        default=0.000475,
+        default=0.001,
         min=0.0,
         max=100.0
     )
