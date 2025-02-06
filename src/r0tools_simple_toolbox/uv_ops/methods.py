@@ -74,6 +74,8 @@ def calculate_uv_area(uv_x: int, uv_y: int, obj, islands):
 
     uvmap_size = uv_x * uv_y
 
+    batch_print = set()
+
     for island_num, island in enumerate(islands):
         total_area = 0
         for face_idx in island:
@@ -89,9 +91,13 @@ def calculate_uv_area(uv_x: int, uv_y: int, obj, islands):
         pixel_area_pct = (pixel_area * 100) / uvmap_size
         
         if IS_DEBUG():
-            print(f"{obj.name} | Island {island_num}: Relative UV Area: {total_area} | Pixel Area: {pixel_area:.2f} px² | Pixel Area Percentage: {pixel_area_pct}%")
+            batch_print.add(f"{obj.name} | Island {island_num}: Relative UV Area: {total_area} | Pixel Area: {pixel_area:.2f} px² | Pixel Area Percentage: {pixel_area_pct}%")
 
         uv_areas.append((total_area, pixel_area, pixel_area_pct))  # Store UV area and pixel area coverage and pixel area percentage
+
+    if IS_DEBUG():
+        if batch_print:
+            print('\n'.join(batch_print))
 
     return uv_areas
 
@@ -115,20 +121,28 @@ def select_small_uv_islands(obj, uv_x: int, uv_y: int, threshold=THRESHOLD, thre
     selected_faces = set()
     selected_verts = set()
 
+    batch_print = set()
+
 
     for i, (relative_area, pixel_area, pixel_area_pct) in enumerate(areas):
         if relative_area <= threshold:
             small_islands.append(islands[i])
             selected_faces.update(islands[i])
-            print(f"{obj.name} | Island {i} too small: Relative UV Area: {relative_area}")
+            if IS_DEBUG():
+                batch_print.add(f"{obj.name} | Island {i} too small: Relative UV Area: {relative_area}")
         elif pixel_area <= threshold_px_coverage:
             small_islands.append(islands[i])
             selected_faces.update(islands[i])
-            print(f"{obj.name} | Island {i} too small: Pixel Area: {pixel_area:.2f} px²")
+            if IS_DEBUG():
+                batch_print.add(f"{obj.name} | Island {i} too small: Pixel Area: {pixel_area:.2f} px²")
         elif pixel_area_pct <= threshold_pct:
             small_islands.append(islands[i])
             selected_faces.update(islands[i])
-            print(f"{obj.name} | Island {i} too small: Pixel Area Percentage: {pixel_area_pct}%")
+            if IS_DEBUG():
+                batch_print.add(f"{obj.name} | Island {i} too small: Pixel Area Percentage: {pixel_area_pct}%")
+    
+    if IS_DEBUG() and batch_print:
+        print('\n'.join(batch_print))
 
     # Switch to Edit Mode to select faces
     bpy.ops.object.mode_set(mode='EDIT')
