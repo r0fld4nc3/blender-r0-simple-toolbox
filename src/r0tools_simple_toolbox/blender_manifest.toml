@@ -1,0 +1,29 @@
+schema_version = "1.0.0"
+
+# Example of manifest file for a Blender extension
+# Change the values according to your extension
+id = "r0tools_simple_toolbox"
+version = "0.0.13"
+name = "r0Tools - Simple Toolbox"
+tagline = "General utilities that I find useful and adapt to my and other profressional colleagues workflows."
+maintainer = "https://github.com/r0fld4nc3"
+# Supported types: "add-on", "theme"
+type = "add-on"
+
+# # Optional: tag list defined by Blender and server, see:
+# # https://docs.blender.org/manual/en/dev/advanced/extensions/tags.html
+tags = ["3D View", "Modeling", "Mesh", "Object", "Pipeline"]
+
+blender_version_min = "4.2.0"
+
+# License conforming to https://spdx.org/licenses/ (use "SPDX: prefix)
+# # https://docs.blender.org/manual/en/dev/advanced/extensions/licenses.html
+license = [
+  "SPDX:GPL-3.0-or-later",
+]
+
+paths_exclude_pattern = [
+  "__pycache__/",
+  "/.git/",
+  "/*.zip",
+]
