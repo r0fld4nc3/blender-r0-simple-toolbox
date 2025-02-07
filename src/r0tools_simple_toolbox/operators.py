@@ -826,7 +826,7 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.mode == u.OBJECT_MODES.OBJECT and len(u.get_addon_props().object_sets) > 0
+        return context.mode == u.OBJECT_MODES.OBJECT
 
     def invoke(self, context, event):
         # Reset Name
