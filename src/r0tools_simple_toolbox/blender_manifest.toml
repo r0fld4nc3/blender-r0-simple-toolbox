@@ -1,7 +1,5 @@
 schema_version = "1.0.0"
 
-# Example of manifest file for a Blender extension
-# Change the values according to your extension
 id = "r0tools_simple_toolbox"
 version = "0.0.14"
 name = "r0Tools - Simple Toolbox"
@@ -9,6 +7,8 @@ tagline = "General workflow utitlies"
 maintainer = "https://github.com/r0fld4nc3"
 # Supported types: "add-on", "theme"
 type = "add-on"
+
+website = "https://github.com/r0fld4nc3/blender-r0-simple-toolbox"
 
 # # Optional: tag list defined by Blender and server, see:
 # # https://docs.blender.org/manual/en/dev/advanced/extensions/tags.html
