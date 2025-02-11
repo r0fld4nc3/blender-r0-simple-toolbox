@@ -2,6 +2,7 @@ import bpy
 
 from .const import ADDON_NAME, VERSION_STR
 from . import utils as u
+from .repo import draw_repo_layout
 
 
 class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
@@ -162,10 +163,14 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
             row.operator("r0tools.ext_zenuv_set_td")
         """
 
+        # ====== Online Repository ======
+        draw_repo_layout(layout, context)
+
         # ====== Heavy Experimentals ======
         if addon_prefs.experimental_features:
             row = layout.row()
             row.label(text="EXPERIMENTAL", icon="EXPERIMENTAL")
+            
             lods_box = layout.box()
             row = lods_box.row()
             row.label(text="LODs")

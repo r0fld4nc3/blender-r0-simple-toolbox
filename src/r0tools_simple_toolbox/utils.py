@@ -283,7 +283,8 @@ def iter_children(p_obj, recursive=True):
         if obj.parent == p_obj:
             yield obj
             if recursive:
-                yield from iter_children(obj, recursive=True)         
+                yield from iter_children(obj, recursive=True)     
+
 
 def show_notification(message, title="Script Finished"):
     """Display a popup notification and status info message"""
