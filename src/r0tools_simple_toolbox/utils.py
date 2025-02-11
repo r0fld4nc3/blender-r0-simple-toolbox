@@ -490,21 +490,26 @@ def handler_continuous_property_list_update(scene, context):
     schedule_timer_run(continuous_property_list_update, scene, context)
 
 
-def continuous_property_list_update(scene, context):
+def continuous_property_list_update(scene, context, force_run=False):
     # This method is required to assess the last object selection, otherwise
     # this is triggered on every click and the list is updated, and the checkboxes are reset
     
     addon_props = get_addon_props()
 
-    if not addon_props.show_custom_property_list_prop:
+    if not addon_props.show_custom_property_list_prop and not force_run:
         # Rerun if panel is now visible, alleviates some computation
         if IS_DEBUG():
             print(f"[DEBUG] Custom Properties Panel is not visible, exiting from running continuous property list update.")
         return None
 
-    if bpy.context.selected_objects:
+    if bpy.context.selected_objects or force_run:
         current_selection = {obj.name for obj in iter_scene_objects(selected=True)}
-        # prev_selection = set(addon_props.last_object_selection.split(',')) if addon_props.last_object_selection else set()
+        prev_selection = set(addon_props.last_object_selection.split(',')) if addon_props.last_object_selection else set()
+
+        if current_selection == prev_selection and not force_run:
+            if IS_DEBUG():
+                print("[DEBUG] Object selection unchanged; skipping property list update.")
+            return None
 
         if IS_DEBUG():
             print("------------- Continuous Property List Update -------------")
@@ -571,7 +576,7 @@ def continuous_property_list_update(scene, context):
 
     for area in bpy.context.screen.areas:
         if area.type in {'PROPERTIES', 'OUTLINER', 'VIEW_3D'}:
-            area.tag_redraw() # Force UI Update to reflect changes :)
+            area.tag_redraw()  # Force UI Update to reflect changes :)
     
     return None
 
@@ -759,6 +764,9 @@ def update_data_scene_objects(scene, force_run=False):
     bpy_scene_objects_len = len(bpy.context.scene.objects)
     bpy_data_objects_len = len(bpy.data.objects)
 
+    # Reset updated to False
+    addon_props.objects_updated = False
+
     if IS_DEBUG():
         print("------------- Update Data Scene Objects -------------")
         print(f"[DEBUG] Scene {bpy_scene_objects_len} == {len(scene_objects)}")
@@ -770,14 +778,17 @@ def update_data_scene_objects(scene, force_run=False):
 
         unused_count = 0
 
-        # Scene Objects
+        # Clear Scene Objects Reference
         try:
             addon_props.scene_objects.clear()
+            if IS_DEBUG():
+                print(f"Clear addon_props.scene_objects")
         except Exception as e:
             print(f"[ERROR] Error clearing scene_objects: {e}")
             if IS_DEBUG():
                 context_error_debug(error=e)
 
+        # Collect Scene Objects
         for obj in bpy.context.scene.objects:
             try:
                 item = addon_props.scene_objects.add()
@@ -787,7 +798,7 @@ def update_data_scene_objects(scene, force_run=False):
                 if IS_DEBUG():
                     context_error_debug(error=e)
         
-        # Data objects
+        # Clear Data Objects
         try:
             addon_props.data_objects.clear()
         except Exception as e:
@@ -795,6 +806,7 @@ def update_data_scene_objects(scene, force_run=False):
             if IS_DEBUG():
                 context_error_debug(error=e)
             
+        # Collect Data Objects
         errors = []
         unused_objects = []
         for obj in bpy.data.objects:
@@ -816,20 +828,17 @@ def update_data_scene_objects(scene, force_run=False):
             print(f"[DEBUG] {addon_props.scene_objects}")
             if errors:
                 context_error_debug(error='\n'.join(errors))
-
+        
         if unused_count > 0:
+            addon_props.objects_updated = True
             if IS_DEBUG():
                 print(f"Unused blocks to be cleared: {unused_count}")
             for unused in unused_objects:
                 if IS_DEBUG():
                     print(f"[DEBUG] (DATA) {unused.name} not in Scene.")
         
-        try:
-            addon_props.objects_updated = True
-        except Exception as e:
-                print(f"[ERROR] Error setting objects_updated = True: {e}")
-                if IS_DEBUG():
-                    context_error_debug(error=e)
+        if IS_DEBUG():
+                print(f"[DEBUG] Objects Updated = {addon_props.objects_updated}")
     else:
         try:
             addon_props.objects_updated = False

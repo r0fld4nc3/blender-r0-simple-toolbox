@@ -542,6 +542,9 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
                         total_objects += 1
         
         total_deletions = len(object_data_property_deletions) + len(mesh_data_property_deletions)
+
+        # Trigger property list update
+        u.continuous_property_list_update(bpy.context.scene, context, force_run=True)
         
         # u.show_notification(f"Deleted {total_deletions} propertie(s) across {total_objects} object(s)")
         self.report({'INFO'}, f"Deleted {total_deletions} propertie(s) across {total_objects} object(s)")
