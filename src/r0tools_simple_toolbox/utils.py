@@ -140,7 +140,7 @@ def set_object_mode(mode: str):
     Set the current mode to one of the following:
     
     - OBJECT
-    - EDIT
+    - EDIT (EDIT_MESH)
     - SCULPT
     - VERTEX_PAINT
     - TEXTURE_PAINT
@@ -149,6 +149,10 @@ def set_object_mode(mode: str):
 
     if IS_DEBUG():
         print(f"Setting mode: {mode}")
+
+    # Edit Mode weirdness fix
+    if mode.upper() == "EDIT_MESH":
+        mode = OBJECT_MODES.EDIT
     bpy.ops.object.mode_set(mode=mode)
 
 
@@ -201,15 +205,12 @@ def deselect_object(obj: bpy.types.Object) -> bpy.types.Object | None:
     return obj
 
 
-
 def set_active_object(obj: bpy.types.Object):
     bpy.context.view_layer.objects.active = obj
 
 
-
 def get_active_object() -> bpy.types.Object | None:
     return bpy.context.view_layer.objects.active
-
 
 
 def is_object_visible_in_viewport(obj):
