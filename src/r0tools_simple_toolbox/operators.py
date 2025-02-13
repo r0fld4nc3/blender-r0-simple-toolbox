@@ -1187,8 +1187,15 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
         return any(u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH])) and context.mode == u.OBJECT_MODES.EDIT_MESH
 
     def process_object(self, obj, context):
+        # Ensure Object Mode
+        if context.mode != u.OBJECT_MODES.OBJECT:
+            u.set_mode_object()
+
+        # Deselect all, and only select relevant object to operate on
+        u.deselect_all()
+
         # Make active
-        u.set_active_object(obj)
+        u.select_object(obj, add=False, set_active=True)
 
         if context.mode != u.OBJECT_MODES.EDIT_MESH:
             u.set_mode_edit()
@@ -1196,6 +1203,7 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
         # Create a bmesh
         me = obj.data
         bm = bmesh.from_edit_mesh(me)
+        bm.edges.ensure_lookup_table()
         bm.select_mode = {'EDGE'}
 
         # Currently selected edges
@@ -1257,6 +1265,8 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
             for edge in initial_selection:
                 edge.select = True
 
+        u.set_mode_object()
+
     def execute(self, context):
         if u.IS_DEBUG():
             print("\n------------- Dissolve Nth Edges -------------")
@@ -1272,15 +1282,17 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
         for obj in selected_objects:
             self.process_object(obj, context)
 
-        # Return to the original active object and mode
-        if original_mode != u.OBJECT_MODES.EDIT_MESH:
-            bpy.ops.object.mode_set(mode=original_mode)
-            u.set_object_mode(original_mode)
+        # Ensure object mode for selection restoraion
+        if original_mode != u.OBJECT_MODES.OBJECT:
+            u.set_mode_object()
         
         # Restore selection
         for obj in selected_objects:
             obj.select_set(True)
         context.view_layer.objects.active = original_active_obj
+
+        # Return to the original active object and mode
+        u.set_object_mode(original_mode)
 
         return {'FINISHED'}
     
