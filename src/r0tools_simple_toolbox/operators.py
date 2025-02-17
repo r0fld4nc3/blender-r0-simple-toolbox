@@ -1187,6 +1187,9 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
         return any(u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH])) and context.mode == u.OBJECT_MODES.EDIT_MESH
 
     def process_object(self, obj, context):
+        if u.IS_DEBUG():
+            print(f"[DEBUG] Processing {obj.name}")
+
         # Ensure Object Mode
         if context.mode != u.OBJECT_MODES.OBJECT:
             u.set_mode_object()
@@ -1206,7 +1209,8 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
         bm.edges.ensure_lookup_table()
         bm.select_mode = {'EDGE'}
 
-        # Currently selected edges
+        # Currently selected edges from all meshes
+        # Ideally this should only be 1 edge per disconnected mesh
         initial_selection = [edge for edge in bm.edges if edge.select]
 
         # Edges to delete from all meshes
@@ -1220,23 +1224,31 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
             for e in bm.edges:
                 e.select = False
 
-            # Select the original edge
+            # Select the one edge being iterated
             edge.select = True
+            bm.select_history.clear()    # Optionally clear previous elements
+            bm.select_history.add(edge)  # Make active edge
 
             # Select the ring and nth
             bpy.ops.mesh.loop_multi_select(ring=True)
+            
+            total_selected = len([edge for edge in bm.edges if edge.select])
+            if u.IS_DEBUG():
+                print(f"Total Before Nth: {total_selected}")
+            
             bpy.ops.mesh.select_nth()
 
             selected_edges = [edge.index for edge in bm.edges if edge.select]
-            if edge.index in selected_edges:
-                # Deselect all bm edges
+
+            remaining_edges = total_selected - len(selected_edges)
+            if u.IS_DEBUG():
+                print(f"Estimated remaining edges: {remaining_edges}")
+
+            if remaining_edges < 3:
+                # We've hit below the threshold, don't process this object
                 for e in bm.edges:
                     e.select = False
-                
-                # Select the original edge
-                edge.select = True
-                bpy.ops.mesh.loop_multi_select(ring=True)
-                bpy.ops.mesh.select_nth(offset=1)
+                continue
             
             if self.expand_edges:
                 bpy.ops.mesh.loop_multi_select(ring=False)
@@ -1253,6 +1265,7 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
 
         for edge in edges_delete:
             edge.select = True
+        bm.select_history.validate()  # Ensure that only selected elements are in select_history
         
         bpy.ops.mesh.dissolve_mode(use_verts=True)
 

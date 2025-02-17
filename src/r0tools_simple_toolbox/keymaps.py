@@ -41,6 +41,12 @@ def collect_keymaps_by_context_space() -> dict:
     return context_space_dict
 
 
+# Store the result of collecting keymaps by context space.
+# Keep as constant, therefore removing the necessity to always call the method
+# to collect existing keymaps. Needs only to import the const reference.
+KEYMAPS_CONTEXT_SPACE_CONFIGS = collect_keymaps_by_context_space()
+
+
 def get_hotkey_entry_item(km, kmi_name, kmi_value, properties):
     # Thank you HardOps <3
     for i, km_item in enumerate(km.keymap_items):
@@ -67,7 +73,7 @@ def draw_keymap_settings(layout, prefs):
     wm = bpy.context.window_manager
     kc = wm.keyconfigs.user
 
-    index_by_context_space_keymaps = collect_keymaps_by_context_space()
+    index_by_context_space_keymaps = KEYMAPS_CONTEXT_SPACE_CONFIGS
 
     keymaps_box = layout.box()
     keymaps_box.label(text="Keymaps:")
