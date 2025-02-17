@@ -1,10 +1,11 @@
 import bpy
 
-from .const import ADDON_NAME, VERSION_STR
 from . import utils as u
+from .const import ADDON_NAME, VERSION_STR
 from .repo import draw_repo_layout
 
 
+# fmt: off
 class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
     bl_idname = 'OBJECT_PT_quick_toolbox'
     bl_label = f'{ADDON_NAME} ({VERSION_STR})'
@@ -180,15 +181,15 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
             row.prop(addon_props, "screen_size_pct_prop", text="Screen Size (%):")
 
 
+# fmt: on
 # -------------------------------------------------------------------
 #   Register & Unregister
 # -------------------------------------------------------------------
 
-classes = [
-    r0Tools_PT_SimpleToolbox
-]
+classes = [r0Tools_PT_SimpleToolbox]
 
 depsgraph_handlers = []
+
 
 def register():
     for cls in classes:
@@ -198,6 +199,7 @@ def register():
         if handler not in bpy.app.handlers.depsgraph_update_post:
             print(f"[DEBUG] Registering Handler {handler}")
             bpy.app.handlers.depsgraph_update_post.append(handler)
+
 
 def unregister():
     for handler in depsgraph_handlers:

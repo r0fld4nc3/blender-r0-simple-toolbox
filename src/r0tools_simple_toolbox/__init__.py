@@ -1,13 +1,13 @@
 bl_info = {
     "name": "(DEV) r0Tools - Simple Toolbox",
     "author": "Artur Rosário",
-    "version": (0, 0, 19),
+    "version": (0, 0, 20),
     "blender": (4, 2, 0),
     "location": "3D View > Tool",
     "description": "Miscellaneous Utilities",
     "warning": "",
     "doc_url": "",
-    "category": "Object"
+    "category": "Object",
 }
 
 import importlib
@@ -22,12 +22,14 @@ modules = (
     ".const",
     ".utils",
     ".repo.operators",
-    ".repo.ui"
+    ".repo.ui",
 )
+
 
 def get_module_names() -> List[str]:
     """Get full module names including package"""
     return [f"{__package__}{module}" for module in modules]
+
 
 def cleanup_modules():
     """Remove modules from sys.modules to ensure clean reload"""
@@ -36,6 +38,7 @@ def cleanup_modules():
         if module_name in sys.modules:
             del sys.modules[module_name]
             print(f"Cleaned up module: {module_name}")
+
 
 def import_modules() -> List[object]:
     """Import all modules and return them in a list"""
@@ -49,6 +52,7 @@ def import_modules() -> List[object]:
             print(f"Error importing {module}: {str(e)}")
     return module_objects
 
+
 def reload_modules(module_objects: List[object]):
     """Reload all modules"""
     for module in module_objects:
@@ -58,37 +62,38 @@ def reload_modules(module_objects: List[object]):
         except Exception as e:
             print(f"Error reloading {module.__name__}: {str(e)}")
 
+
 class AddonRegisterHelper:
     _instance = None
     modules: Tuple[object] = ()
-    
+
     def __init__(self):
         cleanup_modules()
         self.modules = tuple(import_modules())
         reload_modules(self.modules)
-    
+
     @classmethod
     def get_instance(cls):
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance
-    
+
     def register(self):
         """Register all modules"""
         print("\n-------------------------------------------------------------")
         print(f"Begin Addon Registration - r0fld4nc3 Simple Toolbox")
         print("-------------------------------------------------------------")
-        
+
         for module in self.modules:
-            if hasattr(module, 'register'):
+            if hasattr(module, "register"):
                 try:
                     module.register()
                     print(f"Registered module: {module.__name__}")
                 except Exception as e:
                     print(f"[ERROR] Error registering {module.__name__}: {str(e)}")
-        
+
         print("-------------------------------------------------------------\n")
-    
+
     def unregister(self):
         """Unregister all modules in reverse order"""
         print("\n-------------------------------------------------------------")
@@ -96,21 +101,25 @@ class AddonRegisterHelper:
         print("-------------------------------------------------------------")
 
         for module in reversed(self.modules):
-            if hasattr(module, 'unregister'):
+            if hasattr(module, "unregister"):
                 try:
                     module.unregister()
                     print(f"Unregistered module: {module.__name__}")
                 except Exception as e:
                     print(f"[ERROR] Error unregistering {module.__name__}: {str(e)}")
 
+
 # Create global instance
 addon_helper = AddonRegisterHelper.get_instance()
+
 
 def register():
     addon_helper.register()
 
+
 def unregister():
     addon_helper.unregister()
+
 
 if __name__ == "__main__":
     register()

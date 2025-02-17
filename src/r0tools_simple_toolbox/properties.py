@@ -1,16 +1,17 @@
 import bpy
-from bpy.props import (StringProperty, # type: ignore
-                       BoolProperty,
-                       IntProperty,
-                       FloatProperty,
-                       FloatVectorProperty,
-                       EnumProperty,
-                       CollectionProperty,
-                       PointerProperty,
-                       )
+from bpy.props import StringProperty  # type: ignore
+from bpy.props import (
+    BoolProperty,
+    CollectionProperty,
+    EnumProperty,
+    FloatProperty,
+    FloatVectorProperty,
+    IntProperty,
+    PointerProperty,
+)
 
-from .const import INTERNAL_NAME
 from . import utils as u
+from .const import INTERNAL_NAME
 from .keymaps import draw_keymap_settings
 
 # -------------------------------------------------------------------
@@ -18,10 +19,14 @@ from .keymaps import draw_keymap_settings
 # -------------------------------------------------------------------
 # Properties which are not stored in preferences
 
+
 # ----- Custom Object Properties & Items -----
 class R0PROP_UL_CustomPropertiesList(bpy.types.UIList):
     """UI List where each entry is a custom property belonging to at least 1 selected object"""
-    def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
+
+    def draw_item(
+        self, context, layout, data, item, icon, active_data, active_propname
+    ):
         row = layout.row(align=True)
         if item.type == u.CUSTOM_PROPERTIES_TYPES.OBJECT_DATA:
             row.label(text="", icon="OBJECT_DATA")
@@ -33,22 +38,25 @@ class R0PROP_UL_CustomPropertiesList(bpy.types.UIList):
 
 class R0PROP_PG_CustomPropertyItem(bpy.types.PropertyGroup):
     """Property that represents an entry in the Custom Property UI List"""
-    name: StringProperty() # type: ignore
-    selected: BoolProperty(default=False) # type: ignore
-    type: StringProperty(default=u.CUSTOM_PROPERTIES_TYPES.OBJECT_DATA) # type: ignore
+
+    name: StringProperty()  # type: ignore
+    selected: BoolProperty(default=False)  # type: ignore
+    type: StringProperty(default=u.CUSTOM_PROPERTIES_TYPES.OBJECT_DATA)  # type: ignore
 
 
 # ----- Object Sets & Object Items -----
 class R0PROP_ObjectSetObjectItem(bpy.types.PropertyGroup):
     """Property representing a reference to an Object within an Object Set"""
-    object: bpy.props.PointerProperty(type=bpy.types.Object) # type: ignore
+
+    object: bpy.props.PointerProperty(type=bpy.types.Object)  # type: ignore
 
 
 class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
     """Property that represents an Object Set that contains a reference to a collection of objects added to the set"""
-    name: bpy.props.StringProperty(name="Object Set Name", default="New Object Set") # type: ignore
-    objects: bpy.props.CollectionProperty(type=R0PROP_ObjectSetObjectItem) # type: ignore
-    count: bpy.props.IntProperty(name="Count", default=0) # type: ignore
+
+    name: bpy.props.StringProperty(name="Object Set Name", default="New Object Set")  # type: ignore
+    objects: bpy.props.CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
+    count: bpy.props.IntProperty(name="Count", default=0)  # type: ignore
 
     def add_object(self, obj):
         if not any(o.object == obj for o in self.objects):
@@ -72,7 +80,10 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
 
 class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
     """UI List where each entry is an Object Set that itself contains references to Objects added to the set"""
-    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+
+    def draw_item(
+        self, context, layout, data, item, icon, active_data, active_propname, index
+    ):
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             row = layout.row()
 
@@ -93,167 +104,161 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
 
     def invoke(self, context, event):
         # Handle double-click event
-        if event.type == 'LEFTMOUSE' and event.value == 'DOUBLE_CLICK':
+        if event.type == "LEFTMOUSE" and event.value == "DOUBLE_CLICK":
             # Trigger rename operator
-            bpy.ops.r0tools.rename_object_set('INVOKE_DEFAULT')
-            return {'HANDLED'}
-        return {'PASS_THROUGH'}
+            bpy.ops.r0tools.rename_object_set("INVOKE_DEFAULT")
+            return {"HANDLED"}
+        return {"PASS_THROUGH"}
 
 
 # -------------------------------------------------------------------
 #   ADDON PROPERTIES
 # -------------------------------------------------------------------
 class r0SimpleToolboxProps(bpy.types.PropertyGroup):
-    show_dev_tools: BoolProperty( # type: ignore
+    show_dev_tools: BoolProperty(  # type: ignore
         name="Dev Tools",
         description="Show or hide the development options section",
-        default=False
+        default=False,
     )
 
-    show_object_ops: BoolProperty( # type: ignore
+    show_object_ops: BoolProperty(  # type: ignore
         name="Object Ops",
         description="Show or hide the Object operators section",
-        default=True
+        default=True,
     )
 
-    show_mesh_ops: BoolProperty( # type: ignore
+    show_mesh_ops: BoolProperty(  # type: ignore
         name="Mesh Ops",
         description="Show or hide the Mesh operators section",
-        default=True
+        default=True,
     )
 
-    show_uv_ops: BoolProperty( # type: ignore
+    show_uv_ops: BoolProperty(  # type: ignore
         name="UV Ops",
         description="Show or hide the UV operators section",
-        default=False
+        default=False,
     )
 
-    uv_target_resolution_x: IntProperty( #type: ignore
-        name="Target UV Map Width",
-        default=4096,
-        min=2
+    uv_target_resolution_x: IntProperty(  # type: ignore
+        name="Target UV Map Width", default=4096, min=2
     )
 
-    uv_target_resolution_y: IntProperty( #type: ignore
-        name="Target UV Map Height",
-        default=4096,
-        min=2
+    uv_target_resolution_y: IntProperty(  # type: ignore
+        name="Target UV Map Height", default=4096, min=2
     )
 
-    show_uv_island_area_thresholds: BoolProperty( # type: ignore
-        name="UV Island Area Thresholds",
-        default=False
+    show_uv_island_area_thresholds: BoolProperty(  # type: ignore
+        name="UV Island Area Thresholds", default=False
     )
 
-    uvisland_sizecheck_arearelative: FloatProperty( # type: ignore
+    uvisland_sizecheck_arearelative: FloatProperty(  # type: ignore
         name="Relative Area Size",
         description="Area Factor occupied by the UV Island relative to 0 - 1 Space",
         default=0.00001,
         min=0.0,
-        max=1.0
+        max=1.0,
     )
 
-    use_uvisland_sizecheck_arearelative: BoolProperty( # type: ignore
+    use_uvisland_sizecheck_arearelative: BoolProperty(  # type: ignore
         name="Use Relative Area Size",
         description="Area Factor occupied by the UV Island relative to 0 - 1 Space",
-        default=False
+        default=False,
     )
 
-    uvisland_sizecheck_area_pixelcoverage: FloatProperty( # type: ignore
+    uvisland_sizecheck_area_pixelcoverage: FloatProperty(  # type: ignore
         name="Area Pixel Coverage",
         description="Area Squared (px²) of UV Island",
         default=80.0,
-        min=0.0
+        min=0.0,
     )
 
-    use_uvisland_sizecheck_area_pixelcoverage: BoolProperty( # type: ignore
+    use_uvisland_sizecheck_area_pixelcoverage: BoolProperty(  # type: ignore
         name="Use Area Pixel Coverage",
         description="Use Area Squared (px²) of UV Island",
-        default=True
+        default=True,
     )
 
-    uvisland_sizecheck_area_pixelpercentage: FloatProperty( # type: ignore
+    uvisland_sizecheck_area_pixelpercentage: FloatProperty(  # type: ignore
         name="Area Pixel Percentage",
         description="Percentage Area occupied by the UV Island",
         default=0.001,
         min=0.0,
-        max=100.0
+        max=100.0,
     )
 
-    use_uvisland_sizecheck_area_pixelpercentage: BoolProperty( # type: ignore
+    use_uvisland_sizecheck_area_pixelpercentage: BoolProperty(  # type: ignore
         name="Use Area Pixel Percentage",
         description="Percentage Area occupied by the UV Island",
-        default=True
+        default=True,
     )
 
-    show_clear_sharps_on_axis: BoolProperty( # type: ignore
+    show_clear_sharps_on_axis: BoolProperty(  # type: ignore
         name="Clear Sharp Edges on Axis",
         description="Show or hide the Clear Sharps on Axis operator",
-        default=False
+        default=False,
     )
 
-    show_ext_ops: BoolProperty( # type: ignore
+    show_ext_ops: BoolProperty(  # type: ignore
         name="External Ops",
         description="Show or hide the External operators section",
-        default=False
+        default=False,
     )
 
-    reload_modules_prop: StringProperty( # type: ignore
-        name="Module(s)",
-        description="Command-separated list of module names"
+    reload_modules_prop: StringProperty(  # type: ignore
+        name="Module(s)", description="Command-separated list of module names"
     )
 
-    screen_size_pct_prop: FloatProperty( # type: ignore
+    screen_size_pct_prop: FloatProperty(  # type: ignore
         name="Screen Size Percentage",
         default=0.0,
         min=0.0,
         max=100.0,
-        subtype="PERCENTAGE"
+        subtype="PERCENTAGE",
     )
 
-    polygon_threshold: FloatProperty( # type: ignore
+    polygon_threshold: FloatProperty(  # type: ignore
         name="Screen Size Threshold (%)",
         default=1,
         min=0.0,
         max=100.0,
-        description="Highlight meshes smaller than this screen size percentage"
+        description="Highlight meshes smaller than this screen size percentage",
     )
 
-    show_custom_property_list_prop: BoolProperty( # type: ignore
+    show_custom_property_list_prop: BoolProperty(  # type: ignore
         name="Delete Custom Properties",
         description="List Custom Properties",
-        default=False
+        default=False,
     )
 
-    custom_property_list: CollectionProperty(type=R0PROP_PG_CustomPropertyItem) # type: ignore
-    custom_property_list_index: IntProperty(default=0) # type: ignore
-    last_object_selection: StringProperty( # type: ignore
+    custom_property_list: CollectionProperty(type=R0PROP_PG_CustomPropertyItem)  # type: ignore
+    custom_property_list_index: IntProperty(default=0)  # type: ignore
+    last_object_selection: StringProperty(  # type: ignore
         name="Last Object Selection",
         description="Comma-separated names of last selected objects",
-        default=''
+        default="",
     )
 
-    show_object_sets: BoolProperty( # type: ignore
+    show_object_sets: BoolProperty(  # type: ignore
         name="Object Sets",
         description="Manage different object selections via an Object Set editor",
-        default=False
+        default=False,
     )
-    object_sets: CollectionProperty(type=R0PROP_ObjectSetEntryItem) # type: ignore
-    object_sets_index: IntProperty(default=0) # type: ignore
-    data_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem) # type: ignore
-    scene_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem) # type: ignore
-    objects_updated: BoolProperty(default=False) # type: ignore
+    object_sets: CollectionProperty(type=R0PROP_ObjectSetEntryItem)  # type: ignore
+    object_sets_index: IntProperty(default=0)  # type: ignore
+    data_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
+    scene_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
+    objects_updated: BoolProperty(default=False)  # type: ignore
 
-    show_find_modifier_search: BoolProperty( # type: ignore
+    show_find_modifier_search: BoolProperty(  # type: ignore
         name="Find Modifier(s)",
         description="Show Find Object with Modifiers Controls",
-        default=False
+        default=False,
     )
 
-    find_modifier_search_text: StringProperty( # type: ignore
+    find_modifier_search_text: StringProperty(  # type: ignore
         name="Modifier Type/Name",
-        description="Name or Type of Modifier to find.\nTo search for a mix of name and type and/or multiple criteria, use a comma-separated string, ex.: \"!!, weld, nodes\"\nNote: Case Insensitive",
-        default=""
+        description='Name or Type of Modifier to find.\nTo search for a mix of name and type and/or multiple criteria, use a comma-separated string, ex.: "!!, weld, nodes"\nNote: Case Insensitive',
+        default="",
     )
 
 
@@ -263,70 +268,60 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
 class AddonPreferences(bpy.types.AddonPreferences):
     bl_idname = INTERNAL_NAME
 
-    debug: BoolProperty( # type: ignore
-        name="Debug",
-        default=False
-    )
+    debug: BoolProperty(name="Debug", default=False)  # type: ignore
 
-    experimental_features: BoolProperty( # type: ignore
+    experimental_features: BoolProperty(  # type: ignore
         name="Experimental Features",
         description="Enable experimental features",
-        default=False
+        default=False,
     )
 
-    clear_sharp_axis_float_prop: FloatProperty( # type: ignore
+    clear_sharp_axis_float_prop: FloatProperty(  # type: ignore
         name="Clear Sharp Axis Threshold",
         default=0.0,
         min=0.0,
         description="Threshold value for vertex/edge selection",
-        update=lambda self, context: u.save_preferences()
+        update=lambda self, context: u.save_preferences(),
     )
 
-    zenuv_td_prop: FloatProperty( # type: ignore
+    zenuv_td_prop: FloatProperty(  # type: ignore
         name="ZenUV Texel Density",
         default=10.0,
         min=0.0,
         description="Texel Density value to apply to meshes",
-        update=lambda self, context: u.save_preferences()
+        update=lambda self, context: u.save_preferences(),
     )
 
     zenuv_unit_options = zenuv_unit_options = [
-        ('PX_KM', "px/km", "Pixels per kilometer", 0),
-        ('PX_M', "px/m", "Pixels per meter", 1),
-        ('PX_CM', "px/cm", "Pixels per centimeter", 2),
-        ('PX_MM', "px/mm", "Pixels per millimeter", 3),
-        ('PX_UM', "px/um", "Pixels per micrometer", 4),
-        ('PX_MIL', "px/mil", "Pixels per mil", 5),
-        ('PX_FT', "px/ft", "Pixels per foot", 6),
-        ('PX_IN', "px/in", "Pixels per inch", 7),
-        ('PX_TH', "px/th", "Pixels per thou", 8)
+        ("PX_KM", "px/km", "Pixels per kilometer", 0),
+        ("PX_M", "px/m", "Pixels per meter", 1),
+        ("PX_CM", "px/cm", "Pixels per centimeter", 2),
+        ("PX_MM", "px/mm", "Pixels per millimeter", 3),
+        ("PX_UM", "px/um", "Pixels per micrometer", 4),
+        ("PX_MIL", "px/mil", "Pixels per mil", 5),
+        ("PX_FT", "px/ft", "Pixels per foot", 6),
+        ("PX_IN", "px/in", "Pixels per inch", 7),
+        ("PX_TH", "px/th", "Pixels per thou", 8),
     ]
 
-    zenuv_td_unit_prop: EnumProperty( # type: ignore
+    zenuv_td_unit_prop: EnumProperty(  # type: ignore
         name="zenuv_td_unit_prop",
         items=zenuv_unit_options,
         description="Texel Density value to apply to meshes",
-        default='PX_CM',
-        update=lambda self, context: u.save_preferences()
+        default="PX_CM",
+        update=lambda self, context: u.save_preferences(),
     )
 
-    object_sets_modal_width: IntProperty( # type: ignore
-        name="Object Sets Modal Width",
-        default=275,
-        min=0,
-        max=400
+    object_sets_modal_width: IntProperty(  # type: ignore
+        name="Object Sets Modal Width", default=275, min=0, max=400
     )
 
-    object_sets_list_rows: IntProperty( # type: ignore
-        name="Object Sets List Rows",
-        default=6,
-        min=1
+    object_sets_list_rows: IntProperty(  # type: ignore
+        name="Object Sets List Rows", default=6, min=1
     )
 
-    custom_properties_list_rows: IntProperty( # type: ignore
-        name="Custom Properties List Rows",
-        default=6,
-        min=1
+    custom_properties_list_rows: IntProperty(  # type: ignore
+        name="Custom Properties List Rows", default=6, min=1
     )
 
     def draw(self, context):
@@ -339,7 +334,9 @@ class AddonPreferences(bpy.types.AddonPreferences):
         row = layout.row()
         row.prop(self, "experimental_features", text="Experimental Features")
 
-        layout.prop(self, "clear_sharp_axis_float_prop", text="Clear Sharp Edges Threshold")
+        layout.prop(
+            self, "clear_sharp_axis_float_prop", text="Clear Sharp Edges Threshold"
+        )
 
         # Object Sets
         object_sets_settings_box = layout.box()
@@ -395,12 +392,11 @@ classes = [
 depsgraph_handlers = [
     u.handler_update_data_scene_objects,
     u.handler_continuous_property_list_update,
-    u.handler_cleanup_object_set_invalid_references
+    u.handler_cleanup_object_set_invalid_references,
 ]
 
-load_post_handlers = [
-    u.handler_cleanup_object_set_invalid_references
-]
+load_post_handlers = [u.handler_cleanup_object_set_invalid_references]
+
 
 def register():
     for cls in classes:

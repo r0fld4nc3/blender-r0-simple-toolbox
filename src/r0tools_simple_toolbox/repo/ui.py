@@ -6,11 +6,16 @@ def draw_repo_layout(layout, context):
     wm = context.window_manager
 
     main_box = layout.box()
-    main_box.prop(wm, "show_repo_panel_ui", icon="TRIA_DOWN" if wm.show_repo_panel_ui else "TRIA_RIGHT", emboss=False)
+    main_box.prop(
+        wm,
+        "show_repo_panel_ui",
+        icon="TRIA_DOWN" if wm.show_repo_panel_ui else "TRIA_RIGHT",
+        emboss=False,
+    )
     if wm.show_repo_panel_ui:
         header_row = main_box.row()
         header_row.label(text="SimpleToolbox GitHub", icon="URL")
-        
+
         repo_box = main_box.box()
         row = repo_box.row()
         split = row.split(factor=0.5)
@@ -30,11 +35,11 @@ def draw_repo_layout(layout, context):
 
 
 def register():
-    bpy.types.WindowManager.show_repo_panel_ui = BoolProperty( # type: ignore
+    bpy.types.WindowManager.show_repo_panel_ui = BoolProperty(  # type: ignore
         name="GitHub",
         description="Show or hide the GitHub repository UI drawer.",
         default=False,
-        options={'SKIP_SAVE'}
+        options={"SKIP_SAVE"},
     )
 
 
