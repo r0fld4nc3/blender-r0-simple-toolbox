@@ -71,14 +71,19 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
 
     # Object Sets Editor
     if object_sets_box:
-        row = object_sets_box.row()
+        parent = object_sets_box
     elif layout:
-        row = layout.row()
+        parent = layout
     else:
         print(f"[ERROR] No valid layout to use:\n{layout=}\n{object_sets_box=}")
         return False
 
-    split = row.split(factor=0.9)
+    # Object Sets Row Number Slider (Same as in addon preferences)
+    row = parent.row()
+    row.prop(addon_prefs, "object_sets_list_rows", text="Rows:")
+
+    row = parent.row()
+    split = row.split(factor=0.92)  # Affects right side button width
 
     # Left Section
     col = split.column()
@@ -103,14 +108,17 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
 
     # Bottom
     if object_sets_box:
-        row = object_sets_box.row(align=True)
+        parent = object_sets_box
     else:
-        row = layout.row(align=True)
+        parent = layout
+    row = parent.row(align=True)
+
+    # Add/Remove Object Set Buttons
     split = row.split(factor=0.65)
     row_col = split.row(align=True)
     row_col.operator("r0tools.add_to_object_set")
     row_col.operator("r0tools.remove_from_object_set")
-    #
+    # Select Object Set Button
     row_col = split.row()
     row_col.operator("r0tools.select_object_set")
 
