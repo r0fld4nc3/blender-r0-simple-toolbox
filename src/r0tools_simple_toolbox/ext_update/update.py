@@ -100,10 +100,8 @@ def poll_future():
     """
 
     global _update_callback
-    print(f"{_update_callback=}")
     if future is not None and future.done():
         result = future.result()
-        print(f"{result=}")
         if _update_callback is not None:
             _update_callback(result)
         return None
