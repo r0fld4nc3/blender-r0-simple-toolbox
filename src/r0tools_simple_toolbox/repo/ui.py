@@ -17,11 +17,15 @@ def draw_repo_layout(layout, context):
         header_row.label(text="SimpleToolbox GitHub", icon="URL")
 
         repo_box = main_box.box()
+
         row = repo_box.row()
         split = row.split(factor=0.5)
         # Homepage and Releases
         split.operator("r0tools.open_repo_homepage", icon="URL")
         split.operator("r0tools.open_repo_releases_page", icon="URL")
+        # Check for Updates
+        row = repo_box.row()
+        row.operator("r0tools.check_for_update", icon="FILE_REFRESH")
 
         issues_box = main_box.box()
         row = issues_box.row()

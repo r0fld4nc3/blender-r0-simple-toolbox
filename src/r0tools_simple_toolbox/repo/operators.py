@@ -65,6 +65,20 @@ class SimpleToolbox_OT_OpenReleasesPage(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_CheckUpdate(bpy.types.Operator):
+    bl_label = "Check Update"
+    bl_idname = "r0tools.check_for_update"
+    bl_description = "Check for an update to the addon"
+    bl_options = {"REGISTER"}
+
+    def execute(self, context):
+        from ..ui import handler_trigger_update_check
+
+        handler_trigger_update_check()
+
+        return {"FINISHED"}
+
+
 # -------------------------------------------------------------------
 #   Register & Unregister
 # -------------------------------------------------------------------
@@ -75,6 +89,7 @@ classes = [
     SimpleToolbox_OT_OpenCreateIssueBug,
     SimpleToolbox_OT_OpenCreateIssueFeature,
     SimpleToolbox_OT_OpenReleasesPage,
+    SimpleToolbox_OT_CheckUpdate,
 ]
 
 
