@@ -1,7 +1,10 @@
+import time
+
 import bpy
 
 from . import utils as u
-from .const import ADDON_NAME, VERSION_STR
+from .const import ADDON_NAME, INTERNAL_NAME, REPO_NAME, UPDATE_CHECK_CD, VERSION_STR
+from .ext_update import async_check_update
 from .repo import draw_repo_layout
 
 
@@ -14,6 +17,24 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
     bl_category = 'Tool'
     # bl_options = {"DEFAULT_CLOSED"}
 
+    
+    @classmethod
+    def _update_callback(cls, result):
+        addon_prefs = u.get_addon_prefs()
+
+        # Re-register to update the panel header
+        if result is True:
+            new_label = f'(UPDATE) {ADDON_NAME} ({VERSION_STR})'
+            
+            bpy.utils.unregister_class(cls)
+            cls.bl_label = new_label
+            bpy.utils.register_class(cls)
+            
+            addon_prefs.update_available = True
+        else:
+            addon_prefs.update_available = False
+
+    
     def draw(self, context):
         addon_props = u.get_addon_props()
         addon_prefs = u.get_addon_prefs()
@@ -183,9 +204,42 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
             row.operator("r0tools.experimental_op_1")
             row = lods_box.row()
             row.prop(addon_props, "screen_size_pct_prop", text="Screen Size (%):")
-
-
 # fmt: on
+
+
+# Currently it seems very unstable as the math sometimes is wildly off
+# # and sometimes the property is stored and other times it doesn't do anything anymore.
+# There is also the case that after one or two "proper" runs, it will no longer update the values
+# and will always allow an update to go through.
+@bpy.app.handlers.persistent
+def handler_trigger_update_check(*args, **kwargs):
+    addon_prefs = u.get_addon_prefs()
+
+    if addon_prefs.experimental_features:
+        now = time.time()
+        last_checked = addon_prefs.update_last_check
+        can_run_at = last_checked + UPDATE_CHECK_CD
+
+        if now < can_run_at:
+            remaining_seconds = UPDATE_CHECK_CD - (now - last_checked)
+            print(
+                f"[INFO] Update check skipped. Can retry in {abs(remaining_seconds)} seconds."
+            )
+        else:
+            addon_prefs.update_last_check = now
+            print("Doing it")
+            last_checked = addon_prefs.update_last_check
+            can_run_at = last_checked + UPDATE_CHECK_CD
+
+            async_check_update(
+                INTERNAL_NAME,
+                REPO_NAME,
+                callback_func=r0Tools_PT_SimpleToolbox._update_callback,
+            )
+    else:
+        print("Experimental features turned off. No update check.")
+
+
 # -------------------------------------------------------------------
 #   Register & Unregister
 # -------------------------------------------------------------------
@@ -193,6 +247,8 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
 classes = [r0Tools_PT_SimpleToolbox]
 
 depsgraph_handlers = []
+
+load_post_handlers = [handler_trigger_update_check]
 
 
 def register():
@@ -203,6 +259,10 @@ def register():
         if handler not in bpy.app.handlers.depsgraph_update_post:
             print(f"[DEBUG] Registering Handler {handler}")
             bpy.app.handlers.depsgraph_update_post.append(handler)
+
+    for handler in load_post_handlers:
+        print(f"[DEBUG] Registering Load Post Handler {handler}")
+        bpy.app.handlers.load_post.append(handler)
 
 
 def unregister():
