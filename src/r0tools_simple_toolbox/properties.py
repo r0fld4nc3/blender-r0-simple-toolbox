@@ -268,12 +268,20 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
 class AddonPreferences(bpy.types.AddonPreferences):
     bl_idname = INTERNAL_NAME
 
-    debug: BoolProperty(name="Debug", default=False)  # type: ignore
+    debug: BoolProperty(
+        name="Debug", description="Set Debug State", default=False  # type: ignore
+    )
 
     update_available: BoolProperty(  # type: ignore
         name="Update Available?",
         description="Flag to set whether a remote update is available or not",
         default=False,
+    )
+
+    update_last_check: FloatProperty(  # type: ignore
+        name="Last Update Check Timestamp",
+        description="Unix timestamp (in seconds) of the last update check",
+        default=0.0,
     )
 
     experimental_features: BoolProperty(  # type: ignore
