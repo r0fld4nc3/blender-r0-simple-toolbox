@@ -270,6 +270,12 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
     debug: BoolProperty(name="Debug", default=False)  # type: ignore
 
+    update_available: BoolProperty(  # type: ignore
+        name="Update Available?",
+        description="Flag to set whether a remote update is available or not",
+        default=False,
+    )
+
     experimental_features: BoolProperty(  # type: ignore
         name="Experimental Features",
         description="Enable experimental features",
