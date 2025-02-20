@@ -15,17 +15,12 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
     bl_region_type = 'UI'
     bl_category = 'Tool'
     # bl_options = {"DEFAULT_CLOSED"}
+    has_update = False
 
     
     @classmethod
     def _update_callback(cls, result):
-        # Re-register to update the panel header
-        if result is True:
-            new_label = f'(UPDATE) {ADDON_NAME} ({VERSION_STR})'
-            
-            bpy.utils.unregister_class(cls)
-            cls.bl_label = new_label
-            bpy.utils.register_class(cls)
+        cls.has_update = result
 
     
     def draw(self, context):
@@ -37,6 +32,11 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         row = layout.row()
         row.prop(addon_prefs, "dev_tools", text="Dev Tools", icon="TOOL_SETTINGS")
         row.prop(addon_prefs, "experimental_features", text="Experimental", icon="EXPERIMENTAL")
+
+        if self.has_update:
+            update_box = layout.box()
+            update_row = update_box.row()
+            update_row.label(text="UPDATE AVAILABLE", icon="FILE_REFRESH")
 
         # ====== Dev Tools ======
         if addon_prefs.dev_tools:
