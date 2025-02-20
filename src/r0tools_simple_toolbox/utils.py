@@ -966,6 +966,7 @@ def trigger_update_check(*args, **kwargs) -> bool:
     from .ui import r0Tools_PT_SimpleToolbox
 
     addon_prefs = get_addon_prefs()
+
     update_check_file: Path = get_addon_fs_path() / INTERNAL_NAME / "check_update"
     print(f"[INFO] Update File: {str(update_check_file)}")
 
@@ -993,9 +994,9 @@ def trigger_update_check(*args, **kwargs) -> bool:
         can_run_after = update_data.get(KEY_CAN_RUN_WHEN)
         elapsed_since_check = now - last_checked
 
-        print(f"[INFO] Now: {now}")
-        print(f"[INFO] Last checked: {last_checked}")
-        print(f"[INFO] Elapsed: {elapsed_since_check}")
+        print(f"[INFO] Now: {now:.0f}.")
+        print(f"[INFO] Last checked: {last_checked:.0f}.")
+        print(f"[INFO] Elapsed: {elapsed_since_check:.0f} seconds.")
 
         if now > can_run_after:
             has_update = check_extension_update_json(INTERNAL_NAME, REPO_NAME)
@@ -1017,8 +1018,14 @@ def trigger_update_check(*args, **kwargs) -> bool:
         else:
             remaining_seconds = can_run_after - now
             print(
-                f"[INFO] Update check skipped. Can retry in {abs(remaining_seconds)} seconds."
+                f"[INFO] Reading from cached file. Can retry in {abs(remaining_seconds):.0f} seconds."
             )
+            with open(update_check_file, "r") as f:
+                update_data = json.load(f)
+
+            has_update = update_data.get(KEY_UPDATE_AVAILABLE)
+
+            r0Tools_PT_SimpleToolbox._update_callback(has_update)
         print("-------------------------------------------------------")
     else:
         print("Experimental features turned off. No update check.")
