@@ -228,9 +228,10 @@ def handler_trigger_update_check(*args, **kwargs):
             )
         else:
             addon_prefs.update_last_check = now
-            print("Doing it")
             last_checked = addon_prefs.update_last_check
             can_run_at = last_checked + UPDATE_CHECK_CD
+
+            print(f"[INFO] Running update check.")
 
             async_check_update(
                 INTERNAL_NAME,
