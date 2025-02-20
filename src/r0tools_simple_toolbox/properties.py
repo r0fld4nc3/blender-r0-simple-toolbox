@@ -139,6 +139,12 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
         default=False,
     )
 
+    show_experimental_features: BoolProperty(  # type: ignore
+        name="Experimental",
+        description="Show or hide the Experimental operators section",
+        default=False,
+    )
+
     uv_target_resolution_x: IntProperty(  # type: ignore
         name="Target UV Map Width", default=4096, min=2
     )
@@ -287,6 +293,12 @@ class AddonPreferences(bpy.types.AddonPreferences):
     experimental_features: BoolProperty(  # type: ignore
         name="Experimental Features",
         description="Enable experimental features",
+        default=False,
+    )
+
+    dev_tools: BoolProperty(  # type: ignore
+        name="Dev Tools",
+        description="Enable Dev Tool features",
         default=False,
     )
 

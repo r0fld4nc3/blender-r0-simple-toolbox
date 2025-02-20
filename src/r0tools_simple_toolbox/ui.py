@@ -42,10 +42,11 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         layout = self.layout
 
         row = layout.row()
-        row.prop(addon_prefs, "experimental_features", text="Experimental Features", icon="EXPERIMENTAL")
+        row.prop(addon_prefs, "dev_tools", text="Dev Tools", icon="TOOL_SETTINGS")
+        row.prop(addon_prefs, "experimental_features", text="Experimental", icon="EXPERIMENTAL")
 
         # ====== Dev Tools ======
-        if addon_prefs.experimental_features:
+        if addon_prefs.dev_tools:
             dev_tools_box = layout.box()
             dev_tools_box.prop(addon_props, "show_dev_tools", icon="TRIA_DOWN" if addon_props.show_dev_tools else "TRIA_RIGHT", emboss=False)
             if addon_props.show_dev_tools:
@@ -194,16 +195,16 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
 
         # ====== Heavy Experimentals ======
         if addon_prefs.experimental_features:
-            row = layout.row()
-            row.label(text="EXPERIMENTAL", icon="EXPERIMENTAL")
-            
-            lods_box = layout.box()
-            row = lods_box.row()
-            row.label(text="LODs")
-            row = lods_box.row()
-            row.operator("r0tools.experimental_op_1")
-            row = lods_box.row()
-            row.prop(addon_props, "screen_size_pct_prop", text="Screen Size (%):")
+            experimental_ops_box = layout.box()
+            experimental_ops_box.prop(addon_props, "show_experimental_features", icon="TRIA_DOWN" if addon_props.show_experimental_features else "TRIA_RIGHT", emboss=False)
+            if addon_props.show_experimental_features:
+                lods_box = experimental_ops_box.box()
+                row = lods_box.row()
+                row.label(text="LODs")
+                row = lods_box.row()
+                row.operator("r0tools.experimental_op_1")
+                row = lods_box.row()
+                row.prop(addon_props, "screen_size_pct_prop", text="Screen Size (%):")
 # fmt: on
 
 
