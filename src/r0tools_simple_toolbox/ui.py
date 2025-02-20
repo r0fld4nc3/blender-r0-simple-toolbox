@@ -144,10 +144,10 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
             uv_map_resolution_box = uv_ops_box.box()
             row = uv_map_resolution_box.row()
             row.label(text="UV Map")
-            
-            col = uv_map_resolution_box.column(align=True)
-            col.prop(addon_props, "uv_target_resolution_x", text="Width:")
-            col.prop(addon_props, "uv_target_resolution_y", text="Height:")
+
+            dropdown_col = uv_map_resolution_box.column(align=True)
+            dropdown_col.prop(addon_props, "uv_size_x", text="Width")
+            dropdown_col.prop(addon_props, "uv_size_y", text="Height")
 
             # UV Island Thresholds
             uv_island_checks_thresholds_box = uv_ops_box.box()
@@ -168,20 +168,6 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 
                 row = uv_island_checks_thresholds_box.row()
                 row.operator("r0tools.uv_check_island_thresholds")
-        
-        # ====== Externals ======
-        """
-        externals_box = layout.box()
-        externals_box.prop(addon_props, "show_ext_ops", icon="TRIA_DOWN" if addon_props.show_ext_ops else "TRIA_RIGHT", emboss=False)
-        if addon_props.show_ext_ops:
-            row = externals_box.row(align=True)
-            row.label(text="ZenUV Texel Density")
-            row = externals_box.row(align=True)
-            row.prop(addon_prefs, "zenuv_td_prop", text="TD:")
-            row.prop(addon_prefs, "zenuv_td_unit_prop", text="Unit")
-            row = externals_box.row(align=True)
-            row.operator("r0tools.ext_zenuv_set_td")
-        """
 
         # ====== Online Repository ======
         draw_repo_layout(layout, context)

@@ -133,6 +133,15 @@ def select_small_uv_islands(
     :rtype: Union[list, list, list]
     """
 
+    if IS_DEBUG():
+        print(f"[DEBUG] Selecting Small UV Islands")
+        print(f"[DEBUG] Obj: {obj}")
+        print(f"[DEBUG] UV X: {uv_x}")
+        print(f"[DEBUG] UV Y: {uv_y}")
+        print(f"[DEBUG] Threshold: {threshold}")
+        print(f"[DEBUG] Threshold Pixel Coverage: {threshold_px_coverage}")
+        print(f"[DEBUG] Threshold Percent: {threshold_pct}")
+
     uv_island_sync = bpy.context.scene.tool_settings.use_uv_select_sync
 
     # Disable sync

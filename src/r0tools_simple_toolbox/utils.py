@@ -362,9 +362,6 @@ def save_preferences():
             save_preferences.is_saving = True
             bpy.context.preferences.use_preferences_save = True
 
-            get_scene().zen_uv.td_props.prp_current_td = get_td_value()
-            get_scene().zen_uv.td_props.td_unit = get_td_unit()
-
             bpy.ops.wm.save_userpref()
             save_preferences.is_saving = False
     except Exception as e:
@@ -392,33 +389,20 @@ def schedule_timer_run(func, *args, interval=0.1, **kwargs):
     bpy.app.timers.register(wrapper, first_interval=interval)
 
 
-def get_td_value():
-    """Get the texel density value from addon preferences"""
-    try:
-        preferences = get_addon_prefs()
-        value = preferences.zenuv_td_prop
-        return value
-    except Exception as e:
-        print(e)
-        return 10.0  # default value if preferences not found
+def get_uvmap_size_x():
+    """Get selected UV Map Size in X"""
+    addon_props = get_addon_props()
+    uv_size_x = int(addon_props.uv_size_x)
+
+    return uv_size_x
 
 
-def get_td_unit():
-    """Get the texel density unit from addon preferences"""
-    try:
-        preferences = get_addon_prefs()
-        td_unit = preferences.zenuv_td_unit_prop
-        td_split = td_unit.split("_")
+def get_uvmap_size_y():
+    """Get selected UV Map Size in Y"""
+    addon_props = get_addon_props()
+    uv_size_y = int(addon_props.uv_size_y)
 
-        if td_split and len(td_split) > 1:
-            td_unit = td_split[1].lower()
-        else:
-            td_unit = "cm"  # Default
-
-        return td_unit
-    except Exception as e:
-        print(e)
-        return "cm"  # default value if preferences not found
+    return uv_size_y
 
 
 def op_clear_sharp_along_axis(axis: str):

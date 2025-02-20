@@ -145,14 +145,6 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
         default=False,
     )
 
-    uv_target_resolution_x: IntProperty(  # type: ignore
-        name="Target UV Map Width", default=4096, min=2
-    )
-
-    uv_target_resolution_y: IntProperty(  # type: ignore
-        name="Target UV Map Height", default=4096, min=2
-    )
-
     show_uv_island_area_thresholds: BoolProperty(  # type: ignore
         name="UV Island Area Thresholds", default=False
     )
@@ -267,6 +259,33 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
         default="",
     )
 
+    uv_sizes_options = [
+        ("64", "64", "Pixels per kilometer", 0),
+        ("128", "128", "Pixels per kilometer", 1),
+        ("256", "256", "Pixels per meter", 2),
+        ("512", "512", "Pixels per centimeter", 3),
+        ("1024", "1024", "Pixels per millimeter", 4),
+        ("2048", "2048", "Pixels per micrometer", 5),
+        ("4096", "4096", "Pixels per mil", 6),
+        ("8192", "8192", "Pixels per mil", 7),
+    ]
+
+    uv_size_x: EnumProperty(  # type: ignore
+        name="uv_size_x",
+        items=uv_sizes_options,
+        description="Size of UV Map X",
+        default="4096",
+        update=lambda self, context: u.save_preferences(),
+    )
+
+    uv_size_y: EnumProperty(  # type: ignore
+        name="uv_size_x",
+        items=uv_sizes_options,
+        description="Size of UV Map Y",
+        default="4096",
+        update=lambda self, context: u.save_preferences(),
+    )
+
 
 # -------------------------------------------------------------------
 #   ADDON PREFS
@@ -301,34 +320,6 @@ class AddonPreferences(bpy.types.AddonPreferences):
         default=0.0,
         min=0.0,
         description="Threshold value for vertex/edge selection",
-        update=lambda self, context: u.save_preferences(),
-    )
-
-    zenuv_td_prop: FloatProperty(  # type: ignore
-        name="ZenUV Texel Density",
-        default=10.0,
-        min=0.0,
-        description="Texel Density value to apply to meshes",
-        update=lambda self, context: u.save_preferences(),
-    )
-
-    zenuv_unit_options = zenuv_unit_options = [
-        ("PX_KM", "px/km", "Pixels per kilometer", 0),
-        ("PX_M", "px/m", "Pixels per meter", 1),
-        ("PX_CM", "px/cm", "Pixels per centimeter", 2),
-        ("PX_MM", "px/mm", "Pixels per millimeter", 3),
-        ("PX_UM", "px/um", "Pixels per micrometer", 4),
-        ("PX_MIL", "px/mil", "Pixels per mil", 5),
-        ("PX_FT", "px/ft", "Pixels per foot", 6),
-        ("PX_IN", "px/in", "Pixels per inch", 7),
-        ("PX_TH", "px/th", "Pixels per thou", 8),
-    ]
-
-    zenuv_td_unit_prop: EnumProperty(  # type: ignore
-        name="zenuv_td_unit_prop",
-        items=zenuv_unit_options,
-        description="Texel Density value to apply to meshes",
-        default="PX_CM",
         update=lambda self, context: u.save_preferences(),
     )
 
@@ -376,19 +367,6 @@ class AddonPreferences(bpy.types.AddonPreferences):
         row.label(text="Custom Properties Settings")
         row = custom_properties_settings_box.row()
         row.prop(self, "custom_properties_list_rows")
-
-        # Box for texel density settings
-        """
-        td_box = layout.box()
-        td_box.label(text="Texel Density Settings")
-
-        # Add the dropdown and value field in separate rows
-        row = td_box.row()
-        row.prop(self, "zenuv_td_prop")
-
-        row = td_box.row()
-        row.prop(self, "zenuv_td_unit_prop")
-        """
 
         # Keymaps
         draw_keymap_settings(layout, self)

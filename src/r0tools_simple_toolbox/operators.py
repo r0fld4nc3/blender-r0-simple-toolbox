@@ -1704,8 +1704,8 @@ class SimpleToolbox_OT_UVCheckIslandThresholds(bpy.types.Operator):
 
         addon_props = u.get_addon_props()
 
-        uv_x = addon_props.uv_target_resolution_x
-        uv_y = addon_props.uv_target_resolution_y
+        uv_x = u.get_uvmap_size_x()
+        uv_y = u.get_uvmap_size_y()
 
         size_relative_threshold = (
             addon_props.uvisland_sizecheck_arearelative
@@ -1794,91 +1794,6 @@ class SimpleToolbox_OT_ClearAxisSharpEdgesZ(bpy.types.Operator):
 
 
 # -------------------------------------------------------------------
-#   EXTERNAL OPS
-# -------------------------------------------------------------------
-class SimpleToolbox_OT_ApplyZenUVTD(bpy.types.Operator):
-    bl_label = "Set TD"
-    bl_idname = "r0tools.ext_zenuv_set_td"
-    bl_description = "Apply Texel Density from ZenUV to objects"
-    bl_options = {"REGISTER", "UNDO"}
-
-    accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
-
-    @classmethod
-    def poll(cls, context):
-        return (
-            context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
-        )
-
-    def execute(self, context):
-        print("\n------------- (EXT) Apply Zen UV Texel Density -------------")
-        context_mode = context.mode
-
-        if context_mode not in self.accepted_contexts:
-            self.report({"WARNING"}, "Only performed in Object or Edit modes")
-            return {"CANCELLED"}
-
-        selected_objs = list(u.iter_scene_objects(selected=True))
-        active_obj = bpy.context.view_layer.objects.active
-
-        if context_mode == u.OBJECT_MODES.OBJECT:
-            u.deselect_all()
-
-        TD = u.get_td_value()
-        TD_UNIT = u.get_td_unit()
-
-        print(
-            f"Setting TD {TD} for {len(selected_objs)} selected objects with {TD} px/{TD_UNIT}"
-        )
-
-        u.get_scene().zen_uv.td_props.prp_current_td = TD
-        u.get_scene().zen_uv.td_props.td_unit = TD_UNIT
-        u.get_scene().zen_uv.td_props.td_set_mode = "ISLAND"
-
-        if context_mode == u.OBJECT_MODES.OBJECT:
-
-            for o in selected_objs:
-                try:
-                    print(f"Setting {TD} px/{TD_UNIT} for {o.name}")
-
-                    o.select_set(True)
-
-                    bpy.context.view_layer.objects.active = o
-
-                    bpy.context.view_layer.update()
-
-                    # Add a small delay to ensure the selection is registered
-                    bpy.app.timers.register(lambda: None, first_interval=0.2)
-
-                    bpy.ops.uv.zenuv_set_texel_density(global_mode=True)
-
-                except Exception as e:
-                    print(f"[ERROR] Error: {e}")
-                    u.context_error_debug(error=e)
-                    self.report({"ERROR"}, f"Error: {e}")
-                    u.deselect_object(o)
-
-            for obj in selected_objs:
-                obj.select_set(True)
-
-            if active_obj:
-                bpy.context.view_layer.objects.active = active_obj
-        elif context_mode == u.OBJECT_MODES.EDIT_MESH:
-            # Add a small delay to ensure the selection is registered
-            bpy.app.timers.register(lambda: None, first_interval=0.2)
-
-            bpy.ops.uv.zenuv_set_texel_density(global_mode=True)
-
-        # u.show_notification(f"Texel density set to {TD} px/{TD_UNIT} for {len(selected_objs)} objects.")
-        self.report(
-            {"INFO"},
-            f"Texel density set to {TD} px/{TD_UNIT} for {len(selected_objs)} objects.",
-        )
-
-        return {"FINISHED"}
-
-
-# -------------------------------------------------------------------
 #   Register & Unregister
 # -------------------------------------------------------------------
 
@@ -1916,8 +1831,6 @@ classes = [
     SimpleToolbox_OT_ClearAxisSharpEdgesZ,
 
     SimpleToolbox_OT_UVCheckIslandThresholds,
-
-    # SimpleToolbox_OT_ApplyZenUVTD,
 ]
 # fmt: on
 
