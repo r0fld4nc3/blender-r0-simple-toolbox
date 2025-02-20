@@ -35,8 +35,10 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
 
         if self.has_update:
             update_box = layout.box()
-            update_row = update_box.row()
+            update_row = update_box.row(align=True)
+            update_row.label(text="", icon="FUND")
             update_row.label(text="UPDATE AVAILABLE", icon="FILE_REFRESH")
+            update_row.label(text="", icon="FUND")
 
         # ====== Dev Tools ======
         if addon_prefs.dev_tools:
