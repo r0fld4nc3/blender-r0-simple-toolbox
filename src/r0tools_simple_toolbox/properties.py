@@ -278,16 +278,10 @@ class AddonPreferences(bpy.types.AddonPreferences):
         name="Debug", description="Set Debug State", default=False  # type: ignore
     )
 
-    update_available: BoolProperty(  # type: ignore
-        name="Update Available?",
-        description="Flag to set whether a remote update is available or not",
-        default=False,
-    )
-
-    update_last_check: FloatProperty(  # type: ignore
-        name="Last Update Check Timestamp",
-        description="Unix timestamp (in seconds) of the last update check",
-        default=0.0,
+    check_update_startup: BoolProperty(  # type: ignore
+        name="Check Update on Startup",
+        description="Flag to set whether to check for extension updates on startup or not",
+        default=True,
     )
 
     experimental_features: BoolProperty(  # type: ignore
@@ -359,6 +353,9 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
         row = layout.row()
         row.prop(self, "experimental_features", text="Experimental Features")
+
+        row = layout.row()
+        row.prop(self, "check_update_startup", text="Check update on startup")
 
         layout.prop(
             self, "clear_sharp_axis_float_prop", text="Clear Sharp Edges Threshold"

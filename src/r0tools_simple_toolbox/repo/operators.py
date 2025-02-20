@@ -72,9 +72,9 @@ class SimpleToolbox_OT_CheckUpdate(bpy.types.Operator):
     bl_options = {"REGISTER"}
 
     def execute(self, context):
-        from ..ui import handler_trigger_update_check
+        from ..utils import trigger_update_check
 
-        handler_trigger_update_check()
+        trigger_update_check()
 
         return {"FINISHED"}
 

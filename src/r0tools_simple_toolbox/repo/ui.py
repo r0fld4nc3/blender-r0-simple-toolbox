@@ -3,7 +3,11 @@ from bpy.props import BoolProperty  # type: ignore
 
 
 def draw_repo_layout(layout, context):
+    from ..utils import get_addon_prefs
+
     wm = context.window_manager
+
+    addon_prefs = get_addon_prefs()
 
     main_box = layout.box()
     main_box.prop(
@@ -26,6 +30,8 @@ def draw_repo_layout(layout, context):
         # Check for Updates
         row = repo_box.row()
         row.operator("r0tools.check_for_update", icon="FILE_REFRESH")
+        row = repo_box.row()
+        row.prop(addon_prefs, "check_update_startup", text="Check Update on Startup")
 
         issues_box = main_box.box()
         row = issues_box.row()
