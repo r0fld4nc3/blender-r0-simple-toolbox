@@ -324,7 +324,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
     )
 
     object_sets_modal_width: IntProperty(  # type: ignore
-        name="Object Sets Modal Width", default=275, min=0, max=400
+        name="Object Sets Modal Width", default=300, min=0, max=400
     )
 
     object_sets_list_rows: IntProperty(  # type: ignore
