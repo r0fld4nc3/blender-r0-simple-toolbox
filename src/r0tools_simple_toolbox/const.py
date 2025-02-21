@@ -31,5 +31,5 @@ ADDON_NAME      = bl_info.get("name")
 INTERNAL_NAME   = _set_addon_internal_name("r0tools_simple_toolbox")
 DEBUG           = False
 REPO_NAME       = "r0Tools Extensions"
-UPDATE_CHECK_CD = 60  # seconds
+UPDATE_CHECK_CD = 2  # seconds
 # fmt: on
