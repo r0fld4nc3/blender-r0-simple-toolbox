@@ -1,7 +1,6 @@
-import time
-
 import bpy
 
+from . import ext_update as upd
 from . import utils as u
 from .const import ADDON_NAME, INTERNAL_NAME, REPO_NAME, UPDATE_CHECK_CD, VERSION_STR
 from .repo import draw_repo_layout
@@ -207,7 +206,7 @@ def register():
             print(f"[DEBUG] Registering Handler {handler}")
             bpy.app.handlers.depsgraph_update_post.append(handler)
 
-    u.trigger_update_check()
+    upd.trigger_update_check()
 
 
 def unregister():

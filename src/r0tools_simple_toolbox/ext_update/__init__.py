@@ -1,1 +1,1 @@
-from .update import async_check_update, check_extension_update_json
+from .update import trigger_update_check
