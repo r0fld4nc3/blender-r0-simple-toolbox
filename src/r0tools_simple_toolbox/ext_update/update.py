@@ -196,7 +196,6 @@ def get_local_version(addon_id: str) -> tuple:
         # isn't readily available, at least I haven't figured out a way, yet.
         mod = mod.const
 
-    print(mod)
     installed_version = mod.bl_info.get("version", (0, 0, 0))
     print(
         f"{UPDATER_LOG_PREFIX} [INFO] Installed version for '{addon_id}': {installed_version}"
