@@ -2,7 +2,7 @@ import bpy
 
 from . import ext_update as upd
 from . import utils as u
-from .const import ADDON_NAME, INTERNAL_NAME, REPO_NAME, UPDATE_CHECK_CD, VERSION_STR
+from .const import ADDON_NAME, VERSION_STR
 from .repo import draw_repo_layout
 
 

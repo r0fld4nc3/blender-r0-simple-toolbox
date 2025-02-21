@@ -1,4 +1,3 @@
-import concurrent.futures
 import json
 import re
 import sys
@@ -9,11 +8,6 @@ import bpy
 import requests
 
 UPDATER_LOG_PREFIX = "[UPDATER]"
-
-# Create a global executor
-executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-future = None
-_update_callback = None  # Global callback variable
 
 
 def tuple_version_string(version_str: str):
@@ -30,23 +24,25 @@ def tuple_version_string(version_str: str):
 
 
 def trigger_update_check(*args, **kwargs) -> bool:
-    from ..const import INTERNAL_NAME, REPO_NAME, UPDATE_CHECK_CD
+    from ..const import BASE_NAME, INTERNAL_NAME, REPO_NAME, UPDATE_CHECK_CD
     from ..ui import r0Tools_PT_SimpleToolbox
     from ..utils import get_addon_fs_path, get_addon_prefs
 
     addon_prefs = get_addon_prefs()
 
-    update_check_file: Path = get_addon_fs_path() / INTERNAL_NAME / "check_update"
+    update_check_file: Path = get_addon_fs_path() / BASE_NAME / "check_update"
     print(f"[INFO] Update File: {str(update_check_file)}")
 
     KEY_LAST_CHECKED = "last_checked"
     KEY_CAN_RUN_WHEN = "can_run_when"
     KEY_UPDATE_AVAILABLE = "update_available"
+    KEY_PULLED_VERSION = "pulled_version"
 
     update_data = {
         KEY_LAST_CHECKED: 0,
         KEY_CAN_RUN_WHEN: 0,
         KEY_UPDATE_AVAILABLE: False,
+        KEY_PULLED_VERSION: "0.0.0",
     }
 
     if addon_prefs.experimental_features and addon_prefs.check_update_startup:
@@ -68,14 +64,19 @@ def trigger_update_check(*args, **kwargs) -> bool:
         print(f"[INFO] Elapsed: {elapsed_since_check:.0f} seconds.")
 
         if now > can_run_after:
-            has_update = check_extension_update_json(INTERNAL_NAME, REPO_NAME)
+            remote_json = get_remote_json(BASE_NAME, REPO_NAME)
+            has_update = check_extension_update_json(INTERNAL_NAME, remote_json)
 
+            # TODO: Expand on the concept of returning None.
+            # If None, means that something wasn't able to determine if
+            # there was an update or not.
             if has_update is None:
                 has_update = False
 
             update_data[KEY_LAST_CHECKED] = now
             update_data[KEY_CAN_RUN_WHEN] = now + UPDATE_CHECK_CD
             update_data[KEY_UPDATE_AVAILABLE] = has_update
+            update_data[KEY_PULLED_VERSION] = remote_json.get("version", "0.0.0")
 
             with open(update_check_file, "w") as f:
                 f.write(json.dumps(update_data))
@@ -92,7 +93,18 @@ def trigger_update_check(*args, **kwargs) -> bool:
             with open(update_check_file, "r") as f:
                 update_data = json.load(f)
 
-            has_update = update_data.get(KEY_UPDATE_AVAILABLE)
+            remote_version = tuple_version_string(update_data.get(KEY_PULLED_VERSION))
+            local_version = get_local_version(INTERNAL_NAME)
+
+            print(f"Local Version: {local_version}")
+            print(f"Remote Version: {remote_version}")
+
+            has_update = local_version < remote_version
+
+            update_data[KEY_UPDATE_AVAILABLE] = has_update
+
+            with open(update_check_file, "w") as f:
+                f.write(json.dumps(update_data))
 
             r0Tools_PT_SimpleToolbox._update_callback(has_update)
         print("-------------------------------------------------------")
@@ -102,26 +114,7 @@ def trigger_update_check(*args, **kwargs) -> bool:
     return False
 
 
-def check_extension_update_json(addon_id: str, ext_repo_name: str) -> bool | None:
-    addon = bpy.context.preferences.addons.get(addon_id)
-
-    if not addon:
-        print(f"{UPDATER_LOG_PREFIX} [INFO] Addon '{addon_id}' not found.")
-        return None
-    else:
-        print(f"{UPDATER_LOG_PREFIX} [INFO] Addon '{addon_id}'.")
-
-    mod = sys.modules[addon_id]
-    installed_version = mod.bl_info.get("version", (0, 0, 0))
-    if isinstance(installed_version, (list, tuple)):
-        installed_version = tuple(installed_version)
-    else:
-        installed_version = tuple_version_string(installed_version)
-
-    print(
-        f"{UPDATER_LOG_PREFIX} [INFO] Installed version for '{addon_id}': {installed_version}"
-    )
-
+def get_remote_json(addon_id: str, ext_repo_name: str) -> dict:
     # Get repository and remote_url
     repo = bpy.context.preferences.extensions.repos.get(ext_repo_name)
     metadata_url = repo.remote_url
@@ -136,21 +129,29 @@ def check_extension_update_json(addon_id: str, ext_repo_name: str) -> bool | Non
         print(
             f"{UPDATER_LOG_PREFIX} [ERROR] Failed to fetch or parse JSON metadata.\n{e}"
         )
-        return None
+        return {}
 
-    remote_extension = None
+    pulled = {}
     for ext in metadata.get("data", []):
         if ext.get("id") == addon_id:
-            remote_extension = ext
+            pulled = ext
             break
 
-    if remote_extension is None:
+    if pulled is None or not pulled:
         print(
             f"{UPDATER_LOG_PREFIX} [INFO] No remote data foind for addon with id: '{addon_id}'."
         )
-        return None
+        return {}
 
-    remote_version_str = remote_extension.get("version")
+    print(f"{json.dumps(pulled, indent=2)}")
+
+    return pulled
+
+
+def check_extension_update_json(addon_id: str, ext_json: dict) -> bool | None:
+    installed_version = get_local_version(addon_id)
+
+    remote_version_str = ext_json.get("version")
     if not remote_version_str:
         print(f"{UPDATER_LOG_PREFIX} [INFO] Remote version information not found")
         return None
@@ -169,30 +170,40 @@ def check_extension_update_json(addon_id: str, ext_repo_name: str) -> bool | Non
     return False
 
 
-def poll_future():
+def get_local_version(addon_id: str) -> tuple:
     """
-    Polls the global future. When done, process the result.
-    Returns None to stop the timer if done, or a float (seconds) to poll again)
+    Get local addon/extension version by match of provided `addon_id`
+    representing the module's internal name.
+
+    Returns `tuple`.
     """
+    addon = bpy.context.preferences.addons.get(addon_id)
 
-    global _update_callback
-    if future is not None and future.done():
-        result = future.result()
-        if _update_callback is not None:
-            _update_callback(result)
-        return None
-    return 0.5
+    if not addon:
+        print(
+            f"{UPDATER_LOG_PREFIX} [INFO] Addon '{addon_id}' not found. Unable to retrieve version"
+        )
+        return (0, 0, 0)
+
+    module_name = addon.module
+    mod = sys.modules.get(module_name)
+
+    if "bl_ext." in module_name.lower():
+        # Reference the file that imports bl_info and makes itr available
+        # const.py works because it imports bl_info at the top so we can access it
+        #
+        # For some odd reason, when dealing with extensions, the info from __init__
+        # isn't readily available, at least I haven't figured out a way, yet.
+        mod = mod.const
+
+    print(mod)
+    installed_version = mod.bl_info.get("version", (0, 0, 0))
+    print(
+        f"{UPDATER_LOG_PREFIX} [INFO] Installed version for '{addon_id}': {installed_version}"
+    )
+
+    return installed_version
 
 
-def async_check_update(addon_id: str, ext_repo_name: str, callback_func=None):
-    """
-    Submits the update check function to the thread pool and starts a timer to poll for its result.
-    """
-
-    global future, _update_callback
-
-    if callback_func:
-        _update_callback = callback_func
-
-    future = executor.submit(check_extension_update_json, addon_id, ext_repo_name)
-    bpy.app.timers.register(poll_future, first_interval=0.5)
+def version_tuple_to_str(vt: tuple):
+    return ".".join(str(c) for c in vt)

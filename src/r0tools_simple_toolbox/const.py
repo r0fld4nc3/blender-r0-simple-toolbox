@@ -28,8 +28,9 @@ def _set_addon_internal_name(from_name: str):
 VERSION         = bl_info.get("version", (0, 0, 0))
 VERSION_STR     = _version_str(VERSION)
 ADDON_NAME      = bl_info.get("name")
-INTERNAL_NAME   = _set_addon_internal_name("r0tools_simple_toolbox")
+BASE_NAME       = "r0tools_simple_toolbox"
+INTERNAL_NAME   = _set_addon_internal_name(BASE_NAME)
 DEBUG           = False
 REPO_NAME       = "r0Tools Extensions"
-UPDATE_CHECK_CD = 2  # seconds
+UPDATE_CHECK_CD = 60  # seconds
 # fmt: on
