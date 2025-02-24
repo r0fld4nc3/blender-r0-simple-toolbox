@@ -79,6 +79,15 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
         print(f"[ERROR] No valid layout to use:\n{layout=}\n{object_sets_box=}")
         return False
 
+    # Object Sets Use Colour
+    if addon_prefs.experimental_features:
+        row = parent.row()
+        row.prop(addon_prefs, "object_sets_use_colour")
+
+        if addon_prefs.object_sets_use_colour:
+            row = parent.row()
+            row.prop(addon_prefs, "object_sets_default_colour", text="Default Colour")
+
     # Object Sets Row Number Slider (Same as in addon preferences)
     row = parent.row()
     row.prop(addon_prefs, "object_sets_list_rows", text="Rows:")
@@ -501,11 +510,6 @@ def op_clear_sharp_along_axis(axis: str):
         set_object_mode(mode)
 
 
-@bpy.app.handlers.persistent
-def handler_continuous_property_list_update(scene, context):
-    schedule_timer_run(continuous_property_list_update, scene, context)
-
-
 def continuous_property_list_update(scene, context, force_run=False):
     # This method is required to assess the last object selection, otherwise
     # this is triggered on every click and the list is updated, and the checkboxes are reset
@@ -744,6 +748,11 @@ def get_depsgraph_is_updated_transform() -> bool:
 
 
 @bpy.app.handlers.persistent
+def handler_continuous_property_list_update(scene, context):
+    schedule_timer_run(continuous_property_list_update, scene, context)
+
+
+@bpy.app.handlers.persistent
 def handler_update_object_set_count(context):
     if IS_DEBUG():
         print("------------- Update Object Sets -------------")
@@ -764,6 +773,11 @@ def handler_update_object_set_count(context):
 @bpy.app.handlers.persistent
 def handler_cleanup_object_set_invalid_references(scene):
     schedule_timer_run(cleanup_object_set_invalid_references, scene)
+
+
+@bpy.app.handlers.persistent
+def handler_scene_object_wire_colour_set(scene):
+    schedule_timer_run(set_space_data_shading_wireframe_object_colour, interval=1)
 
 
 def cleanup_object_set_invalid_references(scene):
@@ -911,6 +925,39 @@ def update_data_scene_objects(scene, force_run=False):
                 context_error_debug(error=e)
 
 
+def set_show_all_operators(show: bool):
+    """While Blender logs operators in the Info editor, this only reports operators with the `REGISTER` option enabled so as not to flood the Info view with calls to `bpy.ops.view3d.smoothview` and `bpy.ops.view3d.zoom`.
+
+    Yet for testing it can be useful to see every operator called in a terminal, do this by enabling the debug option either by passing the `--debug-wm` argument when starting Blender or by setting `bpy.app.debug_wm` to True while Blender is running.
+    """
+
+    bpy.app.debug_wm = show
+
+    print(f"Set Show All Operators to {show}")
+
+
+def set_space_data_shading_wireframe_object_colour(dummy=None):
+    # First try to use the current context
+    space = getattr(bpy.context, "space_data", None)
+    if space and hasattr(space, "shading"):
+        space.shading.wireframe_color_type = "OBJECT"
+    else:
+        # If not available, iterate over all windows and areas to find a 3D View
+        # Welcome to nesting hell!
+        for window in bpy.context.window_manager.windows:
+            for area in window.screen.areas:
+                if area.type == "VIEW_3D":
+                    for sp in area.spaces:
+                        if sp.type == "VIEW_3D" and hasattr(sp, "shading"):
+                            sp.shading.wireframe_color_type = "OBJECT"
+                            return
+
+
+def IS_DEBUG() -> bool:
+    addon_prefs = get_addon_prefs()
+    return DEBUG or addon_prefs.debug
+
+
 def context_error_debug(error: str = None, extra_prints: list = []):
     if not IS_DEBUG():
         return
@@ -957,22 +1004,6 @@ def context_error_debug(error: str = None, extra_prints: list = []):
             print(f"[DEBUG] Extra: {extra_print}")
 
     print(f"+" * 32)
-
-
-def set_show_all_operators(show: bool):
-    """While Blender logs operators in the Info editor, this only reports operators with the `REGISTER` option enabled so as not to flood the Info view with calls to `bpy.ops.view3d.smoothview` and `bpy.ops.view3d.zoom`.
-
-    Yet for testing it can be useful to see every operator called in a terminal, do this by enabling the debug option either by passing the `--debug-wm` argument when starting Blender or by setting `bpy.app.debug_wm` to True while Blender is running.
-    """
-
-    bpy.app.debug_wm = show
-
-    print(f"Set Show All Operators to {show}")
-
-
-def IS_DEBUG() -> bool:
-    addon_prefs = get_addon_prefs()
-    return DEBUG or addon_prefs.debug
 
 
 def unregister():

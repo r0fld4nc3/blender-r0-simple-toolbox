@@ -54,9 +54,30 @@ class R0PROP_ObjectSetObjectItem(bpy.types.PropertyGroup):
 class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
     """Property that represents an Object Set that contains a reference to a collection of objects added to the set"""
 
+    def update_object_set_colour(self, context):
+        addon_prefs = u.get_addon_prefs()
+
+        if addon_prefs.object_sets_use_colour and addon_prefs.experimental_features:
+            u.set_space_data_shading_wireframe_object_colour()
+
+            for item in self.objects:
+                obj = item.object
+                print(obj)
+                if obj is not None:
+                    obj.color = self.set_colour
+
     name: bpy.props.StringProperty(name="Object Set Name", default="New Object Set")  # type: ignore
     objects: bpy.props.CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
     count: bpy.props.IntProperty(name="Count", default=0)  # type: ignore
+    set_colour: bpy.props.FloatVectorProperty(  # type: ignore
+        name="Set Object Set Colour",
+        subtype="COLOR",
+        size=4,  # RGBA
+        min=0.0,
+        max=1.0,
+        default=(0.0, 0.0, 0.0, 1.0),
+        update=update_object_set_colour,
+    )
 
     def add_object(self, obj):
         if not any(o.object == obj for o in self.objects):
@@ -68,14 +89,31 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
     def remove_object(self, obj):
         for i, o in enumerate(self.objects):
             if o.object == obj:
+                # Revert object colour back to default white
+                o.object.color = (1.0, 1.0, 1.0, 1.0)
                 self.objects.remove(i)
                 break
+
         self.update_count()
+
+    def set_object_set_colour(self, colour: tuple):
+        if len(colour) < 4:
+            fixed = list(colour)
+            while len(fixed) < 4:
+                fixed.append(1.0)
+            colour = tuple(fixed)
+        else:
+            fixed = list(colour)[:4]
+            colour = tuple(fixed)
+
+        self.set_colour = colour
 
     def update_count(self):
         self.count = len(self.objects)
         if u.IS_DEBUG():
             print(f"[DEBUG] Updated count for Set '{self.name}': {self.count}")
+
+        self.update_object_set_colour(self)
 
 
 class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
@@ -84,14 +122,41 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
     def draw_item(
         self, context, layout, data, item, icon, active_data, active_propname, index
     ):
+        addon_prefs = u.get_addon_prefs()
+
+        split_factor = 0.75
+        if addon_prefs.object_sets_use_colour and addon_prefs.experimental_features:
+            split_factor = 0.6
+
         if self.layout_type in {"DEFAULT", "COMPACT"}:
-            row = layout.row()
+            row = layout.row(align=True)
 
-            row.prop(item, "name", text="", emboss=False, icon="MESH_CUBE")
+            # Left: Name
+            split = row.split(factor=split_factor)
+            col_name = split.column()
+            col_name.prop(item, "name", text="", emboss=False, icon="MESH_CUBE")
 
-            # Display object count
-            count_text = f"({item.count})"
-            row.label(text=count_text, icon="OBJECT_DATAMODE")
+            # Configure accordingly for object sets colour
+            if addon_prefs.object_sets_use_colour and addon_prefs.experimental_features:
+                # Right: Nested column for count and colour
+                # Display object count
+                col_right = split.column(align=True)
+                col_right.alignment = "RIGHT"
+                # Use inner row so contents are compacted and not stretched
+                col_right_inner = col_right.row(align=True)
+                col_right_inner_split = col_right_inner.split(factor=0.6)
+                col_right_inner_split.label(
+                    text=f"({item.count})", icon="OBJECT_DATAMODE"
+                )
+                # Set Colour
+                col_right_inner_split.prop(item, "set_colour", text="")
+            else:
+                # Display object count
+                col_right = split.column(align=True)
+                col_right.label(text=f"({item.count})", icon="OBJECT_DATAMODE")
+
+            # Alternative freaky colour picker :D
+            # row.template_color_picker(item, "set_colour", value_slider=True)
 
             # Alternative display, needs some work
             # split = row.split(align=True)
@@ -323,6 +388,21 @@ class AddonPreferences(bpy.types.AddonPreferences):
         update=lambda self, context: u.save_preferences(),
     )
 
+    object_sets_use_colour: BoolProperty(  # type: ignore
+        name="Object Sets Use Colour",
+        description="Objects Sets are given a colour. This colour is set as the Object's Colour depending on which set it is in and the viewport wire display is set to use Object as the display type",
+        default=True,
+    )
+
+    object_sets_default_colour: FloatVectorProperty(  # type: ignore
+        name="Object Sets Default Colour",
+        subtype="COLOR",
+        size=4,  # RGBA
+        min=0.0,
+        max=1.0,
+        default=(0.0, 0.0, 0.0, 1.0),
+    )
+
     object_sets_modal_width: IntProperty(  # type: ignore
         name="Object Sets Modal Width", default=300, min=0, max=400
     )
@@ -360,6 +440,14 @@ class AddonPreferences(bpy.types.AddonPreferences):
         row.prop(self, "object_sets_modal_width")
         row = object_sets_settings_box.row()
         row.prop(self, "object_sets_list_rows")
+        # Object Sets Use Colour
+        if self.experimental_features:
+            row = object_sets_settings_box.row()
+            row.prop(self, "object_sets_use_colour")
+
+            if self.object_sets_use_colour:
+                row = object_sets_settings_box.row()
+                row.prop(self, "object_sets_default_colour", text="Default Colour")
 
         # Custom Properties
         custom_properties_settings_box = layout.box()
@@ -396,7 +484,10 @@ depsgraph_handlers = [
     u.handler_cleanup_object_set_invalid_references,
 ]
 
-load_post_handlers = [u.handler_cleanup_object_set_invalid_references]
+load_post_handlers = [
+    u.handler_cleanup_object_set_invalid_references,
+    u.handler_scene_object_wire_colour_set,
+]
 
 
 def register():

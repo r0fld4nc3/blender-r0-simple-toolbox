@@ -874,7 +874,16 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     _default_name = "New Set"
+    _default_colour = (0.0, 0.0, 0.0, 1.0)
     object_set_name: bpy.props.StringProperty(name="Set Name", default=_default_name)  # type: ignore
+    object_set_colour: bpy.props.FloatVectorProperty(  # type: ignore
+        name="Object Set Colour",
+        subtype="COLOR",
+        size=4,  # RGBA
+        min=0.0,
+        max=1.0,
+        default=_default_colour,
+    )
 
     @classmethod
     def poll(cls, context):
@@ -883,8 +892,23 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
     def invoke(self, context, event):
         # Reset Name
         self.object_set_name = self._default_name
+        # Reset Colour
+        self._default_colour = u.get_addon_prefs().object_sets_default_colour
+        self.object_set_colour = self._default_colour
         wm = context.window_manager
         return wm.invoke_props_dialog(self)
+
+    def draw(self, context):
+        addon_prefs = u.get_addon_prefs()
+
+        layout = self.layout
+        layout.label(text="Create a New Object Set", icon="ADD")
+
+        row = layout.row()
+        split = row.split(factor=0.9)
+        split.prop(self, "object_set_name")
+        if addon_prefs.object_sets_use_colour and addon_prefs.experimental_features:
+            split.prop(self, "object_set_colour", text="")
 
     def add_non_conflicting_name(self) -> str:
         addon_props = u.get_addon_props()
@@ -921,6 +945,7 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
         addon_props = u.get_addon_props()
         new_set = addon_props.object_sets.add()
         new_set.name = self.add_non_conflicting_name()
+        new_set.set_object_set_colour(self.object_set_colour)
         addon_props.object_sets_index = len(addon_props.object_sets) - 1
 
         # Immediately add selected objects to set, for convenience
