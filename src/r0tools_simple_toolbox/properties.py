@@ -90,11 +90,42 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
         for i, o in enumerate(self.objects):
             if o.object == obj:
                 # Revert object colour back to default white
-                o.object.color = (1.0, 1.0, 1.0, 1.0)
                 self.objects.remove(i)
+                # Check if object not in other sets
+                containing_sets = self.check_object_in_sets(obj)
+                if not containing_sets:
+                    obj.color = (1.0, 1.0, 1.0, 1.0)
+                else:
+                    # Update the object to another set's colour
+                    # Let's use the first set in the list
+                    obj.color = containing_sets[0].set_colour
                 break
 
         self.update_count()
+
+    def check_object_in_sets(self, obj) -> list:
+        """
+        Checks if an object is present in more Object Sets. If so
+        return a list of references to each Object Set containing the object
+
+        :return: `list` of `Object Sets`
+        """
+        addon_props = u.get_addon_props()
+        index = addon_props.object_sets_index
+
+        containing_sets = set()
+
+        for i, obj_set in enumerate(addon_props.object_sets):
+            if obj_set == addon_props.object_sets[index]:
+                # Skip own set
+                continue
+
+            for obj_item in obj_set.objects:
+                if obj_item.object == obj:
+                    containing_sets.add(obj_set)
+                    break
+
+        return list(containing_sets)
 
     def set_object_set_colour(self, colour: tuple):
         if len(colour) < 4:
