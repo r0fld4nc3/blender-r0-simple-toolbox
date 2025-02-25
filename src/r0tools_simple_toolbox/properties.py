@@ -168,44 +168,39 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
     ):
         addon_prefs = u.get_addon_prefs()
 
-        split_factor = 0.75
-        if addon_prefs.object_sets_use_colour and addon_prefs.experimental_features:
-            split_factor = 0.6
-
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             row = layout.row(align=True)
 
-            # Left: Name
-            split = row.split(factor=split_factor)
-            col_name = split.column()
-            col_name.prop(item, "name", text="", emboss=False, icon="MESH_CUBE")
-
             # Configure accordingly for object sets colour
             if addon_prefs.object_sets_use_colour and addon_prefs.experimental_features:
-                # Right: Nested column for count and colour
-                # Display object count
-                col_right = split.column(align=True)
-                col_right.alignment = "RIGHT"
-                # Use inner row so contents are compacted and not stretched
-                col_right_inner = col_right.row(align=True)
-                col_right_inner_split = col_right_inner.split(factor=0.6)
-                col_right_inner_split.label(
-                    text=f"({item.count})", icon="OBJECT_DATAMODE"
-                )
-                # Set Colour
-                col_right_inner_split.prop(item, "set_colour", text="")
-            else:
-                # Display object count
-                col_right = split.column(align=True)
-                col_right.label(text=f"({item.count})", icon="OBJECT_DATAMODE")
+                scale_x = 0.8  # Scales extending the right side to the right
+                scale_y = 0.8  # Scales extending the bottom down
+                row.separator(factor=0.8)  # Pushes things to the right
+                object_set_colour_row = row.row(align=True)
+                object_set_colour_row.alignment = "LEFT"
+                col = object_set_colour_row.column()
+                col.label(text="", icon="MESH_CUBE")
+                col = object_set_colour_row.column()
+                col.ui_units_x = scale_x
+                col.separator(factor=0.3)  # Pushes things down
+                col.scale_y = scale_y
+                col.prop(item, "set_colour", text="")
 
-            # Alternative freaky colour picker :D
-            # row.template_color_picker(item, "set_colour", value_slider=True)
-
-            # Alternative display, needs some work
-            # split = row.split(align=True)
-            # split.alignment = 'RIGHT'
-            # split.label(text=f"({item.count})", icon="OBJECT_DATAMODE")
+            # Info Row
+            info_row = row.row(align=True)
+            if (
+                not addon_prefs.object_sets_use_colour
+                or not addon_prefs.experimental_features
+            ):
+                icon_row = info_row.row(align=True)
+                icon_row.label(text="", icon="MESH_CUBE")
+            # Object Count
+            col_item_count = info_row.row(align=True)
+            col_item_count.alignment = "CENTER"
+            col_item_count.label(text=f"({item.count})", icon="NONE")
+            # Name
+            col_name = info_row.row(align=True)
+            col_name.prop(item, "name", text="", emboss=False, icon="NONE")
 
         elif self.layout_type in {"GRID"}:
             layout.alignment = "CENTER"
