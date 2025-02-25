@@ -56,15 +56,41 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
 
     def update_object_set_colour(self, context):
         addon_prefs = u.get_addon_prefs()
+        allow_override = addon_prefs.object_sets_colour_allow_override
 
-        if addon_prefs.object_sets_use_colour and addon_prefs.experimental_features:
-            u.set_space_data_shading_wireframe_object_colour()
+        for item in self.objects:
+            obj = item.object
+            if obj is None:
+                continue
 
-            for item in self.objects:
-                obj = item.object
-                print(obj)
-                if obj is not None:
+            obj.color = self.set_colour
+            # Check in contained in set
+            containing_sets = self.check_object_in_sets(obj)
+            if not containing_sets:  # Object not in an Object Set
+                if u.IS_DEBUG():
+                    print(f"[DEBUG] Object {obj.name} not present in any Object Set.")
+                obj.color = self.set_colour
+            elif containing_sets:
+                if u.IS_DEBUG():
+                    print(
+                        f"[DEBUG] Object {obj.name} contained in {len(containing_sets)} Object Sets. Allow Colour Override is {allow_override}"
+                    )
+                if not allow_override:
+                    obj.color = containing_sets[0].set_colour
+                else:
+                    # Only allow colour override if flag is set.
                     obj.color = self.set_colour
+
+    def set_object_set_colour(self, context):
+        """
+        Update colour of set. In the end, performs `update_object_set_colour`.
+        """
+        for item in self.objects:
+            obj = item.object
+            if obj is None:
+                continue
+
+            obj.color = self.set_colour
 
     name: bpy.props.StringProperty(name="Object Set Name", default="New Object Set")  # type: ignore
     objects: bpy.props.CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
@@ -76,7 +102,7 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
         min=0.0,
         max=1.0,
         default=(0.0, 0.0, 0.0, 1.0),
-        update=update_object_set_colour,
+        update=set_object_set_colour,
     )
 
     def add_object(self, obj):
@@ -87,6 +113,9 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
             self.update_count()
 
     def remove_object(self, obj):
+        addon_prefs = u.get_addon_prefs()
+        allow_override = addon_prefs.object_sets_colour_allow_override
+
         for i, o in enumerate(self.objects):
             if o.object == obj:
                 # Revert object colour back to default white
@@ -97,8 +126,10 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
                     obj.color = (1.0, 1.0, 1.0, 1.0)
                 else:
                     # Update the object to another set's colour
-                    # Let's use the first set in the list
-                    obj.color = containing_sets[0].set_colour
+                    if allow_override:
+                        obj.color = containing_sets[-1].set_colour
+                    else:
+                        obj.color = containing_sets[0].set_colour
                 break
 
         self.update_count()
@@ -111,33 +142,15 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
         :return: `list` of `Object Sets`
         """
         addon_props = u.get_addon_props()
-        index = addon_props.object_sets_index
+        containing_sets = list()
 
-        containing_sets = set()
-
-        for i, obj_set in enumerate(addon_props.object_sets):
-            if obj_set == addon_props.object_sets[index]:
-                # Skip own set
-                continue
-
+        for obj_set in addon_props.object_sets:
             for obj_item in obj_set.objects:
                 if obj_item.object == obj:
-                    containing_sets.add(obj_set)
-                    break
+                    if obj_set not in containing_sets:
+                        containing_sets.append(obj_set)
 
-        return list(containing_sets)
-
-    def set_object_set_colour(self, colour: tuple):
-        if len(colour) < 4:
-            fixed = list(colour)
-            while len(fixed) < 4:
-                fixed.append(1.0)
-            colour = tuple(fixed)
-        else:
-            fixed = list(colour)[:4]
-            colour = tuple(fixed)
-
-        self.set_colour = colour
+        return containing_sets
 
     def update_count(self):
         self.count = len(self.objects)
@@ -425,6 +438,12 @@ class AddonPreferences(bpy.types.AddonPreferences):
         default=True,
     )
 
+    object_sets_colour_allow_override: BoolProperty(  # type: ignore
+        name="Allow Colour Override",
+        description="Allow colour override for objects that area already present in Object Sets and are added or modified in other sets. When disallowed, the object will (hopefully) only retain the colour of the first Object Set is contained in.\nWhen allowed, the object will change colours freely depending on the last modified set, given the object is contained within.",
+        default=False,
+    )
+
     object_sets_default_colour: FloatVectorProperty(  # type: ignore
         name="Object Sets Default Colour",
         subtype="COLOR",
@@ -476,6 +495,9 @@ class AddonPreferences(bpy.types.AddonPreferences):
             row = object_sets_settings_box.row()
             row.prop(self, "object_sets_use_colour")
 
+            row = object_sets_settings_box.row()
+            row.prop(self, "object_sets_colour_allow_override")
+
             if self.object_sets_use_colour:
                 row = object_sets_settings_box.row()
                 row.prop(self, "object_sets_default_colour", text="Default Colour")
@@ -517,7 +539,7 @@ depsgraph_handlers = [
 
 load_post_handlers = [
     u.handler_cleanup_object_set_invalid_references,
-    u.handler_scene_object_wire_colour_set,
+    u.handler_on_load_refresh_object_sets_colours,
 ]
 
 

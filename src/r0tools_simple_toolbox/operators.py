@@ -1219,6 +1219,20 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_ForceRefreshObjectSets(bpy.types.Operator):
+    """Force run update count which should help refresh some Object Sets properties"""
+
+    bl_label = "Refresh"
+    bl_idname = "r0tools.object_sets_refresh"
+    bl_description = "Force refresh and update Object Sets' colours"
+    bl_options = {"INTERNAL"}
+
+    def execute(self, context):
+        u.refresh_object_sets_colours(context)
+
+        return {"FINISHED"}
+
+
 class SimpleToolbox_OT_ToggleWireDisplay(bpy.types.Operator):
     """Toggle Wire Display"""
 
@@ -1835,6 +1849,7 @@ classes = [
     SimpleToolbox_OT_AddToObjectSet,
     SimpleToolbox_OT_RemoveFromObjectSet,
     SimpleToolbox_OT_SelectObjectSet,
+    SimpleToolbox_OT_ForceRefreshObjectSets,
     SimpleToolbox_OT_ToggleWireDisplay,
     
     VIEW3D_MT_CustomOrientationsPieMenu,

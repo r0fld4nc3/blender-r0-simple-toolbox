@@ -116,6 +116,9 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
         col.operator("r0tools.move_object_set_item_up", icon="TRIA_UP", text="")
         col.operator("r0tools.move_object_set_item_down", icon="TRIA_DOWN", text="")
 
+    col.label(text="")  # Spacer
+    col.operator("r0tools.object_sets_refresh", text="", icon="FILE_REFRESH")
+
     # Bottom
     if object_sets_box:
         parent = object_sets_box
@@ -715,6 +718,17 @@ def is_valid_object_global(obj):
     return True
 
 
+def refresh_object_sets_colours(context):
+    print("[INFO] Force Refreshing Object Sets")
+    addon_props = get_addon_props()
+    object_sets = addon_props.object_sets
+
+    for object_set in object_sets:
+        if IS_DEBUG():
+            print(f"[DEBUG] Refresh: {object_set.name}")
+        object_set.update_object_set_colour(context)
+
+
 def get_depsgraph():
     depsgraph = bpy.context.evaluated_depsgraph_get()
     return depsgraph
@@ -776,8 +790,8 @@ def handler_cleanup_object_set_invalid_references(scene):
 
 
 @bpy.app.handlers.persistent
-def handler_scene_object_wire_colour_set(scene):
-    schedule_timer_run(set_space_data_shading_wireframe_object_colour, interval=1)
+def handler_on_load_refresh_object_sets_colours(scene):
+    schedule_timer_run(refresh_object_sets_colours, bpy.context, interval=1)
 
 
 def cleanup_object_set_invalid_references(scene):
