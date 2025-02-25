@@ -720,8 +720,12 @@ def is_valid_object_global(obj):
 
 def refresh_object_sets_colours(context):
     print("[INFO] Force Refreshing Object Sets")
+    addon_prefs = get_addon_prefs()
     addon_props = get_addon_props()
     object_sets = addon_props.object_sets
+
+    if not addon_prefs.object_sets_use_colour:
+        return
 
     for object_set in object_sets:
         if IS_DEBUG():

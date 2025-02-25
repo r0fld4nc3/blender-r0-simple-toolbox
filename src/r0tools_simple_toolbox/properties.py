@@ -206,14 +206,6 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
             layout.alignment = "CENTER"
             layout.label(text=item.name)
 
-    def invoke(self, context, event):
-        # Handle double-click event
-        if event.type == "LEFTMOUSE" and event.value == "DOUBLE_CLICK":
-            # Trigger rename operator
-            bpy.ops.r0tools.rename_object_set("INVOKE_DEFAULT")
-            return {"HANDLED"}
-        return {"PASS_THROUGH"}
-
 
 # -------------------------------------------------------------------
 #   ADDON PROPERTIES
