@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "r0tools_simple_toolbox"
-version = "0.0.19"
+version = "0.0.20"
 name = "r0Tools - Simple Toolbox"
 tagline = "General workflow utitlies"
 maintainer = "https://github.com/r0fld4nc3"
@@ -18,12 +18,6 @@ blender_version_min = "4.2.0"
 
 # License conforming to https://spdx.org/licenses/ (use "SPDX: prefix)
 # # https://docs.blender.org/manual/en/dev/advanced/extensions/licenses.html
-license = [
-  "SPDX:GPL-3.0-or-later",
-]
+license = ["SPDX:GPL-3.0-or-later"]
 
-paths_exclude_pattern = [
-  "__pycache__/",
-  "/.git/",
-  "/*.zip",
-]
+paths_exclude_pattern = ["__pycache__/", "/.git/", "/*.zip"]

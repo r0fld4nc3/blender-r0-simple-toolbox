@@ -1,10 +1,12 @@
 import bpy
 
-from .const import ADDON_NAME, VERSION_STR
+from . import ext_update as upd
 from . import utils as u
+from .const import ADDON_NAME, VERSION_STR
 from .repo import draw_repo_layout
 
 
+# fmt: off
 class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
     bl_idname = 'OBJECT_PT_quick_toolbox'
     bl_label = f'{ADDON_NAME} ({VERSION_STR})'
@@ -12,7 +14,14 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
     bl_region_type = 'UI'
     bl_category = 'Tool'
     # bl_options = {"DEFAULT_CLOSED"}
+    has_update = False
 
+    
+    @classmethod
+    def _update_callback(cls, result):
+        cls.has_update = result
+
+    
     def draw(self, context):
         addon_props = u.get_addon_props()
         addon_prefs = u.get_addon_prefs()
@@ -20,10 +29,18 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         layout = self.layout
 
         row = layout.row()
-        row.prop(addon_prefs, "experimental_features", text="Experimental Features", icon="EXPERIMENTAL")
+        row.prop(addon_prefs, "dev_tools", text="Dev Tools", icon="TOOL_SETTINGS")
+        row.prop(addon_prefs, "experimental_features", text="Experimental", icon="EXPERIMENTAL")
+
+        if self.has_update:
+            update_box = layout.box()
+            update_row = update_box.row(align=True)
+            update_row.label(text="", icon="FUND")
+            update_row.label(text="UPDATE AVAILABLE", icon="FILE_REFRESH")
+            update_row.label(text="", icon="FUND")
 
         # ====== Dev Tools ======
-        if addon_prefs.experimental_features:
+        if addon_prefs.dev_tools:
             dev_tools_box = layout.box()
             dev_tools_box.prop(addon_props, "show_dev_tools", icon="TRIA_DOWN" if addon_props.show_dev_tools else "TRIA_RIGHT", emboss=False)
             if addon_props.show_dev_tools:
@@ -80,6 +97,10 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
             row.prop(addon_props, "show_custom_property_list_prop", icon="TRIA_DOWN" if addon_props.show_custom_property_list_prop else "TRIA_RIGHT", emboss=False)
             if addon_props.show_custom_property_list_prop:
                 row = custom_properties_box.row()
+                # Row Number Slider (Same as in addon preferences)
+                row.prop(addon_prefs, "custom_properties_list_rows", text="Rows:")
+                
+                row = custom_properties_box.row()
                 row.template_list(
                     "R0PROP_UL_CustomPropertiesList",
                     "custom_property_list",
@@ -124,10 +145,10 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
             uv_map_resolution_box = uv_ops_box.box()
             row = uv_map_resolution_box.row()
             row.label(text="UV Map")
-            
-            col = uv_map_resolution_box.column(align=True)
-            col.prop(addon_props, "uv_target_resolution_x", text="Width:")
-            col.prop(addon_props, "uv_target_resolution_y", text="Height:")
+
+            dropdown_col = uv_map_resolution_box.column(align=True)
+            dropdown_col.prop(addon_props, "uv_size_x", text="Width")
+            dropdown_col.prop(addon_props, "uv_size_y", text="Height")
 
             # UV Island Thresholds
             uv_island_checks_thresholds_box = uv_ops_box.box()
@@ -148,47 +169,33 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 
                 row = uv_island_checks_thresholds_box.row()
                 row.operator("r0tools.uv_check_island_thresholds")
-        
-        # ====== Externals ======
-        """
-        externals_box = layout.box()
-        externals_box.prop(addon_props, "show_ext_ops", icon="TRIA_DOWN" if addon_props.show_ext_ops else "TRIA_RIGHT", emboss=False)
-        if addon_props.show_ext_ops:
-            row = externals_box.row(align=True)
-            row.label(text="ZenUV Texel Density")
-            row = externals_box.row(align=True)
-            row.prop(addon_prefs, "zenuv_td_prop", text="TD:")
-            row.prop(addon_prefs, "zenuv_td_unit_prop", text="Unit")
-            row = externals_box.row(align=True)
-            row.operator("r0tools.ext_zenuv_set_td")
-        """
 
         # ====== Online Repository ======
         draw_repo_layout(layout, context)
 
         # ====== Heavy Experimentals ======
         if addon_prefs.experimental_features:
-            row = layout.row()
-            row.label(text="EXPERIMENTAL", icon="EXPERIMENTAL")
-            
-            lods_box = layout.box()
-            row = lods_box.row()
-            row.label(text="LODs")
-            row = lods_box.row()
-            row.operator("r0tools.experimental_op_1")
-            row = lods_box.row()
-            row.prop(addon_props, "screen_size_pct_prop", text="Screen Size (%):")
+            experimental_ops_box = layout.box()
+            experimental_ops_box.prop(addon_props, "show_experimental_features", icon="TRIA_DOWN" if addon_props.show_experimental_features else "TRIA_RIGHT", emboss=False)
+            if addon_props.show_experimental_features:
+                lods_box = experimental_ops_box.box()
+                row = lods_box.row()
+                row.label(text="LODs")
+                row = lods_box.row()
+                row.operator("r0tools.experimental_op_1")
+                row = lods_box.row()
+                row.prop(addon_props, "screen_size_pct_prop", text="Screen Size (%):")
+# fmt: on
 
 
 # -------------------------------------------------------------------
 #   Register & Unregister
 # -------------------------------------------------------------------
 
-classes = [
-    r0Tools_PT_SimpleToolbox
-]
+classes = [r0Tools_PT_SimpleToolbox]
 
 depsgraph_handlers = []
+
 
 def register():
     for cls in classes:
@@ -198,6 +205,9 @@ def register():
         if handler not in bpy.app.handlers.depsgraph_update_post:
             print(f"[DEBUG] Registering Handler {handler}")
             bpy.app.handlers.depsgraph_update_post.append(handler)
+
+    upd.trigger_update_check()
+
 
 def unregister():
     for handler in depsgraph_handlers:
