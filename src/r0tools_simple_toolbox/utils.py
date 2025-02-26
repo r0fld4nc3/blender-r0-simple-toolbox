@@ -406,10 +406,10 @@ def get_uvmap_size_x():
     """Get selected UV Map Size in X"""
     addon_props = get_addon_props()
     uv_size_x = int(addon_props.uv_size_x)
-    
+
     return uv_size_x
 
-  
+
 def get_uvmap_size_y():
     """Get selected UV Map Size in Y"""
     addon_props = get_addon_props()
