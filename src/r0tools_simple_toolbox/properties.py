@@ -171,14 +171,6 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             row = layout.row(align=True)
 
-            # Select Set
-            col_select_set = row.row(align=True)
-            col_select_set.operator(
-                "r0tools.select_object_set",
-                text="",
-                icon="RESTRICT_SELECT_OFF",  # RESTRICT_SELECT_OFF | MESH_CUBE
-            )
-
             # Configure accordingly for object sets colour
             if addon_prefs.object_sets_use_colour and addon_prefs.experimental_features:
                 scale_x = 0.8  # Scales extending the right side to the right
@@ -193,9 +185,21 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
                 col.separator(factor=0.3)  # Pushes things down
                 col.scale_y = scale_y
                 col.prop(item, "set_colour", text="")
+                # Right side padding. Breathing room in case other widget is on the right side
+                row.separator(factor=0.5)
 
             # Info Row
             info_row = row.row(align=True)
+
+            # Select Set
+            col_select_set = info_row.row(align=True)
+            col_select_set.operator(
+                "r0tools.select_object_set",
+                text="",
+                icon="RESTRICT_SELECT_OFF",  # RESTRICT_SELECT_OFF | MESH_CUBE
+            )
+            # Right side padding. Breathing room in case other widget is on the right side
+            col_select_set.separator(factor=0.5)
 
             """
             if (
@@ -208,6 +212,7 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
             # Name
             col_name = info_row.row(align=True)
             col_name.prop(item, "name", text="", emboss=False, icon="NONE")
+
             # Object Count
             col_item_count = info_row.row(align=True)
             col_item_count.alignment = "RIGHT"
