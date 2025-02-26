@@ -205,13 +205,13 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
                 icon_row = info_row.row(align=True)
                 icon_row.label(text="", icon="MESH_CUBE")
             """
-            # Object Count
-            col_item_count = info_row.row(align=True)
-            col_item_count.alignment = "CENTER"
-            col_item_count.label(text=f"({item.count})", icon="NONE")
             # Name
             col_name = info_row.row(align=True)
             col_name.prop(item, "name", text="", emboss=False, icon="NONE")
+            # Object Count
+            col_item_count = info_row.row(align=True)
+            col_item_count.alignment = "RIGHT"
+            col_item_count.label(text=f"({item.count})", icon="NONE")
 
         elif self.layout_type in {"GRID"}:
             layout.alignment = "CENTER"
