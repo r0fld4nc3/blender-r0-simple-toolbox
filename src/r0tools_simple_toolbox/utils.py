@@ -112,12 +112,15 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     col.operator("r0tools.add_object_set_popup", text="+")
     col.operator("r0tools.remove_object_set", text="-")
     if len(addon_props.object_sets) > 1:  # Show buttons only when applicable
-        col.label(text="")  # Spacer
+        col.separator(factor=1.0)  # Spacer
         col.operator("r0tools.move_object_set_item_up", icon="TRIA_UP", text="")
         col.operator("r0tools.move_object_set_item_down", icon="TRIA_DOWN", text="")
 
-    col.label(text="")  # Spacer
+    col.separator(factor=1.0)  # Spacer
     col.operator("r0tools.object_sets_refresh", text="", icon="FILE_REFRESH")
+
+    col.separator(factor=1.0)  # Spacer
+    col.operator("r0tools.object_sets_colours_randomise", text="", icon="NODE_MATERIAL")
 
     # Bottom
     if object_sets_box:
@@ -133,7 +136,8 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     row_col.operator("r0tools.remove_from_object_set")
     # Select Object Set Button
     row_col = split.row()
-    row_col.operator("r0tools.select_object_set")
+    op = row_col.operator("r0tools.select_object_set")
+    op.set_index = -1
 
 
 def get_scene() -> bpy.types.Scene:

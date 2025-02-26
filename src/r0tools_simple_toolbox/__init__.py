@@ -1,7 +1,7 @@
 bl_info = {
-    "name": "r0Tools - Simple Toolbox",
+    "name": "(DEV) r0Tools - Simple Toolbox",
     "author": "Artur Rosário",
-    "version": (0, 0, 20),
+    "version": (0, 0, 21),
     "blender": (4, 2, 0),
     "location": "3D View > Tool",
     "description": "Miscellaneous Utilities",

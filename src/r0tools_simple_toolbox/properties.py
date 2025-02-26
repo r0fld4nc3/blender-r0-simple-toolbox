@@ -179,28 +179,53 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
                 object_set_colour_row = row.row(align=True)
                 object_set_colour_row.alignment = "LEFT"
                 col = object_set_colour_row.column()
-                col.label(text="", icon="MESH_CUBE")
+                # col.label(text="", icon="MESH_CUBE")
                 col = object_set_colour_row.column()
                 col.ui_units_x = scale_x
                 col.separator(factor=0.3)  # Pushes things down
                 col.scale_y = scale_y
                 col.prop(item, "set_colour", text="")
+                # Right side padding. Breathing room in case other widget is on the right side
+                row.separator(factor=0.5)
 
             # Info Row
             info_row = row.row(align=True)
+
+            # Select Set
+            col_select_set = info_row.row(align=True)
+            """
+            OMG this is exciting. So we store a reference to the Operator
+            and then we immediately assign it a property defined in the Operator class
+            `set_index`. By doing this, we can store which set the button belongs to
+            and can select the objects of the given Object Set at a specific row/index
+            without having to first select the row!!! Amazing!
+            """
+            op = col_select_set.operator(
+                "r0tools.select_object_set",
+                text="",
+                icon="RESTRICT_SELECT_OFF",
+            )
+            # Set the property before adding to layout
+            op.set_index = index
+            # Add spacing after the operation is complete
+            col_select_set.separator(factor=0.5)
+
+            """
             if (
                 not addon_prefs.object_sets_use_colour
                 or not addon_prefs.experimental_features
             ):
                 icon_row = info_row.row(align=True)
                 icon_row.label(text="", icon="MESH_CUBE")
-            # Object Count
-            col_item_count = info_row.row(align=True)
-            col_item_count.alignment = "CENTER"
-            col_item_count.label(text=f"({item.count})", icon="NONE")
+            """
             # Name
             col_name = info_row.row(align=True)
             col_name.prop(item, "name", text="", emboss=False, icon="NONE")
+
+            # Object Count
+            col_item_count = info_row.row(align=True)
+            col_item_count.alignment = "RIGHT"
+            col_item_count.label(text=f"({item.count})", icon="NONE")
 
         elif self.layout_type in {"GRID"}:
             layout.alignment = "CENTER"
