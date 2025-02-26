@@ -1294,7 +1294,6 @@ class SimpleToolbox_OT_RandomiseObjectSetsColours(bpy.types.Operator):
 
         return {"FINISHED"}
 
-
 class SimpleToolbox_OT_ToggleWireDisplay(bpy.types.Operator):
     """Toggle Wire Display"""
 
