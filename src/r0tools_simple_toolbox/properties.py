@@ -171,6 +171,14 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             row = layout.row(align=True)
 
+            # Select Set
+            col_select_set = row.row(align=True)
+            col_select_set.operator(
+                "r0tools.select_object_set",
+                text="",
+                icon="RESTRICT_SELECT_OFF",  # RESTRICT_SELECT_OFF | MESH_CUBE
+            )
+
             # Configure accordingly for object sets colour
             if addon_prefs.object_sets_use_colour and addon_prefs.experimental_features:
                 scale_x = 0.8  # Scales extending the right side to the right
@@ -179,7 +187,7 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
                 object_set_colour_row = row.row(align=True)
                 object_set_colour_row.alignment = "LEFT"
                 col = object_set_colour_row.column()
-                col.label(text="", icon="MESH_CUBE")
+                # col.label(text="", icon="MESH_CUBE")
                 col = object_set_colour_row.column()
                 col.ui_units_x = scale_x
                 col.separator(factor=0.3)  # Pushes things down
@@ -188,12 +196,15 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
 
             # Info Row
             info_row = row.row(align=True)
+
+            """
             if (
                 not addon_prefs.object_sets_use_colour
                 or not addon_prefs.experimental_features
             ):
                 icon_row = info_row.row(align=True)
                 icon_row.label(text="", icon="MESH_CUBE")
+            """
             # Object Count
             col_item_count = info_row.row(align=True)
             col_item_count.alignment = "CENTER"
