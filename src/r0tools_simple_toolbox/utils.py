@@ -136,7 +136,8 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     row_col.operator("r0tools.remove_from_object_set")
     # Select Object Set Button
     row_col = split.row()
-    row_col.operator("r0tools.select_object_set")
+    op = row_col.operator("r0tools.select_object_set")
+    op.set_index = -1
 
 
 def get_scene() -> bpy.types.Scene:

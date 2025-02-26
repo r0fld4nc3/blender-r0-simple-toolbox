@@ -193,12 +193,21 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
 
             # Select Set
             col_select_set = info_row.row(align=True)
-            col_select_set.operator(
+            """
+            OMG this is exciting. So we store a reference to the Operator
+            and then we immediately assign it a property defined in the Operator class
+            `set_index`. By doing this, we can store which set the button belongs to
+            and can select the objects of the given Object Set at a specific row/index
+            without having to first select the row!!! Amazing!
+            """
+            op = col_select_set.operator(
                 "r0tools.select_object_set",
                 text="",
-                icon="RESTRICT_SELECT_OFF",  # RESTRICT_SELECT_OFF | MESH_CUBE
+                icon="RESTRICT_SELECT_OFF",
             )
-            # Right side padding. Breathing room in case other widget is on the right side
+            # Set the property before adding to layout
+            op.set_index = index
+            # Add spacing after the operation is complete
             col_select_set.separator(factor=0.5)
 
             """

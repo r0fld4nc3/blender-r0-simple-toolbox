@@ -1171,6 +1171,7 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
     bl_options = {"REGISTER"}
 
     add_to_selection = False
+    set_index: bpy.props.IntProperty(default=-1)  # type: ignore
 
     accepted_contexts = accepted_contexts = [u.OBJECT_MODES.OBJECT]
 
@@ -1191,7 +1192,10 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
         # u.handler_cleanup_object_set_invalid_references(context)
 
         addon_props = u.get_addon_props()
-        index = addon_props.object_sets_index
+        if self.set_index < 0:
+            index = addon_props.object_sets_index
+        else:
+            index = self.set_index
 
         if 0 <= index < len(addon_props.object_sets):
             object_set = addon_props.object_sets[index]
