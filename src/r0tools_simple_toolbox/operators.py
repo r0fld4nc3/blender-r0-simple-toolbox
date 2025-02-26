@@ -1,5 +1,6 @@
 import importlib
 import math
+import random
 import sys
 
 import bmesh
@@ -1238,6 +1239,58 @@ class SimpleToolbox_OT_ForceRefreshObjectSets(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_RandomiseObjectSetsColours(bpy.types.Operator):
+    """Randomise the colour of each Object Set, respecting the existing colours (if any) and without overlapping colours"""
+
+    bl_label = "Randomise"
+    bl_idname = "r0tools.object_sets_colours_randomise"
+    bl_description = "Randomise the colour of each Object Set, respecting the existing colours (if any) and without overlapping colours.\n- SHIFT: Force randomise all colours."
+    bl_options = {"INTERNAL"}
+
+    override = False
+
+    def invoke(self, context, event):
+        self.override = False  # Always reset
+
+        if event.shift:
+            self.override = True
+
+        return self.execute(context)
+
+    def execute(self, context):
+        addon_props = u.get_addon_props()
+        addon_prefs = u.get_addon_prefs()
+
+        default_set_colour = [c for c in addon_prefs.object_sets_default_colour]
+        colours: set = set()
+
+        for object_set in addon_props.object_sets:
+            set_colour = [c for c in object_set.set_colour]
+
+            if set_colour != default_set_colour:
+                if not self.override:
+                    continue
+
+            for _ in range(10):  # Alternative to while loop, to prevent accidents
+                new_colour = (
+                    random.uniform(0.000, 1.0),
+                    random.uniform(0.000, 1.0),
+                    random.uniform(0.000, 1.0),
+                    1.0,
+                )
+                if new_colour not in colours and new_colour != default_set_colour:
+                    colours.add(new_colour)
+                    break
+
+            object_set.set_colour = new_colour
+
+        bpy.ops.r0tools.object_sets_refresh()
+
+        self.report({"INFO"}, "Randmoised Object Sets' Colours.")
+
+        return {"FINISHED"}
+
+
 class SimpleToolbox_OT_ToggleWireDisplay(bpy.types.Operator):
     """Toggle Wire Display"""
 
@@ -1855,6 +1908,7 @@ classes = [
     SimpleToolbox_OT_RemoveFromObjectSet,
     SimpleToolbox_OT_SelectObjectSet,
     SimpleToolbox_OT_ForceRefreshObjectSets,
+    SimpleToolbox_OT_RandomiseObjectSetsColours,
     SimpleToolbox_OT_ToggleWireDisplay,
     
     VIEW3D_MT_CustomOrientationsPieMenu,
