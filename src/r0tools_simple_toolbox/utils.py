@@ -132,7 +132,7 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     # Add/Remove Object Set Buttons
     split = row.split(factor=0.65)
     row_col = split.row(align=True)
-    row_col.operator("r0tools.add_to_object_set")
+    row_col.operator("r0tools.assign_to_object_set")
     row_col.operator("r0tools.remove_from_object_set")
     # Select Object Set Button
     row_col = split.row()

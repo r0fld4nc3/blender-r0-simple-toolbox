@@ -951,7 +951,7 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
 
         # Immediately add selected objects to set, for convenience
         if context.selected_objects:
-            bpy.ops.r0tools.add_to_object_set()
+            bpy.ops.r0tools.assign_to_object_set()
 
         if context.area:
             context.area.tag_redraw()
@@ -1094,8 +1094,8 @@ class SimpleToolbox_OT_MoveObjectSetItemDown(bpy.types.Operator):
 
 
 class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
-    bl_label = "Add"
-    bl_idname = "r0tools.add_to_object_set"
+    bl_label = "Assign"
+    bl_idname = "r0tools.assign_to_object_set"
     bl_description = "Add selected objects to selected Object Set Entry."
     bl_options = {"REGISTER"}
 
