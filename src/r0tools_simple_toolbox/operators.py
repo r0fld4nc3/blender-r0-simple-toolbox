@@ -1154,7 +1154,6 @@ class SimpleToolbox_OT_RemoveFromObjectSet(bpy.types.Operator):
             object_set = addon_props.object_sets[index]
 
             for obj in context.selected_objects:
-                print(f"{obj.name} in {[o.name for o in context.selected_objects]}")
                 object_set.remove_object(obj)
                 total_removed += 1
 
