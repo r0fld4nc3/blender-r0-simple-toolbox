@@ -822,9 +822,10 @@ def cleanup_object_set_invalid_references(scene):
                     f"Cleaned up {cleaned_up} references for Object Set '{object_set.name}'"
                 )
 
+    # Force UI Update to reflect changes :)
     for area in bpy.context.screen.areas:
         if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
-            area.tag_redraw()  # Force UI Update to reflect changes :)
+            area.tag_redraw()
 
 
 @bpy.app.handlers.persistent
@@ -854,7 +855,7 @@ def update_data_scene_objects(scene, force_run=False):
     bpy_data_objects_len = len(bpy.data.objects)
 
     # Reset updated to False
-    addon_props.objects_updated = False
+    safe_update_property(addon_props, "objects_updated", False)
 
     if IS_DEBUG():
         print("------------- Update Data Scene Objects -------------")
@@ -923,7 +924,7 @@ def update_data_scene_objects(scene, force_run=False):
                 context_error_debug(error="\n".join(errors))
 
         if unused_count > 0:
-            addon_props.objects_updated = True
+            safe_update_property(addon_props, "objects_updated", True)
             if IS_DEBUG():
                 print(f"Unused blocks to be cleared: {unused_count}")
             for unused in unused_objects:
@@ -939,6 +940,22 @@ def update_data_scene_objects(scene, force_run=False):
             print(f"[ERROR] Error setting objects_updated = False: {e}")
             if IS_DEBUG():
                 context_error_debug(error=e)
+
+
+def safe_update_property(obj, prop_name, value):
+    """Safely update a property by scheduling it for the next safe context"""
+
+    def do_update():
+        try:
+            if IS_DEBUG():
+                print(f"[DEBUG] Safely updating property {prop_name} to {value}")
+            setattr(obj, prop_name, value)
+            return None  # Don't repeat
+        except Exception as e:
+            print(f"[ERROR] Failed to safely update {prop_name}: {e}")
+            return None  # Don't repeat
+
+    schedule_timer_run(do_update)
 
 
 def set_show_all_operators(show: bool):
