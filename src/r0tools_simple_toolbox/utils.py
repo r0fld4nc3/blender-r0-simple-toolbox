@@ -763,39 +763,6 @@ def get_depsgraph_is_updated_transform() -> bool:
     return False
 
 
-@bpy.app.handlers.persistent
-def handler_continuous_property_list_update(scene, context):
-    schedule_timer_run(continuous_property_list_update, scene, context)
-
-
-@bpy.app.handlers.persistent
-def handler_update_object_set_count(context):
-    if IS_DEBUG():
-        print("------------- Update Object Sets -------------")
-
-    try:
-        addon_props = get_addon_props()
-        for object_set in addon_props.object_sets:
-            object_set.update_count()
-    except Exception as e:
-        print(f"[ERROR] Error updating object sets: {e}")
-        context_error_debug(error=e)
-
-    for area in bpy.context.screen.areas:
-        if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
-            area.tag_redraw()  # Force UI Update to reflect changes :)
-
-
-@bpy.app.handlers.persistent
-def handler_cleanup_object_set_invalid_references(scene):
-    schedule_timer_run(cleanup_object_set_invalid_references, scene)
-
-
-@bpy.app.handlers.persistent
-def handler_on_load_refresh_object_sets_colours(scene):
-    schedule_timer_run(refresh_object_sets_colours, bpy.context, interval=1)
-
-
 def cleanup_object_set_invalid_references(scene):
     if IS_DEBUG():
         print("------------- Cleanup Object Sets Invalid References -------------")
@@ -826,11 +793,6 @@ def cleanup_object_set_invalid_references(scene):
     for area in bpy.context.screen.areas:
         if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
             area.tag_redraw()
-
-
-@bpy.app.handlers.persistent
-def handler_update_data_scene_objects(scene, force_run=False):
-    schedule_timer_run(update_data_scene_objects, scene, force_run=force_run)
 
 
 def update_data_scene_objects(scene, force_run=False):
@@ -989,6 +951,47 @@ def set_space_data_shading_wireframe_object_colour(dummy=None):
 def IS_DEBUG() -> bool:
     addon_prefs = get_addon_prefs()
     return DEBUG or addon_prefs.debug
+
+
+# -------------------------------------------------------------------
+#   HANDLERS & TIMER SCHEDULES
+# -------------------------------------------------------------------
+@bpy.app.handlers.persistent
+def handler_update_object_set_count(context):
+    if IS_DEBUG():
+        print("------------- Update Object Sets -------------")
+
+    try:
+        addon_props = get_addon_props()
+        for object_set in addon_props.object_sets:
+            object_set.update_count()
+    except Exception as e:
+        print(f"[ERROR] Error updating object sets: {e}")
+        context_error_debug(error=e)
+
+    for area in bpy.context.screen.areas:
+        if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
+            area.tag_redraw()  # Force UI Update to reflect changes :)
+
+
+@bpy.app.handlers.persistent
+def handler_continuous_property_list_update(scene, context):
+    schedule_timer_run(continuous_property_list_update, scene, context)
+
+
+@bpy.app.handlers.persistent
+def handler_cleanup_object_set_invalid_references(scene):
+    schedule_timer_run(cleanup_object_set_invalid_references, scene)
+
+
+@bpy.app.handlers.persistent
+def handler_on_load_refresh_object_sets_colours(scene):
+    schedule_timer_run(refresh_object_sets_colours, bpy.context, interval=1)
+
+
+@bpy.app.handlers.persistent
+def handler_update_data_scene_objects(scene, force_run=False):
+    schedule_timer_run(update_data_scene_objects, scene, force_run=force_run)
 
 
 def context_error_debug(error: str = None, extra_prints: list = []):
