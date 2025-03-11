@@ -385,20 +385,22 @@ def save_preferences():
 def schedule_timer_run(func, *args, interval=0.1, **kwargs):
     """Schedules the update function and ensures it runs only once per depsgraph update."""
 
-    if func.__name__ in _TIMERS:
+    timer_id = f"{func.__name__}_{id(args)}_{id(kwargs)}"
+
+    if timer_id in _TIMERS:
         return  # Prevent duplicate registrations
 
     def wrapper():
         try:
-            func(*args, **kwargs)  # Run the function
+            func(*args, **kwargs)
         except Exception as e:
             print(f"Timer function {func.__name__} failed: {e}")
         finally:
-            _TIMERS.pop(func.__name__, None)  # Remove from tracking after execution
+            _TIMERS.pop(timer_id, None)
 
         return None  # Ensure the timer runs only once
 
-    _TIMERS[func.__name__] = wrapper
+    _TIMERS[timer_id] = wrapper
     bpy.app.timers.register(wrapper, first_interval=interval)
 
 
