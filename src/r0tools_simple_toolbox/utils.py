@@ -274,31 +274,23 @@ def is_object_visible_in_viewport(obj):
 
 
 # Set selection mode template
-
-
 def _set_mesh_selection_mode(use_extend=False, use_expand=False, type=""):
     bpy.ops.mesh.select_mode(use_extend=use_extend, use_expand=use_expand, type=type)
 
 
 # Set selection mode Vertex
-
-
 def set_mesh_selection_vertex(*args, **kwargs):
     kwargs["type"] = "VERT"
     _set_mesh_selection_mode(*args, **kwargs)
 
 
 # Set selection mode Edge
-
-
 def set_mesh_selection_edge(*args, **kwargs):
     kwargs["type"] = "EDGE"
     _set_mesh_selection_mode(*args, **kwargs)
 
 
 # Set selection mode Face
-
-
 def set_mesh_selection_face(*args, **kwargs):
     kwargs["type"] = "FACE"
     _set_mesh_selection_mode(*args, **kwargs)
