@@ -1,6 +1,5 @@
 import math
 import queue
-import threading
 from pathlib import Path
 
 import bpy
