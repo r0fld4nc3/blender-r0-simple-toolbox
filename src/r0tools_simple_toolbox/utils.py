@@ -1,10 +1,18 @@
 import math
+import queue
+import threading
 from pathlib import Path
 
 import bpy
 
 from .const import DEBUG, INTERNAL_NAME
 
+# Global state tracking
+_ADDON_IN_ERROR_STATE = False
+
+_QUEUE_RETRY_SECONDS = 1.0
+
+_operation_queue = queue.Queue()
 
 # fmt: off
 class CUSTOM_PROPERTIES_TYPES:
@@ -61,9 +69,6 @@ class AREA_TYPES:
     TOPBAR           = "TOPBAR"
     VIEW_3D          = "VIEW_3D"
 # fmt: on
-
-
-_TIMERS = {}
 
 
 def draw_objects_sets_uilist(layout, context, object_sets_box=None):
@@ -345,16 +350,11 @@ def object_in_view_layer(obj, context=None):
     if context:
         ctx = context
 
-    # print(f"Object '{obj.name}' visible view_layer {obj.visible_get(view_layer=ctx.view_layer)}")
-
-    return obj.visible_get(
-        view_layer=ctx.view_layer
-    )  # Returns True for visible objects
+    return obj.visible_get(view_layer=ctx.view_layer)
 
 
 def object_visible(obj):
-    # print(f"Object '{obj.name}' visible {obj.visible_get()}")
-    return obj.visible_get()  # Returns True for visible objects
+    return obj.visible_get()
 
 
 def save_preferences():
@@ -374,26 +374,51 @@ def save_preferences():
         save_preferences.is_saving = False
 
 
-def schedule_timer_run(func, *args, interval=0.1, **kwargs):
-    """Schedules the update function and ensures it runs only once per depsgraph update."""
+def process_queue_ops():
+    """Process operations from the queue in the main thread"""
+    try:
+        # Process up to 100 operations
+        operations_processed = 0
+        max_operations_per_frame = 100
 
-    timer_id = f"{func.__name__}_{id(args)}_{id(kwargs)}"
+        while (
+            not _operation_queue.empty()
+            and operations_processed < max_operations_per_frame
+        ):
+            operation = _operation_queue.get_nowait()
+            try:
+                operation()
+                operations_processed += 1
+            except Exception as e:
+                print(f"[ERROR] Failed to execute queued operation: {e}")
+                global _ADDON_IN_ERROR_STATE
+                _ADDON_IN_ERROR_STATE = True
+            finally:
+                _operation_queue.task_done()
 
-    if timer_id in _TIMERS:
-        return  # Prevent duplicate registrations
+        # If there are still operations in the queue, keep the timer running
+        if not _operation_queue.empty():
+            return 0.01  # Re-run in X second(s)
 
-    def wrapper():
-        try:
-            func(*args, **kwargs)
-        except Exception as e:
-            print(f"Timer function {func.__name__} failed: {e}")
-        finally:
-            _TIMERS.pop(timer_id, None)
+        # If we're in an error state, schedule recovery
+        if _ADDON_IN_ERROR_STATE:
+            # Retry in X seconds
+            return _QUEUE_RETRY_SECONDS
 
-        return None  # Ensure the timer runs only once
+        # Check again in X second(s)
+        return _QUEUE_RETRY_SECONDS
 
-    _TIMERS[timer_id] = wrapper
-    bpy.app.timers.register(wrapper, first_interval=interval)
+    except Exception as e:
+        print(f"[ERROR] Error in process_queue_ops: {e}")
+        return 1.0  # Retry in X second(s)
+
+
+def queue_op(operation, *args, **kwargs):
+    """Queue an operation to be executed in the main thread"""
+    if args or kwargs:
+        _operation_queue.put(lambda: operation(*args, **kwargs))
+    else:
+        _operation_queue.put(operation)
 
 
 def get_uvmap_size_x():
@@ -428,15 +453,12 @@ def op_clear_sharp_along_axis(axis: str):
         return False
 
     for obj in objects:
-        # Set the active object
         bpy.context.view_layer.objects.active = obj
         print(f"Iterating: {obj.name}")
 
-        # Check the mode
         mode = obj.mode
         print(f"Mode: {mode}")
 
-        # Access mesh data
         mesh = obj.data
         print(f"Mesh: {mesh}")
 
@@ -445,46 +467,34 @@ def op_clear_sharp_along_axis(axis: str):
         selection_mode = tuple(get_scene().tool_settings.mesh_select_mode)
 
         # Store initial selections
-        # Vertices
         selected_vertices = [v.index for v in mesh.vertices if v.select]
-
-        # Edges
         selected_edges = [e.index for e in mesh.edges if e.select]
-
-        # Faces
         selected_faces = [f.index for f in mesh.polygons if f.select]
 
-        # Deselect all vertices
         set_mode_edit()
         set_mesh_selection_vertex()
         deselect_all()
         set_mode_object()  # We're in Object mode so we can select stuff. Logic is weird.
 
         for idx, vertex in enumerate(mesh.vertices):
-            # print(f"Vertex {vertex.co}", end="")
-
             if axis == "X":
                 if math.isclose(vertex.co.x, 0.0, abs_tol=threshold):
                     mesh.vertices[idx].select = True
-                    # print(f" X isclose({vertex.co.x}, 0.0, abs_tol={threshold}): {math.isclose(vertex.co.x, 0.0, abs_tol=threshold)}")
 
             if axis == "Y":
                 if math.isclose(vertex.co.y, 0.0, abs_tol=threshold):
                     mesh.vertices[idx].select = True
-                    # print(f" Y isclose({vertex.co.y}, 0.0, abs_tol={threshold}): {math.isclose(vertex.co.y, 0.0, abs_tol=threshold)}")
 
             if axis == "Z":
                 if math.isclose(vertex.co.z, 0.0, abs_tol=threshold):
                     mesh.vertices[idx].select = True
-                    # print(f" Z isclose({vertex.co.z}, 0.0, abs_tol={threshold}): {math.isclose(vertex.co.z, 0.0, abs_tol=threshold)}")
 
-        # Enter Edit mode
         set_mode_edit()
 
-        # Switch to edge mode
+        # Set to edge mode
         set_mesh_selection_edge(use_extend=False, use_expand=False)
 
-        # Clear the Sharp
+        # Clear sharps
         bpy.ops.mesh.mark_sharp(clear=True)
 
         # Restore the inital selections and mode
@@ -512,13 +522,11 @@ def op_clear_sharp_along_axis(axis: str):
 
 
 def continuous_property_list_update(scene, context, force_run=False):
-    # This method is required to assess the last object selection, otherwise
-    # this is triggered on every click and the list is updated, and the checkboxes are reset
-
+    """Update property list based on selected objects"""
     addon_props = get_addon_props()
 
     if not addon_props.show_custom_property_list_prop and not force_run:
-        # Rerun if panel is now visible, alleviates some computation
+        # Re-run if panel is now visible, alleviates some computation
         if IS_DEBUG():
             print(
                 f"[DEBUG] Custom Properties Panel is not visible, exiting from running continuous property list update."
@@ -543,51 +551,50 @@ def continuous_property_list_update(scene, context, force_run=False):
         if IS_DEBUG():
             print("------------- Continuous Property List Update -------------")
 
-        addon_props.custom_property_list.clear()
+        def update_property_list():
+            addon_props.custom_property_list.clear()
 
-        # Add unique custom properties to the set
-        unique_object_data_props = set()
-        unique_mesh_data_props = set()
-        for obj in bpy.context.selected_objects:
-            # Object Properties
-            for prop_name in obj.keys():
-                if IS_DEBUG():
-                    print(f"[DEBUG] (OP) {obj.name} - {prop_name=}")
-                if (
-                    not prop_name.startswith("_")
-                    and prop_name not in unique_object_data_props
-                ):
-                    try:
-                        unique_object_data_props.add(prop_name)
-                        item = addon_props.custom_property_list.add()
-                        item.name = prop_name
-                        # Type is defaulted to Object
-                    except Exception as e:
-                        print(f"[ERROR] Error adding unique Custom Properties: {e}")
-                        context_error_debug(error=e)
-                        # raise e
-
-            # Object Data Properties
-            if obj.data and obj.type == "MESH":
-                for prop_name in obj.data.keys():
+            # Add unique custom properties to the set
+            unique_object_data_props = set()
+            unique_mesh_data_props = set()
+            for obj in bpy.context.selected_objects:
+                # Object Properties
+                for prop_name in obj.keys():
                     if IS_DEBUG():
-                        print(f"[DEBUG] (ODP) {obj.name} - {prop_name=}")
+                        print(f"[DEBUG] (OP) {obj.name} - {prop_name=}")
                     if (
                         not prop_name.startswith("_")
-                        and prop_name not in unique_mesh_data_props
+                        and prop_name not in unique_object_data_props
                     ):
                         try:
-                            unique_mesh_data_props.add(prop_name)
+                            unique_object_data_props.add(prop_name)
                             item = addon_props.custom_property_list.add()
                             item.name = prop_name
-                            item.type = CUSTOM_PROPERTIES_TYPES.MESH_DATA
                             # Type is defaulted to Object
                         except Exception as e:
-                            print(
-                                f"[ERROR] Error adding unique Object Data Custom Properties: {e}"
-                            )
+                            print(f"[ERROR] Error adding unique Custom Properties: {e}")
                             context_error_debug(error=e)
-                            # raise e
+
+                # Object Data Properties
+                if obj.data and obj.type == "MESH":
+                    for prop_name in obj.data.keys():
+                        if IS_DEBUG():
+                            print(f"[DEBUG] (ODP) {obj.name} - {prop_name=}")
+                        if (
+                            not prop_name.startswith("_")
+                            and prop_name not in unique_mesh_data_props
+                        ):
+                            try:
+                                unique_mesh_data_props.add(prop_name)
+                                item = addon_props.custom_property_list.add()
+                                item.name = prop_name
+                                item.type = CUSTOM_PROPERTIES_TYPES.MESH_DATA
+                                # Type is defaulted to Object
+                            except Exception as e:
+                                print(
+                                    f"[ERROR] Error adding unique Object Data Custom Properties: {e}"
+                                )
+                                context_error_debug(error=e)
 
             # Update the last object selection
             try:
@@ -600,30 +607,41 @@ def continuous_property_list_update(scene, context, force_run=False):
                         f"{current_selection=}",
                     ],
                 )
+
+            # Force UI update
+            for area in bpy.context.screen.areas:
+                if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
+                    area.tag_redraw()
+
+        queue_op(update_property_list)
     else:
         # Clear the property list if no objects are selected
-        try:
-            addon_props.custom_property_list.clear()
-            if IS_DEBUG():
-                print(f"Cleared UIList custom_property_list")
-        except Exception as e:
-            print(
-                f"[ERROR] Error clearing custom property list when no selected objects: {e}"
-            )
-            context_error_debug(error=e)
-        try:
-            addon_props.last_object_selection = ""
-            if IS_DEBUG():
-                print(f"Cleared property last_object_selection")
-        except Exception as e:
-            print(
-                f"[ERROR] Error setting last object selection when no selected objects: {e}"
-            )
-            context_error_debug(error=e)
+        def clear_property_list():
+            try:
+                addon_props.custom_property_list.clear()
+                if IS_DEBUG():
+                    print(f"Cleared UIList custom_property_list")
+            except Exception as e:
+                print(
+                    f"[ERROR] Error clearing custom property list when no selected objects: {e}"
+                )
+                context_error_debug(error=e)
+            try:
+                addon_props.last_object_selection = ""
+                if IS_DEBUG():
+                    print(f"Cleared property last_object_selection")
+            except Exception as e:
+                print(
+                    f"[ERROR] Error setting last object selection when no selected objects: {e}"
+                )
+                context_error_debug(error=e)
 
-    for area in bpy.context.screen.areas:
-        if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
-            area.tag_redraw()  # Force UI Update to reflect changes :)
+            # Force UI update
+            for area in bpy.context.screen.areas:
+                if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
+                    area.tag_redraw()
+
+        queue_op(clear_property_list)
 
     return None
 
@@ -654,7 +672,7 @@ def get_transform_orientations() -> list:
 
     """
     What a stupid workaround....
-    
+
     - https://blender.stackexchange.com/a/196080
     """
     try:
@@ -699,24 +717,32 @@ def get_custom_transform_orientations() -> list:
 
 def is_valid_object_global(obj):
     """Check if an object pointer is valid and exists in any scene. If not, assume dangling reference."""
-    exists_mesh = (
-        obj is not None
-        and obj
-        and obj.name in bpy.data.objects
-        and any(obj.name in scene.objects for scene in bpy.data.scenes)
-    )
+    try:
+        exists_mesh = (
+            obj is not None
+            and obj
+            and obj.name in bpy.data.objects
+            and any(obj.name in scene.objects for scene in bpy.data.scenes)
+        )
 
-    if not exists_mesh:
-        if obj is not None:
-            print(f"Dangling reference: {obj.name}")
-        else:
-            print(f"Dangling reference: {obj}")
+        if not exists_mesh:
+            if obj is not None:
+                print(f"Dangling reference: {obj.name}")
+            else:
+                print(f"Dangling reference: {obj}")
+            return False
+
+        return True
+    except ReferenceError:
+        print(f"ReferenceError when checking object validity")
         return False
-
-    return True
+    except Exception as e:
+        print(f"Error checking object validity: {e}")
+        return False
 
 
 def refresh_object_sets_colours(context):
+    """Refresh colors for all object sets"""
     print("[INFO] Force Refreshing Object Sets")
     addon_prefs = get_addon_prefs()
     addon_props = get_addon_props()
@@ -728,7 +754,7 @@ def refresh_object_sets_colours(context):
     for object_set in object_sets:
         if IS_DEBUG():
             print(f"[DEBUG] Refresh: {object_set.name}")
-        object_set.update_object_set_colour(context)
+        queue_op(object_set.update_object_set_colour, context)
 
 
 def get_depsgraph():
@@ -764,6 +790,7 @@ def get_depsgraph_is_updated_transform() -> bool:
 
 
 def cleanup_object_set_invalid_references(scene):
+    """Remove invalid object references from object sets"""
     if IS_DEBUG():
         print("------------- Cleanup Object Sets Invalid References -------------")
 
@@ -774,22 +801,33 @@ def cleanup_object_set_invalid_references(scene):
 
     if addon_props.objects_updated:
         for object_set in addon_props.object_sets:
-            old_len = len(object_set.objects)
-
-            # Collect objects
-            for object_item in reversed(object_set.objects):
+            # Identify invalid objects without modifying anything
+            invalid_objects = []
+            for object_item in object_set.objects:
                 obj = object_item.object
                 if not is_valid_object_global(obj):
-                    object_set.remove_object(obj)
+                    invalid_objects.append(obj)
 
-            cleaned_up = old_len - len(object_set.objects)
+            # Now safely remove the invalid objects
+            if invalid_objects:
 
-            if cleaned_up > 0:
-                print(
-                    f"Cleaned up {cleaned_up} references for Object Set '{object_set.name}'"
-                )
+                def remove_invalid_objects(object_set, invalid_objects):
+                    for obj in invalid_objects:
+                        try:
+                            object_set.remove_object(obj)
+                        except Exception as e:
+                            print(f"[ERROR] Failed to remove object from set: {e}")
 
-    # Force UI Update to reflect changes :)
+                    print(
+                        f"Cleaned up {len(invalid_objects)} references for Object Set '{object_set.name}'"
+                    )
+
+                queue_op(remove_invalid_objects, object_set, invalid_objects)
+
+        # Reset the flag after cleanup
+        queue_op(lambda: setattr(addon_props, "objects_updated", False))
+
+    # Force UI Update to reflect changes
     for area in bpy.context.screen.areas:
         if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
             area.tag_redraw()
@@ -798,203 +836,113 @@ def cleanup_object_set_invalid_references(scene):
 def update_data_scene_objects(scene, force_run=False):
     """
     Handler method to keep track of objects in `bpy.data.objects` and `bpy.context.scene.objects`
-    in order to determine if there were changes in object count.
-
-    Used to trigger or accept certain methods that better rely on object count changes.
-
-    To determine if there was an object change, it can be tested with:
-
-    `if bpy.context.scene.r0fl_toolbox_props.objects_updated == bool:`
-
-    `if bpy.context.scene.r0fl_toolbox_props.objects_updated:`
+    to determine if there were changes in object count.
     """
     addon_props = get_addon_props()
 
-    data_objects = addon_props.data_objects
-    scene_objects = addon_props.scene_objects
-
-    bpy_scene_objects_len = len(bpy.context.scene.objects)
-    bpy_data_objects_len = len(bpy.data.objects)
-
-    # Reset updated to False
-    safe_update_property(addon_props, "objects_updated", False)
+    bpy_scene_objects_count = len(bpy.context.scene.objects)
+    bpy_data_objects_count = len(bpy.data.objects)
+    addon_scene_objects_count = len(addon_props.scene_objects)
+    addon_data_objects_count = len(addon_props.data_objects)
 
     if IS_DEBUG():
         print("------------- Update Data Scene Objects -------------")
-        print(f"[DEBUG] Scene {bpy_scene_objects_len} == {len(scene_objects)}")
-        print(f"[DEBUG] Data  {bpy_data_objects_len} == {len(data_objects)}")
+        print(f"[DEBUG] Scene {bpy_scene_objects_count} == {addon_scene_objects_count}")
+        print(f"[DEBUG] Data  {bpy_data_objects_count} == {addon_data_objects_count}")
 
-    if (
-        force_run
-        or bpy_data_objects_len != len(data_objects)
-        or bpy_scene_objects_len != len(scene_objects)
-    ):
-        if IS_DEBUG():
-            print("------------- Update Data Scene Objects -------------")
+    counts_changed = (
+        bpy_data_objects_count != addon_data_objects_count
+        or bpy_scene_objects_count != addon_scene_objects_count
+    )
 
-        unused_count = 0
+    if force_run or counts_changed:
 
-        # Clear Scene Objects Reference
-        try:
+        def update_object_references():
+            if IS_DEBUG():
+                print("------------- Updating Object References -------------")
+
+            addon_props.objects_updated = True
+
             addon_props.scene_objects.clear()
-            if IS_DEBUG():
-                print(f"Clear addon_props.scene_objects")
-        except Exception as e:
-            print(f"[ERROR] Error clearing scene_objects: {e}")
-            if IS_DEBUG():
-                context_error_debug(error=e)
+            addon_props.data_objects.clear()
 
-        # Collect Scene Objects
-        for obj in bpy.context.scene.objects:
-            try:
+            # Collect Scene Objects
+            for obj in bpy.context.scene.objects:
                 item = addon_props.scene_objects.add()
                 item.object = obj
-            except Exception as e:
-                print(f"[ERROR] Error adding new entry to scene_objects: {e}")
-                if IS_DEBUG():
-                    context_error_debug(error=e)
 
-        # Clear Data Objects
-        try:
-            addon_props.data_objects.clear()
-        except Exception as e:
-            print(f"[ERROR] Error clearing data_objects: {e}")
-            if IS_DEBUG():
-                context_error_debug(error=e)
-
-        # Collect Data Objects
-        errors = []
-        unused_objects = []
-        for obj in bpy.data.objects:
-            try:
+            # Collect Data Objects
+            unused_objects = []
+            for obj in bpy.data.objects:
                 if obj.name in bpy.context.scene.objects:
                     item = addon_props.data_objects.add()
                     item.object = obj
                 else:
-                    unused_count += 1
                     unused_objects.append(obj)
-            except Exception as e:
-                print(f"[ERROR] Error adding new entry to data_objects: {e}")
-                if IS_DEBUG():
-                    context_error_debug(error=e, extra_prints=[f"Obj Name: {obj.name}"])
-                errors.append(e)
 
-        if IS_DEBUG():
-            print(f"[DEBUG] {addon_props.data_objects}")
-            print(f"[DEBUG] {addon_props.scene_objects}")
-            if errors:
-                context_error_debug(error="\n".join(errors))
-
-        if unused_count > 0:
-            safe_update_property(addon_props, "objects_updated", True)
             if IS_DEBUG():
-                print(f"Unused blocks to be cleared: {unused_count}")
-            for unused in unused_objects:
-                if IS_DEBUG():
-                    print(f"[DEBUG] (DATA) {unused.name} not in Scene.")
+                if unused_objects:
+                    print(f"Unused blocks to be cleared: {len(unused_objects)}")
+                    for unused in unused_objects:
+                        print(f"[DEBUG] (DATA) {unused.name} not in Scene.")
 
-        if IS_DEBUG():
-            print(f"[DEBUG] Objects Updated = {addon_props.objects_updated}")
+        queue_op(update_object_references)
     else:
-        try:
-            addon_props.objects_updated = False
-        except Exception as e:
-            print(f"[ERROR] Error setting objects_updated = False: {e}")
-            if IS_DEBUG():
-                context_error_debug(error=e)
+        # Reset the flag if no changes
+        queue_op(lambda: setattr(addon_props, "objects_updated", False))
 
 
-def safe_update_property(obj, prop_name, value):
-    """Safely update a property by scheduling it for the next safe context"""
-
-    def do_update():
-        try:
-            if IS_DEBUG():
-                print(f"[DEBUG] Safely updating property {prop_name} to {value}")
-            setattr(obj, prop_name, value)
-            return None  # Don't repeat
-        except Exception as e:
-            print(f"[ERROR] Failed to safely update {prop_name}: {e}")
-            return None  # Don't repeat
-
-    schedule_timer_run(do_update)
-
-
-def set_show_all_operators(show: bool):
-    """While Blender logs operators in the Info editor, this only reports operators with the `REGISTER` option enabled so as not to flood the Info view with calls to `bpy.ops.view3d.smoothview` and `bpy.ops.view3d.zoom`.
-
-    Yet for testing it can be useful to see every operator called in a terminal, do this by enabling the debug option either by passing the `--debug-wm` argument when starting Blender or by setting `bpy.app.debug_wm` to True while Blender is running.
+def run_in_main_thread(function, *args, **kwargs):
     """
+    Safely schedule a function to run in the main thread.
+    This function can be called from any thread.
 
-    bpy.app.debug_wm = show
-
-    print(f"Set Show All Operators to {show}")
-
-
-def set_space_data_shading_wireframe_object_colour(dummy=None):
-    # First try to use the current context
-    space = getattr(bpy.context, "space_data", None)
-    if space and hasattr(space, "shading"):
-        space.shading.wireframe_color_type = "OBJECT"
-    else:
-        # If not available, iterate over all windows and areas to find a 3D View
-        # Welcome to nesting hell!
-        for window in bpy.context.window_manager.windows:
-            for area in window.screen.areas:
-                if area.type == "VIEW_3D":
-                    for sp in area.spaces:
-                        if sp.type == "VIEW_3D" and hasattr(sp, "shading"):
-                            sp.shading.wireframe_color_type = "OBJECT"
-                            return
+    Args:
+        function: The function to execute in the main thread
+        *args: Arguments to pass to the function
+        **kwargs: Keyword arguments to pass to the function
+    """
+    queue_op(function, *args, **kwargs)
 
 
-def IS_DEBUG() -> bool:
-    addon_prefs = get_addon_prefs()
-    return DEBUG or addon_prefs.debug
+def force_redraw_all():
+    """Force a redraw of all UI areas"""
+    for window in bpy.context.window_manager.windows:
+        for area in window.screen.areas:
+            area.tag_redraw()
 
 
-# -------------------------------------------------------------------
-#   HANDLERS & TIMER SCHEDULES
-# -------------------------------------------------------------------
-@bpy.app.handlers.persistent
-def handler_update_object_set_count(context):
-    if IS_DEBUG():
-        print("------------- Update Object Sets -------------")
+def recover_from_error_state():
+    """Attempt to recover from an error state"""
+    global _ADDON_IN_ERROR_STATE
 
-    try:
-        addon_props = get_addon_props()
-        for object_set in addon_props.object_sets:
-            object_set.update_count()
-    except Exception as e:
-        print(f"[ERROR] Error updating object sets: {e}")
-        context_error_debug(error=e)
+    if not _ADDON_IN_ERROR_STATE:
+        return
 
+    print("[UTILS] [RECOVERY] Attempting to recover from error state...")
+
+    # Clear the operation queue
+    while not _operation_queue.empty():
+        try:
+            _operation_queue.get_nowait()
+            _operation_queue.task_done()
+        except:
+            pass
+
+    _ADDON_IN_ERROR_STATE = False
+
+    # Force a clean state for the addon
+    print("[UTILS] [RECOVERY] Error state cleared")
+
+    # Force UI update to reflect recovery
     for area in bpy.context.screen.areas:
-        if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
-            area.tag_redraw()  # Force UI Update to reflect changes :)
+        area.tag_redraw()
 
-
-@bpy.app.handlers.persistent
-def handler_continuous_property_list_update(scene, context):
-    schedule_timer_run(continuous_property_list_update, scene, context)
-
-
-@bpy.app.handlers.persistent
-def handler_cleanup_object_set_invalid_references(scene):
-    schedule_timer_run(cleanup_object_set_invalid_references, scene)
-
-
-@bpy.app.handlers.persistent
-def handler_on_load_refresh_object_sets_colours(scene):
-    schedule_timer_run(refresh_object_sets_colours, bpy.context, interval=1)
-
-
-@bpy.app.handlers.persistent
-def handler_update_data_scene_objects(scene, force_run=False):
-    schedule_timer_run(update_data_scene_objects, scene, force_run=force_run)
+    return True
 
 
 def context_error_debug(error: str = None, extra_prints: list = []):
+    """Print debug information about the current context and error"""
     if not IS_DEBUG():
         return
 
@@ -1042,15 +990,74 @@ def context_error_debug(error: str = None, extra_prints: list = []):
     print(f"+" * 32)
 
 
-def unregister():
-    global _TIMERS
-    for func_name, wrapper in _TIMERS.items():
-        try:
-            print(f"[_TIMERS] Unregistering timer function: {func_name}")
-            bpy.app.timers.unregister(wrapper)
-        except Exception as e:
-            print(
-                f"[_TIMERS] Unregistering timer function fail: At one point registered {func_name} but it is not longer registered in timers."
-            )
+def IS_DEBUG():
+    """Check if debug mode is enabled"""
+    return DEBUG
 
-    _TIMERS.clear()
+
+def timer_update_data_scene_objects():
+    """Timer compatible wrapper for update_data_scene_objects"""
+    try:
+        scene = bpy.context.scene
+        queue_op(update_data_scene_objects, scene)
+    except Exception as e:
+        print(f"[ERROR] in timer_update_data_scene_objects: {e}")
+    return _QUEUE_RETRY_SECONDS
+
+
+@bpy.app.handlers.persistent
+def handler_update_data_scene_objects(scene):
+    """Queue the update_data_scene_objects operation"""
+    queue_op(update_data_scene_objects, scene)
+
+
+def timer_continuous_property_list_update():
+    """Timer compatible wrapper for continuous_property_list_update"""
+    try:
+        scene = bpy.context.scene
+        ctx = bpy.context
+        queue_op(continuous_property_list_update, scene, ctx)
+    except Exception as e:
+        print(f"[ERROR] in timer_continuous_property_list_update: {e}")
+    return _QUEUE_RETRY_SECONDS
+
+
+@bpy.app.handlers.persistent
+def handler_continuous_property_list_update(scene, context=None):
+    """Queue the continuous_property_list_update operation"""
+    ctx = context or bpy.context
+    queue_op(continuous_property_list_update, scene, ctx)
+
+
+def timer_cleanup_object_set_invalid_references():
+    """Timer compatible wrapper for cleanup_object_set_invalid_references"""
+    try:
+        scene = bpy.context.scene
+        queue_op(cleanup_object_set_invalid_references, scene)
+    except Exception as e:
+        print(f"[ERROR] in timer_cleanup_object_set_invalid_references: {e}")
+    return (
+        _QUEUE_RETRY_SECONDS / 2 if _QUEUE_RETRY_SECONDS >= 1 else _QUEUE_RETRY_SECONDS
+    )
+
+
+@bpy.app.handlers.persistent
+def handler_cleanup_object_set_invalid_references(scene):
+    """Queue the cleanup_object_set_invalid_references operation"""
+    queue_op(cleanup_object_set_invalid_references, scene)
+
+
+@bpy.app.handlers.persistent
+def handler_on_load_refresh_object_sets_colours(dummy):
+    """Queue the refresh_object_sets_colours operation"""
+    queue_op(refresh_object_sets_colours, bpy.context)
+
+
+def register():
+    if not bpy.app.timers.is_registered(process_queue_ops):
+        bpy.app.timers.register(process_queue_ops, persistent=True)
+
+
+def unregister():
+    if bpy.app.timers.is_registered(process_queue_ops):
+        bpy.app.timers.unregister(process_queue_ops)

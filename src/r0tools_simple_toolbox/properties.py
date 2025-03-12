@@ -543,10 +543,28 @@ classes = [
     r0SimpleToolboxProps,
 ]
 
-depsgraph_handlers = [
-    u.handler_update_data_scene_objects,
-    u.handler_continuous_property_list_update,
-    u.handler_cleanup_object_set_invalid_references,
+# fmt: off
+timer_handlers = {
+    u.recover_from_error_state: {
+        "persistent": True, "first_interval": 5.0
+    },
+    u.timer_update_data_scene_objects: {
+        "persistent": True, "first_interval": 0
+    },
+    u.timer_cleanup_object_set_invalid_references: {
+        "persistent": True,
+        "first_interval": 0,
+    },
+    u.timer_continuous_property_list_update: {
+        "persistent": True, "first_interval": 0
+    },
+}
+# fmt: on
+
+depsgraph_update_post_handlers = [
+    # handler_update_data_scene_objects,
+    # handler_cleanup_object_set_invalid_references,
+    # handler_continuous_property_list_update,
 ]
 
 load_post_handlers = [
@@ -573,37 +591,38 @@ def register():
         DEBUG = False
         print(f"[PREFERENCES] Set Addon Debug to False")
 
-    for handler in depsgraph_handlers:
-        if handler not in bpy.app.handlers.depsgraph_update_post:
-            if u.IS_DEBUG():
-                print(f"[DEBUG] Registering depsgraph handler {handler}")
-            bpy.app.handlers.depsgraph_update_post.append(handler)
+    print("[UTILS] Registering handlers and timers")
+
+    for timer_func, func_args in timer_handlers.items():
+        persistent = func_args.get("persistent", False)
+        first_interval = func_args.get("first_interval", 0)
+
+        if not bpy.app.timers.is_registered(timer_func):
+            bpy.app.timers.register(
+                timer_func, persistent=persistent, first_interval=first_interval
+            )
+
+    for handler in depsgraph_update_post_handlers:
+        bpy.app.handlers.depsgraph_update_post.append(handler)
 
     for handler in load_post_handlers:
-        if handler not in bpy.app.handlers.load_post:
-            if u.IS_DEBUG():
-                print(f"[DEBUG] Registering load_post handler {handler}")
-            bpy.app.handlers.load_post.append(handler)
+        bpy.app.handlers.load_post.append(handler)
 
 
 def unregister():
-    for handler in depsgraph_handlers:
-        try:
-            if handler in bpy.app.handlers.depsgraph_update_post:
-                bpy.app.handlers.depsgraph_update_post.remove(handler)
-        except Exception as e:
-            print(f"[ERROR] Error removing handler {handler}: {e}")
-            u.context_error_debug(error=e)
+    print("[UTILS] Unregistering handlers and timers")
+
+    for timer_func in timer_handlers.keys():
+        if bpy.app.timers.is_registered(timer_func):
+            bpy.app.timers.unregister(timer_func)
+
+    for handler in depsgraph_update_post_handlers:
+        if handler in bpy.app.handlers.depsgraph_update_post:
+            bpy.app.handlers.depsgraph_update_post.remove(handler)
 
     for handler in load_post_handlers:
-        try:
-            if handler in bpy.app.handlers.load_post:
-                if u.IS_DEBUG():
-                    print(f"[DEBUG] Unregistering load_post handler {handler}")
-                bpy.app.handlers.load_post.remove(handler)
-        except Exception as e:
-            print(f"[ERROR] Error removing handler {handler}: {e}")
-            u.context_error_debug(error=e)
+        if handler in bpy.app.handlers.load_post:
+            bpy.app.handlers.load_post.remove(handler)
 
     for cls in classes:
         print(f"[PROPERTIES] Unregistering {cls.__name__}")
