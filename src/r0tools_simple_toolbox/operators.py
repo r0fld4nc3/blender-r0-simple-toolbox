@@ -119,7 +119,9 @@ class CustomTransformsOrientationsTracker:
         # Remove any existing handlers to prevent duplicates
         cls.unregister_handler()
 
-        print(f"Registering Handler {cls.track_custom_orientations}")
+        print(
+            f"[OPERATORS] Register depsgraph_handler_post: {cls.track_custom_orientations.__name__}"
+        )
         bpy.app.handlers.depsgraph_update_post.append(cls.track_custom_orientations)
 
         # Initial population of custom orientations
@@ -133,7 +135,9 @@ class CustomTransformsOrientationsTracker:
         """
         # Remove the handler if it exists
         if cls.track_custom_orientations in bpy.app.handlers.depsgraph_update_post:
-            print(f"Unregistering Handler {cls.track_custom_orientations}")
+            print(
+                f"[OPERATORS] Unregister depsgraph_handler_post: {cls.track_custom_orientations.__name__}"
+            )
             bpy.app.handlers.depsgraph_update_post.remove(cls.track_custom_orientations)
 
 
@@ -1963,7 +1967,7 @@ def unregister_keymapping():
 
 def register():
     for cls in classes:
-        print(f"[OPERATORS] Registering {cls.__name__}")
+        print(f"[OPERATORS] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
     CustomTransformsOrientationsTracker.register_handler()
@@ -1982,7 +1986,7 @@ def register():
 
 def unregister():
     for cls in classes:
-        print(f"[OPERATORS] Unregistering {cls.__name__}")
+        print(f"[OPERATORS] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
 
     unregister_keymapping()

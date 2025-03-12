@@ -101,7 +101,7 @@ addon_keymaps = list()
 
 
 def register_keymaps():
-    print(f"[KEYMAPS] Registering Keymaps")
+    print(f"[KEYMAPS] Register Keymaps")
     addon_prefs = u.get_addon_prefs()
     wm = bpy.context.window_manager
     kc = wm.keyconfigs.addon
@@ -128,7 +128,7 @@ def register_keymaps():
 
 
 def unregister_keymaps():
-    print(f"[KEYMAPS] Unregistering Keymaps")
+    print(f"[KEYMAPS] Unregister Keymaps")
 
     for km, kmi in addon_keymaps:
         print(f"[KEYMAPS] Remove {kmi.idname}")

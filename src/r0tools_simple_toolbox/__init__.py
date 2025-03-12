@@ -87,10 +87,12 @@ class AddonRegisterHelper:
         for module in self.modules:
             if hasattr(module, "register"):
                 try:
+                    print(f"[INIT] Register module: {module.__name__}")
                     module.register()
-                    print(f"[INIT] Registered module: {module.__name__}")
                 except Exception as e:
-                    print(f"[ERROR] Error registering {module.__name__}: {str(e)}")
+                    print(
+                        f"[ERROR] Error registering module {module.__name__}: {str(e)}"
+                    )
 
         print("-------------------------------------------------------------\n")
 
@@ -103,10 +105,12 @@ class AddonRegisterHelper:
         for module in reversed(self.modules):
             if hasattr(module, "unregister"):
                 try:
+                    print(f"[INIT] Register module: {module.__name__}")
                     module.unregister()
-                    print(f"[INIT]Unregistered module: {module.__name__}")
                 except Exception as e:
-                    print(f"[ERROR] Error unregistering {module.__name__}: {str(e)}")
+                    print(
+                        f"[ERROR] Error unregistering module {module.__name__}: {str(e)}"
+                    )
 
 
 # Create global instance

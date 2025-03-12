@@ -1054,9 +1054,11 @@ def handler_on_load_refresh_object_sets_colours(dummy):
 
 def register():
     if not bpy.app.timers.is_registered(process_queue_ops):
+        print("[UTILS] Register timer: process_queue_ops")
         bpy.app.timers.register(process_queue_ops, persistent=True)
 
 
 def unregister():
     if bpy.app.timers.is_registered(process_queue_ops):
+        print("[UTILS] Register timer: process_queue_ops")
         bpy.app.timers.unregister(process_queue_ops)

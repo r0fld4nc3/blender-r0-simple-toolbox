@@ -575,10 +575,10 @@ load_post_handlers = [
 
 def register():
     for cls in classes:
-        print(f"[PROPERTIES] Registering {cls.__name__}")
+        print(f"[PROPERTIES] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
-    print("[PROPERTIES] Registering bpy.types.Scene.r0fl_toolbox_props")
+    print("[PROPERTIES] Register bpy.types.Scene.r0fl_toolbox_props")
     # Registering to Scene also has the side effect of saving properties on a per scene/file basis, which is nice!
     bpy.types.Scene.r0fl_toolbox_props = PointerProperty(type=r0SimpleToolboxProps)
 
@@ -586,47 +586,51 @@ def register():
     global DEBUG
     if addon_prefs.debug:
         DEBUG = True
-        print(f"[PREFERENCES] Set Addon Debug to True")
+        print(f"[PROPERTIES] Set Addon Debug to True")
     else:
         DEBUG = False
-        print(f"[PREFERENCES] Set Addon Debug to False")
-
-    print("[UTILS] Registering handlers and timers")
+        print(f"[PROPERTIES] Set Addon Debug to False")
 
     for timer_func, func_args in timer_handlers.items():
         persistent = func_args.get("persistent", False)
         first_interval = func_args.get("first_interval", 0)
 
         if not bpy.app.timers.is_registered(timer_func):
+            print(f"[PROPERTIES] Register Timer: {timer_func.__name__}")
             bpy.app.timers.register(
                 timer_func, persistent=persistent, first_interval=first_interval
             )
 
     for handler in depsgraph_update_post_handlers:
+        print(f"[PROPERTIES] Register depsgraph_post_handler: {handler.__name__}")
         bpy.app.handlers.depsgraph_update_post.append(handler)
 
     for handler in load_post_handlers:
+        print(f"[PROPERTIES] Register load_post_handler: {handler.__name__}")
         bpy.app.handlers.load_post.append(handler)
 
 
 def unregister():
-    print("[UTILS] Unregistering handlers and timers")
+    print("[UTILS] Unregister handlers and timers")
 
     for timer_func in timer_handlers.keys():
         if bpy.app.timers.is_registered(timer_func):
+            print(f"[PROPERTIES] Unregister Timer: {timer_func.__name__}")
             bpy.app.timers.unregister(timer_func)
 
     for handler in depsgraph_update_post_handlers:
         if handler in bpy.app.handlers.depsgraph_update_post:
+            print(f"[PROPERTIES] Unregister depsgraph_post_handler: {handler.__name__}")
             bpy.app.handlers.depsgraph_update_post.remove(handler)
 
     for handler in load_post_handlers:
         if handler in bpy.app.handlers.load_post:
+            print(f"[PROPERTIES] Unregister load_post_handler: {handler.__name__}")
             bpy.app.handlers.load_post.remove(handler)
 
     for cls in classes:
-        print(f"[PROPERTIES] Unregistering {cls.__name__}")
+        print(f"[PROPERTIES] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
 
-    print(f"[PROPERTIES] Unregistering bpy.types.Scene.r0fl_toolbox_props")
+    print(f"[PROPERTIES] Unregister bpy.types.Scene.r0fl_toolbox_props")
     del bpy.types.Scene.r0fl_toolbox_props
