@@ -1963,6 +1963,7 @@ def unregister_keymapping():
 
 def register():
     for cls in classes:
+        print(f"[OPERATORS] Registering {cls.__name__}")
         bpy.utils.register_class(cls)
 
     CustomTransformsOrientationsTracker.register_handler()
@@ -1981,6 +1982,7 @@ def register():
 
 def unregister():
     for cls in classes:
+        print(f"[OPERATORS] Unregistering {cls.__name__}")
         bpy.utils.unregister_class(cls)
 
     unregister_keymapping()

@@ -557,7 +557,7 @@ load_post_handlers = [
 
 def register():
     for cls in classes:
-        print(f"[PROPERTIES] Registering {cls}")
+        print(f"[PROPERTIES] Registering {cls.__name__}")
         bpy.utils.register_class(cls)
 
     print("[PROPERTIES] Registering bpy.types.Scene.r0fl_toolbox_props")
@@ -606,6 +606,7 @@ def unregister():
             u.context_error_debug(error=e)
 
     for cls in classes:
+        print(f"[PROPERTIES] Unregistering {cls.__name__}")
         bpy.utils.unregister_class(cls)
 
     print(f"[PROPERTIES] Unregistering bpy.types.Scene.r0fl_toolbox_props")

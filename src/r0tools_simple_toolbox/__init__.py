@@ -88,7 +88,7 @@ class AddonRegisterHelper:
             if hasattr(module, "register"):
                 try:
                     module.register()
-                    print(f"Registered module: {module.__name__}")
+                    print(f"[INIT] Registered module: {module.__name__}")
                 except Exception as e:
                     print(f"[ERROR] Error registering {module.__name__}: {str(e)}")
 
@@ -104,7 +104,7 @@ class AddonRegisterHelper:
             if hasattr(module, "unregister"):
                 try:
                     module.unregister()
-                    print(f"Unregistered module: {module.__name__}")
+                    print(f"[INIT]Unregistered module: {module.__name__}")
                 except Exception as e:
                     print(f"[ERROR] Error unregistering {module.__name__}: {str(e)}")
 

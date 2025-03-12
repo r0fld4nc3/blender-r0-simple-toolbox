@@ -199,6 +199,7 @@ depsgraph_handlers = []
 
 def register():
     for cls in classes:
+        print(f"[UI] Registering {cls.__name__}")
         bpy.utils.register_class(cls)
 
     for handler in depsgraph_handlers:
@@ -219,4 +220,5 @@ def unregister():
             u.context_error_debug(error=e)
 
     for cls in classes:
+        print(f"[UI] Unregistering {cls.__name__}")
         bpy.utils.unregister_class(cls)
