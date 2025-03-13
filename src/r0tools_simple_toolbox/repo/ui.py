@@ -27,16 +27,12 @@ def draw_repo_layout(layout, context):
         # Homepage and Releases
         split.operator("r0tools.open_repo_homepage", icon="URL")
         split.operator("r0tools.open_repo_releases_page", icon="URL")
-        # Check for Updates
-        if addon_prefs.experimental_features:
-            # Check Update Button
-            row = repo_box.row()
-            row.operator("r0tools.check_for_update", icon="FILE_REFRESH")
-            # Check Update on Startup
-            row = repo_box.row()
-            row.prop(
-                addon_prefs, "check_update_startup", text="Check Update on Startup"
-            )
+        # Check Update Button
+        row = repo_box.row()
+        row.operator("r0tools.check_for_update", icon="FILE_REFRESH")
+        # Check Update on Startup
+        row = repo_box.row()
+        row.prop(addon_prefs, "check_update_startup", text="Check Update on Startup")
 
         issues_box = main_box.box()
         row = issues_box.row()
