@@ -45,7 +45,7 @@ def trigger_update_check(*args, **kwargs) -> bool:
         KEY_PULLED_VERSION: "0.0.0",
     }
 
-    if addon_prefs.experimental_features and addon_prefs.check_update_startup:
+    if addon_prefs.check_update_startup:
         print("-------------------------------------------------------")
         if update_check_file.exists() and update_check_file.is_file():
             with open(update_check_file, "r") as f:

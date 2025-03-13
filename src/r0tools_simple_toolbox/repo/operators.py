@@ -95,9 +95,11 @@ classes = [
 
 def register():
     for cls in classes:
+        print(f"[REPO] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
 
 def unregister():
     for cls in classes:
+        print(f"[REPO] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

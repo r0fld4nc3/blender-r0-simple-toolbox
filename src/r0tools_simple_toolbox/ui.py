@@ -199,11 +199,12 @@ depsgraph_handlers = []
 
 def register():
     for cls in classes:
+        print(f"[UI] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
     for handler in depsgraph_handlers:
         if handler not in bpy.app.handlers.depsgraph_update_post:
-            print(f"[DEBUG] Registering Handler {handler}")
+            print(f"[DEBUG] [UI] Register depsgraph_handler_post: {handler.__name__}")
             bpy.app.handlers.depsgraph_update_post.append(handler)
 
     upd.trigger_update_check()
@@ -215,8 +216,9 @@ def unregister():
             if handler in bpy.app.handlers.depsgraph_update_post:
                 bpy.app.handlers.depsgraph_update_post.remove(handler)
         except Exception as e:
-            print(f"[ERROR] Error removing handler {handler}: {e}")
+            print(f"[ERROR] [UI] Error removing handler: {handler.__name__}: {e}")
             u.context_error_debug(error=e)
 
     for cls in classes:
+        print(f"[UI] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

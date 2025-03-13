@@ -93,6 +93,9 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
             obj.color = self.set_colour
 
     name: bpy.props.StringProperty(name="Object Set Name", default="New Object Set")  # type: ignore
+    separator: bpy.props.BoolProperty(default=False)  # type: ignore
+    _default_separator_name = "-" * 16
+
     objects: bpy.props.CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
     count: bpy.props.IntProperty(name="Count", default=0)  # type: ignore
     set_colour: bpy.props.FloatVectorProperty(  # type: ignore
@@ -105,7 +108,10 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
         update=set_object_set_colour,
     )
 
-    def add_object(self, obj):
+    def assign_object(self, obj):
+        if self.separator:
+            return
+
         if not any(o.object == obj for o in self.objects):
             new_object = self.objects.add()
             new_object.object = obj
@@ -115,6 +121,9 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
     def remove_object(self, obj):
         addon_prefs = u.get_addon_prefs()
         allow_override = addon_prefs.object_sets_colour_allow_override
+
+        if self.separator:
+            return
 
         for i, o in enumerate(self.objects):
             if o.object == obj:
@@ -145,6 +154,8 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
         containing_sets = list()
 
         for obj_set in addon_props.object_sets:
+            if obj_set.separator:
+                continue
             for obj_item in obj_set.objects:
                 if obj_item.object == obj:
                     if obj_set not in containing_sets:
@@ -153,6 +164,9 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
         return containing_sets
 
     def update_count(self):
+        if self.separator:
+            return
+
         self.count = len(self.objects)
         if u.IS_DEBUG():
             print(f"[DEBUG] Updated count for Set '{self.name}': {self.count}")
@@ -168,11 +182,20 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
     ):
         addon_prefs = u.get_addon_prefs()
 
+        # Check if the item to insert is a separator
+        if item.separator:
+            # Draw separator
+            row = layout.row()
+            row.enabled = False
+            row.alignment = "CENTER"
+            row.label(text=item.name)
+            return
+
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             row = layout.row(align=True)
 
             # Configure accordingly for object sets colour
-            if addon_prefs.object_sets_use_colour and addon_prefs.experimental_features:
+            if addon_prefs.object_sets_use_colour:
                 scale_x = 0.8  # Scales extending the right side to the right
                 scale_y = 0.8  # Scales extending the bottom down
                 row.separator(factor=0.8)  # Pushes things to the right
@@ -503,16 +526,15 @@ class AddonPreferences(bpy.types.AddonPreferences):
         row = object_sets_settings_box.row()
         row.prop(self, "object_sets_list_rows")
         # Object Sets Use Colour
-        if self.experimental_features:
-            row = object_sets_settings_box.row()
-            row.prop(self, "object_sets_use_colour")
+        row = object_sets_settings_box.row()
+        row.prop(self, "object_sets_use_colour")
 
-            row = object_sets_settings_box.row()
-            row.prop(self, "object_sets_colour_allow_override")
+        row = object_sets_settings_box.row()
+        row.prop(self, "object_sets_colour_allow_override")
 
-            if self.object_sets_use_colour:
-                row = object_sets_settings_box.row()
-                row.prop(self, "object_sets_default_colour", text="Default Colour")
+        if self.object_sets_use_colour:
+            row = object_sets_settings_box.row()
+            row.prop(self, "object_sets_default_colour", text="Default Colour")
 
         # Custom Properties
         custom_properties_settings_box = layout.box()
@@ -543,10 +565,28 @@ classes = [
     r0SimpleToolboxProps,
 ]
 
-depsgraph_handlers = [
-    u.handler_update_data_scene_objects,
-    u.handler_continuous_property_list_update,
-    u.handler_cleanup_object_set_invalid_references,
+# fmt: off
+timer_handlers = {
+    u.recover_from_error_state: {
+        "persistent": True, "first_interval": 5.0
+    },
+    u.timer_update_data_scene_objects: {
+        "persistent": True, "first_interval": 0
+    },
+    u.timer_cleanup_object_set_invalid_references: {
+        "persistent": True,
+        "first_interval": 0,
+    },
+    u.timer_continuous_property_list_update: {
+        "persistent": True, "first_interval": 0
+    },
+}
+# fmt: on
+
+depsgraph_update_post_handlers = [
+    # handler_update_data_scene_objects,
+    # handler_cleanup_object_set_invalid_references,
+    # handler_continuous_property_list_update,
 ]
 
 load_post_handlers = [
@@ -557,10 +597,10 @@ load_post_handlers = [
 
 def register():
     for cls in classes:
-        print(f"[PROPERTIES] Registering {cls}")
+        print(f"[PROPERTIES] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
-    print("[PROPERTIES] Registering bpy.types.Scene.r0fl_toolbox_props")
+    print("[PROPERTIES] Register bpy.types.Scene.r0fl_toolbox_props")
     # Registering to Scene also has the side effect of saving properties on a per scene/file basis, which is nice!
     bpy.types.Scene.r0fl_toolbox_props = PointerProperty(type=r0SimpleToolboxProps)
 
@@ -568,45 +608,51 @@ def register():
     global DEBUG
     if addon_prefs.debug:
         DEBUG = True
-        print(f"[PREFERENCES] Set Addon Debug to True")
+        print(f"[PROPERTIES] Set Addon Debug to True")
     else:
         DEBUG = False
-        print(f"[PREFERENCES] Set Addon Debug to False")
+        print(f"[PROPERTIES] Set Addon Debug to False")
 
-    for handler in depsgraph_handlers:
-        if handler not in bpy.app.handlers.depsgraph_update_post:
-            if u.IS_DEBUG():
-                print(f"[DEBUG] Registering depsgraph handler {handler}")
-            bpy.app.handlers.depsgraph_update_post.append(handler)
+    for timer_func, func_args in timer_handlers.items():
+        persistent = func_args.get("persistent", False)
+        first_interval = func_args.get("first_interval", 0)
+
+        if not bpy.app.timers.is_registered(timer_func):
+            print(f"[PROPERTIES] Register Timer: {timer_func.__name__}")
+            bpy.app.timers.register(
+                timer_func, persistent=persistent, first_interval=first_interval
+            )
+
+    for handler in depsgraph_update_post_handlers:
+        print(f"[PROPERTIES] Register depsgraph_post_handler: {handler.__name__}")
+        bpy.app.handlers.depsgraph_update_post.append(handler)
 
     for handler in load_post_handlers:
-        if handler not in bpy.app.handlers.load_post:
-            if u.IS_DEBUG():
-                print(f"[DEBUG] Registering load_post handler {handler}")
-            bpy.app.handlers.load_post.append(handler)
+        print(f"[PROPERTIES] Register load_post_handler: {handler.__name__}")
+        bpy.app.handlers.load_post.append(handler)
 
 
 def unregister():
-    for handler in depsgraph_handlers:
-        try:
-            if handler in bpy.app.handlers.depsgraph_update_post:
-                bpy.app.handlers.depsgraph_update_post.remove(handler)
-        except Exception as e:
-            print(f"[ERROR] Error removing handler {handler}: {e}")
-            u.context_error_debug(error=e)
+    print("[UTILS] Unregister handlers and timers")
+
+    for timer_func in timer_handlers.keys():
+        if bpy.app.timers.is_registered(timer_func):
+            print(f"[PROPERTIES] Unregister Timer: {timer_func.__name__}")
+            bpy.app.timers.unregister(timer_func)
+
+    for handler in depsgraph_update_post_handlers:
+        if handler in bpy.app.handlers.depsgraph_update_post:
+            print(f"[PROPERTIES] Unregister depsgraph_post_handler: {handler.__name__}")
+            bpy.app.handlers.depsgraph_update_post.remove(handler)
 
     for handler in load_post_handlers:
-        try:
-            if handler in bpy.app.handlers.load_post:
-                if u.IS_DEBUG():
-                    print(f"[DEBUG] Unregistering load_post handler {handler}")
-                bpy.app.handlers.load_post.remove(handler)
-        except Exception as e:
-            print(f"[ERROR] Error removing handler {handler}: {e}")
-            u.context_error_debug(error=e)
+        if handler in bpy.app.handlers.load_post:
+            print(f"[PROPERTIES] Unregister load_post_handler: {handler.__name__}")
+            bpy.app.handlers.load_post.remove(handler)
 
     for cls in classes:
+        print(f"[PROPERTIES] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
 
-    print(f"[PROPERTIES] Unregistering bpy.types.Scene.r0fl_toolbox_props")
+    print(f"[PROPERTIES] Unregister bpy.types.Scene.r0fl_toolbox_props")
     del bpy.types.Scene.r0fl_toolbox_props
