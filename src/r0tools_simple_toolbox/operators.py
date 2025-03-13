@@ -930,7 +930,7 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
         row = layout.row()
         split = row.split(factor=0.9)
         split.prop(self, "object_set_name")
-        if addon_prefs.object_sets_use_colour and addon_prefs.experimental_features:
+        if addon_prefs.object_sets_use_colour:
             split.prop(self, "object_set_colour", text="")
 
     def add_non_conflicting_name(self) -> str:

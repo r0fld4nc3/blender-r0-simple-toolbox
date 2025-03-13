@@ -195,7 +195,7 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
             row = layout.row(align=True)
 
             # Configure accordingly for object sets colour
-            if addon_prefs.object_sets_use_colour and addon_prefs.experimental_features:
+            if addon_prefs.object_sets_use_colour:
                 scale_x = 0.8  # Scales extending the right side to the right
                 scale_y = 0.8  # Scales extending the bottom down
                 row.separator(factor=0.8)  # Pushes things to the right
@@ -526,16 +526,15 @@ class AddonPreferences(bpy.types.AddonPreferences):
         row = object_sets_settings_box.row()
         row.prop(self, "object_sets_list_rows")
         # Object Sets Use Colour
-        if self.experimental_features:
-            row = object_sets_settings_box.row()
-            row.prop(self, "object_sets_use_colour")
+        row = object_sets_settings_box.row()
+        row.prop(self, "object_sets_use_colour")
 
-            row = object_sets_settings_box.row()
-            row.prop(self, "object_sets_colour_allow_override")
+        row = object_sets_settings_box.row()
+        row.prop(self, "object_sets_colour_allow_override")
 
-            if self.object_sets_use_colour:
-                row = object_sets_settings_box.row()
-                row.prop(self, "object_sets_default_colour", text="Default Colour")
+        if self.object_sets_use_colour:
+            row = object_sets_settings_box.row()
+            row.prop(self, "object_sets_default_colour", text="Default Colour")
 
         # Custom Properties
         custom_properties_settings_box = layout.box()

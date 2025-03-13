@@ -84,13 +84,12 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
         return False
 
     # Object Sets Use Colour
-    if addon_prefs.experimental_features:
-        row = parent.row()
-        row.prop(addon_prefs, "object_sets_use_colour")
+    row = parent.row()
+    row.prop(addon_prefs, "object_sets_use_colour")
 
-        # if addon_prefs.object_sets_use_colour:
-        #    row = parent.row()
-        #    row.prop(addon_prefs, "object_sets_default_colour", text="Default Colour")
+    # if addon_prefs.object_sets_use_colour:
+    #    row = parent.row()
+    #    row.prop(addon_prefs, "object_sets_default_colour", text="Default Colour")
 
     # Object Sets Row Number Slider (Same as in addon preferences)
     row = parent.row()
