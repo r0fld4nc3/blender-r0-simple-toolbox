@@ -93,6 +93,9 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
             obj.color = self.set_colour
 
     name: bpy.props.StringProperty(name="Object Set Name", default="New Object Set")  # type: ignore
+    separator: bpy.props.BoolProperty(default=False)  # type: ignore
+    _default_separator_name = "-" * 16
+
     objects: bpy.props.CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
     count: bpy.props.IntProperty(name="Count", default=0)  # type: ignore
     set_colour: bpy.props.FloatVectorProperty(  # type: ignore
@@ -105,7 +108,10 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
         update=set_object_set_colour,
     )
 
-    def add_object(self, obj):
+    def assign_object(self, obj):
+        if self.separator:
+            return
+
         if not any(o.object == obj for o in self.objects):
             new_object = self.objects.add()
             new_object.object = obj
@@ -115,6 +121,9 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
     def remove_object(self, obj):
         addon_prefs = u.get_addon_prefs()
         allow_override = addon_prefs.object_sets_colour_allow_override
+
+        if self.separator:
+            return
 
         for i, o in enumerate(self.objects):
             if o.object == obj:
@@ -145,6 +154,8 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
         containing_sets = list()
 
         for obj_set in addon_props.object_sets:
+            if obj_set.separator:
+                continue
             for obj_item in obj_set.objects:
                 if obj_item.object == obj:
                     if obj_set not in containing_sets:
@@ -153,6 +164,9 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
         return containing_sets
 
     def update_count(self):
+        if self.separator:
+            return
+
         self.count = len(self.objects)
         if u.IS_DEBUG():
             print(f"[DEBUG] Updated count for Set '{self.name}': {self.count}")
@@ -167,6 +181,15 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
         self, context, layout, data, item, icon, active_data, active_propname, index
     ):
         addon_prefs = u.get_addon_prefs()
+
+        # Check if the item to insert is a separator
+        if item.separator:
+            # Draw separator
+            row = layout.row()
+            row.enabled = False
+            row.alignment = "CENTER"
+            row.label(text=item.name)
+            return
 
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             row = layout.row(align=True)

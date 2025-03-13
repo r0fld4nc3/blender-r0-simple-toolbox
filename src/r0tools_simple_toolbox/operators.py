@@ -841,6 +841,8 @@ class SimpleToolbox_OT_FindModifierSearch(bpy.types.Operator):
 
 
 class SimpleToolbox_OT_ObjectSetsModal(bpy.types.Operator):
+    """Floating Modal Panel that can be drawn wherever in the UI"""
+
     bl_idname = "r0tools.object_sets_modal"
     bl_label = "Object Sets Modal"
 
@@ -880,6 +882,7 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
 
     _default_name = "New Set"
     _default_colour = (0.0, 0.0, 0.0, 1.0)
+    separator: bpy.props.BoolProperty(default=False)  # type: ignore
     object_set_name: bpy.props.StringProperty(name="Set Name", default=_default_name)  # type: ignore
     object_set_colour: bpy.props.FloatVectorProperty(  # type: ignore
         name="Object Set Colour",
@@ -897,17 +900,32 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
     def invoke(self, context, event):
         # Reset Name
         self.object_set_name = self._default_name
+
         # Reset Colour
         self._default_colour = u.get_addon_prefs().object_sets_default_colour
         self.object_set_colour = self._default_colour
+
+        # Reset is separator
+        self.separator = False
+
         wm = context.window_manager
         return wm.invoke_props_dialog(self)
 
     def draw(self, context):
         addon_prefs = u.get_addon_prefs()
 
+        label_add_new = "Create a New Object Set"
+        if self.separator:
+            label_add_new = "Add new Separator"
+
         layout = self.layout
-        layout.label(text="Create a New Object Set", icon="ADD")
+        layout.label(text=label_add_new, icon="ADD")
+
+        separator_checkbox_row = layout.row()
+        separator_checkbox_row.prop(self, "separator", text="Separator?")
+
+        if self.separator:
+            return
 
         row = layout.row()
         split = row.split(factor=0.9)
@@ -948,19 +966,28 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
 
     def execute(self, context):
         addon_props = u.get_addon_props()
-        new_set = addon_props.object_sets.add()
-        new_set.name = self.add_non_conflicting_name()
-        new_set.set_object_set_colour(self.object_set_colour)
-        addon_props.object_sets_index = len(addon_props.object_sets) - 1
 
-        # Immediately add selected objects to set, for convenience
-        if context.selected_objects:
-            bpy.ops.r0tools.assign_to_object_set()
+        if self.separator:
+            new_set = addon_props.object_sets.add()
+            new_set.name = new_set._default_separator_name
+            new_set.separator = self.separator
+
+            self.report({"INFO"}, f"Added separator ot Object Sets")
+        else:
+            new_set = addon_props.object_sets.add()
+            new_set.name = self.add_non_conflicting_name()
+            new_set.set_object_set_colour(self.object_set_colour)
+            addon_props.object_sets_index = len(addon_props.object_sets) - 1
+
+            # Immediately add selected objects to set, for convenience
+            if context.selected_objects:
+                bpy.ops.r0tools.assign_to_object_set()
+
+            self.report({"INFO"}, f"Created Object Set: {self.object_set_name}")
 
         if context.area:
             context.area.tag_redraw()
 
-        self.report({"INFO"}, f"Created Object Set: {self.object_set_name}")
         return {"FINISHED"}
 
 
@@ -1045,17 +1072,19 @@ class SimpleToolbox_OT_MoveObjectSetItemUp(bpy.types.Operator):
         addon_props = u.get_addon_props()
         object_sets = addon_props.object_sets
         active_index = addon_props.object_sets_index
+        separator = addon_props.object_sets[active_index].separator
 
         if active_index > 0:
             if self.absolute:
-                to_index = 0  # All the way down
+                to_index = 0  # All the way up
             else:
                 to_index = active_index - 1
 
             object_sets.move(active_index, to_index)
             addon_props.object_sets_index = to_index
-            addon_props.object_sets[active_index].update_count()
-            addon_props.object_sets[to_index].update_count()
+            if not separator:
+                addon_props.object_sets[active_index].update_count()
+                addon_props.object_sets[to_index].update_count()
 
         return {"FINISHED"}
 
@@ -1082,6 +1111,7 @@ class SimpleToolbox_OT_MoveObjectSetItemDown(bpy.types.Operator):
         addon_props = u.get_addon_props()
         object_sets = addon_props.object_sets
         active_index = addon_props.object_sets_index
+        separator = addon_props.object_sets[active_index].separator
 
         if active_index < len(object_sets) - 1:
             if self.absolute:
@@ -1091,8 +1121,9 @@ class SimpleToolbox_OT_MoveObjectSetItemDown(bpy.types.Operator):
 
             object_sets.move(active_index, to_index)
             addon_props.object_sets_index = to_index
-            addon_props.object_sets[active_index].update_count()
-            addon_props.object_sets[to_index].update_count()
+            if not separator:
+                addon_props.object_sets[active_index].update_count()
+                addon_props.object_sets[to_index].update_count()
 
         return {"FINISHED"}
 
@@ -1107,9 +1138,16 @@ class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return (
-            context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
-        )
+        addon_props = u.get_addon_props()
+        object_sets = addon_props.object_sets
+        active_index = addon_props.object_sets_index
+
+        # Evaluate polls
+        accepted_contexts = context.mode in cls.accepted_contexts
+        len_selected_objects = len(context.selected_objects) > 0
+        is_separator = object_sets[active_index].separator
+
+        return accepted_contexts and len_selected_objects and not is_separator
 
     def execute(self, context):
         # Update cleanup dangling references
@@ -1122,7 +1160,7 @@ class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
             object_set = addon_props.object_sets[index]
 
             for obj in context.selected_objects:
-                object_set.add_object(obj)
+                object_set.assign_object(obj)
 
             self.report(
                 {"INFO"},
@@ -1141,9 +1179,16 @@ class SimpleToolbox_OT_RemoveFromObjectSet(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return (
-            context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
-        )
+        addon_props = u.get_addon_props()
+        object_sets = addon_props.object_sets
+        active_index = addon_props.object_sets_index
+
+        # Evaluate polls
+        accepted_contexts = context.mode in cls.accepted_contexts
+        len_selected_objects = len(context.selected_objects) > 0
+        is_separator = object_sets[active_index].separator
+
+        return accepted_contexts and len_selected_objects and not is_separator
 
     def execute(self, context):
         # Update cleanup dangling references
@@ -1180,7 +1225,16 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.mode in cls.accepted_contexts
+        addon_props = u.get_addon_props()
+        object_sets = addon_props.object_sets
+        active_index = addon_props.object_sets_index
+
+        # Evaluate polls
+        accepted_contexts = context.mode in cls.accepted_contexts
+        has_objects = object_sets[active_index].count > 0
+        is_separator = object_sets[active_index].separator
+
+        return accepted_contexts and has_objects and not is_separator
 
     def invoke(self, context, event):
         self.add_to_selection = False  # Always reset
