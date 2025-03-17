@@ -1,17 +1,22 @@
 import math
 import queue
+import random
 from pathlib import Path
 
 import bpy
 
 from .const import DEBUG, INTERNAL_NAME
 
-# Global state tracking
+# Global state variables
 _ADDON_IN_ERROR_STATE = False
-
-_QUEUE_RETRY_SECONDS = 1.0
-
+_QUEUE_RETRY_SECONDS = 0.5  # Default retry interval
 _operation_queue = queue.Queue()
+_failed_operations = set()
+_loops_with_failed_operations = 0
+
+# ==============================
+# CONSTANT DEFINITIONS
+# ==============================
 
 # fmt: off
 class CUSTOM_PROPERTIES_TYPES:
@@ -21,7 +26,9 @@ class CUSTOM_PROPERTIES_TYPES:
 
 class OBJECT_MODES:
     OBJECT        = "OBJECT"
+    OBJECT_MODE   = "OBJECT_MODE"
     EDIT          = "EDIT"
+    EDIT_MODE     = "EDIT_MODE"
     EDIT_MESH     = "EDIT_MESH"
     SCULPT        = "SCULPT"
     VERTEX_PAINT  = "VERTEX_PAINT"
@@ -70,11 +77,446 @@ class AREA_TYPES:
 # fmt: on
 
 
+# ==============================
+# CONTEXT & PROPERTY ACCESS
+# ==============================
+def IS_DEBUG():
+    """Return current debug state"""
+    addon_prefs = get_addon_prefs()
+    return DEBUG or addon_prefs.debug
+
+
+def get_scene() -> bpy.types.Scene:
+    """Get the current scene"""
+    return bpy.context.scene
+
+
+def get_scene_name() -> str:
+    """Get the name of the current scene"""
+    return get_scene().name
+
+
+def get_context_area() -> str | None:
+    """Get the current area type or None if unavailable"""
+    if not bpy.context.area:
+        return None
+    return bpy.context.area.ui_type
+
+
+def get_addon_props():
+    """Get the addon property group from current scene"""
+    return get_scene().r0fl_toolbox_props
+
+
+def get_addon_prefs():
+    """Get the addon preferences"""
+    return bpy.context.preferences.addons[INTERNAL_NAME].preferences
+
+
+def get_addon_fs_path() -> Path:
+    """Get the filesystem path to the addon directory from THIS file"""
+    return Path(__file__).resolve().parent.parent
+
+
+def get_depsgraph():
+    """Get the current dependency graph"""
+    return bpy.context.evaluated_depsgraph_get()
+
+
+def get_depsgraph_is_updated_geometry() -> bool:
+    """Check if geometry was updated in the depsgraph"""
+    d = get_depsgraph()
+    for update in d.updates:
+        return update.is_updated_geometry
+    return False
+
+
+def get_depsgraph_is_updated_shading() -> bool:
+    """Check if shading was updated in the depsgraph"""
+    d = get_depsgraph()
+    for update in d.updates:
+        return update.is_updated_shading
+    return False
+
+
+def get_depsgraph_is_updated_transform() -> bool:
+    """Check if transforms were updated in the depsgraph"""
+    d = get_depsgraph()
+    for update in d.updates:
+        return update.is_updated_transform
+    return False
+
+
+def get_uvmap_size_x():
+    """Get selected UV Map Size in X"""
+    addon_props = get_addon_props()
+    return int(addon_props.uv_size_x)
+
+
+def get_uvmap_size_y():
+    """Get selected UV Map Size in Y"""
+    addon_props = get_addon_props()
+    return int(addon_props.uv_size_y)
+
+
+def save_preferences():
+    """Safely save user preferences without causing recursion"""
+    try:
+        if not hasattr(save_preferences, "is_saving"):
+            save_preferences.is_saving = False
+
+        if not save_preferences.is_saving:
+            save_preferences.is_saving = True
+            bpy.context.preferences.use_preferences_save = True
+            bpy.ops.wm.save_userpref()
+            save_preferences.is_saving = False
+    except Exception as e:
+        print(f"Error saving preferences: {e}")
+        save_preferences.is_saving = False
+
+
+# ==============================
+# OBJECT MANIPULATION
+# ==============================
+
+
+def set_object_mode(mode: str):
+    """
+    Set the current object mode
+
+    - OBJECT
+    - EDIT (EDIT_MESH)
+    - SCULPT
+    - VERTEX_PAINT
+    - TEXTURE_PAINT
+    - WEIGHT_PAINT
+
+    Args:
+        mode: One of the modes defined in `OBJECT_MODES`
+    """
+    if IS_DEBUG():
+        print(f"Setting mode: {mode}")
+
+    # Edit Mode weirdness fix
+    if mode.upper() == "EDIT_MESH":
+        mode = OBJECT_MODES.EDIT
+    bpy.ops.object.mode_set(mode=mode)
+
+
+def set_mode_object():
+    """Sets the current mode to Object Mode"""
+    set_object_mode("OBJECT")
+
+
+def set_mode_edit():
+    """Sets the current mode to Edit Mode"""
+    set_object_mode("EDIT")
+
+
+def select_object(obj: bpy.types.Object, add=True, set_active=False) -> bpy.types.Object | None:
+    """
+    Select an object in the scene
+
+    Args:
+        obj: Object to select
+        add: Whether to add to current selection or replace it
+        set_active: Whether to set this as the active object
+
+    Returns:
+        The selected object or None if failed
+    """
+    if IS_DEBUG():
+        print(f"Selecting {obj.name} {add=} {set_active=}")
+    if not add:
+        deselect_all()
+
+    if not is_valid_object_global(obj):
+        return None
+
+    try:
+        obj.select_set(True)
+    except Exception as e:
+        print(f"[ERROR] Selecting {obj.name} {e}")
+
+    if not add or set_active:
+        set_active_object(obj)
+
+    return obj
+
+
+def deselect_object(obj: bpy.types.Object) -> bpy.types.Object | None:
+    """
+    Deselect an object in the scene
+
+    Args:
+        obj: Object to deselect
+
+    Returns:
+        The deselected object or None if failed
+    """
+    if IS_DEBUG():
+        print(f"Deselecting {obj.name}")
+
+    if not is_valid_object_global(obj):
+        return None
+
+    try:
+        obj.select_set(False)
+    except Exception as e:
+        print(f"[ERROR] Deselecting {obj.name} {e}")
+
+    return obj
+
+
+def set_active_object(obj: bpy.types.Object):
+    """Set the active object in the current view layer"""
+    bpy.context.view_layer.objects.active = obj
+
+
+def get_active_object() -> bpy.types.Object | None:
+    """Get the active object from the current view layer"""
+    return bpy.context.view_layer.objects.active
+
+
+def is_object_visible_in_viewport(obj):
+    """
+    Check if an object is visible in the viewport
+
+    This checks both the object's visibility setting and
+    whether its collections are visible
+    """
+    # Check if the object is set to be visible in the viewport
+    if not obj.visible_get():
+        if IS_DEBUG():
+            print(f"[DEBUG] {obj.name} is not visible in viewport.")
+        return False
+
+    if IS_DEBUG():
+        print(f"[DEBUG] {obj.name} is visible in viewport.")
+        print(f"[DEBUG] Checking {obj.name} Collection(s).")
+
+    # Check if the object's collection is visible in the viewport
+    for collection in obj.users_collection:
+        if IS_DEBUG():
+            print(f"[DEBUG]    - {collection.name}")
+        if not collection.hide_viewport:
+            if IS_DEBUG():
+                print(f"[DEBUG]    - {collection.name} is visible.")
+            return True
+        else:
+            if IS_DEBUG():
+                print(f"[DEBUG]    - {collection.name} is hidden.")
+
+    return False
+
+
+def deselect_all():
+    """Deselect all objects or elements based on current mode"""
+    context_mode = bpy.context.mode
+    edit_modes = [OBJECT_MODES.EDIT, OBJECT_MODES.EDIT_MODE]
+    object_modes = [OBJECT_MODES.OBJECT, OBJECT_MODES.OBJECT_MODE]
+
+    if context_mode in edit_modes:
+        bpy.ops.mesh.select_all(action="DESELECT")
+    elif context_mode in object_modes:
+        bpy.ops.object.select_all(action="DESELECT")
+
+
+def object_in_view_layer(obj, context=None):
+    """Check if object is in the active view layer"""
+    ctx = bpy.context
+    if context:
+        ctx = context
+
+    return obj.visible_get(view_layer=ctx.view_layer)
+
+
+def object_visible(obj):
+    """Check if object is visible"""
+    return obj.visible_get()
+
+
+def is_valid_object_global(obj):
+    """
+    Check if an object reference is valid
+
+    This detects dangling references to deleted objects
+    """
+    try:
+        exists_mesh = (
+            obj is not None
+            and obj
+            and obj.name in bpy.data.objects
+            and any(obj.name in scene.objects for scene in bpy.data.scenes)
+        )
+
+        if not exists_mesh:
+            if obj is not None:
+                print(f"Dangling reference: {obj.name}")
+            else:
+                print(f"Dangling reference: {obj}")
+            return False
+
+        return True
+    except ReferenceError:
+        print(f"ReferenceError when checking object validity")
+        return False
+    except Exception as e:
+        print(f"Error checking object validity: {e}")
+        return False
+
+
+def iter_scene_objects(selected=False, types: list[str] = []):
+    """
+    Iterate through objects in the scene
+
+    Args:
+        selected: Only iterate through selected objects
+        types: Filter by object types (empty list = all types)
+    """
+    iters = bpy.data.objects
+    if selected:
+        iters = bpy.context.selected_objects
+
+    for o in iters:
+        if not types or o.type in types:
+            yield o
+
+
+def iter_children(p_obj, recursive=True):
+    """
+    Iterate through all children of a given parent object
+
+    Args:
+        p_obj: Parent object to find children for
+        recursive: If True, also iterate through children of children
+    """
+    for obj in bpy.data.objects:
+        if obj.parent == p_obj:
+            yield obj
+            if recursive:
+                yield from iter_children(obj, recursive=True)
+
+
+# ==============================
+# MESH SELECTION MODE
+# ==============================
+
+
+def _set_mesh_selection_mode(use_extend=False, use_expand=False, type=""):
+    """Base function for setting mesh selection mode"""
+    bpy.ops.mesh.select_mode(use_extend=use_extend, use_expand=use_expand, type=type)
+
+
+def set_mesh_selection_vertex(*args, **kwargs):
+    """Set selection mode to Vertex"""
+    kwargs["type"] = "VERT"
+    _set_mesh_selection_mode(*args, **kwargs)
+
+
+def set_mesh_selection_edge(*args, **kwargs):
+    """Set selection mode to Edge"""
+    kwargs["type"] = "EDGE"
+    _set_mesh_selection_mode(*args, **kwargs)
+
+
+def set_mesh_selection_face(*args, **kwargs):
+    """Set selection mode to Face"""
+    kwargs["type"] = "FACE"
+    _set_mesh_selection_mode(*args, **kwargs)
+
+
+# ==============================
+# TRANSFORM ORIENTATIONS
+# ==============================
+
+
+def get_builtin_transform_orientations(identifiers=False) -> list:
+    """
+    Get list of built-in transform orientations
+
+    Args:
+        identifiers: Return identifiers instead of names
+    """
+    if identifiers:
+        _ret = [i.identifier for i in bpy.types.TransformOrientationSlot.bl_rna.properties["type"].enum_items]
+    else:
+        _ret = [i.name for i in bpy.types.TransformOrientationSlot.bl_rna.properties["type"].enum_items]
+
+    return _ret
+
+
+def get_transform_orientations() -> list:
+    """
+    Returns a list of all transform orientation names
+
+    Uses a workaround to get the names by intentionally
+    causing an error with an empty string.
+    """
+    try:
+        # This intentionally raises an exception to get valid values
+        get_scene().transform_orientation_slots[0].type = ""
+    except Exception as inst:
+        transforms = str(inst).split("'")[1::2]
+
+    transform_list = list(transforms)
+    if IS_DEBUG():
+        print(f"[DEBUG] {transform_list=}")
+
+    return transform_list
+
+
+def get_custom_transform_orientations() -> list:
+    """Returns a list of custom transform orientation names"""
+    custom_transforms = get_transform_orientations()[7:]  # The 7 first orientations are built-ins
+    if IS_DEBUG():
+        print(f"[DEBUG] {custom_transforms=}")
+
+    return custom_transforms
+
+
+def delete_custom_transform_orientation(name: str):
+    """Delete a custom transform orientation by name"""
+    transform_list = get_custom_transform_orientations()
+    for enum_type in transform_list:
+        if IS_DEBUG():
+            print(f"[DEBUG] {enum_type=} == {name=}")
+        if enum_type == name or str(enum_type).lower() == str(name).lower():
+            get_scene().transform_orientation_slots[0].type = enum_type
+            bpy.ops.transform.delete_orientation()
+
+
+# ==============================
+# UI & NOTIFICATIONS
+# ==============================
+
+
+def show_notification(message, title="Operation Complete"):
+    """Display a popup notification and status info message"""
+    bpy.context.window_manager.popup_menu(lambda self, context: self.layout.label(text=message), title=title)
+    bpy.context.workspace.status_text_set(message)
+
+
+def force_redraw_all():
+    """Force a redraw of all UI areas"""
+    for window in bpy.context.window_manager.windows:
+        for area in window.screen.areas:
+            area.tag_redraw()
+
+
 def draw_objects_sets_uilist(layout, context, object_sets_box=None):
+    """
+    Draw the Objects Sets UI list
+
+    Args:
+        layout: The layout to draw in
+        context: The current context
+        object_sets_box: Optional box to draw within
+    """
     addon_prefs = get_addon_prefs()
     addon_props = get_addon_props()
 
-    # Object Sets Editor
+    # Object Sets Editor parent layout
     if object_sets_box:
         parent = object_sets_box
     elif layout:
@@ -87,10 +529,6 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     row = parent.row()
     row.prop(addon_prefs, "object_sets_use_colour")
 
-    # if addon_prefs.object_sets_use_colour:
-    #    row = parent.row()
-    #    row.prop(addon_prefs, "object_sets_default_colour", text="Default Colour")
-
     # Object Sets Row Number Slider (Same as in addon preferences)
     row = parent.row()
     row.prop(addon_prefs, "object_sets_list_rows", text="Rows:")
@@ -98,7 +536,7 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     row = parent.row()
     split = row.split(factor=0.92)  # Affects right side button width
 
-    # Left Section
+    # Left Section - List
     col = split.column()
     col.template_list(
         "R0PROP_UL_ObjectSetsList",
@@ -110,7 +548,7 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
         rows=addon_prefs.object_sets_list_rows,
     )
 
-    # Right side
+    # Right side - Buttons
     col = split.column(align=True)
     col.operator("r0tools.add_object_set_popup", text="+")
     col.operator("r0tools.remove_object_set", text="-")
@@ -143,399 +581,38 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     op.set_index = -1
 
 
-def get_scene() -> bpy.types.Scene:
-    return bpy.context.scene
-
-
-def get_scene_name() -> str:
-    return get_scene().name
-
-
-def get_context_area() -> str | None:
-    if not bpy.context.area:
-        return None
-
-    return bpy.context.area.ui_type
-
-
-def get_addon_props():
-    return get_scene().r0fl_toolbox_props
-
-
-def get_addon_prefs():
-    return bpy.context.preferences.addons[INTERNAL_NAME].preferences
-
-
-def get_addon_fs_path() -> Path:
-    return Path(__file__).resolve().parent.parent
-
-
-def set_object_mode(mode: str):
-    """
-    Set the current mode to one of the following:
-
-    - OBJECT
-    - EDIT (EDIT_MESH)
-    - SCULPT
-    - VERTEX_PAINT
-    - TEXTURE_PAINT
-    - WEIGHT_PAINT
-    """
-
-    if IS_DEBUG():
-        print(f"Setting mode: {mode}")
-
-    # Edit Mode weirdness fix
-    if mode.upper() == "EDIT_MESH":
-        mode = OBJECT_MODES.EDIT
-    bpy.ops.object.mode_set(mode=mode)
-
-
-def set_mode_object():
-    """
-    Sets the current mode to: Object Mode
-    """
-    set_object_mode("OBJECT")
-
-
-def set_mode_edit():
-    """
-    Sets the current mode to: Edit Mode
-    """
-    set_object_mode("EDIT")
-
-
-def select_object(
-    obj: bpy.types.Object, add=True, set_active=False
-) -> bpy.types.Object | None:
-    if IS_DEBUG():
-        print(f"Selecting {obj.name} {add=} {set_active=}")
-    if not add:
-        deselect_all()
-
-    if not is_valid_object_global(obj):
-        return None
-
-    try:
-        obj.select_set(True)
-    except Exception as e:
-        print(f"[ERROR] Selecting {obj.name} {e}")
-
-    if not add or set_active:
-        set_active_object(obj)
-
-    return obj
-
-
-def deselect_object(obj: bpy.types.Object) -> bpy.types.Object | None:
-    if IS_DEBUG():
-        print(f"Deselecting {obj.name}")
-
-    if not is_valid_object_global(obj):
-        return None
-
-    try:
-        obj.select_set(False)
-    except Exception as e:
-        print(f"[ERROR] Selecting {obj.name} {e}")
-
-    return obj
-
-
-def set_active_object(obj: bpy.types.Object):
-    bpy.context.view_layer.objects.active = obj
-
-
-def get_active_object() -> bpy.types.Object | None:
-    return bpy.context.view_layer.objects.active
-
-
-def is_object_visible_in_viewport(obj):
-    # Check if the object is set to be visible in the viewport
-    if not obj.visible_get():
-        if IS_DEBUG():
-            print(f"[DEBUG] {obj.name} is not visible in viewport.")
-        return False
-
-    if IS_DEBUG():
-        print(f"[DEBUG] {obj.name} is visible in viewport.")
-        print(f"[DEBUG] Checking {obj.name} Collection(s).")
-
-    # Check if the object's collection is visible in the viewport
-    for collection in obj.users_collection:
-        if IS_DEBUG():
-            print(f"[DEBUG]    - {collection.name}")
-        if not collection.hide_viewport:
-            if IS_DEBUG():
-                print(f"[DEBUG]    - {collection.name} is visible.")
-            return True
-        else:
-            if IS_DEBUG():
-                print(f"[DEBUG]    - {collection.name} is hidden.")
-
-    return False
-
-
-# Set selection mode template
-def _set_mesh_selection_mode(use_extend=False, use_expand=False, type=""):
-    bpy.ops.mesh.select_mode(use_extend=use_extend, use_expand=use_expand, type=type)
-
-
-# Set selection mode Vertex
-def set_mesh_selection_vertex(*args, **kwargs):
-    kwargs["type"] = "VERT"
-    _set_mesh_selection_mode(*args, **kwargs)
-
-
-# Set selection mode Edge
-def set_mesh_selection_edge(*args, **kwargs):
-    kwargs["type"] = "EDGE"
-    _set_mesh_selection_mode(*args, **kwargs)
-
-
-# Set selection mode Face
-def set_mesh_selection_face(*args, **kwargs):
-    kwargs["type"] = "FACE"
-    _set_mesh_selection_mode(*args, **kwargs)
-
-
-def iter_scene_objects(selected=False, types: list[str] = []):
-    iters = bpy.data.objects
-    if selected:
-        iters = bpy.context.selected_objects
-
-    for o in iters:
-        if not types or o.type in types:
-            yield o
-
-
-def iter_children(p_obj, recursive=True):
-    """
-    Iterate through all children of a given parent object.
-    Args:
-        p_obj: Parent object to find children for
-        recursive: If True, also iterate through children of children
-    """
-
-    for obj in bpy.data.objects:
-        if obj.parent == p_obj:
-            yield obj
-            if recursive:
-                yield from iter_children(obj, recursive=True)
-
-
-def show_notification(message, title="Script Finished"):
-    """Display a popup notification and status info message"""
-    bpy.context.window_manager.popup_menu(
-        lambda self, context: self.layout.label(text=message), title=title
-    )
-    bpy.context.workspace.status_text_set(message)
-
-
-def deselect_all():
-    context_mode = bpy.context.mode
-    edit_modes = ["EDIT", "EDIT_MODE"]
-    object_modes = ["OBJECT", "OBJECT_MODE"]
-
-    if context_mode in edit_modes:
-        bpy.ops.mesh.select_all(action="DESELECT")
-    elif context_mode in object_modes:
-        bpy.ops.object.select_all(action="DESELECT")
-
-
-def object_in_view_layer(obj, context=None):
-    ctx = bpy.context
-    if context:
-        ctx = context
-
-    return obj.visible_get(view_layer=ctx.view_layer)
-
-
-def object_visible(obj):
-    return obj.visible_get()
-
-
-def save_preferences():
-    """Safely save user preferences without causing recursion"""
-    try:
-        if not hasattr(save_preferences, "is_saving"):
-            save_preferences.is_saving = False
-
-        if not save_preferences.is_saving:
-            save_preferences.is_saving = True
-            bpy.context.preferences.use_preferences_save = True
-
-            bpy.ops.wm.save_userpref()
-            save_preferences.is_saving = False
-    except Exception as e:
-        print(f"Error saving preferences: {e}")
-        save_preferences.is_saving = False
-
-
-def process_queue_ops():
-    """Process operations from the queue in the main thread"""
-    try:
-        # Process up to 100 operations
-        operations_processed = 0
-        max_operations_per_frame = 100
-
-        while (
-            not _operation_queue.empty()
-            and operations_processed < max_operations_per_frame
-        ):
-            operation = _operation_queue.get_nowait()
-            if IS_DEBUG():
-                print(f"[DEBUG] Got Op: {operation}")
-            try:
-                operation()
-                operations_processed += 1
-            except Exception as e:
-                print(f"[ERROR] Failed to execute queued operation: {e}")
-                global _ADDON_IN_ERROR_STATE
-                _ADDON_IN_ERROR_STATE = True
-                if IS_DEBUG():
-                    print(f"[DEBUG] Processed: {operations_processed}")
-                    print(f"[DEBUG] {_operation_queue}")
-            finally:
-                _operation_queue.task_done()
-                if IS_DEBUG():
-                    print(f"[DEBUG] Done: {operation}")
-
-        if not _operation_queue.empty():
-            if IS_DEBUG():
-                print()
-            return 0.01  # Re-run in X second(s)
-
-        # If we're in an error state, schedule recovery
-        if _ADDON_IN_ERROR_STATE:
-            if IS_DEBUG():
-                print()
-            return _QUEUE_RETRY_SECONDS
-
-        # Check again in X second(s)
-        if IS_DEBUG():
-            print()
-        return _QUEUE_RETRY_SECONDS
-
-    except Exception as e:
-        print(f"[ERROR] Error in process_queue_ops: {e}")
-        return 1.0  # Retry in X second(s)
-
-
-def queue_op(operation, *args, **kwargs):
-    """Queue an operation to be executed in the main thread"""
-    if args or kwargs:
-        _operation_queue.put(lambda: operation(*args, **kwargs))
-    else:
-        _operation_queue.put(operation)
-
-
-def get_uvmap_size_x():
-    """Get selected UV Map Size in X"""
+# ==============================
+# OBJECT SETS & CUSTOM PROPERTIES
+# ==============================
+
+
+def refresh_object_sets_colours(context):
+    """Refresh colors for all object sets"""
+    print("[INFO] Force Refreshing Object Sets")
+    addon_prefs = get_addon_prefs()
     addon_props = get_addon_props()
-    uv_size_x = int(addon_props.uv_size_x)
+    object_sets = addon_props.object_sets
 
-    return uv_size_x
+    if not addon_prefs.object_sets_use_colour:
+        return
 
-
-def get_uvmap_size_y():
-    """Get selected UV Map Size in Y"""
-    addon_props = get_addon_props()
-    uv_size_y = int(addon_props.uv_size_y)
-
-    return uv_size_y
-
-
-def op_clear_sharp_along_axis(axis: str):
-    print(f"\n=== Clear Sharp Along Axis {axis}")
-    axis = str(axis).upper()
-
-    threshold = get_addon_prefs().clear_sharp_axis_float_prop
-    print(f"Threshold: {threshold}")
-
-    # Collect select objects
-    objects = [obj for obj in bpy.context.selected_objects if obj.type == "MESH"]
-
-    print(f"Objects: {objects}")
-
-    if not objects:
-        return False
-
-    for obj in objects:
-        bpy.context.view_layer.objects.active = obj
-        print(f"Iterating: {obj.name}")
-
-        mode = obj.mode
-        print(f"Mode: {mode}")
-
-        mesh = obj.data
-        print(f"Mesh: {mesh}")
-
-        # Store the selection mode
-        # Tuple of Booleans for each of the 3 modes
-        selection_mode = tuple(get_scene().tool_settings.mesh_select_mode)
-
-        # Store initial selections
-        selected_vertices = [v.index for v in mesh.vertices if v.select]
-        selected_edges = [e.index for e in mesh.edges if e.select]
-        selected_faces = [f.index for f in mesh.polygons if f.select]
-
-        set_mode_edit()
-        set_mesh_selection_vertex()
-        deselect_all()
-        set_mode_object()  # We're in Object mode so we can select stuff. Logic is weird.
-
-        for idx, vertex in enumerate(mesh.vertices):
-            if axis == "X":
-                if math.isclose(vertex.co.x, 0.0, abs_tol=threshold):
-                    mesh.vertices[idx].select = True
-
-            if axis == "Y":
-                if math.isclose(vertex.co.y, 0.0, abs_tol=threshold):
-                    mesh.vertices[idx].select = True
-
-            if axis == "Z":
-                if math.isclose(vertex.co.z, 0.0, abs_tol=threshold):
-                    mesh.vertices[idx].select = True
-
-        set_mode_edit()
-
-        # Set to edge mode
-        set_mesh_selection_edge(use_extend=False, use_expand=False)
-
-        # Clear sharps
-        bpy.ops.mesh.mark_sharp(clear=True)
-
-        # Restore the inital selections and mode
-        if selection_mode[0] is True:
-            set_mesh_selection_vertex()
-            deselect_all()
-            set_mode_object()
-            for vert_idx in selected_vertices:
-                mesh.vertices[vert_idx].select = True
-        if selection_mode[1] is True:
-            set_mesh_selection_edge()
-            deselect_all()
-            set_mode_object()
-            for edge_idx in selected_edges:
-                mesh.edges[edge_idx].select = True
-        if selection_mode[2] is True:
-            set_mesh_selection_face()
-            deselect_all()
-            set_mode_object()
-            for face_idx in selected_faces:
-                mesh.polygons[face_idx].select = True
-
-        # Set back to Object mode
-        set_object_mode(mode)
+    for object_set in object_sets:
+        if IS_DEBUG():
+            print(f"[DEBUG] Refresh: {object_set.name}")
+        queue_op(object_set.update_object_set_colour, context)
 
 
 def continuous_property_list_update(scene, context, force_run=False):
-    """Update property list based on selected objects"""
+    """
+    Update property list based on selected objects
+
+    This function updates the custom property list panel
+    when object selection changes.
+    """
     addon_props = get_addon_props()
 
     if not addon_props.show_custom_property_list_prop and not force_run:
-        # Re-run if panel is now visible, alleviates some computation
+        # Skip update if panel is not visible
         if IS_DEBUG():
             print(
                 f"[DEBUG] Custom Properties Panel is not visible, exiting from running continuous property list update."
@@ -545,21 +622,18 @@ def continuous_property_list_update(scene, context, force_run=False):
     if bpy.context.selected_objects or force_run:
         current_selection = {obj.name for obj in iter_scene_objects(selected=True)}
         prev_selection = (
-            set(addon_props.last_object_selection.split(","))
-            if addon_props.last_object_selection
-            else set()
+            set(addon_props.last_object_selection.split(",")) if addon_props.last_object_selection else set()
         )
 
         if current_selection == prev_selection and not force_run:
             if IS_DEBUG():
-                print(
-                    "[DEBUG] Object selection unchanged; skipping property list update."
-                )
+                print("[DEBUG] Object selection unchanged; skipping property list update.")
             return None
 
         if IS_DEBUG():
             print("------------- Continuous Property List Update -------------")
 
+        # Queue the property list update
         def update_property_list():
             addon_props.custom_property_list.clear()
 
@@ -571,10 +645,7 @@ def continuous_property_list_update(scene, context, force_run=False):
                 for prop_name in obj.keys():
                     if IS_DEBUG():
                         print(f"[DEBUG] (OP) {obj.name} - {prop_name=}")
-                    if (
-                        not prop_name.startswith("_")
-                        and prop_name not in unique_object_data_props
-                    ):
+                    if not prop_name.startswith("_") and prop_name not in unique_object_data_props:
                         try:
                             unique_object_data_props.add(prop_name)
                             item = addon_props.custom_property_list.add()
@@ -589,20 +660,14 @@ def continuous_property_list_update(scene, context, force_run=False):
                     for prop_name in obj.data.keys():
                         if IS_DEBUG():
                             print(f"[DEBUG] (ODP) {obj.name} - {prop_name=}")
-                        if (
-                            not prop_name.startswith("_")
-                            and prop_name not in unique_mesh_data_props
-                        ):
+                        if not prop_name.startswith("_") and prop_name not in unique_mesh_data_props:
                             try:
                                 unique_mesh_data_props.add(prop_name)
                                 item = addon_props.custom_property_list.add()
                                 item.name = prop_name
                                 item.type = CUSTOM_PROPERTIES_TYPES.MESH_DATA
-                                # Type is defaulted to Object
                             except Exception as e:
-                                print(
-                                    f"[ERROR] Error adding unique Object Data Custom Properties: {e}"
-                                )
+                                print(f"[ERROR] Error adding unique Object Data Custom Properties: {e}")
                                 context_error_debug(error=e)
 
             # Update the last object selection
@@ -631,18 +696,14 @@ def continuous_property_list_update(scene, context, force_run=False):
                 if IS_DEBUG():
                     print(f"Cleared UIList custom_property_list")
             except Exception as e:
-                print(
-                    f"[ERROR] Error clearing custom property list when no selected objects: {e}"
-                )
+                print(f"[ERROR] Error clearing custom property list when no selected objects: {e}")
                 context_error_debug(error=e)
             try:
                 addon_props.last_object_selection = ""
                 if IS_DEBUG():
                     print(f"Cleared property last_object_selection")
             except Exception as e:
-                print(
-                    f"[ERROR] Error setting last object selection when no selected objects: {e}"
-                )
+                print(f"[ERROR] Error setting last object selection when no selected objects: {e}")
                 context_error_debug(error=e)
 
             # Force UI update
@@ -655,151 +716,73 @@ def continuous_property_list_update(scene, context, force_run=False):
     return None
 
 
-def get_builtin_transform_orientations(identifiers=False) -> list:
-    if identifiers:
-        _ret = [
-            i.identifier
-            for i in bpy.types.TransformOrientationSlot.bl_rna.properties[
-                "type"
-            ].enum_items
-        ]
-    else:
-        _ret = [
-            i.name
-            for i in bpy.types.TransformOrientationSlot.bl_rna.properties[
-                "type"
-            ].enum_items
-        ]
-
-    return _ret
-
-
-def get_transform_orientations() -> list:
+def update_data_scene_objects(scene, force_run=False):
     """
-    Returns a `list[str]` with all Transform Orientation Enum Type names
+    Update tracking of objects in the scene and data
+
+    This handler monitors changes to scene objects and
+    updates internal references accordingly.
     """
-
-    """
-    What a stupid workaround....
-
-    - https://blender.stackexchange.com/a/196080
-    """
-    try:
-        # This is a problem because when trying to call this for a Pie Menu, it will error with:
-        # AttributeError('Writing to ID classes in this context is not allowed: Scene, Scene datablock, error setting TransformOrientationSlot.type')
-        # And won't produce any custom orientations
-        get_scene().transform_orientation_slots[0].type = ""
-    except Exception as inst:
-        transforms = str(inst).split("'")[1::2]
-        # context_error_debug(error=inst) # Fake error as we want it to spit out the built-ins
-
-    transform_list = list(transforms)
-    if IS_DEBUG():
-        print(f"[DEBUG] {transform_list=}")
-
-    return transform_list
-
-
-def delete_custom_transform_orientation(name: str):
-    transform_list = get_custom_transform_orientations()
-    for enum_type in transform_list:
-        if IS_DEBUG():
-            print(f"[DEBUG] {enum_type=} == {name=}")
-        if enum_type == name or str(enum_type).lower() == str(name).lower():
-            get_scene().transform_orientation_slots[0].type = enum_type
-            bpy.ops.transform.delete_orientation()
-
-
-def get_custom_transform_orientations() -> list:
-    """
-    Returns a `list[str]` with just Custom Transform Orientation Enum Type names
-    """
-
-    custom_transforms = get_transform_orientations()[
-        7:
-    ]  # The 7 first orientations are built-ins
-    if IS_DEBUG():
-        print(f"[DEBUG] {custom_transforms=}")
-
-    return custom_transforms
-
-
-def is_valid_object_global(obj):
-    """Check if an object pointer is valid and exists in any scene. If not, assume dangling reference."""
-    try:
-        exists_mesh = (
-            obj is not None
-            and obj
-            and obj.name in bpy.data.objects
-            and any(obj.name in scene.objects for scene in bpy.data.scenes)
-        )
-
-        if not exists_mesh:
-            if obj is not None:
-                print(f"Dangling reference: {obj.name}")
-            else:
-                print(f"Dangling reference: {obj}")
-            return False
-
-        return True
-    except ReferenceError:
-        print(f"ReferenceError when checking object validity")
-        return False
-    except Exception as e:
-        print(f"Error checking object validity: {e}")
-        return False
-
-
-def refresh_object_sets_colours(context):
-    """Refresh colors for all object sets"""
-    print("[INFO] Force Refreshing Object Sets")
-    addon_prefs = get_addon_prefs()
     addon_props = get_addon_props()
-    object_sets = addon_props.object_sets
 
-    if not addon_prefs.object_sets_use_colour:
-        return
+    # Get current counts
+    bpy_scene_objects_len = len(bpy.context.scene.objects)
+    bpy_data_objects_len = len(bpy.data.objects)
+    scene_objects_len = len(addon_props.scene_objects)
+    data_objects_len = len(addon_props.data_objects)
 
-    for object_set in object_sets:
-        if IS_DEBUG():
-            print(f"[DEBUG] Refresh: {object_set.name}")
-        queue_op(object_set.update_object_set_colour, context)
+    if IS_DEBUG():
+        print("------------- Update Data Scene Objects -------------")
+        print(f"[DEBUG] Scene {bpy_scene_objects_len} == {scene_objects_len}")
+        print(f"[DEBUG] Data  {bpy_data_objects_len} == {data_objects_len}")
 
+    # Check if counts have changed
+    counts_changed = bpy_data_objects_len != data_objects_len or bpy_scene_objects_len != scene_objects_len
 
-def get_depsgraph():
-    depsgraph = bpy.context.evaluated_depsgraph_get()
-    return depsgraph
+    if force_run or counts_changed:
 
+        def update_object_references():
+            if IS_DEBUG():
+                print("------------- Updating Object References -------------")
 
-def get_depsgraph_is_updated_geometry() -> bool:
-    d = get_depsgraph()
+            # Set the updated flag to True
+            addon_props.objects_updated = True
 
-    for update in d.updates:
-        return update.is_updated_geometry
+            # Clear existing references
+            addon_props.scene_objects.clear()
+            addon_props.data_objects.clear()
 
-    return False
+            # Collect Scene Objects
+            for obj in bpy.context.scene.objects:
+                item = addon_props.scene_objects.add()
+                item.object = obj
 
+            # Collect Data Objects
+            unused_objects = []
+            for obj in bpy.data.objects:
+                if obj.name in bpy.context.scene.objects:
+                    item = addon_props.data_objects.add()
+                    item.object = obj
+                else:
+                    unused_objects.append(obj)
 
-def get_depsgraph_is_updated_shading() -> bool:
-    d = get_depsgraph()
+            if IS_DEBUG() and unused_objects:
+                print(f"Unused blocks to be cleared: {len(unused_objects)}")
+                for unused in unused_objects:
+                    print(f"[DEBUG] (DATA) {unused.name} not in Scene.")
 
-    for update in d.updates:
-        return update.is_updated_shading
-
-    return False
-
-
-def get_depsgraph_is_updated_transform() -> bool:
-    d = get_depsgraph()
-
-    for update in d.updates:
-        return update.is_updated_transform
-
-    return False
+        queue_op(update_object_references)
+    else:
+        # Reset the flag if no changes
+        queue_op(lambda: setattr(addon_props, "objects_updated", False))
 
 
 def cleanup_object_set_invalid_references(scene):
-    """Remove invalid object references from object sets"""
+    """
+    Remove invalid object references from object sets
+
+    This cleans up references to deleted objects to prevent errors.
+    """
     if IS_DEBUG():
         print("------------- Cleanup Object Sets Invalid References -------------")
 
@@ -827,9 +810,7 @@ def cleanup_object_set_invalid_references(scene):
                         except Exception as e:
                             print(f"[ERROR] Failed to remove object from set: {e}")
 
-                    print(
-                        f"Cleaned up {len(invalid_objects)} references for Object Set '{object_set.name}'"
-                    )
+                    print(f"Cleaned up {len(invalid_objects)} references for Object Set '{object_set.name}'")
 
                 queue_op(remove_invalid_objects, object_set, invalid_objects)
 
@@ -842,112 +823,297 @@ def cleanup_object_set_invalid_references(scene):
             area.tag_redraw()
 
 
-def update_data_scene_objects(scene, force_run=False):
+# ==============================
+# OPERATIONS
+# ==============================
+
+
+def op_clear_sharp_along_axis(axis: str):
     """
-    Handler method to keep track of objects in `bpy.data.objects` and `bpy.context.scene.objects`
-    to determine if there were changes in object count.
-    """
-    addon_props = get_addon_props()
-
-    bpy_scene_objects_count = len(bpy.context.scene.objects)
-    bpy_data_objects_count = len(bpy.data.objects)
-    addon_scene_objects_count = len(addon_props.scene_objects)
-    addon_data_objects_count = len(addon_props.data_objects)
-
-    if IS_DEBUG():
-        print("------------- Update Data Scene Objects -------------")
-        print(f"[DEBUG] Scene {bpy_scene_objects_count} == {addon_scene_objects_count}")
-        print(f"[DEBUG] Data  {bpy_data_objects_count} == {addon_data_objects_count}")
-
-    counts_changed = (
-        bpy_data_objects_count != addon_data_objects_count
-        or bpy_scene_objects_count != addon_scene_objects_count
-    )
-
-    if force_run or counts_changed:
-
-        def update_object_references():
-            if IS_DEBUG():
-                print("------------- Updating Object References -------------")
-
-            addon_props.objects_updated = True
-
-            addon_props.scene_objects.clear()
-            addon_props.data_objects.clear()
-
-            # Collect Scene Objects
-            for obj in bpy.context.scene.objects:
-                item = addon_props.scene_objects.add()
-                item.object = obj
-
-            # Collect Data Objects
-            unused_objects = []
-            for obj in bpy.data.objects:
-                if obj.name in bpy.context.scene.objects:
-                    item = addon_props.data_objects.add()
-                    item.object = obj
-                else:
-                    unused_objects.append(obj)
-
-            if IS_DEBUG():
-                if unused_objects:
-                    print(f"Unused blocks to be cleared: {len(unused_objects)}")
-                    for unused in unused_objects:
-                        print(f"[DEBUG] (DATA) {unused.name} not in Scene.")
-
-        queue_op(update_object_references)
-    else:
-        # Reset the flag if no changes
-        queue_op(lambda: setattr(addon_props, "objects_updated", False))
-
-
-def run_in_main_thread(function, *args, **kwargs):
-    """
-    Safely schedule a function to run in the main thread.
-    This function can be called from any thread.
+    Clear sharp edges along specified axis
 
     Args:
-        function: The function to execute in the main thread
+        axis: The axis to clear sharp edges along (X, Y, or Z)
+    """
+    print(f"\n=== Clear Sharp Along Axis {axis}")
+    axis = str(axis).upper()
+
+    threshold = get_addon_prefs().clear_sharp_axis_float_prop
+    print(f"Threshold: {threshold}")
+
+    # Collect select objects
+    objects = [obj for obj in bpy.context.selected_objects if obj.type == "MESH"]
+
+    print(f"Objects: {objects}")
+
+    if not objects:
+        return False
+
+    for obj in objects:
+        # Set the active object
+        bpy.context.view_layer.objects.active = obj
+        print(f"Iterating: {obj.name}")
+
+        # Check the mode
+        mode = obj.mode
+        print(f"Mode: {mode}")
+
+        # Access mesh data
+        mesh = obj.data
+        print(f"Mesh: {mesh}")
+
+        # Store the selection mode
+        # Tuple of Booleans for each of the 3 modes
+        selection_mode = tuple(get_scene().tool_settings.mesh_select_mode)
+
+        # Store initial selections
+        # Vertices
+        selected_vertices = [v.index for v in mesh.vertices if v.select]
+
+        # Edges
+        selected_edges = [e.index for e in mesh.edges if e.select]
+
+        # Faces
+        selected_faces = [f.index for f in mesh.polygons if f.select]
+
+        # Deselect all vertices
+        set_mode_edit()
+        set_mesh_selection_vertex()
+        deselect_all()
+        set_mode_object()  # We're in Object mode so we can select stuff. Logic is weird.
+
+        for idx, vertex in enumerate(mesh.vertices):
+            if axis == "X":
+                if math.isclose(vertex.co.x, 0.0, abs_tol=threshold):
+                    mesh.vertices[idx].select = True
+
+            if axis == "Y":
+                if math.isclose(vertex.co.y, 0.0, abs_tol=threshold):
+                    mesh.vertices[idx].select = True
+
+            if axis == "Z":
+                if math.isclose(vertex.co.z, 0.0, abs_tol=threshold):
+                    mesh.vertices[idx].select = True
+
+        # Enter Edit mode
+        set_mode_edit()
+
+        # Switch to edge mode
+        set_mesh_selection_edge(use_extend=False, use_expand=False)
+
+        # Clear the Sharp
+        bpy.ops.mesh.mark_sharp(clear=True)
+
+        # Restore the inital selections and mode
+        if selection_mode[0] is True:
+            set_mesh_selection_vertex()
+            deselect_all()
+            set_mode_object()
+            for vert_idx in selected_vertices:
+                mesh.vertices[vert_idx].select = True
+        if selection_mode[1] is True:
+            set_mesh_selection_edge()
+            deselect_all()
+            set_mode_object()
+            for edge_idx in selected_edges:
+                mesh.edges[edge_idx].select = True
+        if selection_mode[2] is True:
+            set_mesh_selection_face()
+            deselect_all()
+            set_mode_object()
+            for face_idx in selected_faces:
+                mesh.polygons[face_idx].select = True
+
+        # Set back to Object mode
+        set_object_mode(mode)
+
+
+# ==============================
+# BATCH PROCESSING
+# ==============================
+
+
+def safe_batch_operation(objects, operation_func, *args, **kwargs):
+    """
+    Safely perform an operation on multiple objects in batches
+
+    Args:
+        objects: List of objects to process
+        operation_func: Function to call for each object
+        *args: Additional arguments for operation_func
+        **kwargs: Additional keyword arguments for operation_func
+    """
+    batch_size = 10  # Process objects in batches of 10
+
+    for i in range(0, len(objects), batch_size):
+        batch = objects[i : i + batch_size]
+
+        def process_batch(batch_objects):
+            for obj in batch_objects:
+                try:
+                    operation_func(obj, *args, **kwargs)
+                except Exception as e:
+                    print(f"[ERROR] Failed to process {obj.name}: {e}")
+
+        queue_op(process_batch, batch)
+
+
+# ==============================
+# QUEUE SYSTEM & ERROR HANDLING
+# ==============================
+
+
+def is_safe_context_for_id_writes():
+    """Check if the current context allows writing to ID properties"""
+    try:
+        # Test by writing to a temporary property
+        temp_prop_name = "_temp_context_test"
+        scene = bpy.context.scene
+
+        # If the property already exists, we don't need to test
+        if temp_prop_name in scene:
+            return True
+
+        # Try to set a temporary property
+        scene[temp_prop_name] = True
+        # If we got here, it worked!
+        del scene[temp_prop_name]
+        return True
+    except Exception:
+        # If we get an exception, it's not safe
+        return False
+
+
+def process_queue_ops():
+    """
+    Process operations from the queue in the main thread
+
+    This runs operations in a safe context and handles errors
+    without blocking Blender's UI.
+    """
+    global _failed_operations, _loops_with_failed_operations, _ADDON_IN_ERROR_STATE
+
+    try:
+        operations_processed = 0
+        max_operations_per_frame = 100
+
+        # Check if we're in a safe context for ID writes
+        context_safe = is_safe_context_for_id_writes()
+
+        while not _operation_queue.empty() and operations_processed < max_operations_per_frame:
+
+            # Get the next operation
+            operation = _operation_queue.get_nowait()
+
+            # Skip operations that have failed too many times
+            op_id = id(operation)
+            if op_id in _failed_operations:
+                _operation_queue.task_done()
+                if IS_DEBUG():
+                    print(f"[DEBUG] Skipping previously failed operation: {operation}")
+                continue
+
+            if IS_DEBUG():
+                print(f"[DEBUG] Got Op: {operation}")
+
+            try:
+                # Only run the operation if we're in a safe context
+                if context_safe:
+                    operation()
+                    # If successful, remove from failed operations if it was there
+                    if op_id in _failed_operations:
+                        _failed_operations.remove(op_id)
+                else:
+                    # Re-queue for later when context is safe
+                    _operation_queue.put(operation)
+                    if IS_DEBUG():
+                        print(f"[DEBUG] Re-queued operation for later: {operation}")
+
+                operations_processed += 1
+
+            except Exception as e:
+                print(f"[ERROR] Failed to execute queued operation: {e}")
+                _failed_operations.add(op_id)
+                _ADDON_IN_ERROR_STATE = True
+
+                if IS_DEBUG():
+                    print(f"[DEBUG] Processed: {operations_processed}")
+                    print(f"[DEBUG] Queue size: {_operation_queue.qsize()}")
+            finally:
+                _operation_queue.task_done()
+                if IS_DEBUG():
+                    print(f"[DEBUG] Done: {operation}")
+
+        # Clear old failed operations every few minutes to allow retrying
+        if len(_failed_operations) > 0:
+            if _loops_with_failed_operations > 5:
+                _failed_operations.clear()
+                _loops_with_failed_operations = 0  # Reset loop counter
+                if IS_DEBUG():
+                    print("[DEBUG] Cleared failed operations list")
+            else:
+                _loops_with_failed_operations += 1
+
+        if not _operation_queue.empty():
+            return 0.01  # Re-run soon if queue has items
+
+        # If we're in an error state but the queue is empty, try recovery
+        if _ADDON_IN_ERROR_STATE:
+            return 0.5  # Schedule recovery
+
+        return _QUEUE_RETRY_SECONDS
+
+    except Exception as e:
+        print(f"[ERROR] Error in process_queue_ops: {e}")
+        return _QUEUE_RETRY_SECONDS
+
+
+def queue_op(operation, *args, **kwargs):
+    """
+    Queue an operation to be executed in the main thread
+
+    Args:
+        operation: The function to queue
         *args: Arguments to pass to the function
         **kwargs: Keyword arguments to pass to the function
     """
-    queue_op(function, *args, **kwargs)
-
-
-def force_redraw_all():
-    """Force a redraw of all UI areas"""
-    for window in bpy.context.window_manager.windows:
-        for area in window.screen.areas:
-            area.tag_redraw()
+    if args or kwargs:
+        _operation_queue.put(lambda: operation(*args, **kwargs))
+    else:
+        _operation_queue.put(operation)
 
 
 def recover_from_error_state():
-    """Attempt to recover from an error state"""
-    global _ADDON_IN_ERROR_STATE
+    """
+    Attempt to recover from an error state
+
+    Tries to restore normal operation after errors by clearing
+    the failed operations list and error state flag.
+    """
+    global _ADDON_IN_ERROR_STATE, _failed_operations
 
     if not _ADDON_IN_ERROR_STATE:
-        return
+        return _QUEUE_RETRY_SECONDS
 
     print("[UTILS] [RECOVERY] Attempting to recover from error state...")
 
-    # Clear the operation queue
-    while not _operation_queue.empty():
-        try:
-            _operation_queue.get_nowait()
-            _operation_queue.task_done()
-        except:
-            pass
+    # Check if we're in a safe context before attempting recovery
+    if not is_safe_context_for_id_writes():
+        print("[UTILS] [RECOVERY] Context not safe for recovery, will try again later")
+        return 0.5  # Try again soon
 
+    _failed_operations.clear()
+
+    # Reset error state
     _ADDON_IN_ERROR_STATE = False
 
-    # Force a clean state for the addon
     print("[UTILS] [RECOVERY] Error state cleared")
 
-    # Force UI update to reflect recovery
+    # Force UI update
     for area in bpy.context.screen.areas:
         area.tag_redraw()
 
-    return True
+    return _QUEUE_RETRY_SECONDS
 
 
 def context_error_debug(error: str = None, extra_prints: list = []):
@@ -986,9 +1152,7 @@ def context_error_debug(error: str = None, extra_prints: list = []):
 
     print(f"[DEBUG] Call Stack:")
     for frame in inspect.stack():
-        print(
-            f"[DEBUG]   File: {frame.filename}, Line: {frame.lineno}, Function: {frame.function}"
-        )
+        print(f"[DEBUG]   File: {frame.filename}, Line: {frame.lineno}, Function: {frame.function}")
 
     if extra_prints:
         print()
@@ -999,19 +1163,15 @@ def context_error_debug(error: str = None, extra_prints: list = []):
     print(f"+" * 32)
 
 
-def IS_DEBUG() -> bool:
-    """Check if debug mode is enabled"""
-    addon_prefs = get_addon_prefs()
-    return DEBUG or addon_prefs.debug
+# ==============================
+# HANDLER WRAPPERS
+# ==============================
 
 
 def timer_update_data_scene_objects():
     """Timer compatible wrapper for update_data_scene_objects"""
-    try:
-        scene = bpy.context.scene
-        queue_op(update_data_scene_objects, scene)
-    except Exception as e:
-        print(f"[ERROR] in timer_update_data_scene_objects: {e}")
+    scene = bpy.context.scene
+    queue_op(update_data_scene_objects, scene)
     return _QUEUE_RETRY_SECONDS
 
 
@@ -1021,14 +1181,12 @@ def handler_update_data_scene_objects(scene):
     queue_op(update_data_scene_objects, scene)
 
 
+@bpy.app.handlers.persistent
 def timer_continuous_property_list_update():
-    """Timer compatible wrapper for continuous_property_list_update"""
-    try:
-        scene = bpy.context.scene
-        ctx = bpy.context
-        queue_op(continuous_property_list_update, scene, ctx)
-    except Exception as e:
-        print(f"[ERROR] in timer_continuous_property_list_update: {e}")
+    """Timer wrapper for continuous_property_list_update"""
+    scene = bpy.context.scene
+    ctx = bpy.context
+    queue_op(continuous_property_list_update, scene, ctx)
     return _QUEUE_RETRY_SECONDS
 
 
@@ -1040,15 +1198,11 @@ def handler_continuous_property_list_update(scene, context=None):
 
 
 def timer_cleanup_object_set_invalid_references():
-    """Timer compatible wrapper for cleanup_object_set_invalid_references"""
-    try:
-        scene = bpy.context.scene
-        queue_op(cleanup_object_set_invalid_references, scene)
-    except Exception as e:
-        print(f"[ERROR] in timer_cleanup_object_set_invalid_references: {e}")
-    return (
-        _QUEUE_RETRY_SECONDS / 2 if _QUEUE_RETRY_SECONDS >= 1 else _QUEUE_RETRY_SECONDS
-    )
+    """Timer wrapper for cleanup_object_set_invalid_references"""
+    scene = bpy.context.scene
+    queue_op(cleanup_object_set_invalid_references, scene)
+    # Run cleanup more frequently than other operations
+    return _QUEUE_RETRY_SECONDS / 2 if _QUEUE_RETRY_SECONDS >= 1 else _QUEUE_RETRY_SECONDS
 
 
 @bpy.app.handlers.persistent
