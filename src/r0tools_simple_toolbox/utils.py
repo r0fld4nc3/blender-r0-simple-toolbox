@@ -384,6 +384,8 @@ def process_queue_ops():
             and operations_processed < max_operations_per_frame
         ):
             operation = _operation_queue.get_nowait()
+            if IS_DEBUG():
+                print(f"[DEBUG] Got Op: {operation}")
             try:
                 operation()
                 operations_processed += 1
@@ -391,19 +393,28 @@ def process_queue_ops():
                 print(f"[ERROR] Failed to execute queued operation: {e}")
                 global _ADDON_IN_ERROR_STATE
                 _ADDON_IN_ERROR_STATE = True
+                if IS_DEBUG():
+                    print(f"[DEBUG] Processed: {operations_processed}")
+                    print(f"[DEBUG] {_operation_queue}")
             finally:
                 _operation_queue.task_done()
+                if IS_DEBUG():
+                    print(f"[DEBUG] Done: {operation}")
 
-        # If there are still operations in the queue, keep the timer running
         if not _operation_queue.empty():
+            if IS_DEBUG():
+                print()
             return 0.01  # Re-run in X second(s)
 
         # If we're in an error state, schedule recovery
         if _ADDON_IN_ERROR_STATE:
-            # Retry in X seconds
+            if IS_DEBUG():
+                print()
             return _QUEUE_RETRY_SECONDS
 
         # Check again in X second(s)
+        if IS_DEBUG():
+            print()
         return _QUEUE_RETRY_SECONDS
 
     except Exception as e:
@@ -988,9 +999,10 @@ def context_error_debug(error: str = None, extra_prints: list = []):
     print(f"+" * 32)
 
 
-def IS_DEBUG():
+def IS_DEBUG() -> bool:
     """Check if debug mode is enabled"""
-    return DEBUG
+    addon_prefs = get_addon_prefs()
+    return DEBUG or addon_prefs.debug
 
 
 def timer_update_data_scene_objects():
