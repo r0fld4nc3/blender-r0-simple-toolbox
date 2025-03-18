@@ -178,8 +178,6 @@ def save_preferences():
 # ==============================
 # OBJECT MANIPULATION
 # ==============================
-
-
 def set_object_mode(mode: str):
     """
     Set the current object mode
@@ -401,8 +399,6 @@ def iter_children(p_obj, recursive=True):
 # ==============================
 # MESH SELECTION MODE
 # ==============================
-
-
 def _set_mesh_selection_mode(use_extend=False, use_expand=False, type=""):
     """Base function for setting mesh selection mode"""
     bpy.ops.mesh.select_mode(use_extend=use_extend, use_expand=use_expand, type=type)
@@ -429,8 +425,6 @@ def set_mesh_selection_face(*args, **kwargs):
 # ==============================
 # TRANSFORM ORIENTATIONS
 # ==============================
-
-
 def get_builtin_transform_orientations(identifiers=False) -> list:
     """
     Get list of built-in transform orientations
@@ -489,8 +483,6 @@ def delete_custom_transform_orientation(name: str):
 # ==============================
 # UI & NOTIFICATIONS
 # ==============================
-
-
 def show_notification(message, title="Operation Complete"):
     """Display a popup notification and status info message"""
     bpy.context.window_manager.popup_menu(lambda self, context: self.layout.label(text=message), title=title)
@@ -584,8 +576,6 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
 # ==============================
 # OBJECT SETS & CUSTOM PROPERTIES
 # ==============================
-
-
 def refresh_object_sets_colours(context):
     """Refresh colors for all object sets"""
     print("[INFO] Force Refreshing Object Sets")
@@ -826,8 +816,6 @@ def cleanup_object_set_invalid_references(scene):
 # ==============================
 # OPERATIONS
 # ==============================
-
-
 def op_clear_sharp_along_axis(axis: str):
     """
     Clear sharp edges along specified axis
@@ -929,40 +917,8 @@ def op_clear_sharp_along_axis(axis: str):
 
 
 # ==============================
-# BATCH PROCESSING
-# ==============================
-
-
-def safe_batch_operation(objects, operation_func, *args, **kwargs):
-    """
-    Safely perform an operation on multiple objects in batches
-
-    Args:
-        objects: List of objects to process
-        operation_func: Function to call for each object
-        *args: Additional arguments for operation_func
-        **kwargs: Additional keyword arguments for operation_func
-    """
-    batch_size = 10  # Process objects in batches of 10
-
-    for i in range(0, len(objects), batch_size):
-        batch = objects[i : i + batch_size]
-
-        def process_batch(batch_objects):
-            for obj in batch_objects:
-                try:
-                    operation_func(obj, *args, **kwargs)
-                except Exception as e:
-                    print(f"[ERROR] Failed to process {obj.name}: {e}")
-
-        queue_op(process_batch, batch)
-
-
-# ==============================
 # QUEUE SYSTEM & ERROR HANDLING
 # ==============================
-
-
 def is_safe_context_for_id_writes():
     """Check if the current context allows writing to ID properties"""
     try:
@@ -1166,8 +1122,6 @@ def context_error_debug(error: str = None, extra_prints: list = []):
 # ==============================
 # HANDLER WRAPPERS
 # ==============================
-
-
 def timer_update_data_scene_objects():
     """Timer compatible wrapper for update_data_scene_objects"""
     scene = bpy.context.scene
