@@ -90,9 +90,7 @@ class AddonRegisterHelper:
                     print(f"[INIT] Register module: {module.__name__}")
                     module.register()
                 except Exception as e:
-                    print(
-                        f"[ERROR] Error registering module {module.__name__}: {str(e)}"
-                    )
+                    print(f"[ERROR] Error registering module {module.__name__}: {str(e)}")
 
         print("-------------------------------------------------------------\n")
 
@@ -108,9 +106,7 @@ class AddonRegisterHelper:
                     print(f"[INIT] Register module: {module.__name__}")
                     module.unregister()
                 except Exception as e:
-                    print(
-                        f"[ERROR] Error unregistering module {module.__name__}: {str(e)}"
-                    )
+                    print(f"[ERROR] Error unregistering module {module.__name__}: {str(e)}")
 
 
 # Create global instance
