@@ -3,9 +3,13 @@ import math
 import bpy
 
 from r0tools_simple_toolbox.const import DEBUG
-
-from .constants import OBJECT_MODES
-from .context import get_addon_prefs, get_scene
+from r0tools_simple_toolbox.utils import (
+    CUSTOM_PROPERTIES_TYPES,
+    OBJECT_MODES,
+    get_addon_prefs,
+    get_addon_props,
+    get_scene,
+)
 
 
 def IS_DEBUG():
@@ -178,22 +182,21 @@ def object_visible(obj):
 def is_valid_object_global(obj):
     """
     Check if an object reference is valid
-
-    This detects dangling references to deleted objects
     """
     try:
-        exists_mesh = (
+        exists_object = (
             obj is not None
             and obj
             and obj.name in bpy.data.objects
             and any(obj.name in scene.objects for scene in bpy.data.scenes)
         )
 
-        if not exists_mesh:
-            if obj is not None:
-                print(f"Dangling reference: {obj.name}")
-            else:
-                print(f"Dangling reference: {obj}")
+        if not exists_object:
+            if IS_DEBUG():
+                if obj is not None:
+                    print(f"[DEBUG][GENERAL] Dangling reference: {obj.name}")
+                else:
+                    print(f"[DEBUG][GENERAL] Dangling reference: {obj}")
             return False
 
         return True
@@ -386,6 +389,106 @@ def op_clear_sharp_along_axis(axis: str):
 
         # Set back to Object mode
         set_object_mode(mode)
+
+
+def property_list_update(scene, context, force_run=False):
+    """
+    Update property list based on selected objects
+
+    This function updates the custom property list panel
+    when object selection changes.
+    """
+    addon_props = get_addon_props()
+
+    if not addon_props.show_custom_property_list_prop and not force_run:
+        # Skip update if panel is not visible
+        if IS_DEBUG():
+            print(
+                f"[DEBUG] Custom Properties Panel is not visible, exiting from running continuous property list update."
+            )
+        return None
+
+    if bpy.context.selected_objects or force_run:
+        current_selection = {obj.name for obj in iter_scene_objects(selected=True)}
+
+        if IS_DEBUG():
+            print("------------- Continuous Property List Update -------------")
+
+        addon_props.custom_property_list.clear()
+
+        # Add unique custom properties to the set
+        unique_object_data_props = set()
+        unique_mesh_data_props = set()
+        for obj in bpy.context.selected_objects:
+            # Object Properties
+            for prop_name in obj.keys():
+                if IS_DEBUG():
+                    print(f"[DEBUG] (OP) {obj.name} - {prop_name=}")
+                if not prop_name.startswith("_") and prop_name not in unique_object_data_props:
+                    try:
+                        unique_object_data_props.add(prop_name)
+                        item = addon_props.custom_property_list.add()
+                        item.name = prop_name
+                        # Type is defaulted to Object
+                    except Exception as e:
+                        print(f"[ERROR] Error adding unique Custom Properties: {e}")
+                        context_error_debug(error=e)
+
+            # Object Data Properties
+            if obj.data and obj.type == "MESH":
+                for prop_name in obj.data.keys():
+                    if IS_DEBUG():
+                        print(f"[DEBUG] (ODP) {obj.name} - {prop_name=}")
+                    if not prop_name.startswith("_") and prop_name not in unique_mesh_data_props:
+                        try:
+                            unique_mesh_data_props.add(prop_name)
+                            item = addon_props.custom_property_list.add()
+                            item.name = prop_name
+                            item.type = CUSTOM_PROPERTIES_TYPES.MESH_DATA
+                        except Exception as e:
+                            print(f"[ERROR] Error adding unique Object Data Custom Properties: {e}")
+                            context_error_debug(error=e)
+
+        # Update the last object selection
+        try:
+            addon_props.last_object_selection = ",".join(current_selection)
+        except Exception as e:
+            context_error_debug(
+                error=e,
+                extra_prints=[
+                    f"addon_props.last_object_selection: {addon_props.last_object_selection}",
+                    f"{current_selection=}",
+                ],
+            )
+
+        # Force UI update
+        for area in bpy.context.screen.areas:
+            if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
+                area.tag_redraw()
+
+    else:
+        # Clear the property list if no objects are selected
+        try:
+            addon_props.custom_property_list.clear()
+            if IS_DEBUG():
+                print(f"Cleared UIList custom_property_list")
+        except Exception as e:
+            print(f"[ERROR] Error clearing custom property list when no selected objects: {e}")
+            context_error_debug(error=e)
+        try:
+            addon_props.last_object_selection = ""
+            if IS_DEBUG():
+                print(f"Cleared property last_object_selection")
+        except Exception as e:
+            print(f"[ERROR] Error setting last object selection when no selected objects: {e}")
+            context_error_debug(error=e)
+
+        # Force UI update
+        for area in bpy.context.screen.areas:
+            if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
+                area.tag_redraw()
+
+    return None
 
 
 def context_error_debug(error: str = None, extra_prints: list = []):

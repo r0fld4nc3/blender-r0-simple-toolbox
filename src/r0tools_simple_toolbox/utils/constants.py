@@ -1,6 +1,3 @@
-_ADDON_IN_ERROR_STATE = False
-_QUEUE_RETRY_SECONDS = 0.5  # Default retry interval
-
 # fmt: off
 class CUSTOM_PROPERTIES_TYPES:
     OBJECT_DATA = "OBJECT DATA"

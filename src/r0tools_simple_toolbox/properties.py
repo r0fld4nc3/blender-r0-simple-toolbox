@@ -10,9 +10,9 @@ from bpy.props import (
     PointerProperty,
 )
 
-from . import utils as u
-from .const import INTERNAL_NAME
-from .keymaps import draw_keymap_settings
+from r0tools_simple_toolbox import utils as u
+from r0tools_simple_toolbox.const import INTERNAL_NAME
+from r0tools_simple_toolbox.keymaps import draw_keymap_settings
 
 # -------------------------------------------------------------------
 #   ADDON PROPS
@@ -24,9 +24,7 @@ from .keymaps import draw_keymap_settings
 class R0PROP_UL_CustomPropertiesList(bpy.types.UIList):
     """UI List where each entry is a custom property belonging to at least 1 selected object"""
 
-    def draw_item(
-        self, context, layout, data, item, icon, active_data, active_propname
-    ):
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
         row = layout.row(align=True)
         if item.type == u.CUSTOM_PROPERTIES_TYPES.OBJECT_DATA:
             row.label(text="", icon="OBJECT_DATA")
@@ -177,9 +175,7 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
 class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
     """UI List where each entry is an Object Set that itself contains references to Objects added to the set"""
 
-    def draw_item(
-        self, context, layout, data, item, icon, active_data, active_propname, index
-    ):
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         addon_prefs = u.get_addon_prefs()
 
         # Check if the item to insert is a separator
@@ -289,9 +285,7 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
         default=False,
     )
 
-    show_uv_island_area_thresholds: BoolProperty(  # type: ignore
-        name="UV Island Area Thresholds", default=False
-    )
+    show_uv_island_area_thresholds: BoolProperty(name="UV Island Area Thresholds", default=False)  # type: ignore
 
     uvisland_sizecheck_arearelative: FloatProperty(  # type: ignore
         name="Relative Area Size",
@@ -437,9 +431,7 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
 class AddonPreferences(bpy.types.AddonPreferences):
     bl_idname = INTERNAL_NAME
 
-    debug: BoolProperty(
-        name="Debug", description="Set Debug State", default=False  # type: ignore
-    )
+    debug: BoolProperty(name="Debug", description="Set Debug State", default=False)  # type: ignore
 
     check_update_startup: BoolProperty(  # type: ignore
         name="Check Update on Startup",
@@ -488,17 +480,11 @@ class AddonPreferences(bpy.types.AddonPreferences):
         default=(0.0, 0.0, 0.0, 1.0),
     )
 
-    object_sets_modal_width: IntProperty(  # type: ignore
-        name="Object Sets Modal Width", default=300, min=0, max=400
-    )
+    object_sets_modal_width: IntProperty(name="Object Sets Modal Width", default=300, min=0, max=400)  # type: ignore
 
-    object_sets_list_rows: IntProperty(  # type: ignore
-        name="Object Sets List Rows", default=6, min=1
-    )
+    object_sets_list_rows: IntProperty(name="Object Sets List Rows", default=6, min=1)  # type: ignore
 
-    custom_properties_list_rows: IntProperty(  # type: ignore
-        name="Custom Properties List Rows", default=6, min=1
-    )
+    custom_properties_list_rows: IntProperty(name="Custom Properties List Rows", default=6, min=1)  # type: ignore
 
     def draw(self, context):
         layout = self.layout
@@ -513,9 +499,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         row = layout.row()
         row.prop(self, "check_update_startup", text="Check update on startup")
 
-        layout.prop(
-            self, "clear_sharp_axis_float_prop", text="Clear Sharp Edges Threshold"
-        )
+        layout.prop(self, "clear_sharp_axis_float_prop", text="Clear Sharp Edges Threshold")
 
         # Object Sets
         object_sets_settings_box = layout.box()
@@ -565,33 +549,13 @@ classes = [
     r0SimpleToolboxProps,
 ]
 
-# fmt: off
-timer_handlers = {
-    u.recover_from_error_state: {
-        "persistent": True, "first_interval": 5.0
-    },
-    u.timer_update_data_scene_objects: {
-        "persistent": True, "first_interval": 0
-    },
-    u.timer_cleanup_object_set_invalid_references: {
-        "persistent": True,
-        "first_interval": 0,
-    },
-    u.timer_continuous_property_list_update: {
-        "persistent": True, "first_interval": 0
-    },
-}
-# fmt: on
-
 depsgraph_update_post_handlers = [
     # handler_update_data_scene_objects,
-    # handler_cleanup_object_set_invalid_references,
     # handler_continuous_property_list_update,
 ]
 
 load_post_handlers = [
-    u.handler_cleanup_object_set_invalid_references,
-    u.handler_on_load_refresh_object_sets_colours,
+    # u.handler_on_load_refresh_object_sets_colours,
 ]
 
 
@@ -613,16 +577,6 @@ def register():
         DEBUG = False
         print(f"[PROPERTIES] Set Addon Debug to False")
 
-    for timer_func, func_args in timer_handlers.items():
-        persistent = func_args.get("persistent", False)
-        first_interval = func_args.get("first_interval", 0)
-
-        if not bpy.app.timers.is_registered(timer_func):
-            print(f"[PROPERTIES] Register Timer: {timer_func.__name__}")
-            bpy.app.timers.register(
-                timer_func, persistent=persistent, first_interval=first_interval
-            )
-
     for handler in depsgraph_update_post_handlers:
         print(f"[PROPERTIES] Register depsgraph_post_handler: {handler.__name__}")
         bpy.app.handlers.depsgraph_update_post.append(handler)
@@ -633,12 +587,7 @@ def register():
 
 
 def unregister():
-    print("[UTILS] Unregister handlers and timers")
-
-    for timer_func in timer_handlers.keys():
-        if bpy.app.timers.is_registered(timer_func):
-            print(f"[PROPERTIES] Unregister Timer: {timer_func.__name__}")
-            bpy.app.timers.unregister(timer_func)
+    print("[PROPERTIES] Unregister handlers")
 
     for handler in depsgraph_update_post_handlers:
         if handler in bpy.app.handlers.depsgraph_update_post:

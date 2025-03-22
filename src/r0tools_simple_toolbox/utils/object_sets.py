@@ -1,6 +1,11 @@
-from .context import get_addon_prefs, get_addon_props
-from .general import IS_DEBUG
-from .handlers import queue_op
+import bpy
+
+from r0tools_simple_toolbox.utils import (
+    IS_DEBUG,
+    get_addon_prefs,
+    get_addon_props,
+    is_valid_object_global,
+)
 
 
 def draw_objects_sets_uilist(layout, context, object_sets_box=None):
@@ -80,17 +85,84 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     op.set_index = -1
 
 
-def refresh_object_sets_colours(context):
-    """Refresh colors for all object sets"""
-    print("[INFO] Force Refreshing Object Sets")
-    addon_prefs = get_addon_prefs()
+def cleanup_object_set_invalid_references(scene):
+    """
+    Remove invalid object references from object sets
+
+    This cleans up references to deleted objects to prevent errors.
+    """
+    if IS_DEBUG():
+        print("------------- Cleanup Object Sets Invalid References -------------")
+
     addon_props = get_addon_props()
-    object_sets = addon_props.object_sets
 
-    if not addon_prefs.object_sets_use_colour:
-        return
+    bpy_scene_objects_len = len(bpy.context.scene.objects)
+    bpy_data_objects_len = len(bpy.data.objects)
+    scene_objects_len = len(addon_props.scene_objects)
+    data_objects_len = len(addon_props.data_objects)
 
-    for object_set in object_sets:
+    objects_updated = False
+
+    if IS_DEBUG():
+        print("------------- Update Data Scene Objects -------------")
+        print(f"[DEBUG][HANDLERS] Scene {bpy_scene_objects_len} == {scene_objects_len}")
+        print(f"[DEBUG][HANDLERS] Data  {bpy_data_objects_len} == {data_objects_len}")
+
+    count_changed = bpy_data_objects_len != data_objects_len or bpy_scene_objects_len != scene_objects_len
+
+    if count_changed:
         if IS_DEBUG():
-            print(f"[DEBUG] Refresh: {object_set.name}")
-        queue_op(object_set.update_object_set_colour, context)
+            print("------------- Updating Object References -------------")
+
+        objects_updated = True
+
+        # Clear existing references
+        addon_props.scene_objects.clear()
+        addon_props.data_objects.clear()
+
+        # Collect Scene Objects
+        for obj in bpy.context.scene.objects:
+            item = addon_props.scene_objects.add()
+            item.object = obj
+
+        # Collect Data Objects
+        unused_objects = []
+        for obj in bpy.data.objects:
+            if obj.name in bpy.context.scene.objects:
+                item = addon_props.data_objects.add()
+                item.object = obj
+            else:
+                unused_objects.append(obj)
+
+        if unused_objects:
+            if IS_DEBUG():
+                print(f"Unused blocks to be cleared: {len(unused_objects)}")
+            for unused in unused_objects:
+                if IS_DEBUG():
+                    print(f"[DEBUG][HANDLERS] (DATA) {unused.name} not in Scene.")
+
+    if objects_updated:
+        for object_set in addon_props.object_sets:
+            # Identify invalid objects without modifying anything
+            invalid_objects = []
+            for object_item in object_set.objects:
+                obj = object_item.object
+                if not is_valid_object_global(obj):
+                    invalid_objects.append(obj)
+
+            if invalid_objects:
+                for obj in invalid_objects:
+                    try:
+                        object_set.remove_object(obj)
+                    except Exception as e:
+                        print(f"[ERROR] Failed to remove object from set: {e}")
+
+                print(f"Cleaned up {len(invalid_objects)} references for Object Set '{object_set.name}'")
+
+        # Reset the flag after cleanup
+        objects_updated = False
+
+        # Force UI Update to reflect changes
+        for area in bpy.context.screen.areas:
+            if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
+                area.tag_redraw()

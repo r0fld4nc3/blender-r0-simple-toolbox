@@ -1,7 +1,6 @@
 import bpy
 
-from .context import get_scene
-from .general import IS_DEBUG
+from r0tools_simple_toolbox import utils as u
 
 
 def get_builtin_transform_orientations(identifiers=False) -> list:
@@ -28,12 +27,12 @@ def get_transform_orientations() -> list:
     """
     try:
         # This intentionally raises an exception to get valid values
-        get_scene().transform_orientation_slots[0].type = ""
+        u.get_scene().transform_orientation_slots[0].type = ""
     except Exception as inst:
         transforms = str(inst).split("'")[1::2]
 
     transform_list = list(transforms)
-    if IS_DEBUG():
+    if u.IS_DEBUG():
         print(f"[DEBUG] {transform_list=}")
 
     return transform_list
@@ -42,7 +41,7 @@ def get_transform_orientations() -> list:
 def get_custom_transform_orientations() -> list:
     """Returns a list of custom transform orientation names"""
     custom_transforms = get_transform_orientations()[7:]  # The 7 first orientations are built-ins
-    if IS_DEBUG():
+    if u.IS_DEBUG():
         print(f"[DEBUG] {custom_transforms=}")
 
     return custom_transforms
@@ -52,8 +51,8 @@ def delete_custom_transform_orientation(name: str):
     """Delete a custom transform orientation by name"""
     transform_list = get_custom_transform_orientations()
     for enum_type in transform_list:
-        if IS_DEBUG():
+        if u.IS_DEBUG():
             print(f"[DEBUG] {enum_type=} == {name=}")
         if enum_type == name or str(enum_type).lower() == str(name).lower():
-            get_scene().transform_orientation_slots[0].type = enum_type
+            u.get_scene().transform_orientation_slots[0].type = enum_type
             bpy.ops.transform.delete_orientation()

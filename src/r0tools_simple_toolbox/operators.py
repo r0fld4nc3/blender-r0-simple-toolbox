@@ -5,10 +5,10 @@ import sys
 
 import bmesh
 import bpy
+from bpy.props import BoolProperty
 
 from . import utils as u
 from .const import INTERNAL_NAME
-from .properties import BoolProperty
 from .uv_ops import select_small_uv_islands
 
 # -------------------------------------------------------------------
@@ -541,8 +541,7 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
 
         total_deletions = len(object_data_property_deletions) + len(mesh_data_property_deletions)
 
-        # Trigger property list update
-        u.continuous_property_list_update(bpy.context.scene, context, force_run=True)
+        u.property_list_update(bpy.context.scene, context, force_run=True)
 
         # u.show_notification(f"Deleted {total_deletions} propertie(s) across {total_objects} object(s)")
         self.report(
@@ -953,9 +952,6 @@ class SimpleToolbox_OT_RemoveObjectSet(bpy.types.Operator):
         return context.mode == u.OBJECT_MODES.OBJECT and len(u.get_addon_props().object_sets) > 0
 
     def execute(self, context):
-        # Update cleanup dangling references
-        # u.handler_cleanup_object_set_invalid_references(context)
-
         addon_props = u.get_addon_props()
         index = addon_props.object_sets_index
 
@@ -985,9 +981,6 @@ class SimpleToolbox_OT_RenameObjectSet(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, context):
-        # Update cleanup dangling references
-        # u.handler_cleanup_object_set_invalid_references(context)
-
         addon_props = u.get_addon_props()
         index = addon_props.object_sets_index
 
@@ -1098,9 +1091,6 @@ class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
         return accepted_contexts and len_selected_objects and not is_separator
 
     def execute(self, context):
-        # Update cleanup dangling references
-        # u.handler_cleanup_object_set_invalid_references(context)
-
         addon_props = u.get_addon_props()
         index = addon_props.object_sets_index
 
@@ -1139,9 +1129,6 @@ class SimpleToolbox_OT_RemoveFromObjectSet(bpy.types.Operator):
         return accepted_contexts and len_selected_objects and not is_separator
 
     def execute(self, context):
-        # Update cleanup dangling references
-        # u.handler_cleanup_object_set_invalid_references(context)
-
         addon_props = u.get_addon_props()
         index = addon_props.object_sets_index
 
@@ -1191,9 +1178,6 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
-        # Update cleanup dangling references
-        # u.handler_cleanup_object_set_invalid_references(context)
-
         addon_props = u.get_addon_props()
         if self.set_index < 0:
             index = addon_props.object_sets_index
@@ -1278,7 +1262,7 @@ class SimpleToolbox_OT_RandomiseObjectSetsColours(bpy.types.Operator):
                 if not self.override:
                     continue
 
-            for _ in range(10):  # Alternative to while loop, to prevent accidents
+            for _ in range(10):  # While loops can go wrong. Range is more controlled. Boom!
                 new_colour = (
                     random.uniform(0.000, 1.0),
                     random.uniform(0.000, 1.0),
