@@ -14,9 +14,9 @@ from r0tools_simple_toolbox import utils as u
 from r0tools_simple_toolbox.const import INTERNAL_NAME
 from r0tools_simple_toolbox.keymaps import draw_keymap_settings
 
-# -------------------------------------------------------------------
+# ===================================================================
 #   ADDON PROPS
-# -------------------------------------------------------------------
+# ===================================================================
 # Properties which are not stored in preferences
 
 
@@ -42,7 +42,7 @@ class R0PROP_PG_CustomPropertyItem(bpy.types.PropertyGroup):
     type: StringProperty(default=u.CUSTOM_PROPERTIES_TYPES.OBJECT_DATA)  # type: ignore
 
 
-# ----- Object Sets & Object Items -----
+# ===== Object Sets & Object Items =====
 class R0PROP_ObjectSetObjectItem(bpy.types.PropertyGroup):
     """Property representing a reference to an Object within an Object Set"""
 
@@ -251,9 +251,9 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
             layout.label(text=item.name)
 
 
-# -------------------------------------------------------------------
+# ===================================================================
 #   ADDON PROPERTIES
-# -------------------------------------------------------------------
+# ===================================================================
 class r0SimpleToolboxProps(bpy.types.PropertyGroup):
     show_dev_tools: BoolProperty(  # type: ignore
         name="Dev Tools",
@@ -425,9 +425,9 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
     )
 
 
-# -------------------------------------------------------------------
+# ===================================================================
 #   ADDON PREFS
-# -------------------------------------------------------------------
+# ===================================================================
 class AddonPreferences(bpy.types.AddonPreferences):
     bl_idname = INTERNAL_NAME
 
@@ -536,9 +536,9 @@ class AddonPreferences(bpy.types.AddonPreferences):
         # print(f"Saved Property: clear_sharp_axis_float_prop -> {self.clear_sharp_axis_float_prop}")
 
 
-# -------------------------------------------------------------------
+# ===================================================================
 #   Register & Unregister
-# -------------------------------------------------------------------
+# ===================================================================
 classes = [
     R0PROP_UL_CustomPropertiesList,
     R0PROP_PG_CustomPropertyItem,
