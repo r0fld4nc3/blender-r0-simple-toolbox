@@ -933,7 +933,9 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
             if context.selected_objects:
                 bpy.ops.r0tools.assign_to_object_set()
 
-            self.report({"INFO"}, f"Created Object Set: {self.object_set_name}")
+            self.report(
+                {"INFO"}, f"Created Object Set: {self.object_set_name} with colour: {self.object_set_colour[:]}"
+            )
 
         if context.area:
             context.area.tag_redraw()

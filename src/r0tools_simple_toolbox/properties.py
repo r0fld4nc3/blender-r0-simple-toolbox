@@ -52,7 +52,7 @@ class R0PROP_ObjectSetObjectItem(bpy.types.PropertyGroup):
 class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
     """Property that represents an Object Set that contains a reference to a collection of objects added to the set"""
 
-    def update_object_set_colour(self, context):
+    def update_object_set_colour(self, dummy):
         addon_prefs = u.get_addon_prefs()
         allow_override = addon_prefs.object_sets_colour_allow_override
 
@@ -79,10 +79,18 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
                     # Only allow colour override if flag is set.
                     obj.color = self.set_colour
 
-    def set_object_set_colour(self, context):
+    def set_object_set_colour(self, colour: list):
         """
-        Update colour of set. In the end, performs `update_object_set_colour`.
+        Set colour of Object Set.
         """
+
+        # update=func passes context as an argument but we want to
+        # pass a list of floats. So in order to workaround having
+        # to create a new method to support this, let's just
+        # enfore that the type(colour) must be in accepted types
+        if type(colour) in [type(self.set_colour), list, tuple]:
+            self.set_colour = colour
+
         for item in self.objects:
             obj = item.object
             if obj is None:
@@ -103,7 +111,7 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
         min=0.0,
         max=1.0,
         default=(0.0, 0.0, 0.0, 1.0),
-        update=set_object_set_colour,
+        update=set_object_set_colour,  # This passes `Context` as an argument....
     )
 
     def assign_object(self, obj):
