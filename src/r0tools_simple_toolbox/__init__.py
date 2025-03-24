@@ -19,8 +19,8 @@ modules = (
     ".operators",
     ".keymaps",
     ".ui",
-    ".const",
     ".utils",
+    ".const",
     ".repo.operators",
     ".repo.ui",
 )
