@@ -10,7 +10,7 @@ def handler_depsgraph_post_update(scene, depsgraph):
     # Check specifically for object deletions
     if depsgraph.id_type_updated("OBJECT"):
         if u.IS_DEBUG():
-            print("[DEBUG][HANDLERS] Object updates detected")
+            print("[DEBUG] [HANDLERS] Object updates detected")
 
         u.cleanup_object_set_invalid_references(scene)
         u.property_list_update(scene, bpy.context)

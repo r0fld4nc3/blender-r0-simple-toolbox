@@ -11,9 +11,9 @@ from . import utils as u
 from .const import INTERNAL_NAME
 from .uv_ops import select_small_uv_islands
 
-# -------------------------------------------------------------------
+# ===================================================================
 #   MISC
-# -------------------------------------------------------------------
+# ===================================================================
 
 # Store the original draw method BEFORE modifying it
 _BUILTIN_ORIENTATIONS_PIE = bpy.types.VIEW3D_MT_orientations_pie
@@ -163,9 +163,9 @@ class TRANSFORM_OT_SetCustomOrientation(bpy.types.Operator):
             return {"CANCELLED"}
 
 
-# -------------------------------------------------------------------
+# ===================================================================
 #   PIE MENUS
-# -------------------------------------------------------------------
+# ===================================================================
 # Pie menus are arranged in the order West, East, South, North, Northwest, Northeast Southwest Southeast
 class VIEW3D_MT_CustomOrientationsPieMenu(bpy.types.Menu):
     bl_label = "Custom Transform Orientations"
@@ -275,9 +275,9 @@ class SimpleToolbox_OT_ShowCustomOrientationsPie(bpy.types.Operator):
         return {"FINISHED"}
 
 
-# -------------------------------------------------------------------
+# ===================================================================
 #   EXPERIMENTAL
-# -------------------------------------------------------------------
+# ===================================================================
 class SimpleToolbox_OT_ExperimentalOP(bpy.types.Operator):
     bl_label = "Exp Op 1"
     bl_idname = "r0tools.experimental_op_1"
@@ -361,9 +361,9 @@ class SimpleToolbox_OT_ExperimentalOP(bpy.types.Operator):
         return {"FINISHED"}
 
 
-# -------------------------------------------------------------------
+# ===================================================================
 #   DEV OPS
-# -------------------------------------------------------------------
+# ===================================================================
 class SimpleToolbox_OT_ReloadNamedScripts(bpy.types.Operator):
     bl_label = "Reload Script(s)"
     bl_idname = "r0tools.reload_named_scripts"
@@ -443,9 +443,9 @@ class SimpleToolbox_OT_ReloadNamedScripts(bpy.types.Operator):
         return {"FINISHED"}
 
 
-# -------------------------------------------------------------------
+# ===================================================================
 #   OBJECT OPS
-# -------------------------------------------------------------------
+# ===================================================================
 class SimpleToolbox_OT_ClearCustomSplitNormalsData(bpy.types.Operator):
     bl_label = "Clear Split Normals"
     bl_idname = "r0tools.clear_custom_split_normals_data"
@@ -1321,9 +1321,9 @@ class SimpleToolbox_OT_ToggleWireDisplay(bpy.types.Operator):
         return {"FINISHED"}
 
 
-# -------------------------------------------------------------------
+# ===================================================================
 #   MESH OPS
-# -------------------------------------------------------------------
+# ===================================================================
 class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
     bl_label = "Remove Nth Edges"
     bl_idname = "r0tools.nth_edges"
@@ -1837,9 +1837,9 @@ class SimpleToolbox_OT_ClearAxisSharpEdgesZ(bpy.types.Operator):
         return {"FINISHED"}
 
 
-# -------------------------------------------------------------------
+# ===================================================================
 #   Register & Unregister
-# -------------------------------------------------------------------
+# ===================================================================
 
 # fmt: off
 classes = [

@@ -194,9 +194,9 @@ def is_valid_object_global(obj):
         if not exists_object:
             if IS_DEBUG():
                 if obj is not None:
-                    print(f"[DEBUG][GENERAL] Dangling reference: {obj.name}")
+                    print(f"[DEBUG] [GENERAL] Dangling reference: {obj.name}")
                 else:
-                    print(f"[DEBUG][GENERAL] Dangling reference: {obj}")
+                    print(f"[DEBUG] [GENERAL] Dangling reference: {obj}")
             return False
 
         return True
