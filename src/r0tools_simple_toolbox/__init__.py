@@ -1,7 +1,7 @@
 bl_info = {
     "name": "r0Tools - Simple Toolbox",
     "author": "Artur Rosário",
-    "version": (0, 0, 22),
+    "version": (0, 0, 23),
     "blender": (4, 2, 0),
     "location": "3D View > Tool",
     "description": "Miscellaneous Utilities",
@@ -19,8 +19,8 @@ modules = (
     ".operators",
     ".keymaps",
     ".ui",
-    ".const",
     ".utils",
+    ".const",
     ".repo.operators",
     ".repo.ui",
 )
@@ -90,9 +90,7 @@ class AddonRegisterHelper:
                     print(f"[INIT] Register module: {module.__name__}")
                     module.register()
                 except Exception as e:
-                    print(
-                        f"[ERROR] Error registering module {module.__name__}: {str(e)}"
-                    )
+                    print(f"[ERROR] Error registering module {module.__name__}: {str(e)}")
 
         print("-------------------------------------------------------------\n")
 
@@ -108,9 +106,7 @@ class AddonRegisterHelper:
                     print(f"[INIT] Register module: {module.__name__}")
                     module.unregister()
                 except Exception as e:
-                    print(
-                        f"[ERROR] Error unregistering module {module.__name__}: {str(e)}"
-                    )
+                    print(f"[ERROR] Error unregistering module {module.__name__}: {str(e)}")
 
 
 # Create global instance
