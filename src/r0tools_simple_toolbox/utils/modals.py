@@ -1,6 +1,6 @@
 import bpy
 
-from r0tools_simple_toolbox import utils as u
+from .. import utils as u
 
 _UPDATE_INTERVAL = 0.5
 

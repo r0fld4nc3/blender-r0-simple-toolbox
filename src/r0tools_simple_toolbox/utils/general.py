@@ -2,8 +2,8 @@ import math
 
 import bpy
 
-from r0tools_simple_toolbox.const import DEBUG
-from r0tools_simple_toolbox.utils import (
+from ..const import DEBUG
+from ..utils import (
     CUSTOM_PROPERTIES_TYPES,
     OBJECT_MODES,
     get_addon_prefs,

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import bpy
 
-from r0tools_simple_toolbox.const import INTERNAL_NAME
+from ..const import INTERNAL_NAME
 
 
 def get_scene() -> bpy.types.Scene:

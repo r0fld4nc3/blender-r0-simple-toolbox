@@ -1,11 +1,6 @@
 import bpy
 
-from r0tools_simple_toolbox.utils import (
-    IS_DEBUG,
-    get_addon_prefs,
-    get_addon_props,
-    is_valid_object_global,
-)
+from ..utils import IS_DEBUG, get_addon_prefs, get_addon_props, is_valid_object_global
 
 
 def draw_objects_sets_uilist(layout, context, object_sets_box=None):
