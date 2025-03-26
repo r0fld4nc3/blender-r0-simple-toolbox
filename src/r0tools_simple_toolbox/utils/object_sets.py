@@ -100,8 +100,8 @@ def cleanup_object_set_invalid_references(scene):
 
     if IS_DEBUG():
         print("------------- Update Data Scene Objects -------------")
-        print(f"[DEBUG] [HANDLERS] Scene {bpy_scene_objects_len} == {scene_objects_len}")
-        print(f"[DEBUG] [HANDLERS] Data  {bpy_data_objects_len} == {data_objects_len}")
+        print(f"[DEBUG] [OBJECT_SETS] Scene {bpy_scene_objects_len} == {scene_objects_len}")
+        print(f"[DEBUG] [OBJECT_SETS] Data  {bpy_data_objects_len} == {data_objects_len}")
 
     count_changed = bpy_data_objects_len != data_objects_len or bpy_scene_objects_len != scene_objects_len
 
@@ -134,7 +134,7 @@ def cleanup_object_set_invalid_references(scene):
                 print(f"Unused blocks to be cleared: {len(unused_objects)}")
             for unused in unused_objects:
                 if IS_DEBUG():
-                    print(f"[DEBUG] [HANDLERS] (DATA) {unused.name} not in Scene.")
+                    print(f"[DEBUG] [OBJECT_SETS] (DATA) {unused.name} not in Scene.")
 
     if objects_updated:
         for object_set in addon_props.object_sets:

@@ -1,7 +1,8 @@
 import bpy
 
-from .. import utils as u
-from ..operators import CustomTransformsOrientationsTracker
+from . import utils as u
+
+# from .operators import CustomTransformsOrientationsTracker
 
 
 @bpy.app.handlers.persistent
@@ -10,7 +11,7 @@ def handler_depsgraph_post_update(scene, depsgraph):
     # Check specifically for object deletions
     if depsgraph.id_type_updated("OBJECT"):
         if u.IS_DEBUG():
-            print("[DEBUG] [HANDLERS] Object updates detected")
+            print("[DEBUG] [DEPSGRAPH] Object updates detected")
 
         u.cleanup_object_set_invalid_references(scene)
         u.property_list_update(scene, bpy.context)
@@ -20,7 +21,7 @@ def handler_depsgraph_post_update(scene, depsgraph):
 def refresh_object_sets_colours(context):
     """Refresh colors for all object sets"""
     if u.IS_DEBUG():
-        print("[OBJECT_SETS] Force Refreshing Object Sets' Colours")
+        print("[DEPSGRAPH] Force Refreshing Object Sets' Colours")
     addon_prefs = u.get_addon_prefs()
     addon_props = u.get_addon_props()
     object_sets = addon_props.object_sets
@@ -30,7 +31,7 @@ def refresh_object_sets_colours(context):
 
     for object_set in object_sets:
         if u.IS_DEBUG():
-            print(f"[DEBUG] Refresh: {object_set.name}")
+            print(f"[DEBUG] [DEPSGRAPH] Refresh: {object_set.name}")
         object_set.update_object_set_colour(context)
 
 
@@ -41,21 +42,21 @@ load_post_handlers = [refresh_object_sets_colours]
 
 def register():
     for handler in depsgraph_handlers:
-        print(f"[HANDLERS] Registering {handler}")
+        print(f"[DEPSGRAPH] Registering {handler}")
         if handler not in bpy.app.handlers.depsgraph_update_post:
             bpy.app.handlers.depsgraph_update_post.append(handler)
 
     for handler in load_post_handlers:
-        print(f"[HANDLERS] Register load_post_handler: {handler.__name__}")
+        print(f"[DEPSGRAPH] Register load_post_handler: {handler.__name__}")
         bpy.app.handlers.load_post.append(handler)
 
 
 def unregister():
     for handler in depsgraph_handlers:
-        print(f"[HANDLERS] Unregister {handler}")
+        print(f"[DEPSGRAPH] Unregister {handler}")
         if handler in bpy.app.handlers.depsgraph_update_post:
             bpy.app.handlers.depsgraph_update_post.remove(handler)
 
     for handler in load_post_handlers:
-        print(f"[HANDLERS] Register load_post_handler: {handler.__name__}")
+        print(f"[DEPSGRAPH] Register load_post_handler: {handler.__name__}")
         bpy.app.handlers.load_post.remove(handler)

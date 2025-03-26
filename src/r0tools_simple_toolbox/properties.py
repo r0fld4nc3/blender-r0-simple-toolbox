@@ -557,15 +557,6 @@ classes = [
     r0SimpleToolboxProps,
 ]
 
-depsgraph_update_post_handlers = [
-    # handler_update_data_scene_objects,
-    # handler_continuous_property_list_update,
-]
-
-load_post_handlers = [
-    # u.handler_on_load_refresh_object_sets_colours,
-]
-
 
 def register():
     for cls in classes:
@@ -585,28 +576,8 @@ def register():
         DEBUG = False
         print(f"[PROPERTIES] Set Addon Debug to False")
 
-    for handler in depsgraph_update_post_handlers:
-        print(f"[PROPERTIES] Register depsgraph_post_handler: {handler.__name__}")
-        bpy.app.handlers.depsgraph_update_post.append(handler)
-
-    for handler in load_post_handlers:
-        print(f"[PROPERTIES] Register load_post_handler: {handler.__name__}")
-        bpy.app.handlers.load_post.append(handler)
-
 
 def unregister():
-    print("[PROPERTIES] Unregister handlers")
-
-    for handler in depsgraph_update_post_handlers:
-        if handler in bpy.app.handlers.depsgraph_update_post:
-            print(f"[PROPERTIES] Unregister depsgraph_post_handler: {handler.__name__}")
-            bpy.app.handlers.depsgraph_update_post.remove(handler)
-
-    for handler in load_post_handlers:
-        if handler in bpy.app.handlers.load_post:
-            print(f"[PROPERTIES] Unregister load_post_handler: {handler.__name__}")
-            bpy.app.handlers.load_post.remove(handler)
-
     for cls in classes:
         print(f"[PROPERTIES] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
