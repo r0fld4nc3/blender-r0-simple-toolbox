@@ -92,9 +92,7 @@ def draw_keymap_settings(layout, prefs):
                 rna_keymap_ui.draw_kmi([], kc, km, kmi, row, 0)
             else:
                 row = object_mode_box.row()
-                row.label(
-                    text=f"No hotkey found for '{op_id}' or is being by another addon."
-                )
+                row.label(text=f"No hotkey found for '{op_id}' or is being by another addon.")
 
 
 addon_keymaps = list()
