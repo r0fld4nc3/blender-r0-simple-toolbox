@@ -9,12 +9,9 @@ def handler_depsgraph_post_update(scene, depsgraph):
     """Handler that runs after depsgraph updates"""
     # Check specifically for object deletions
     if depsgraph.id_type_updated("OBJECT"):
-        # u.cleanup_object_set_invalid_references(scene)
-        # u.property_list_update(scene, bpy.context)
-
-        u.delay_execution(CustomTransformsOrientationsTracker.track_custom_orientations, scene)
-        u.delay_execution(u.cleanup_object_set_invalid_references, scene)
-        u.delay_execution(u.property_list_update, scene, bpy.context)
+        u.cleanup_object_set_invalid_references(scene)
+        u.property_list_update(scene, bpy.context)
+    CustomTransformsOrientationsTracker.track_custom_orientations(scene)
 
 
 @bpy.app.handlers.persistent
