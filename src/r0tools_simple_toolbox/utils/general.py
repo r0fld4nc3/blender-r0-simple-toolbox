@@ -1,3 +1,4 @@
+import functools
 import math
 
 import bpy
@@ -289,6 +290,13 @@ def force_redraw_all():
 # ==============================
 # OPERATIONS
 # ==============================
+
+
+def delay_execution(func, *args, delay=0, persistent=False):
+    if bpy.app.timers.is_registered(func):
+        bpy.app.timers.unregister(func)
+
+    bpy.app.timers.register(functools.partial(func, *args), first_interval=delay, persistent=persistent)
 
 
 def op_clear_sharp_along_axis(axis: str):
