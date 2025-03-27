@@ -6,7 +6,6 @@ from .constants import *  # isort: skip
 from .context import *  # isort: skip
 from .custom_transform import *  # isort: skip
 from .general import *  # isort: skip
-from ..depsgraph import *  # isort: skip
 from .object_sets import *  # isort: skip
 
 package = __name__
@@ -18,7 +17,6 @@ submodules = [
     "context",
     "custom_transform",
     "general",
-    "depsgraph",
     "object_sets",
 ]
 # fmt: on

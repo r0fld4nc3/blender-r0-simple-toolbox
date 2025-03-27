@@ -20,6 +20,7 @@ modules = (
     ".keymaps",
     ".ui",
     ".utils",
+    ".depsgraph",
     ".const",
     ".repo.operators",
     ".repo.ui",
