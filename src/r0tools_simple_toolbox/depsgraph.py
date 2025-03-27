@@ -1,20 +1,7 @@
 import bpy
 
 from . import utils as u
-
-# from .operators import CustomTransformsOrientationsTracker
-
-
-# Consider creating a "delay_execution" function and running each of these from a bpy.app.timer
-# The aim is to try and fix some stuttering when there are several hundreds or more objects in
-# the scene.
-"""
-def delay_execution(func, delay=0, persistent=False):
-    if bpy.app.timers.is_registered(func):
-        bpy.app.timers.unregister(func)
-
-    bpy.app.timers.register(func, first_interval=delay, persistent=persistent)
-"""
+from .operators import CustomTransformsOrientationsTracker
 
 
 @bpy.app.handlers.persistent
@@ -22,11 +9,12 @@ def handler_depsgraph_post_update(scene, depsgraph):
     """Handler that runs after depsgraph updates"""
     # Check specifically for object deletions
     if depsgraph.id_type_updated("OBJECT"):
-        if u.IS_DEBUG():
-            print("[DEBUG] [DEPSGRAPH] Object updates detected")
+        # u.cleanup_object_set_invalid_references(scene)
+        # u.property_list_update(scene, bpy.context)
 
-        u.cleanup_object_set_invalid_references(scene)
-        u.property_list_update(scene, bpy.context)
+        u.delay_execution(CustomTransformsOrientationsTracker.track_custom_orientations, scene)
+        u.delay_execution(u.cleanup_object_set_invalid_references, scene)
+        u.delay_execution(u.property_list_update, scene, bpy.context)
 
 
 @bpy.app.handlers.persistent
