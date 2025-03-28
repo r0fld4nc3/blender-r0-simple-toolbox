@@ -2,7 +2,7 @@ import bpy
 
 from . import ext_update as upd
 from . import utils as u
-from .const import ADDON_NAME, VERSION_STR
+from .defines import ADDON_NAME, VERSION_STR
 from .repo import draw_repo_layout
 
 

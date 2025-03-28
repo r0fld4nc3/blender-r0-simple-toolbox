@@ -2,7 +2,17 @@ from pathlib import Path
 
 import bpy
 
-from ..const import INTERNAL_NAME
+from ..defines import INTERNAL_NAME
+
+
+def get_addon_props():
+    """Get the addon property group from current scene"""
+    return get_scene().r0fl_toolbox_props
+
+
+def get_addon_prefs():
+    """Get the addon preferences"""
+    return bpy.context.preferences.addons[INTERNAL_NAME].preferences
 
 
 def get_scene() -> bpy.types.Scene:
@@ -20,16 +30,6 @@ def get_context_area() -> str | None:
     if not bpy.context.area:
         return None
     return bpy.context.area.ui_type
-
-
-def get_addon_props():
-    """Get the addon property group from current scene"""
-    return get_scene().r0fl_toolbox_props
-
-
-def get_addon_prefs():
-    """Get the addon preferences"""
-    return bpy.context.preferences.addons[INTERNAL_NAME].preferences
 
 
 def get_addon_fs_path() -> Path:

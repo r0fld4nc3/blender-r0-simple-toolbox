@@ -24,7 +24,7 @@ def tuple_version_string(version_str: str):
 
 
 def trigger_update_check(*args, **kwargs) -> bool:
-    from ..const import BASE_NAME, INTERNAL_NAME, REPO_NAME, UPDATE_CHECK_CD
+    from ..defines import BASE_NAME, INTERNAL_NAME, REPO_NAME, UPDATE_CHECK_CD
     from ..ui import r0Tools_PT_SimpleToolbox
     from ..utils import get_addon_fs_path, get_addon_prefs
 
@@ -240,11 +240,11 @@ def get_local_version(addon_id: str) -> tuple:
 
     if "bl_ext." in module_name.lower():
         # Reference the file that imports bl_info and makes itr available
-        # const.py works because it imports bl_info at the top so we can access it
+        # defines.py works because it imports bl_info at the top so we can access it
         #
         # For some odd reason, when dealing with extensions, the info from __init__
         # isn't readily available, at least I haven't figured out a way, yet.
-        mod = mod.const
+        mod = mod.defines
 
     installed_version = mod.bl_info.get("version", (0, 0, 0))
     print(f"{UPDATER_LOG_PREFIX} [INFO] Installed version for '{addon_id}': {installed_version}")
