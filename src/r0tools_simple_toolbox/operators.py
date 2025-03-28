@@ -47,7 +47,7 @@ class CustomTransformsOrientationsTracker:
     _last_tracked_orientations = set()
 
     @classmethod
-    @bpy.app.handlers.persistent
+    # @bpy.app.handlers.persistent
     def track_custom_orientations(cls, scene, context=None):
         """
         Persistent handler to monitor and track changes in custom transform orientations.
@@ -111,10 +111,12 @@ class CustomTransformsOrientationsTracker:
         Register the custom orientation tracking handler.
         """
         # Remove any existing handlers to prevent duplicates
-        cls.unregister_handler()
+        # cls.unregister_handler()
 
-        print(f"[OPERATORS] Register depsgraph_handler_post: {cls.track_custom_orientations.__name__}")
-        bpy.app.handlers.depsgraph_update_post.append(cls.track_custom_orientations)
+        # >>>>> Moved to depsgraph.py and handled there
+        # print(f"[OPERATORS] Register depsgraph_handler_post: {cls.track_custom_orientations.__name__}")
+        # bpy.app.handlers.depsgraph_update_post.append(cls.track_custom_orientations)
+        # <<<<<
 
         # Initial population of custom orientations
         cls._last_tracked_orientations = set(cls.get_custom_transform_orientations())
@@ -1932,7 +1934,7 @@ def unregister():
         bpy.utils.unregister_class(cls)
 
     unregister_keymapping()
-    CustomTransformsOrientationsTracker.unregister_handler()
+    # CustomTransformsOrientationsTracker.unregister_handler()
 
     _BUILTIN_ORIENTATIONS_PIE.draw = _ORIGINAL_ORIENTATIONS_PIE_DRAW
 

@@ -391,6 +391,35 @@ def op_clear_sharp_along_axis(axis: str):
         set_object_mode(mode)
 
 
+def _custom_properties_store_states() -> dict:
+    addon_props = get_addon_props()
+
+    # Store the current selection state of Custom Property List
+    selection_state = {}
+    for item in addon_props.custom_property_list:
+        selection_state[(item.name, item.type)] = item.selected
+
+    return selection_state
+
+
+def custom_property_list_add_props(props: set | list, prop_type, selection_state: dict):
+    addon_props = get_addon_props()
+
+    # Populate the UIList
+    for prop_name in props:
+        try:
+            item = addon_props.custom_property_list.add()
+            item.name = prop_name
+            item.type = prop_type
+            # Restore selection state if it exists
+            key = (prop_name, prop_type)
+            if key in selection_state:
+                item.selected = selection_state[key]
+        except Exception as e:
+            print(f"[ERROR] Error adding unique Custom Properties: {e}")
+            context_error_debug(error=e)
+
+
 def property_list_update(scene, context, force_run=False):
     """
     Update property list based on selected objects
@@ -412,7 +441,10 @@ def property_list_update(scene, context, force_run=False):
         current_selection = {obj.name for obj in iter_scene_objects(selected=True)}
 
         if IS_DEBUG():
-            print("------------- Continuous Property List Update -------------")
+            print("------------- Custom Property List Update -------------")
+
+        # Store the current selection state before clearing the list
+        selection_state = _custom_properties_store_states()
 
         addon_props.custom_property_list.clear()
 
@@ -425,14 +457,7 @@ def property_list_update(scene, context, force_run=False):
                 if IS_DEBUG():
                     print(f"[DEBUG] (OP) {obj.name} - {prop_name=}")
                 if not prop_name.startswith("_") and prop_name not in unique_object_data_props:
-                    try:
-                        unique_object_data_props.add(prop_name)
-                        item = addon_props.custom_property_list.add()
-                        item.name = prop_name
-                        # Type is defaulted to Object
-                    except Exception as e:
-                        print(f"[ERROR] Error adding unique Custom Properties: {e}")
-                        context_error_debug(error=e)
+                    unique_object_data_props.add(prop_name)
 
             # Object Data Properties
             if obj.data and obj.type == "MESH":
@@ -440,14 +465,12 @@ def property_list_update(scene, context, force_run=False):
                     if IS_DEBUG():
                         print(f"[DEBUG] (ODP) {obj.name} - {prop_name=}")
                     if not prop_name.startswith("_") and prop_name not in unique_mesh_data_props:
-                        try:
-                            unique_mesh_data_props.add(prop_name)
-                            item = addon_props.custom_property_list.add()
-                            item.name = prop_name
-                            item.type = CUSTOM_PROPERTIES_TYPES.MESH_DATA
-                        except Exception as e:
-                            print(f"[ERROR] Error adding unique Object Data Custom Properties: {e}")
-                            context_error_debug(error=e)
+                        unique_mesh_data_props.add(prop_name)
+
+        # Populate the UIList
+        # Allows it to finally be sorted!
+        custom_property_list_add_props(unique_object_data_props, CUSTOM_PROPERTIES_TYPES.OBJECT_DATA, selection_state)
+        custom_property_list_add_props(unique_mesh_data_props, CUSTOM_PROPERTIES_TYPES.MESH_DATA, selection_state)
 
         # Update the last object selection
         try:
@@ -467,6 +490,9 @@ def property_list_update(scene, context, force_run=False):
                 area.tag_redraw()
 
     else:
+        # Store the states even if nothing selected
+        selection_state = _custom_properties_store_states()
+
         # Clear the property list if no objects are selected
         try:
             addon_props.custom_property_list.clear()

@@ -1,13 +1,12 @@
 import importlib
 import sys
 
-from .constants import *
-from .context import *
-from .custom_transform import *
-from .general import *
-from .handlers import *
-from .modals import *
-from .object_sets import *
+# Import order here is really important!
+from .constants import *  # isort: skip
+from .context import *  # isort: skip
+from .custom_transform import *  # isort: skip
+from .general import *  # isort: skip
+from .object_sets import *  # isort: skip
 
 package = __name__
 
@@ -18,8 +17,6 @@ submodules = [
     "context",
     "custom_transform",
     "general",
-    "handlers",
-    "modals",
     "object_sets",
 ]
 # fmt: on
