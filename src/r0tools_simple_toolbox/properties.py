@@ -10,9 +10,9 @@ from bpy.props import (
     PointerProperty,
 )
 
-from r0tools_simple_toolbox import utils as u
-from r0tools_simple_toolbox.const import INTERNAL_NAME
-from r0tools_simple_toolbox.keymaps import draw_keymap_settings
+from . import utils as u
+from .defines import INTERNAL_NAME
+from .keymaps import draw_keymap_settings
 
 # ===================================================================
 #   ADDON PROPS
@@ -556,6 +556,7 @@ classes = [
     AddonPreferences,
     r0SimpleToolboxProps,
 ]
+
 
 def register():
     for cls in classes:

@@ -8,7 +8,7 @@ import bpy
 from bpy.props import BoolProperty
 
 from . import utils as u
-from .const import INTERNAL_NAME
+from .defines import INTERNAL_NAME
 from .uv_ops import select_small_uv_islands
 
 # ===================================================================

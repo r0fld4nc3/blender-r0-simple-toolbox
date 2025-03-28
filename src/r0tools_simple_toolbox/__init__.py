@@ -21,7 +21,7 @@ modules = (
     ".ui",
     ".utils",
     ".depsgraph",
-    ".const",
+    ".defines",
     ".repo.operators",
     ".repo.ui",
 )

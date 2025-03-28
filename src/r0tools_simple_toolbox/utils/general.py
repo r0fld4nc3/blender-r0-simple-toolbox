@@ -2,7 +2,7 @@ import math
 
 import bpy
 
-from ..const import DEBUG
+from ..defines import DEBUG
 from ..utils import (
     CUSTOM_PROPERTIES_TYPES,
     OBJECT_MODES,
