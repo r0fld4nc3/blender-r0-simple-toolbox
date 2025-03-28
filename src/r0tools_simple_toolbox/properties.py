@@ -557,7 +557,6 @@ classes = [
     r0SimpleToolboxProps,
 ]
 
-
 def register():
     for cls in classes:
         print(f"[PROPERTIES] Register {cls.__name__}")
