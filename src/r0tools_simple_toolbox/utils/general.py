@@ -1,4 +1,3 @@
-import functools
 import math
 
 import bpy
@@ -413,7 +412,7 @@ def property_list_update(scene, context, force_run=False):
         current_selection = {obj.name for obj in iter_scene_objects(selected=True)}
 
         if IS_DEBUG():
-            print("------------- Continuous Property List Update -------------")
+            print("------------- Custom Property List Update -------------")
 
         addon_props.custom_property_list.clear()
 
