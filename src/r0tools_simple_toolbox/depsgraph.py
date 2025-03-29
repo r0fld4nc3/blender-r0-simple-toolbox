@@ -8,7 +8,7 @@ from .operators import CustomTransformsOrientationsTracker
 def handler_depsgraph_post_update(scene, depsgraph):
     """Handler that runs after depsgraph updates"""
     # Check specifically for object deletions
-    if depsgraph.id_type_updated("OBJECT"):
+    if depsgraph.id_type_updated(u.DEPSGRAPH_ID_TYPES.OBJECT):
         u.cleanup_object_set_invalid_references(scene)
         u.property_list_update(scene, bpy.context)
     CustomTransformsOrientationsTracker.track_custom_orientations(scene)
