@@ -9,6 +9,7 @@ from bpy.props import BoolProperty
 
 from . import utils as u
 from .defines import INTERNAL_NAME
+from .utils.object_sets import *
 from .uv_ops import select_small_uv_islands
 
 # ===================================================================
@@ -452,7 +453,7 @@ class SimpleToolbox_OT_ClearCustomSplitNormalsData(bpy.types.Operator):
     bl_label = "Clear Split Normals"
     bl_idname = "r0tools.clear_custom_split_normals_data"
     bl_description = "Clears the Custom Split Normals assignments for selected objects and sets AutoSmooth to 180.\nUseful to quickly clear baked normals/shading assignments of multiple meshes at once."
-    bl_options = {"REGISTER", "UNDO"}
+    bl_options = {"REGISTER", "UNDO_GROUPED"}
 
     accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
 
@@ -501,7 +502,7 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
     bl_label = "Delete"
     bl_idname = "r0tools.delete_custom_properties"
     bl_description = "Delete Custom Properties from Object(s)"
-    bl_options = {"REGISTER", "UNDO"}
+    bl_options = {"REGISTER", "UNDO_GROUPED"}
 
     @classmethod
     def poll(cls, context):
@@ -557,7 +558,7 @@ class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
     bl_label = "Clear Attributes"
     bl_idname = "r0tools.clear_mesh_attributes"
     bl_description = "Clears unneeded mesh(es) attributes created by various addons.\nPreserves some integral and needed attributes such as material_index that is required for multi-material assignments.\nSometimes certain addons or operations will populate this list with attributes you wish to remove at a later date, be it for parsing or exporting."
-    bl_options = {"REGISTER", "UNDO"}
+    bl_options = {"REGISTER", "UNDO_GROUPED"}
 
     def op_clear_mesh_attributes(self):
         """
@@ -619,7 +620,7 @@ class SimpleToolbox_OT_ClearChildrenRecurse(bpy.types.Operator):
     bl_label = "Clear Children"
     bl_idname = "r0tools.clear_all_objects_children"
     bl_description = "For each selected object, clears parenting keeping transform for each child object.\n\n- SHIFT: Recursively clears parenting for ALL object children and sub-children."
-    bl_options = {"REGISTER", "UNDO"}
+    bl_options = {"REGISTER", "UNDO_GROUPED"}
 
     @classmethod
     def poll(cls, context):
@@ -711,7 +712,7 @@ class SimpleToolbox_OT_FindModifierSearch(bpy.types.Operator):
     bl_idname = "r0tools.find_modifier_search"
     bl_label = "Find Modifiers"
     bl_description = 'Find and select objects whose modifier name(s) or type(s) match the given search text criteria.\nTo search for a mix of name and type and/or multiple criteria, use a comma-separated string, ex.: "!!, weld, nodes"\nNote: Case Insensitive\n\n- SHIFT: Add to selection'
-    bl_options = {"REGISTER", "UNDO"}
+    bl_options = {"INTERNAL"}
 
     add_to_selection: BoolProperty(default=False, name="Add To Selection")  # type: ignore
 
@@ -929,7 +930,7 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
             new_set = addon_props.object_sets.add()
             new_set.name = self.add_non_conflicting_name()
             new_set.set_object_set_colour(self.object_set_colour)
-            addon_props.object_sets_index = len(addon_props.object_sets) - 1
+            set_active_object_set_index(len(addon_props.object_sets) - 1)
 
             # Immediately add selected objects to set, for convenience
             if context.selected_objects:
@@ -949,20 +950,19 @@ class SimpleToolbox_OT_RemoveObjectSet(bpy.types.Operator):
     bl_label = "Remove Object Set"
     bl_idname = "r0tools.remove_object_set"
     bl_description = "Remove the selected Object Set entry."
-    bl_options = {"REGISTER"}
+    bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
     def poll(cls, context):
         return context.mode == u.OBJECT_MODES.OBJECT and len(u.get_addon_props().object_sets) > 0
 
     def execute(self, context):
-        addon_props = u.get_addon_props()
-        index = addon_props.object_sets_index
+        index = get_active_object_set_index()
 
-        if 0 <= index < len(addon_props.object_sets):
-            set_name = addon_props.object_sets[index].name
-            addon_props.object_sets.remove(index)
-            addon_props.object_sets_index = max(0, index - 1)
+        if 0 <= index < get_object_sets_count():
+            set_name = get_object_set_name_at_index(index)
+            remove_object_set_at_index(index)
+            set_active_object_set_index(max(0, index - 1))
             self.report({"INFO"}, f"Removed Object Set: {set_name}")
         return {"FINISHED"}
 
@@ -975,24 +975,23 @@ class SimpleToolbox_OT_RenameObjectSet(bpy.types.Operator):
     new_name: bpy.props.StringProperty(name="New Object Set Name", default="")  # type: ignore
 
     def invoke(self, context, event):
-        addon_props = u.get_addon_props()
-        index = addon_props.object_sets_index
+        index = get_active_object_set_index()
 
-        if 0 <= index < len(addon_props.object_sets):
-            object_set = addon_props.object_sets[index]
+        if 0 <= index < get_object_sets_count():
+            object_set = get_object_set_at_index(index)
             self.new_name = object_set.name
 
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, context):
-        addon_props = u.get_addon_props()
-        index = addon_props.object_sets_index
+        index = get_active_object_set_index()
 
-        if 0 <= index < len(addon_props.object_sets):
-            object_set = addon_props.object_sets[index]
+        if 0 <= index < get_object_sets_count():
+            object_set = get_object_set_at_index(index)
             old_name = object_set.name
-            object_set.name = self.new_name
-            self.report({"INFO"}, f"Renamed '{old_name}' to '{self.new_name}'")
+            success = set_object_set_name(object_set, self.new_name)
+            if success:
+                self.report({"INFO"}, f"Renamed '{old_name}' to '{self.new_name}'")
 
         return {"FINISHED"}
 
@@ -1014,10 +1013,8 @@ class SimpleToolbox_OT_MoveObjectSetItemUp(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
-        addon_props = u.get_addon_props()
-        object_sets = addon_props.object_sets
-        active_index = addon_props.object_sets_index
-        separator = addon_props.object_sets[active_index].separator
+        active_index = get_active_object_set_index()
+        separator = get_object_set_at_index(active_index).separator
 
         if active_index > 0:
             if self.absolute:
@@ -1025,11 +1022,11 @@ class SimpleToolbox_OT_MoveObjectSetItemUp(bpy.types.Operator):
             else:
                 to_index = active_index - 1
 
-            object_sets.move(active_index, to_index)
-            addon_props.object_sets_index = to_index
+            move_object_set_to_index(active_index, to_index)
+            set_active_object_set_index(to_index)
             if not separator:
-                addon_props.object_sets[active_index].update_count()
-                addon_props.object_sets[to_index].update_count()
+                object_set_at_index_update_count(active_index)
+                object_set_at_index_update_count(to_index)
 
         return {"FINISHED"}
 
@@ -1055,7 +1052,7 @@ class SimpleToolbox_OT_MoveObjectSetItemDown(bpy.types.Operator):
     def execute(self, context):
         addon_props = u.get_addon_props()
         object_sets = addon_props.object_sets
-        active_index = addon_props.object_sets_index
+        active_index = get_active_object_set_index()
         separator = addon_props.object_sets[active_index].separator
 
         if active_index < len(object_sets) - 1:
@@ -1065,7 +1062,7 @@ class SimpleToolbox_OT_MoveObjectSetItemDown(bpy.types.Operator):
                 to_index = active_index + 1
 
             object_sets.move(active_index, to_index)
-            addon_props.object_sets_index = to_index
+            set_active_object_set_index(to_index)
             if not separator:
                 addon_props.object_sets[active_index].update_count()
                 addon_props.object_sets[to_index].update_count()
@@ -1077,15 +1074,14 @@ class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
     bl_label = "Assign"
     bl_idname = "r0tools.assign_to_object_set"
     bl_description = "Add selected objects to selected Object Set Entry."
-    bl_options = {"REGISTER"}
+    bl_options = {"INTERNAL"}
 
     accepted_contexts = [u.OBJECT_MODES.OBJECT]
 
     @classmethod
     def poll(cls, context):
-        addon_props = u.get_addon_props()
-        object_sets = addon_props.object_sets
-        active_index = addon_props.object_sets_index
+        object_sets = get_object_sets()
+        active_index = get_active_object_set_index()
 
         # Evaluate polls
         accepted_contexts = context.mode in cls.accepted_contexts
@@ -1095,11 +1091,10 @@ class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
         return accepted_contexts and len_selected_objects and not is_separator
 
     def execute(self, context):
-        addon_props = u.get_addon_props()
-        index = addon_props.object_sets_index
+        index = get_active_object_set_index()
 
-        if 0 <= index < len(addon_props.object_sets):
-            object_set = addon_props.object_sets[index]
+        if 0 <= index < get_object_sets_count():
+            object_set = get_object_set_at_index(index)
 
             for obj in context.selected_objects:
                 object_set.assign_object(obj)
@@ -1115,31 +1110,29 @@ class SimpleToolbox_OT_RemoveFromObjectSet(bpy.types.Operator):
     bl_label = "Remove"
     bl_idname = "r0tools.remove_from_object_set"
     bl_description = "Remove selected objects from selected Object Set entry."
-    bl_options = {"REGISTER"}
+    bl_options = {"INTERNAL"}
 
     accepted_contexts = [u.OBJECT_MODES.OBJECT]
 
     @classmethod
     def poll(cls, context):
-        addon_props = u.get_addon_props()
-        object_sets = addon_props.object_sets
-        active_index = addon_props.object_sets_index
+        object_sets = get_object_sets()
+        active_index = get_active_object_set_index()
 
         # Evaluate polls
         accepted_contexts = context.mode in cls.accepted_contexts
         len_selected_objects = len(context.selected_objects) > 0
-        is_separator = object_sets[active_index].separator if len(object_sets) else False
+        is_separator = get_object_set_at_index(active_index).separator if len(object_sets) else False
 
         return accepted_contexts and len_selected_objects and not is_separator
 
     def execute(self, context):
-        addon_props = u.get_addon_props()
-        index = addon_props.object_sets_index
+        index = get_active_object_set_index()
 
         total_removed = 0
 
-        if 0 <= index < len(addon_props.object_sets):
-            object_set = addon_props.object_sets[index]
+        if 0 <= index < get_object_sets_count():
+            object_set = get_object_set_at_index(index)
 
             for obj in context.selected_objects:
                 object_set.remove_object(obj)
@@ -1153,7 +1146,7 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
     bl_label = "Select"
     bl_idname = "r0tools.select_object_set"
     bl_description = "SHIFT: Add to Selection"
-    bl_options = {"REGISTER"}
+    bl_options = {"INTERNAL"}
 
     add_to_selection = False
     set_index: bpy.props.IntProperty(default=-1)  # type: ignore
@@ -1162,14 +1155,14 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        addon_props = u.get_addon_props()
-        object_sets = addon_props.object_sets
-        active_index = addon_props.object_sets_index
+        object_sets = get_object_sets()
+        active_index = get_active_object_set_index()
 
         # Evaluate polls
         accepted_contexts = context.mode in cls.accepted_contexts
         has_objects = object_sets[active_index].count > 0 if len(object_sets) else False
-        is_separator = object_sets[active_index].separator if len(object_sets) else False
+        has_objects = get_object_set_at_index(active_index).count > 0 if len(object_sets) else False
+        is_separator = get_object_set_at_index(active_index).separator if len(object_sets) else False
 
         return accepted_contexts and has_objects and not is_separator
 
@@ -1182,14 +1175,13 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
-        addon_props = u.get_addon_props()
         if self.set_index < 0:
-            index = addon_props.object_sets_index
+            index = get_active_object_set_index()
         else:
             index = self.set_index
 
-        if 0 <= index < len(addon_props.object_sets):
-            object_set = addon_props.object_sets[index]
+        if 0 <= index < get_object_sets_count():
+            object_set = get_object_set_at_index(index)
 
             if u.IS_DEBUG():
                 print(f"{self.add_to_selection=}")
@@ -1235,12 +1227,14 @@ class SimpleToolbox_OT_ForceRefreshObjectSets(bpy.types.Operator):
 
 
 class SimpleToolbox_OT_RandomiseObjectSetsColours(bpy.types.Operator):
-    """Randomise the colour of each Object Set, respecting the existing colours (if any) and without overlapping colours"""
+    """
+    Randomise the colour of each Object Set, respecting the existing colours (if any) and without overlapping colours
+    """
 
     bl_label = "Randomise"
     bl_idname = "r0tools.object_sets_colours_randomise"
     bl_description = "Randomise the colour of each Object Set, respecting the existing colours (if any) and without overlapping colours.\n- SHIFT: Force randomise all colours."
-    bl_options = {"INTERNAL"}
+    bl_options = {"INTERNAL", "UNDO_GROUPED"}
 
     override = False
 
@@ -1253,13 +1247,12 @@ class SimpleToolbox_OT_RandomiseObjectSetsColours(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
-        addon_props = u.get_addon_props()
         addon_prefs = u.get_addon_prefs()
 
         default_set_colour = [c for c in addon_prefs.object_sets_default_colour]
         colours: set = set()
 
-        for object_set in addon_props.object_sets:
+        for object_set in get_object_sets():
             set_colour = [c for c in object_set.set_colour]
 
             if set_colour != default_set_colour:
@@ -1283,6 +1276,32 @@ class SimpleToolbox_OT_RandomiseObjectSetsColours(bpy.types.Operator):
 
         self.report({"INFO"}, "Randmoised Object Sets' Colours.")
 
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_RenameObjectsInObjectSet(bpy.types.Operator):
+    """
+    Rename Objects of selected Object Set to share the same name as the Set they are contained in.
+    """
+
+    bl_label = "Rename Objects in Selected Set"
+    bl_idname = "r0tools.object_sets_rename_objects_in_set"
+    bl_description = 'Renames Objects in the selected Object Set (Highlighted in the Set List) to take the name of the Object Set they belong to.\n\nExample:\nAn Object Set named "Example Set" will have objects associated to itself renamed to "Example Set", "Example Set.001", "Example Set.002", etc.'
+    bl_options = {"INTERNAL", "UNDO_GROUPED"}
+
+    def execute(self, context):
+        active_index = get_active_object_set_index()
+        active_object_set_name = get_object_set_name_at_index(active_index)
+
+        renamed_count = 0
+
+        # This does not account for instances of existing or similar object set names
+
+        for obj in iter_objects_of_object_set_at_index(active_index):
+            obj.name = active_object_set_name
+            renamed_count += 1
+
+        self.report({"INFO"}, f"Renamed {renamed_count} objects to {active_object_set_name}")
         return {"FINISHED"}
 
 
@@ -1332,7 +1351,7 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
     bl_label = "Remove Nth Edges"
     bl_idname = "r0tools.nth_edges"
     bl_description = "Remove Nth (every other) edges from edge loops.\nSelect one edge per disconnected mesh to define the starting point.\n\nBy default, the selection automatically expands to include all connected edges in the loop. To limit the operation to only the manually selected contiguous edges or restrict it to the original ring selection, disable 'Expand Edges.'"
-    bl_options = {"REGISTER", "UNDO"}
+    bl_options = {"REGISTER", "UNDO_GROUPED"}
 
     expand_edges: BoolProperty(name="Expand Edges", default=True)  # type: ignore
     keep_initial_selection: BoolProperty(name="Keep Selected Edges", default=True)  # type: ignore
@@ -1473,7 +1492,7 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
     bl_label = "Restore Rotation"
     bl_idname = "r0tools.rotation_from_selection"
     bl_description = "Given a selection of vertices/edges/faces, align each object such that the selection aligns to the Z Axis.\n\n- SHIFT: Clear object rotations on finish. (Also present in Redo panel)."
-    bl_options = {"REGISTER", "UNDO"}
+    bl_options = {"REGISTER", "UNDO_GROUPED"}
 
     clear_rotation_on_align: BoolProperty(name="Clear Rotation(s)", default=False)  # type: ignore
     origin_to_selection: BoolProperty(name="Origin to selection", default=False)  # type: ignore
@@ -1860,6 +1879,8 @@ classes = [
     SimpleToolbox_OT_SelectObjectSet,
     SimpleToolbox_OT_ForceRefreshObjectSets,
     SimpleToolbox_OT_RandomiseObjectSetsColours,
+    SimpleToolbox_OT_RenameObjectsInObjectSet,
+    
     SimpleToolbox_OT_ToggleWireDisplay,
     
     VIEW3D_MT_CustomOrientationsPieMenu,

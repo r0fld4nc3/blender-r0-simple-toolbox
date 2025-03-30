@@ -1,6 +1,110 @@
 import bpy
 
-from ..utils import IS_DEBUG, get_addon_prefs, get_addon_props, is_valid_object_global
+from .. import utils as u
+
+
+def get_object_sets() -> list:
+    addon_props = u.get_addon_props()
+
+    return addon_props.object_sets
+
+
+def get_object_sets_count() -> int:
+    return len(get_object_sets())
+
+
+def get_active_object_set_index() -> int:
+    addon_props = u.get_addon_props()
+    active_index = addon_props.object_sets_index
+
+    return active_index
+
+
+def set_active_object_set_index(index: int):
+    addon_props = u.get_addon_props()
+
+    if index < get_object_sets_count():
+        addon_props.object_sets_index = index
+
+
+def get_object_set_at_index(index: int) -> int:
+    object_sets = get_object_sets()
+
+    if index < get_object_sets_count():
+        return object_sets[index]
+
+    return None
+
+
+def remove_object_set_at_index(index: int):
+    object_sets = get_object_sets()
+
+    if index < get_object_sets_count():
+        object_sets.remove(index)
+
+
+def get_object_set_name_at_index(index: int) -> str:
+    object_set = get_object_set_at_index(index)
+
+    if not object_set:
+        return ""
+
+    return object_set.name
+
+
+def set_object_set_name(object_set, new_name) -> bool:
+    try:
+        object_set.name = new_name
+    except Exception as e:
+        print(f"[ERROR] [OBJECT_SETS] Unable to rename object set: {e}")
+        return False
+
+    return True
+
+
+def set_object_set_name_at_index(index, new_name) -> bool:
+    object_set = get_object_set_at_index(index)
+
+    if object_set:
+        object_set.name = new_name
+        return True
+
+    return False
+
+
+def object_set_at_index_update_count(index: int) -> bool:
+    object_set = get_object_set_at_index(index)
+
+    if object_set:
+        object_set.update_count()
+        return True
+
+    return False
+
+
+def get_object_set_objects_at_index(index: int):
+    object_set = get_object_set_at_index(index)
+
+    if object_set:
+        return object_set.objects
+
+    return None
+
+
+def iter_objects_of_object_set_at_index(index: int):
+    object_set = get_object_set_at_index(index)
+
+    if object_set:
+        for obj_prop in object_set.objects:
+            yield obj_prop.object
+
+    return None
+
+
+def move_object_set_to_index(from_index, to_index):
+    object_sets = get_object_sets()
+
+    object_sets.move(from_index, to_index)
 
 
 def draw_objects_sets_uilist(layout, context, object_sets_box=None):
@@ -12,8 +116,8 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
         context: The current context
         object_sets_box: Optional box to draw within
     """
-    addon_prefs = get_addon_prefs()
-    addon_props = get_addon_props()
+    addon_prefs = u.get_addon_prefs()
+    addon_props = u.get_addon_props()
 
     # Object Sets Editor parent layout
     if object_sets_box:
@@ -62,6 +166,10 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     col.separator(factor=1.0)  # Spacer
     col.operator("r0tools.object_sets_colours_randomise", text="", icon="NODE_MATERIAL")
 
+    # Object Sets Actions (Downward arrow HLT dropdown menu)
+    col.separator(factor=1.0)  # Spacer
+    col.menu("SimpleToolbox_MT_ObjectSetsActionsMenu", text="")
+
     # Bottom
     if object_sets_box:
         parent = object_sets_box
@@ -86,10 +194,10 @@ def cleanup_object_set_invalid_references(scene):
 
     This cleans up references to deleted objects to prevent errors.
     """
-    if IS_DEBUG():
+    if u.IS_DEBUG():
         print("------------- Cleanup Object Sets Invalid References -------------")
 
-    addon_props = get_addon_props()
+    addon_props = u.get_addon_props()
 
     bpy_scene_objects_len = len(bpy.context.scene.objects)
     bpy_data_objects_len = len(bpy.data.objects)
@@ -98,7 +206,7 @@ def cleanup_object_set_invalid_references(scene):
 
     objects_updated = False
 
-    if IS_DEBUG():
+    if u.IS_DEBUG():
         print("------------- Update Data Scene Objects -------------")
         print(f"[DEBUG] [OBJECT_SETS] Scene {bpy_scene_objects_len} == {scene_objects_len}")
         print(f"[DEBUG] [OBJECT_SETS] Data  {bpy_data_objects_len} == {data_objects_len}")
@@ -106,7 +214,7 @@ def cleanup_object_set_invalid_references(scene):
     count_changed = bpy_data_objects_len != data_objects_len or bpy_scene_objects_len != scene_objects_len
 
     if count_changed:
-        if IS_DEBUG():
+        if u.IS_DEBUG():
             print("------------- Updating Object References -------------")
 
         objects_updated = True
@@ -130,10 +238,10 @@ def cleanup_object_set_invalid_references(scene):
                 unused_objects.append(obj)
 
         if unused_objects:
-            if IS_DEBUG():
+            if u.IS_DEBUG():
                 print(f"Unused blocks to be cleared: {len(unused_objects)}")
             for unused in unused_objects:
-                if IS_DEBUG():
+                if u.IS_DEBUG():
                     print(f"[DEBUG] [OBJECT_SETS] (DATA) {unused.name} not in Scene.")
 
     if objects_updated:
@@ -142,7 +250,7 @@ def cleanup_object_set_invalid_references(scene):
             invalid_objects = []
             for object_item in object_set.objects:
                 obj = object_item.object
-                if not is_valid_object_global(obj):
+                if not u.is_valid_object_global(obj):
                     invalid_objects.append(obj)
 
             if invalid_objects:
@@ -161,3 +269,20 @@ def cleanup_object_set_invalid_references(scene):
         for area in bpy.context.screen.areas:
             if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
                 area.tag_redraw()
+
+
+@bpy.app.handlers.persistent
+def refresh_object_sets_colours(context):
+    """Refresh colors for all object sets"""
+    if u.IS_DEBUG():
+        print("[OBJECT_SETS] Force Refreshing Object Sets' Colours")
+    addon_prefs = u.get_addon_prefs()
+    object_sets = get_object_sets()
+
+    if not addon_prefs.object_sets_use_colour:
+        return
+
+    for object_set in object_sets:
+        if u.IS_DEBUG():
+            print(f"[DEBUG] Refresh: {object_set.name}")
+        object_set.update_object_set_colour(context)
