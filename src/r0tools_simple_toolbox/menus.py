@@ -5,10 +5,10 @@ class SimpleToolbox_MT_ObjectSetsActionsMenu(bpy.types.Menu):
     bl_label = "Object Sets Actions"
 
     def draw(self, context):
-        from .operators import SimpleToolbox_OT_RandomiseObjectSetsColours
+        from .operators import SimpleToolbox_OT_RenameObjectsInObjectSet
 
         layout = self.layout
-        layout.operator(SimpleToolbox_OT_RandomiseObjectSetsColours.bl_idname)
+        layout.operator(SimpleToolbox_OT_RenameObjectsInObjectSet.bl_idname)
 
 
 # ===================================================================
