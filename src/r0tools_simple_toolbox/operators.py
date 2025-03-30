@@ -1284,19 +1284,24 @@ class SimpleToolbox_OT_RenameObjectsInObjectSet(bpy.types.Operator):
     Rename Objects of selected Object Set to share the same name as the Set they are contained in.
     """
 
-    bl_label = "Rename Objects in Set"
+    bl_label = "Rename Objects in Selected Set"
     bl_idname = "r0tools.object_sets_rename_objects_in_set"
-    bl_description = "To be written"
+    bl_description = 'Renames Objects in the selected Object Set (Highlighted in the Set List) to take the name of the Object Set they belong to.\n\nExample:\nAn Object Set named "Example Set" will have objects associated to itself renamed to "Example Set", "Example Set.001", "Example Set.002", etc.'
     bl_options = {"INTERNAL", "UNDO_GROUPED"}
 
     def execute(self, context):
-        addon_props = u.get_addon_props()
-        object_sets = addon_props.object_sets
-        active_index = addon_props.object_sets_index
+        active_index = get_active_object_set_index()
+        active_object_set_name = get_object_set_name_at_index(active_index)
 
-        # Get active set
+        renamed_count = 0
 
-        # self.report({"INFO"}, f"Renamed {len(objects)} objects to {new_name}")
+        # This does not account for instances of existing or similar object set names
+
+        for obj in iter_objects_of_object_set_at_index(active_index):
+            obj.name = active_object_set_name
+            renamed_count += 1
+
+        self.report({"INFO"}, f"Renamed {renamed_count} objects to {active_object_set_name}")
         return {"FINISHED"}
 
 
