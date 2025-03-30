@@ -18,6 +18,7 @@ modules = (
     ".properties",
     ".operators",
     ".keymaps",
+    ".menus",
     ".ui",
     ".utils",
     ".depsgraph",
