@@ -82,6 +82,25 @@ def object_set_at_index_update_count(index: int) -> bool:
     return False
 
 
+def get_object_set_objects_at_index(index: int):
+    object_set = get_object_set_at_index(index)
+
+    if object_set:
+        return object_set.objects
+
+    return None
+
+
+def iter_objects_of_object_set_at_index(index: int):
+    object_set = get_object_set_at_index(index)
+
+    if object_set:
+        for obj_prop in object_set.objects:
+            yield obj_prop.object
+
+    return None
+
+
 def move_object_set_to_index(from_index, to_index):
     object_sets = get_object_sets()
 
@@ -149,7 +168,7 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
 
     # Object Sets Actions (Downward arrow HLT dropdown menu)
     col.separator(factor=1.0)  # Spacer
-    col.menu("SimpleToolbox_MT_ObjectSetsActionsMenu", text="", icon="DOWNARROW_HLT")
+    col.menu("SimpleToolbox_MT_ObjectSetsActionsMenu", text="")
 
     # Bottom
     if object_sets_box:
