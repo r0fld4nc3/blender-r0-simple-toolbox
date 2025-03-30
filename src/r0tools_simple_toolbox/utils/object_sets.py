@@ -3,6 +3,91 @@ import bpy
 from .. import utils as u
 
 
+def get_object_sets() -> list:
+    addon_props = u.get_addon_props()
+
+    return addon_props.object_sets
+
+
+def get_object_sets_count() -> int:
+    return len(get_object_sets())
+
+
+def get_active_object_set_index() -> int:
+    addon_props = u.get_addon_props()
+    active_index = addon_props.object_sets_index
+
+    return active_index
+
+
+def set_active_object_set_index(index: int):
+    addon_props = u.get_addon_props()
+
+    if index < get_object_sets_count():
+        addon_props.object_sets_index = index
+
+
+def get_object_set_at_index(index: int) -> int:
+    object_sets = get_object_sets()
+
+    if index < get_object_sets_count():
+        return object_sets[index]
+
+    return None
+
+
+def remove_object_set_at_index(index: int):
+    object_sets = get_object_sets()
+
+    if index < get_object_sets_count():
+        object_sets.remove(index)
+
+
+def get_object_set_name_at_index(index: int) -> str:
+    object_set = get_object_set_at_index(index)
+
+    if not object_set:
+        return ""
+
+    return object_set.name
+
+
+def set_object_set_name(object_set, new_name) -> bool:
+    try:
+        object_set.name = new_name
+    except Exception as e:
+        print(f"[ERROR] [OBJECT_SETS] Unable to rename object set: {e}")
+        return False
+
+    return True
+
+
+def set_object_set_name_at_index(index, new_name) -> bool:
+    object_set = get_object_set_at_index(index)
+
+    if object_set:
+        object_set.name = new_name
+        return True
+
+    return False
+
+
+def object_set_at_index_update_count(index: int) -> bool:
+    object_set = get_object_set_at_index(index)
+
+    if object_set:
+        object_set.update_count()
+        return True
+
+    return False
+
+
+def move_object_set_to_index(from_index, to_index):
+    object_sets = get_object_sets()
+
+    object_sets.move(from_index, to_index)
+
+
 def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     """
     Draw the Objects Sets UI list
@@ -173,8 +258,7 @@ def refresh_object_sets_colours(context):
     if u.IS_DEBUG():
         print("[OBJECT_SETS] Force Refreshing Object Sets' Colours")
     addon_prefs = u.get_addon_prefs()
-    addon_props = u.get_addon_props()
-    object_sets = addon_props.object_sets
+    object_sets = get_object_sets()
 
     if not addon_prefs.object_sets_use_colour:
         return
