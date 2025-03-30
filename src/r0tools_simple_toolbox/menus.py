@@ -8,7 +8,7 @@ class SimpleToolbox_MT_ObjectSetsActionsMenu(bpy.types.Menu):
         from .operators import SimpleToolbox_OT_RenameObjectsInObjectSet
 
         layout = self.layout
-        layout.operator(SimpleToolbox_OT_RenameObjectsInObjectSet.bl_idname)
+        layout.operator(SimpleToolbox_OT_RenameObjectsInObjectSet.bl_idname, icon="OUTLINER_OB_FONT")
 
 
 # ===================================================================
