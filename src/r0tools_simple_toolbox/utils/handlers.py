@@ -2,6 +2,7 @@ import bpy
 
 from .. import utils as u
 from ..operators import CustomTransformsOrientationsTracker
+from .object_sets import refresh_object_sets_colours
 
 
 @bpy.app.handlers.persistent
@@ -14,24 +15,6 @@ def handler_depsgraph_post_update(scene, depsgraph):
 
         u.cleanup_object_set_invalid_references(scene)
         u.property_list_update(scene, bpy.context)
-
-
-@bpy.app.handlers.persistent
-def refresh_object_sets_colours(context):
-    """Refresh colors for all object sets"""
-    if u.IS_DEBUG():
-        print("[OBJECT_SETS] Force Refreshing Object Sets' Colours")
-    addon_prefs = u.get_addon_prefs()
-    addon_props = u.get_addon_props()
-    object_sets = addon_props.object_sets
-
-    if not addon_prefs.object_sets_use_colour:
-        return
-
-    for object_set in object_sets:
-        if u.IS_DEBUG():
-            print(f"[DEBUG] Refresh: {object_set.name}")
-        object_set.update_object_set_colour(context)
 
 
 depsgraph_handlers = [handler_depsgraph_post_update]
