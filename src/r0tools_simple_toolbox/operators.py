@@ -9,6 +9,7 @@ from bpy.props import BoolProperty
 
 from . import utils as u
 from .defines import INTERNAL_NAME
+from .utils.object_sets import *
 from .uv_ops import select_small_uv_islands
 
 # ===================================================================
@@ -929,7 +930,7 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
             new_set = addon_props.object_sets.add()
             new_set.name = self.add_non_conflicting_name()
             new_set.set_object_set_colour(self.object_set_colour)
-            addon_props.object_sets_index = len(addon_props.object_sets) - 1
+            set_active_object_set_index(len(addon_props.object_sets) - 1)
 
             # Immediately add selected objects to set, for convenience
             if context.selected_objects:
@@ -956,13 +957,12 @@ class SimpleToolbox_OT_RemoveObjectSet(bpy.types.Operator):
         return context.mode == u.OBJECT_MODES.OBJECT and len(u.get_addon_props().object_sets) > 0
 
     def execute(self, context):
-        addon_props = u.get_addon_props()
-        index = addon_props.object_sets_index
+        index = get_active_object_set_index()
 
-        if 0 <= index < len(addon_props.object_sets):
-            set_name = addon_props.object_sets[index].name
-            addon_props.object_sets.remove(index)
-            addon_props.object_sets_index = max(0, index - 1)
+        if 0 <= index < get_object_sets_count():
+            set_name = get_object_set_name_at_index(index)
+            remove_object_set_at_index(index)
+            set_active_object_set_index(max(0, index - 1))
             self.report({"INFO"}, f"Removed Object Set: {set_name}")
         return {"FINISHED"}
 
@@ -975,24 +975,23 @@ class SimpleToolbox_OT_RenameObjectSet(bpy.types.Operator):
     new_name: bpy.props.StringProperty(name="New Object Set Name", default="")  # type: ignore
 
     def invoke(self, context, event):
-        addon_props = u.get_addon_props()
-        index = addon_props.object_sets_index
+        index = get_active_object_set_index()
 
-        if 0 <= index < len(addon_props.object_sets):
-            object_set = addon_props.object_sets[index]
+        if 0 <= index < get_object_sets_count():
+            object_set = get_object_set_at_index(index)
             self.new_name = object_set.name
 
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, context):
-        addon_props = u.get_addon_props()
-        index = addon_props.object_sets_index
+        index = get_active_object_set_index()
 
-        if 0 <= index < len(addon_props.object_sets):
-            object_set = addon_props.object_sets[index]
+        if 0 <= index < get_object_sets_count():
+            object_set = get_object_set_at_index(index)
             old_name = object_set.name
-            object_set.name = self.new_name
-            self.report({"INFO"}, f"Renamed '{old_name}' to '{self.new_name}'")
+            success = set_object_set_name(object_set, self.new_name)
+            if success:
+                self.report({"INFO"}, f"Renamed '{old_name}' to '{self.new_name}'")
 
         return {"FINISHED"}
 
@@ -1014,10 +1013,8 @@ class SimpleToolbox_OT_MoveObjectSetItemUp(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
-        addon_props = u.get_addon_props()
-        object_sets = addon_props.object_sets
-        active_index = addon_props.object_sets_index
-        separator = addon_props.object_sets[active_index].separator
+        active_index = get_active_object_set_index()
+        separator = get_object_set_at_index(active_index).separator
 
         if active_index > 0:
             if self.absolute:
@@ -1025,11 +1022,11 @@ class SimpleToolbox_OT_MoveObjectSetItemUp(bpy.types.Operator):
             else:
                 to_index = active_index - 1
 
-            object_sets.move(active_index, to_index)
-            addon_props.object_sets_index = to_index
+            move_object_set_to_index(active_index, to_index)
+            set_active_object_set_index(to_index)
             if not separator:
-                addon_props.object_sets[active_index].update_count()
-                addon_props.object_sets[to_index].update_count()
+                object_set_at_index_update_count(active_index)
+                object_set_at_index_update_count(to_index)
 
         return {"FINISHED"}
 
@@ -1055,7 +1052,7 @@ class SimpleToolbox_OT_MoveObjectSetItemDown(bpy.types.Operator):
     def execute(self, context):
         addon_props = u.get_addon_props()
         object_sets = addon_props.object_sets
-        active_index = addon_props.object_sets_index
+        active_index = get_active_object_set_index()
         separator = addon_props.object_sets[active_index].separator
 
         if active_index < len(object_sets) - 1:
@@ -1065,7 +1062,7 @@ class SimpleToolbox_OT_MoveObjectSetItemDown(bpy.types.Operator):
                 to_index = active_index + 1
 
             object_sets.move(active_index, to_index)
-            addon_props.object_sets_index = to_index
+            set_active_object_set_index(to_index)
             if not separator:
                 addon_props.object_sets[active_index].update_count()
                 addon_props.object_sets[to_index].update_count()
@@ -1083,9 +1080,8 @@ class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        addon_props = u.get_addon_props()
-        object_sets = addon_props.object_sets
-        active_index = addon_props.object_sets_index
+        object_sets = get_object_sets()
+        active_index = get_active_object_set_index()
 
         # Evaluate polls
         accepted_contexts = context.mode in cls.accepted_contexts
@@ -1095,11 +1091,10 @@ class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
         return accepted_contexts and len_selected_objects and not is_separator
 
     def execute(self, context):
-        addon_props = u.get_addon_props()
-        index = addon_props.object_sets_index
+        index = get_active_object_set_index()
 
-        if 0 <= index < len(addon_props.object_sets):
-            object_set = addon_props.object_sets[index]
+        if 0 <= index < get_object_sets_count():
+            object_set = get_object_set_at_index(index)
 
             for obj in context.selected_objects:
                 object_set.assign_object(obj)
@@ -1121,25 +1116,23 @@ class SimpleToolbox_OT_RemoveFromObjectSet(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        addon_props = u.get_addon_props()
-        object_sets = addon_props.object_sets
-        active_index = addon_props.object_sets_index
+        object_sets = get_object_sets()
+        active_index = get_active_object_set_index()
 
         # Evaluate polls
         accepted_contexts = context.mode in cls.accepted_contexts
         len_selected_objects = len(context.selected_objects) > 0
-        is_separator = object_sets[active_index].separator if len(object_sets) else False
+        is_separator = get_object_set_at_index(active_index).separator if len(object_sets) else False
 
         return accepted_contexts and len_selected_objects and not is_separator
 
     def execute(self, context):
-        addon_props = u.get_addon_props()
-        index = addon_props.object_sets_index
+        index = get_active_object_set_index()
 
         total_removed = 0
 
-        if 0 <= index < len(addon_props.object_sets):
-            object_set = addon_props.object_sets[index]
+        if 0 <= index < get_object_sets_count():
+            object_set = get_object_set_at_index(index)
 
             for obj in context.selected_objects:
                 object_set.remove_object(obj)
@@ -1162,14 +1155,14 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        addon_props = u.get_addon_props()
-        object_sets = addon_props.object_sets
-        active_index = addon_props.object_sets_index
+        object_sets = get_object_sets()
+        active_index = get_active_object_set_index()
 
         # Evaluate polls
         accepted_contexts = context.mode in cls.accepted_contexts
         has_objects = object_sets[active_index].count > 0 if len(object_sets) else False
-        is_separator = object_sets[active_index].separator if len(object_sets) else False
+        has_objects = get_object_set_at_index(active_index).count > 0 if len(object_sets) else False
+        is_separator = get_object_set_at_index(active_index).separator if len(object_sets) else False
 
         return accepted_contexts and has_objects and not is_separator
 
@@ -1182,14 +1175,13 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
-        addon_props = u.get_addon_props()
         if self.set_index < 0:
-            index = addon_props.object_sets_index
+            index = get_active_object_set_index()
         else:
             index = self.set_index
 
-        if 0 <= index < len(addon_props.object_sets):
-            object_set = addon_props.object_sets[index]
+        if 0 <= index < get_object_sets_count():
+            object_set = get_object_set_at_index(index)
 
             if u.IS_DEBUG():
                 print(f"{self.add_to_selection=}")
@@ -1255,13 +1247,12 @@ class SimpleToolbox_OT_RandomiseObjectSetsColours(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
-        addon_props = u.get_addon_props()
         addon_prefs = u.get_addon_prefs()
 
         default_set_colour = [c for c in addon_prefs.object_sets_default_colour]
         colours: set = set()
 
-        for object_set in addon_props.object_sets:
+        for object_set in get_object_sets():
             set_colour = [c for c in object_set.set_colour]
 
             if set_colour != default_set_colour:
@@ -1300,6 +1291,12 @@ class SimpleToolbox_OT_RenameObjectsInObjectSet(bpy.types.Operator):
 
     def execute(self, context):
         addon_props = u.get_addon_props()
+        object_sets = addon_props.object_sets
+        active_index = addon_props.object_sets_index
+
+        # Get active set
+
+        # self.report({"INFO"}, f"Renamed {len(objects)} objects to {new_name}")
         return {"FINISHED"}
 
 
