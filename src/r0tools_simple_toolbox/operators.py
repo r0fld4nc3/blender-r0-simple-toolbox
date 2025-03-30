@@ -1860,6 +1860,7 @@ classes = [
     SimpleToolbox_OT_SelectObjectSet,
     SimpleToolbox_OT_ForceRefreshObjectSets,
     SimpleToolbox_OT_RandomiseObjectSetsColours,
+    
     SimpleToolbox_OT_ToggleWireDisplay,
     
     VIEW3D_MT_CustomOrientationsPieMenu,
