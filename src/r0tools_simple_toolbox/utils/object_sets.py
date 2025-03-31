@@ -224,7 +224,7 @@ def cleanup_object_set_invalid_references(scene):
                 invalid_objects.append(obj)
 
         cleaned_up = 0
-        for obj in invalid_objects:
+        for obj in reversed(invalid_objects):
             try:
                 object_set.remove_object(obj)
                 cleaned_up += 1
@@ -235,11 +235,10 @@ def cleanup_object_set_invalid_references(scene):
             print(f"Cleaned up {cleaned_up} references for Object Set '{object_set.name}'")
 
     # Force UI Update to reflect changes
-    if bpy.context.screen:
-        if hasattr(bpy.context.screen, "areas"):
-            for area in bpy.context.screen.areas:
-                if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
-                    area.tag_redraw()
+    for window in bpy.context.window_manager.windows:
+        for area in window.screen.areas:
+            if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
+                area.tag_redraw()
 
 
 @bpy.app.handlers.persistent

@@ -135,17 +135,20 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
             if o.object == obj:
                 # Revert object colour back to default white
                 self.objects.remove(i)
-                # Check if object not in other sets
-                containing_sets = self.check_object_in_sets(obj)
-                if not containing_sets:
-                    obj.color = (1.0, 1.0, 1.0, 1.0)
-                else:
-                    # Update the object to another set's colour
-                    if allow_override:
-                        obj.color = containing_sets[-1].set_colour
-                    else:
-                        obj.color = containing_sets[0].set_colour
                 break
+
+        # Check if object still exists:
+        if u.is_valid_object_global(obj):
+            # Check if object not in other sets
+            containing_sets = self.check_object_in_sets(obj)
+            if not containing_sets:
+                obj.color = (1.0, 1.0, 1.0, 1.0)
+            else:
+                # Update the object to another set's colour
+                if allow_override:
+                    obj.color = containing_sets[-1].set_colour
+                else:
+                    obj.color = containing_sets[0].set_colour
 
         self.update_count()
 
