@@ -25,12 +25,13 @@ def _set_addon_internal_name(from_name: str):
 
 
 # fmt: off
-DEBUG           = False
-VERSION         = bl_info.get("version", (0, 0, 0))
-VERSION_STR     = _version_str(VERSION)
-BASE_NAME       = "r0tools_simple_toolbox"
-ADDON_NAME      = bl_info.get("name")
-INTERNAL_NAME   = _set_addon_internal_name(BASE_NAME)
-REPO_NAME       = "r0Tools Extensions"
-UPDATE_CHECK_CD = 60  # seconds
+DEBUG              = False
+VERSION            = bl_info.get("version", (0, 0, 0))
+VERSION_STR        = _version_str(VERSION)
+BASE_NAME          = "r0tools_simple_toolbox"
+ADDON_NAME         = bl_info.get("name")
+INTERNAL_NAME      = _set_addon_internal_name(BASE_NAME)
+REPO_NAME          = "r0Tools Extensions"
+UPDATE_CHECK_CD    = 60  # seconds
+TOOLBOX_PROPS_NAME = "r0fl_toolbox_props"
 # fmt: on
