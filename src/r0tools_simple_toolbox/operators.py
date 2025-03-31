@@ -738,7 +738,6 @@ class SimpleToolbox_OT_FindModifierSearch(bpy.types.Operator):
         search_text_split = [s.strip() for s in search_text.split(",")]
 
         view_layer_objs = bpy.context.view_layer.objects
-        scene_objects = bpy.context.scene.objects
 
         if u.IS_DEBUG():
             print(f"[DEBUG] {search_text=}")
