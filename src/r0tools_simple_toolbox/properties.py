@@ -372,7 +372,7 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
     )
 
     show_custom_property_list_prop: BoolProperty(  # type: ignore
-        name="Delete Custom Properties",
+        name="Custom Properties",
         description="List Custom Properties",
         default=False,
     )
