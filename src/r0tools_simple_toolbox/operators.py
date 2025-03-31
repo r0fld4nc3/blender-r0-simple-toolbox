@@ -1210,7 +1210,7 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
 class SimpleToolbox_OT_ForceRefreshObjectSets(bpy.types.Operator):
     """Force run update count which should help refresh some Object Sets properties"""
 
-    bl_label = "Refresh"
+    bl_label = "Force Refresh Sets Colours"
     bl_idname = "r0tools.object_sets_refresh"
     bl_description = "Force refresh and update Object Sets' colours"
     bl_options = {"INTERNAL"}
