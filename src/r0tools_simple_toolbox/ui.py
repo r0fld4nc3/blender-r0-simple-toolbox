@@ -96,9 +96,9 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
             row = custom_properties_box.row()
             row.prop(addon_props, "show_custom_property_list_prop", icon="TRIA_DOWN" if addon_props.show_custom_property_list_prop else "TRIA_RIGHT", emboss=False)
             if addon_props.show_custom_property_list_prop:
-                row = custom_properties_box.row()
+                # row = custom_properties_box.row()
                 # Row Number Slider (Same as in addon preferences)
-                row.prop(addon_prefs, "custom_properties_list_rows", text="Rows:")
+                # row.prop(addon_prefs, "custom_properties_list_rows", text="Rows:")
                 
                 row = custom_properties_box.row()
                 row.template_list(

@@ -738,7 +738,6 @@ class SimpleToolbox_OT_FindModifierSearch(bpy.types.Operator):
         search_text_split = [s.strip() for s in search_text.split(",")]
 
         view_layer_objs = bpy.context.view_layer.objects
-        scene_objects = bpy.context.scene.objects
 
         if u.IS_DEBUG():
             print(f"[DEBUG] {search_text=}")
@@ -1210,7 +1209,7 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
 class SimpleToolbox_OT_ForceRefreshObjectSets(bpy.types.Operator):
     """Force run update count which should help refresh some Object Sets properties"""
 
-    bl_label = "Refresh"
+    bl_label = "Force Refresh Sets Colours"
     bl_idname = "r0tools.object_sets_refresh"
     bl_description = "Force refresh and update Object Sets' colours"
     bl_options = {"INTERNAL"}
@@ -1233,16 +1232,20 @@ class SimpleToolbox_OT_RandomiseObjectSetsColours(bpy.types.Operator):
 
     bl_label = "Randomise"
     bl_idname = "r0tools.object_sets_colours_randomise"
-    bl_description = "Randomise the colour of each Object Set, respecting the existing colours (if any) and without overlapping colours.\n- SHIFT: Force randomise all colours."
+    bl_description = "Randomise the colour of each Object Set, respecting the existing colours (if any) and without overlapping colours\n- SHIFT: Force randomise all Object Sets' colours\n- CTRL: Force randomise active Object Set colour"
     bl_options = {"INTERNAL", "UNDO_GROUPED"}
 
     override = False
+    override_active = False
 
     def invoke(self, context, event):
         self.override = False  # Always reset
+        self.override_active = False  # Always reset
 
         if event.shift:
             self.override = True
+        if not event.shift and event.ctrl:
+            self.override_active = True
 
         return self.execute(context)
 
@@ -1256,8 +1259,17 @@ class SimpleToolbox_OT_RandomiseObjectSetsColours(bpy.types.Operator):
             set_colour = [c for c in object_set.set_colour]
 
             if set_colour != default_set_colour:
-                if not self.override:
+                if not self.override and not self.override_active:
                     continue
+
+                # We are overriding curent
+                if self.override_active:
+                    object_set_name = object_set.name
+                    if not object_set_name == get_object_set_name_at_index(get_active_object_set_index()):
+                        # Skip if the names don't match, meaning it's not the active set
+                        continue
+                    else:
+                        print(f"[OPERATORS] Force updating active Object Set colour.")
 
             for _ in range(10):  # While loops can go wrong. Range is more controlled. Boom!
                 new_colour = (

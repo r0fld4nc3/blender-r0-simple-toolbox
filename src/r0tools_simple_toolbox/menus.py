@@ -2,12 +2,17 @@ import bpy
 
 
 class SimpleToolbox_MT_ObjectSetsActionsMenu(bpy.types.Menu):
+    bl_idname = "r0tools.object_sets_actions_menu"
     bl_label = "Object Sets Actions"
 
     def draw(self, context):
-        from .operators import SimpleToolbox_OT_RenameObjectsInObjectSet
+        from .operators import (
+            SimpleToolbox_OT_ForceRefreshObjectSets,
+            SimpleToolbox_OT_RenameObjectsInObjectSet,
+        )
 
         layout = self.layout
+        layout.operator(SimpleToolbox_OT_ForceRefreshObjectSets.bl_idname, icon="FILE_REFRESH")
         layout.operator(SimpleToolbox_OT_RenameObjectsInObjectSet.bl_idname, icon="OUTLINER_OB_FONT")
 
 

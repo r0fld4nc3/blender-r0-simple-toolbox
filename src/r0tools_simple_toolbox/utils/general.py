@@ -2,7 +2,7 @@ import math
 
 import bpy
 
-from ..defines import DEBUG
+from ..defines import DEBUG, TOOLBOX_PROPS_NAME
 from ..utils import (
     CUSTOM_PROPERTIES_TYPES,
     OBJECT_MODES,
@@ -184,27 +184,21 @@ def is_valid_object_global(obj):
     Check if an object reference is valid
     """
     try:
-        exists_object = (
-            obj is not None
-            and obj
-            and obj.name in bpy.data.objects
-            and any(obj.name in scene.objects for scene in bpy.data.scenes)
-        )
-
-        if not exists_object:
-            if IS_DEBUG():
-                if obj is not None:
-                    print(f"[DEBUG] [GENERAL] Dangling reference: {obj.name}")
-                else:
-                    print(f"[DEBUG] [GENERAL] Dangling reference: {obj}")
+        if not obj:
             return False
 
-        return True
-    except ReferenceError:
-        print(f"ReferenceError when checking object validity")
+        # Direct data check
+        data_objects = bpy.data.objects
+        if obj.name not in data_objects:
+            return False
+
+        # Has the object been orphaned?
+        return any(data_objects[obj.name].users_scene)
+    except (ReferenceError, KeyError):
         return False
     except Exception as e:
-        print(f"Error checking object validity: {e}")
+        if IS_DEBUG():
+            print(f"[ERROR] [GENERAL] Validation error: {e}")
         return False
 
 
@@ -427,6 +421,12 @@ def property_list_update(scene, context, force_run=False):
     This function updates the custom property list panel
     when object selection changes.
     """
+
+    # Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock"
+    if not hasattr(scene, TOOLBOX_PROPS_NAME):
+        print(f"[INFO] [GENERAL] Scene does not have proper attribute. Skipping.")
+        return
+
     addon_props = get_addon_props()
 
     if not addon_props.show_custom_property_list_prop and not force_run:
@@ -510,9 +510,11 @@ def property_list_update(scene, context, force_run=False):
             context_error_debug(error=e)
 
         # Force UI update
-        for area in bpy.context.screen.areas:
-            if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
-                area.tag_redraw()
+        if bpy.context.screen:
+            if hasattr(bpy.context.screen, "areas"):
+                for area in bpy.context.screen.areas:
+                    if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
+                        area.tag_redraw()
 
     return None
 
