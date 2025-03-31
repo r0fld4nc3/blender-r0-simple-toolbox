@@ -184,27 +184,21 @@ def is_valid_object_global(obj):
     Check if an object reference is valid
     """
     try:
-        exists_object = (
-            obj is not None
-            and obj
-            and obj.name in bpy.data.objects
-            and any(obj.name in scene.objects for scene in bpy.data.scenes)
-        )
-
-        if not exists_object:
-            if IS_DEBUG():
-                if obj is not None:
-                    print(f"[DEBUG] [GENERAL] Dangling reference: {obj.name}")
-                else:
-                    print(f"[DEBUG] [GENERAL] Dangling reference: {obj}")
+        if not obj:
             return False
 
-        return True
-    except ReferenceError:
-        print(f"ReferenceError when checking object validity")
+        # Direct data check
+        data_objects = bpy.data.objects
+        if obj.name not in data_objects:
+            return False
+
+        # Has the object been orphaned?
+        return any(data_objects[obj.name].users_scene)
+    except (ReferenceError, KeyError):
         return False
     except Exception as e:
-        print(f"Error checking object validity: {e}")
+        if IS_DEBUG():
+            print(f"[ERROR] [GENERAL] Validation error: {e}")
         return False
 
 
