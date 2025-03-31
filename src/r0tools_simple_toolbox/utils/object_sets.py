@@ -146,8 +146,8 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     row.prop(addon_prefs, "object_sets_use_colour")
 
     # Object Sets Row Number Slider (Same as in addon preferences)
-    row = parent.row()
-    row.prop(addon_prefs, "object_sets_list_rows", text="Rows:")
+    # row = parent.row()
+    # row.prop(addon_prefs, "object_sets_list_rows", text="Rows:")
 
     row = parent.row()
     split = row.split(factor=0.92)  # Affects right side button width
