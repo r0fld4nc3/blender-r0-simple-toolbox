@@ -116,6 +116,18 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
         context: The current context
         object_sets_box: Optional box to draw within
     """
+    from ..menus import SimpleToolbox_MT_ObjectSetsActionsMenu
+    from ..operators import (
+        SimpleToolbox_OT_AddObjectSetPopup,
+        SimpleToolbox_OT_AddToObjectSet,
+        SimpleToolbox_OT_MoveObjectSetItemDown,
+        SimpleToolbox_OT_MoveObjectSetItemUp,
+        SimpleToolbox_OT_RandomiseObjectSetsColours,
+        SimpleToolbox_OT_RemoveFromObjectSet,
+        SimpleToolbox_OT_RemoveObjectSet,
+        SimpleToolbox_OT_SelectObjectSet,
+    )
+
     addon_prefs = u.get_addon_prefs()
     addon_props = u.get_addon_props()
 
@@ -153,22 +165,19 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
 
     # Right side - Buttons
     col = split.column(align=True)
-    col.operator("r0tools.add_object_set_popup", text="+")
-    col.operator("r0tools.remove_object_set", text="-")
+    col.operator(SimpleToolbox_OT_AddObjectSetPopup.bl_idname, text="+")
+    col.operator(SimpleToolbox_OT_RemoveObjectSet.bl_idname, text="-")
     if len(addon_props.object_sets) > 1:  # Show buttons only when applicable
         col.separator(factor=1.0)  # Spacer
-        col.operator("r0tools.move_object_set_item_up", icon="TRIA_UP", text="")
-        col.operator("r0tools.move_object_set_item_down", icon="TRIA_DOWN", text="")
+        col.operator(SimpleToolbox_OT_MoveObjectSetItemUp.bl_idname, icon="TRIA_UP", text="")
+        col.operator(SimpleToolbox_OT_MoveObjectSetItemDown.bl_idname, icon="TRIA_DOWN", text="")
 
     col.separator(factor=1.0)  # Spacer
-    col.operator("r0tools.object_sets_refresh", text="", icon="FILE_REFRESH")
+    col.operator(SimpleToolbox_OT_RandomiseObjectSetsColours.bl_idname, text="", icon="NODE_MATERIAL")
 
+    # Object Sets Actions (Downward arrow dropdown menu)
     col.separator(factor=1.0)  # Spacer
-    col.operator("r0tools.object_sets_colours_randomise", text="", icon="NODE_MATERIAL")
-
-    # Object Sets Actions (Downward arrow HLT dropdown menu)
-    col.separator(factor=1.0)  # Spacer
-    col.menu("SimpleToolbox_MT_ObjectSetsActionsMenu", text="")
+    col.menu(SimpleToolbox_MT_ObjectSetsActionsMenu.bl_idname, text="")
 
     # Bottom
     if object_sets_box:
@@ -180,11 +189,11 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     # Add/Remove Object Set Buttons
     split = row.split(factor=0.65)
     row_col = split.row(align=True)
-    row_col.operator("r0tools.assign_to_object_set")
-    row_col.operator("r0tools.remove_from_object_set")
+    row_col.operator(SimpleToolbox_OT_AddToObjectSet.bl_idname)
+    row_col.operator(SimpleToolbox_OT_RemoveFromObjectSet.bl_idname)
     # Select Object Set Button
     row_col = split.row()
-    op = row_col.operator("r0tools.select_object_set")
+    op = row_col.operator(SimpleToolbox_OT_SelectObjectSet.bl_idname)
     op.set_index = -1
 
 
