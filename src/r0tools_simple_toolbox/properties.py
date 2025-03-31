@@ -389,8 +389,8 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
     )
     object_sets: CollectionProperty(type=R0PROP_ObjectSetEntryItem)  # type: ignore
     object_sets_index: IntProperty(default=0)  # type: ignore
-    data_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
-    scene_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
+    # data_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
+    # scene_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
     objects_updated: BoolProperty(default=False)  # type: ignore
 
     show_find_modifier_search: BoolProperty(  # type: ignore

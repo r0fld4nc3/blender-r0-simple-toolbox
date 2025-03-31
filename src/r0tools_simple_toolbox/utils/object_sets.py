@@ -1,6 +1,7 @@
 import bpy
 
 from .. import utils as u
+from ..defines import TOOLBOX_PROPS_NAME
 
 
 def get_object_sets() -> list:
@@ -206,78 +207,39 @@ def cleanup_object_set_invalid_references(scene):
     if u.IS_DEBUG():
         print("------------- Cleanup Object Sets Invalid References -------------")
 
+    # Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock"
+    if not hasattr(scene, TOOLBOX_PROPS_NAME):
+        print(f"[INFO] [OBJECT_SETS] Scene does not have proper attribute. Skipping.")
+        return
+
     addon_props = u.get_addon_props()
 
-    bpy_scene_objects_len = len(bpy.context.scene.objects)
-    bpy_data_objects_len = len(bpy.data.objects)
-    scene_objects_len = len(addon_props.scene_objects)
-    data_objects_len = len(addon_props.data_objects)
+    # Focus only on cleaning object sets without rebuilding scene_objects/data_objects
+    for object_set in addon_props.object_sets:
+        # Identify invalid objects without modifying anything yet
+        invalid_objects = []
+        for i, object_item in enumerate(object_set.objects):
+            obj = object_item.object
+            if not obj or obj.name not in scene.objects:
+                invalid_objects.append(obj)
 
-    objects_updated = False
+        cleaned_up = 0
+        for obj in invalid_objects:
+            try:
+                object_set.remove_object(obj)
+                cleaned_up += 1
+            except Exception as e:
+                print(f"[ERROR] [OBJECT_SETS] Failed to remove object {obj}: {e}")
 
-    if u.IS_DEBUG():
-        print("------------- Update Data Scene Objects -------------")
-        print(f"[DEBUG] [OBJECT_SETS] Scene {bpy_scene_objects_len} == {scene_objects_len}")
-        print(f"[DEBUG] [OBJECT_SETS] Data  {bpy_data_objects_len} == {data_objects_len}")
+        if cleaned_up:
+            print(f"Cleaned up {cleaned_up} references for Object Set '{object_set.name}'")
 
-    count_changed = bpy_data_objects_len != data_objects_len or bpy_scene_objects_len != scene_objects_len
-
-    if count_changed:
-        if u.IS_DEBUG():
-            print("------------- Updating Object References -------------")
-
-        objects_updated = True
-
-        # Clear existing references
-        addon_props.scene_objects.clear()
-        addon_props.data_objects.clear()
-
-        # Collect Scene Objects
-        for obj in bpy.context.scene.objects:
-            item = addon_props.scene_objects.add()
-            item.object = obj
-
-        # Collect Data Objects
-        unused_objects = []
-        for obj in bpy.data.objects:
-            if obj.name in bpy.context.scene.objects:
-                item = addon_props.data_objects.add()
-                item.object = obj
-            else:
-                unused_objects.append(obj)
-
-        if unused_objects:
-            if u.IS_DEBUG():
-                print(f"Unused blocks to be cleared: {len(unused_objects)}")
-            for unused in unused_objects:
-                if u.IS_DEBUG():
-                    print(f"[DEBUG] [OBJECT_SETS] (DATA) {unused.name} not in Scene.")
-
-    if objects_updated:
-        for object_set in addon_props.object_sets:
-            # Identify invalid objects without modifying anything
-            invalid_objects = []
-            for object_item in object_set.objects:
-                obj = object_item.object
-                if not u.is_valid_object_global(obj):
-                    invalid_objects.append(obj)
-
-            if invalid_objects:
-                for obj in invalid_objects:
-                    try:
-                        object_set.remove_object(obj)
-                    except Exception as e:
-                        print(f"[ERROR] Failed to remove object from set: {e}")
-
-                print(f"Cleaned up {len(invalid_objects)} references for Object Set '{object_set.name}'")
-
-        # Reset the flag after cleanup
-        objects_updated = False
-
-        # Force UI Update to reflect changes
-        for area in bpy.context.screen.areas:
-            if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
-                area.tag_redraw()
+    # Force UI Update to reflect changes
+    if bpy.context.screen:
+        if hasattr(bpy.context.screen, "areas"):
+            for area in bpy.context.screen.areas:
+                if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
+                    area.tag_redraw()
 
 
 @bpy.app.handlers.persistent
