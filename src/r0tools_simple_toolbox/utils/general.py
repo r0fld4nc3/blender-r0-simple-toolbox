@@ -187,6 +187,9 @@ def is_valid_object_global(obj):
         if not obj:
             return False
 
+        if obj.as_pointer == 0:
+            return False
+
         # Direct data check
         data_objects = bpy.data.objects
         if obj.name not in data_objects:
