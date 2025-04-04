@@ -1301,6 +1301,8 @@ class SimpleToolbox_OT_RenameObjectsInObjectSet(bpy.types.Operator):
     bl_description = 'Renames Objects in the selected Object Set (Highlighted in the Set List) to take the name of the Object Set they belong to.\n\nExample:\nAn Object Set named "Example Set" will have objects associated to itself renamed to "Example Set", "Example Set.001", "Example Set.002", etc.'
     bl_options = {"INTERNAL", "UNDO_GROUPED"}
 
+    # TODO: poll method
+
     def execute(self, context):
         active_index = get_active_object_set_index()
         active_object_set_name = get_object_set_name_at_index(active_index)
@@ -1314,6 +1316,55 @@ class SimpleToolbox_OT_RenameObjectsInObjectSet(bpy.types.Operator):
             renamed_count += 1
 
         self.report({"INFO"}, f"Renamed {renamed_count} objects to {active_object_set_name}")
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections(bpy.types.Operator):
+    """
+    Moves objects in selected Object Set into collections named as the Set they are contained in.
+    """
+
+    bl_label = "Move into collections"
+    bl_idname = "r0tools.move_objects_in_set_into_collections"
+    bl_description = "Moves Objects in the selected Object Set (Highlighted in the Set List) into a collection that is named the samea the set they are contained in.\n- CTRL: Apply this logic to ALL Object Sets"
+    bl_options = {"INTERNAL", "UNDO_GROUPED"}
+
+    do_all = False
+
+    @classmethod
+    def poll(cls, context):
+        return get_object_sets_count() > 0
+
+    def invoke(self, context, event):
+        self.do_all = False  # Always reset
+
+        if event.ctrl:
+            self.do_all = True
+
+        return self.execute(context)
+
+    def execute(self, context):
+        active_index = get_active_object_set_index()
+        active_name = get_object_set_name_at_index(active_index)
+
+        if not self.do_all:
+            collection = u.collections_create_new(active_name)
+
+            if not collection:
+                return {"CANCELLED"}
+
+            for obj in iter_objects_of_object_set_at_index(active_index):
+                u.collection_link_object(collection, obj)
+        else:
+            i = get_object_sets_count()
+            for object_set in reversed(get_object_sets()):
+                i -= 1
+                print(i, object_set.name)
+                collection = u.collections_create_new(get_object_set_name_at_index(i))
+
+                for obj in iter_objects_of_object_set_at_index(i):
+                    u.collection_link_object(collection, obj)
+
         return {"FINISHED"}
 
 
@@ -1892,6 +1943,7 @@ classes = [
     SimpleToolbox_OT_ForceRefreshObjectSets,
     SimpleToolbox_OT_RandomiseObjectSetsColours,
     SimpleToolbox_OT_RenameObjectsInObjectSet,
+    SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections,
     
     SimpleToolbox_OT_ToggleWireDisplay,
     
