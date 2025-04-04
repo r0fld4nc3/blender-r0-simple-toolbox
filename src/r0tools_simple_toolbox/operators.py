@@ -1301,7 +1301,9 @@ class SimpleToolbox_OT_RenameObjectsInObjectSet(bpy.types.Operator):
     bl_description = 'Renames Objects in the selected Object Set (Highlighted in the Set List) to take the name of the Object Set they belong to.\n\nExample:\nAn Object Set named "Example Set" will have objects associated to itself renamed to "Example Set", "Example Set.001", "Example Set.002", etc.'
     bl_options = {"INTERNAL", "UNDO_GROUPED"}
 
-    # TODO: poll method
+    @classmethod
+    def poll(cls, context):
+        return get_object_sets_count() > 0
 
     def execute(self, context):
         active_index = get_active_object_set_index()
