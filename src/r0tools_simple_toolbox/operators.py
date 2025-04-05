@@ -1328,7 +1328,7 @@ class SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections(bpy.types.Operator):
 
     bl_label = "Move into collections"
     bl_idname = "r0tools.move_objects_in_set_into_collections"
-    bl_description = "Moves Objects in the selected Object Set (Highlighted in the Set List) into a collection that is named the samea the set they are contained in.\n- CTRL: Apply this logic to ALL Object Sets"
+    bl_description = "Moves Objects in the selected Object Set (Highlighted in the Set List) into a collection that is named the samea the set they are contained in.\n\n- CTRL: Apply this logic to ALL Object Sets"
     bl_options = {"INTERNAL", "UNDO_GROUPED"}
 
     do_all = False
