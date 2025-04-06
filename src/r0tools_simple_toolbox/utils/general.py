@@ -187,6 +187,9 @@ def is_valid_object_global(obj):
         if not obj:
             return False
 
+        if obj.as_pointer == 0:
+            return False
+
         # Direct data check
         data_objects = bpy.data.objects
         if obj.name not in data_objects:
@@ -219,7 +222,7 @@ def iter_scene_objects(selected=False, types: list[str] = []):
             yield o
 
 
-def iter_children(p_obj, recursive=True):
+def iter_obj_children(p_obj, recursive=True):
     """
     Iterate through all children of a given parent object
 
@@ -231,7 +234,42 @@ def iter_children(p_obj, recursive=True):
         if obj.parent == p_obj:
             yield obj
             if recursive:
-                yield from iter_children(obj, recursive=True)
+                yield from iter_obj_children(obj, recursive=True)
+
+
+def collection_exists(name: str, is_global: bool = False) -> bool:
+    if is_global:
+        return name in bpy.data.collections
+
+    return name in bpy.context.scene.collection.children.keys()
+
+
+def collections_create_new(name: str):
+    if not collection_exists(name):
+        collection = bpy.data.collections.new(name=name)
+
+        # Link to scene
+        bpy.context.scene.collection.children.link(collection)
+    else:
+        collection = bpy.context.scene.collection.children.get(name, None)
+
+    return collection
+
+
+def collection_link_object(collection, obj):
+    for coll in bpy.data.collections:
+        if obj.name in coll.objects:
+            coll.objects.unlink(obj)
+
+    # Loop for user collections that object is linked to
+    for coll in obj.users_collection:
+        coll.objects.unlink(obj)
+
+    collection.objects.link(obj)
+
+
+def remove_collection(collection):
+    bpy.data.collections.remove(collection)
 
 
 # ==============================

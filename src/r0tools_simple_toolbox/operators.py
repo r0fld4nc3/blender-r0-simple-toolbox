@@ -370,7 +370,7 @@ class SimpleToolbox_OT_ExperimentalOP(bpy.types.Operator):
 class SimpleToolbox_OT_ReloadNamedScripts(bpy.types.Operator):
     bl_label = "Reload Script(s)"
     bl_idname = "r0tools.reload_named_scripts"
-    bl_description = "Reload only specified scripts from a name text box."
+    bl_description = "Reload only specified scripts from a name text box"
     bl_options = {"REGISTER"}
 
     def get_input_modules(self) -> list[str]:
@@ -452,7 +452,7 @@ class SimpleToolbox_OT_ReloadNamedScripts(bpy.types.Operator):
 class SimpleToolbox_OT_ClearCustomSplitNormalsData(bpy.types.Operator):
     bl_label = "Clear Split Normals"
     bl_idname = "r0tools.clear_custom_split_normals_data"
-    bl_description = "Clears the Custom Split Normals assignments for selected objects and sets AutoSmooth to 180.\nUseful to quickly clear baked normals/shading assignments of multiple meshes at once."
+    bl_description = "Clears the Custom Split Normals assignments for selected objects and sets AutoSmooth to 180.\nUseful to quickly clear baked normals/shading assignments of multiple meshes at once"
     bl_options = {"REGISTER", "UNDO_GROUPED"}
 
     accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
@@ -557,7 +557,7 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
 class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
     bl_label = "Clear Attributes"
     bl_idname = "r0tools.clear_mesh_attributes"
-    bl_description = "Clears unneeded mesh(es) attributes created by various addons.\nPreserves some integral and needed attributes such as material_index that is required for multi-material assignments.\nSometimes certain addons or operations will populate this list with attributes you wish to remove at a later date, be it for parsing or exporting."
+    bl_description = "Clears unneeded mesh(es) attributes created by various addons.\nPreserves some integral and needed attributes such as material_index that is required for multi-material assignments.\nSometimes certain addons or operations will populate this list with attributes you wish to remove at a later date, be it for parsing or exporting"
     bl_options = {"REGISTER", "UNDO_GROUPED"}
 
     def op_clear_mesh_attributes(self):
@@ -619,7 +619,7 @@ class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
 class SimpleToolbox_OT_ClearChildrenRecurse(bpy.types.Operator):
     bl_label = "Clear Children"
     bl_idname = "r0tools.clear_all_objects_children"
-    bl_description = "For each selected object, clears parenting keeping transform for each child object.\n\n- SHIFT: Recursively clears parenting for ALL object children and sub-children."
+    bl_description = "For each selected object, clears parenting keeping transform for each child object.\n\n- SHIFT: Recursively clears parenting for ALL object children and sub-children"
     bl_options = {"REGISTER", "UNDO_GROUPED"}
 
     @classmethod
@@ -676,7 +676,7 @@ class SimpleToolbox_OT_ClearChildrenRecurse(bpy.types.Operator):
             if u.IS_DEBUG():
                 print(f"Iter {o.name}")
 
-            for child in u.iter_children(o, recursive=self.recurse):
+            for child in u.iter_obj_children(o, recursive=self.recurse):
                 # print(f"Child: {child.name}")
                 try:
                     self.process_child_object(child)
@@ -829,7 +829,7 @@ class SimpleToolbox_OT_ObjectSetsModal(bpy.types.Operator):
 class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
     bl_label = "Add Object Set"
     bl_idname = "r0tools.add_object_set_popup"
-    bl_description = "Add a new Object Set Entry."
+    bl_description = "Add a new Object Set Entry"
     bl_options = {"REGISTER", "UNDO"}
 
     _default_name = "New Set"
@@ -948,7 +948,7 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
 class SimpleToolbox_OT_RemoveObjectSet(bpy.types.Operator):
     bl_label = "Remove Object Set"
     bl_idname = "r0tools.remove_object_set"
-    bl_description = "Remove the selected Object Set entry."
+    bl_description = "Remove the selected Object Set entry"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
@@ -969,7 +969,7 @@ class SimpleToolbox_OT_RemoveObjectSet(bpy.types.Operator):
 class SimpleToolbox_OT_RenameObjectSet(bpy.types.Operator):
     bl_label = "Rename"
     bl_idname = "r0tools.rename_object_set"
-    bl_description = "Rename the selected Object Set entry."
+    bl_description = "Rename the selected Object Set entry"
 
     new_name: bpy.props.StringProperty(name="New Object Set Name", default="")  # type: ignore
 
@@ -998,7 +998,7 @@ class SimpleToolbox_OT_RenameObjectSet(bpy.types.Operator):
 class SimpleToolbox_OT_MoveObjectSetItemUp(bpy.types.Operator):
     bl_label = "Move Object Set Up"
     bl_idname = "r0tools.move_object_set_item_up"
-    bl_description = "Move the selected Object Set up.\n\n- SHIFT: Move to Top"
+    bl_description = "Move the selected Object Set up.\n\nMODIFIERS:\n- SHIFT: Move to Top"
     bl_options = {"INTERNAL"}
 
     absolute: BoolProperty(default=False)  # type: ignore
@@ -1035,7 +1035,7 @@ class SimpleToolbox_OT_MoveObjectSetItemDown(bpy.types.Operator):
 
     bl_label = "Move Object Set Down"
     bl_idname = "r0tools.move_object_set_item_down"
-    bl_description = "Move the selected Object Set down.\n\n- SHIFT: Move to Bottom"
+    bl_description = "Move the selected Object Set down.\n\nMODIFIERS:\n- SHIFT: Move to Bottom"
     bl_options = {"INTERNAL"}
 
     absolute: BoolProperty(default=False)  # type: ignore
@@ -1072,7 +1072,7 @@ class SimpleToolbox_OT_MoveObjectSetItemDown(bpy.types.Operator):
 class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
     bl_label = "Assign"
     bl_idname = "r0tools.assign_to_object_set"
-    bl_description = "Add selected objects to selected Object Set Entry."
+    bl_description = "Add selected objects to selected Object Set Entry"
     bl_options = {"INTERNAL"}
 
     accepted_contexts = [u.OBJECT_MODES.OBJECT]
@@ -1108,7 +1108,7 @@ class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
 class SimpleToolbox_OT_RemoveFromObjectSet(bpy.types.Operator):
     bl_label = "Remove"
     bl_idname = "r0tools.remove_from_object_set"
-    bl_description = "Remove selected objects from selected Object Set entry."
+    bl_description = "Remove selected objects from selected Object Set entry"
     bl_options = {"INTERNAL"}
 
     accepted_contexts = [u.OBJECT_MODES.OBJECT]
@@ -1232,7 +1232,7 @@ class SimpleToolbox_OT_RandomiseObjectSetsColours(bpy.types.Operator):
 
     bl_label = "Randomise"
     bl_idname = "r0tools.object_sets_colours_randomise"
-    bl_description = "Randomise the colour of each Object Set, respecting the existing colours (if any) and without overlapping colours\n- SHIFT: Force randomise all Object Sets' colours\n- CTRL: Force randomise active Object Set colour"
+    bl_description = "Randomise the colour of each Object Set, respecting the existing colours (if any) and without overlapping colours.\n\nMODIFIERS:\n- SHIFT: Force randomise all Object Sets' colours\n- CTRL: Force randomise active Object Set colour"
     bl_options = {"INTERNAL", "UNDO_GROUPED"}
 
     override = False
@@ -1301,6 +1301,10 @@ class SimpleToolbox_OT_RenameObjectsInObjectSet(bpy.types.Operator):
     bl_description = 'Renames Objects in the selected Object Set (Highlighted in the Set List) to take the name of the Object Set they belong to.\n\nExample:\nAn Object Set named "Example Set" will have objects associated to itself renamed to "Example Set", "Example Set.001", "Example Set.002", etc.'
     bl_options = {"INTERNAL", "UNDO_GROUPED"}
 
+    @classmethod
+    def poll(cls, context):
+        return get_object_sets_count() > 0
+
     def execute(self, context):
         active_index = get_active_object_set_index()
         active_object_set_name = get_object_set_name_at_index(active_index)
@@ -1314,6 +1318,68 @@ class SimpleToolbox_OT_RenameObjectsInObjectSet(bpy.types.Operator):
             renamed_count += 1
 
         self.report({"INFO"}, f"Renamed {renamed_count} objects to {active_object_set_name}")
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections(bpy.types.Operator):
+    """
+    Moves objects in selected Object Set into collections named as the Set they are contained in.
+    """
+
+    bl_label = "Move into collections"
+    bl_idname = "r0tools.move_objects_in_set_into_collections"
+    bl_description = "Moves Objects in the selected Object Set (Highlighted in the Set List) into a collection that is named the samea the set they are contained in.\n\nMODIFIERS:- CTRL: Apply this logic to ALL Object Sets"
+    bl_options = {"INTERNAL", "UNDO_GROUPED"}
+
+    do_all = False
+
+    @classmethod
+    def poll(cls, context):
+        return get_object_sets_count() > 0
+
+    def invoke(self, context, event):
+        self.do_all = False  # Always reset
+
+        if event.ctrl:
+            self.do_all = True
+
+        return self.execute(context)
+
+    def execute(self, context):
+        active_index = get_active_object_set_index()
+        active_name = get_object_set_name_at_index(active_index)
+        collections = []
+
+        if not self.do_all:
+            collection = u.collections_create_new(active_name)
+            # Append newly or referenced collection.
+            collections.append(collection)
+
+            if not collection:
+                return {"CANCELLED"}
+
+            for obj in iter_objects_of_object_set_at_index(active_index):
+                u.collection_link_object(collection, obj)
+        else:
+            i = get_object_sets_count()
+            for object_set in reversed(get_object_sets()):
+                i -= 1
+                print(i, object_set.name)
+                collection = u.collections_create_new(get_object_set_name_at_index(i))
+                # Append newly or referenced collection.
+                collections.append(collection)
+
+                for obj in iter_objects_of_object_set_at_index(i):
+                    u.collection_link_object(collection, obj)
+
+        # Delete empty collections for tidiness
+        # Sometimes it can be that objects are created in one collection and
+        # moved to another if they belong to another Object Set, which means
+        # they can shift collections as they are added from bottom to top.
+        for coll in collections:
+            if len(coll.objects) < 1:
+                u.remove_collection(coll)
+
         return {"FINISHED"}
 
 
@@ -1340,18 +1406,30 @@ class SimpleToolbox_OT_ToggleWireDisplay(bpy.types.Operator):
             else:
                 other += 1  # SOLID, BOUNDING_BOX, or other modes
 
+        display_mode = "TEXTURED"  # Default
+        vp_show_wire = False  # Default
+
         if wires > textureds and textureds > 0:
+            print("1")
             display_mode = "WIRE"
+            vp_show_wire = True
         elif textureds > wires and wires > 0:
+            print("2")
             display_mode = "TEXTURED"
+            vp_show_wire = False
         elif other == len(objects):  # If all objects are neither wire nor textured
+            print("3")
             display_mode = "WIRE"
+            vp_show_wire = True
         else:
+            # Default case
             display_mode = "WIRE" if wires == 0 else "TEXTURED"
+            vp_show_wire = True if wires == 0 else False
 
         # Apply the new display type
         for obj in objects:
             obj.display_type = display_mode
+            obj.show_wire = vp_show_wire  # Helps revert Hops alteration
 
         return {"FINISHED"}
 
@@ -1503,7 +1581,7 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
 class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
     bl_label = "Restore Rotation"
     bl_idname = "r0tools.rotation_from_selection"
-    bl_description = "Given a selection of vertices/edges/faces, align each object such that the selection aligns to the Z Axis.\n\n- SHIFT: Clear object rotations on finish. (Also present in Redo panel)."
+    bl_description = "Given a selection of vertices/edges/faces, align each object such that the selection aligns to the Z Axis.\n\n- SHIFT: Clear object rotations on finish. (Also present in Redo panel)"
     bl_options = {"REGISTER", "UNDO_GROUPED"}
 
     clear_rotation_on_align: BoolProperty(name="Clear Rotation(s)", default=False)  # type: ignore
@@ -1892,6 +1970,7 @@ classes = [
     SimpleToolbox_OT_ForceRefreshObjectSets,
     SimpleToolbox_OT_RandomiseObjectSetsColours,
     SimpleToolbox_OT_RenameObjectsInObjectSet,
+    SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections,
     
     SimpleToolbox_OT_ToggleWireDisplay,
     

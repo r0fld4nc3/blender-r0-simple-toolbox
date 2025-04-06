@@ -55,9 +55,7 @@ def get_uv_islands(obj):
 
                     # Ensure UVs match but also belong to the same vertex index (avoid accidental merging)
                     if any(
-                        (
-                            uv1.xy == uv2.xy and v1 == v2
-                        )  # Ensure both UV and vertex index match
+                        (uv1.xy == uv2.xy and v1 == v2)  # Ensure both UV and vertex index match
                         for (uv1, v1) in face_data
                         for (uv2, v2) in linked_data
                     ):
@@ -89,12 +87,7 @@ def calculate_uv_area(uv_x: int, uv_y: int, obj, islands):
             uvs = [uv_layer[loop_idx].uv for loop_idx in poly.loop_indices]
 
             # Shoelace formula for polygon area
-            area = 0.5 * abs(
-                sum(
-                    (uvs[i][0] * uvs[i - 1][1] - uvs[i - 1][0] * uvs[i][1])
-                    for i in range(len(uvs))
-                )
-            )
+            area = 0.5 * abs(sum((uvs[i][0] * uvs[i - 1][1] - uvs[i - 1][0] * uvs[i][1]) for i in range(len(uvs))))
             total_area += area
 
         # Convert relative UV area to pixel area
@@ -161,23 +154,17 @@ def select_small_uv_islands(
             small_islands.append(islands[i])
             selected_faces.update(islands[i])
             if IS_DEBUG():
-                batch_print.add(
-                    f"{obj.name} | Island {i} too small: Relative UV Area: {relative_area}"
-                )
+                batch_print.add(f"{obj.name} | Island {i} too small: Relative UV Area: {relative_area}")
         elif island_pixel_area <= threshold_px_coverage:
             small_islands.append(islands[i])
             selected_faces.update(islands[i])
             if IS_DEBUG():
-                batch_print.add(
-                    f"{obj.name} | Island {i} too small: Pixel Area: {island_pixel_area:.2f} px²"
-                )
+                batch_print.add(f"{obj.name} | Island {i} too small: Pixel Area: {island_pixel_area:.2f} px²")
         elif pixel_area_pct <= threshold_pct:
             small_islands.append(islands[i])
             selected_faces.update(islands[i])
             if IS_DEBUG():
-                batch_print.add(
-                    f"{obj.name} | Island {i} too small: Pixel Area Percentage: {pixel_area_pct}%"
-                )
+                batch_print.add(f"{obj.name} | Island {i} too small: Pixel Area Percentage: {pixel_area_pct}%")
 
     if IS_DEBUG() and batch_print:
         print("\n".join(batch_print))
@@ -191,9 +178,7 @@ def select_small_uv_islands(
     for face in mesh.faces:
         if face.index in selected_faces:
             face.select = True
-            selected_verts.update(
-                [vert.index for vert in face.verts]
-            )  # Store vertex indices
+            selected_verts.update([vert.index for vert in face.verts])  # Store vertex indices
 
     bmesh.update_edit_mesh(obj.data, loop_triangles=True)  # Update the mesh
     bpy.ops.object.mode_set(mode="OBJECT")  # Switch back to Object Mode

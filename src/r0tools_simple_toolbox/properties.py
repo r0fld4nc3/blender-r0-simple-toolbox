@@ -132,13 +132,23 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
             return
 
         for i, o in enumerate(self.objects):
-            if o.object == obj:
-                # Revert object colour back to default white
-                self.objects.remove(i)
-                break
+            # What if it's an unknown reference?
+            try:
+                if o.object and o.object.as_pointer != 0 and o.object == obj or o.object.as_pointer == 0:
+                    self.objects.remove(i)
+                    break
+            except Exception as e:
+                print(f"[ERROR] [PROPERTIES] {e}")
 
         # Check if object still exists:
-        if u.is_valid_object_global(obj):
+        try:
+            valid = u.is_valid_object_global(obj)
+        except Exception as e:
+            print(f"[ERROR] [PROPERTIES] Is valid object global check error: {e}")
+            self.update_count()
+            return
+
+        if valid:
             # Check if object not in other sets
             containing_sets = self.check_object_in_sets(obj)
             if not containing_sets:
@@ -160,7 +170,7 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
         :return: `list` of `Object Sets`
         """
         addon_props = u.get_addon_props()
-        containing_sets = list()
+        containing_sets = []
 
         for obj_set in addon_props.object_sets:
             if obj_set.separator:

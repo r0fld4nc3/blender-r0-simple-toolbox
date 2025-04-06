@@ -95,7 +95,7 @@ def draw_keymap_settings(layout, prefs):
                 row.label(text=f"No hotkey found for '{op_id}' or is being by another addon.")
 
 
-addon_keymaps = list()
+addon_keymaps = []
 
 
 def register_keymaps():
