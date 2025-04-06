@@ -272,6 +272,37 @@ def remove_collection(collection):
     bpy.data.collections.remove(collection)
 
 
+def collection_exists(name: str, is_global: bool = False) -> bool:
+    if is_global:
+        return name in bpy.data.collections
+
+    return name in bpy.context.scene.collection.children.keys()
+
+
+def collections_create_new(name: str):
+    if not collection_exists(name):
+        collection = bpy.data.collections.new(name=name)
+
+        # Link to scene
+        bpy.context.scene.collection.children.link(collection)
+    else:
+        collection = bpy.context.scene.collection.children.get(name, None)
+
+    return collection
+
+
+def collection_link_object(collection, obj):
+    for coll in bpy.data.collections:
+        if obj.name in coll.objects:
+            coll.objects.unlink(obj)
+
+    # Loop for user collections that object is linked to
+    for coll in obj.users_collection:
+        coll.objects.unlink(obj)
+
+    collection.objects.link(obj)
+
+
 # ==============================
 # MESH SELECTION MODE
 # ==============================
