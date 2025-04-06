@@ -1,5 +1,5 @@
 bl_info = {
-    "name": "r0Tools - Simple Toolbox",
+    "name": "(DEV) r0Tools - Simple Toolbox",
     "author": "Artur Rosário",
     "version": (0, 0, 28),
     "blender": (4, 2, 0),
