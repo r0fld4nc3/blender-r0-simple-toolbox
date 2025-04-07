@@ -4,6 +4,7 @@ import bpy
 
 from ..defines import DEBUG, TOOLBOX_PROPS_NAME
 from ..utils import (
+    COLLECTION_COLOURS,
     CUSTOM_PROPERTIES_TYPES,
     OBJECT_MODES,
     get_addon_prefs,
@@ -301,6 +302,10 @@ def collection_link_object(collection, obj):
         coll.objects.unlink(obj)
 
     collection.objects.link(obj)
+
+
+def collection_set_colour(collection, colour: str):
+    collection.color_tag = colour
 
 
 # ==============================

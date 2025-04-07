@@ -95,5 +95,20 @@ class DEPSGRAPH_ID_TYPES:
     VOLUME          = "VOLUME"
     WINDOWMANAGER   = "WINDOWMANAGER"
     WORKSPACE       = "WORKSPACE"
-    WORLD           = "WORLD" 
+    WORLD           = "WORLD"
+
+
+class COLLECTION_COLOURS:
+    RED    = "COLOR_01"
+    ORANGE = "COLOR_02"
+    YELLOW = "COLOR_03"
+    GREEN  = "COLOR_04"
+    BLUE   = "COLOR_05"
+    PURPLE = "COLOR_06"
+    PINK   = "COLOR_07"
+    BROWN  = "COLOR_08"
+
+    @classmethod
+    def values(cls):
+        return [cls.RED, cls.ORANGE, cls.YELLOW, cls.GREEN, cls.BLUE, cls.PURPLE, cls.PINK, cls.BROWN]
 # fmt: on

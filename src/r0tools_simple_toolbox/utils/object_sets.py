@@ -188,14 +188,14 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     row = parent.row(align=True)
 
     # Add/Remove Object Set Buttons
-    split = row.split(factor=0.65)
+    split = row.split()  # Was factor=0.65
     row_col = split.row(align=True)
     row_col.operator(SimpleToolbox_OT_AddToObjectSet.bl_idname)
     row_col.operator(SimpleToolbox_OT_RemoveFromObjectSet.bl_idname)
     # Select Object Set Button
-    row_col = split.row()
-    op = row_col.operator(SimpleToolbox_OT_SelectObjectSet.bl_idname)
-    op.set_index = -1
+    # row_col = split.row()
+    # op = row_col.operator(SimpleToolbox_OT_SelectObjectSet.bl_idname)
+    # op.set_index = -1
 
 
 def cleanup_object_set_invalid_references(scene):

@@ -197,6 +197,8 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
     """UI List where each entry is an Object Set that itself contains references to Objects added to the set"""
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        from .operators import SimpleToolbox_OT_SelectObjectSet
+
         addon_prefs = u.get_addon_prefs()
 
         # Check if the item to insert is a separator
@@ -241,7 +243,7 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
             without having to first select the row!!! Amazing!
             """
             op = col_select_set.operator(
-                "r0tools.select_object_set",
+                SimpleToolbox_OT_SelectObjectSet.bl_idname,
                 text="",
                 icon="RESTRICT_SELECT_OFF",
             )

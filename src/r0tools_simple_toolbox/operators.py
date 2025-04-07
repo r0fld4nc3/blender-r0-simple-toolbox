@@ -1346,6 +1346,11 @@ class SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
+        import random
+
+        if u.IS_DEBUG():
+            print("\n------------- Move Objects In Object Sets Into Set Collections -------------")
+
         active_index = get_active_object_set_index()
         active_name = get_object_set_name_at_index(active_index)
         collections = []
@@ -1365,6 +1370,8 @@ class SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections(bpy.types.Operator):
             for object_set in reversed(get_object_sets()):
                 i -= 1
                 print(i, object_set.name)
+                if object_set.separator:
+                    continue
                 collection = u.collections_create_new(get_object_set_name_at_index(i))
                 # Append newly or referenced collection.
                 collections.append(collection)
@@ -1376,9 +1383,30 @@ class SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections(bpy.types.Operator):
         # Sometimes it can be that objects are created in one collection and
         # moved to another if they belong to another Object Set, which means
         # they can shift collections as they are added from bottom to top.
-        for coll in collections:
+
+        # Also apply colours here while we're at it (iterating over collections)
+        colours = u.COLLECTION_COLOURS.values()
+        applied_colours: list[str] = []
+        for coll in reversed(collections):
             if len(coll.objects) < 1:
                 u.remove_collection(coll)
+                collections.remove(coll)
+            else:
+                # Reset applied if full
+                if len(applied_colours) >= len(colours):
+                    applied_colours.clear()
+
+                # Apply colour
+                colour = random.choice(colours)
+                if colour in applied_colours:
+                    for i in range(10):
+                        colour = random.choice(colours)
+                        if colour not in applied_colours:
+                            break
+
+                u.collection_set_colour(coll, colour)
+                if colour not in applied_colours:
+                    applied_colours.append(colour)
 
         return {"FINISHED"}
 
