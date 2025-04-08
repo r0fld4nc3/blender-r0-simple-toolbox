@@ -66,14 +66,14 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
             row_split = row.split(align=True)
             # Clear Split Normals Data
             row_split.operator("r0tools.clear_custom_split_normals_data")
-            # Select Empty Objects
-            row_split.operator("r0tools.select_empty_objects")
+            # Clear Objects Children
+            row_split.operator("r0tools.clear_all_objects_children")
             
             # >> Row
             row = object_ops_box.row(align=True)
             row_split = row.split(align=True)
-            # Clear Objects Children
-            row_split.operator("r0tools.clear_all_objects_children")
+            # Select Empty Objects
+            row_split.operator("r0tools.select_empty_objects")
             # Separator
             row_split.separator(factor=0.5)
 
