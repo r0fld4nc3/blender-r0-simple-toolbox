@@ -61,17 +61,21 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         object_ops_box = layout.box()
         object_ops_box.prop(addon_props, "show_object_ops", icon="TRIA_DOWN" if addon_props.show_object_ops else "TRIA_RIGHT", emboss=False)
         if addon_props.show_object_ops:
+            # >> Row
+            row = object_ops_box.row(align=True)
+            row_split = row.split(align=True)
             # Clear Split Normals Data
-            row = object_ops_box.row(align=True)
-            row.operator("r0tools.clear_custom_split_normals_data")
-
+            row_split.operator("r0tools.clear_custom_split_normals_data")
             # Select Empty Objects
+            row_split.operator("r0tools.select_empty_objects")
+            
+            # >> Row
             row = object_ops_box.row(align=True)
-            row.operator("r0tools.select_empty_objects")
-
+            row_split = row.split(align=True)
             # Clear Objects Children
-            row = object_ops_box.row(align=True)
-            row.operator("r0tools.clear_all_objects_children")
+            row_split.operator("r0tools.clear_all_objects_children")
+            # Separator
+            row_split.separator(factor=0.5)
 
             # Find Modifiers on Objects
             find_modifiers_box = object_ops_box.box()
@@ -118,11 +122,13 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         mesh_ops_box = layout.box()
         mesh_ops_box.prop(addon_props, "show_mesh_ops", icon="TRIA_DOWN" if addon_props.show_mesh_ops else "TRIA_RIGHT", emboss=False)
         if addon_props.show_mesh_ops:
+            # >> Row
+            row = mesh_ops_box.row(align=True)
+            row_split = row.split(align=True)
             # Nth Edges Operator
-            row = mesh_ops_box.row(align=True)
-            row.operator("r0tools.nth_edges")
-            row = mesh_ops_box.row(align=True)
-            row.operator("r0tools.rotation_from_selection")
+            row_split.operator("r0tools.nth_edges")
+            # Restore rotation from Selection
+            row_split.operator("r0tools.rotation_from_selection")
             
             # Clear Sharp Edges on Axis
             clear_sharp_edges_box = mesh_ops_box.box()
