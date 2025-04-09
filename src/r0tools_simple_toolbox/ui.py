@@ -129,7 +129,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
             # Nth Edges Operator
             row_split.operator(SimpleToolbox_OT_DissolveNthEdge.bl_idname)
             # Restore rotation from Selection
-            row_split.operator(SimpleToolbox_OT_RestoreRotationFromSelection.bl_description)
+            row_split.operator(SimpleToolbox_OT_RestoreRotationFromSelection.bl_idname)
             
             # Clear Sharp Edges on Axis
             clear_sharp_edges_box = mesh_ops_box.box()
