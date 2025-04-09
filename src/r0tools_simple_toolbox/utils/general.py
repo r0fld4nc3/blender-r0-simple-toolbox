@@ -26,7 +26,8 @@ def IS_DEBUG():
 
 def set_active_object(obj: bpy.types.Object):
     """Set the active object in the current view layer"""
-    bpy.context.view_layer.objects.active = obj
+    if is_valid_object_global(obj):
+        bpy.context.view_layer.objects.active = obj
 
 
 def get_active_object() -> bpy.types.Object | None:
