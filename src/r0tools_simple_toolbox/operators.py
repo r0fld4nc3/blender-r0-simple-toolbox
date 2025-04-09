@@ -453,7 +453,7 @@ class SimpleToolbox_OT_ClearCustomSplitNormalsData(bpy.types.Operator):
     bl_label = "Clear Split Normals"
     bl_idname = "r0tools.clear_custom_split_normals_data"
     bl_description = "Clears the Custom Split Normals assignments for selected objects and sets AutoSmooth to 180.\nUseful to quickly clear baked normals/shading assignments of multiple meshes at once"
-    bl_options = {"REGISTER", "UNDO_GROUPED"}
+    bl_options = {"REGISTER", "UNDO"}
 
     accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
 
@@ -502,7 +502,7 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
     bl_label = "Delete"
     bl_idname = "r0tools.delete_custom_properties"
     bl_description = "Delete Custom Properties from Object(s)"
-    bl_options = {"REGISTER", "UNDO_GROUPED"}
+    bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
     def poll(cls, context):
@@ -558,7 +558,7 @@ class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
     bl_label = "Clear Attributes"
     bl_idname = "r0tools.clear_mesh_attributes"
     bl_description = "Clears unneeded mesh(es) attributes created by various addons.\nPreserves some integral and needed attributes such as material_index that is required for multi-material assignments.\nSometimes certain addons or operations will populate this list with attributes you wish to remove at a later date, be it for parsing or exporting"
-    bl_options = {"REGISTER", "UNDO_GROUPED"}
+    bl_options = {"REGISTER", "UNDO"}
 
     def op_clear_mesh_attributes(self):
         """
@@ -620,7 +620,7 @@ class SimpleToolbox_OT_ClearChildrenRecurse(bpy.types.Operator):
     bl_label = "Clear Children"
     bl_idname = "r0tools.clear_all_objects_children"
     bl_description = "For each selected object, clears parenting keeping transform for each child object.\n\n- SHIFT: Recursively clears parenting for ALL object children and sub-children"
-    bl_options = {"REGISTER", "UNDO_GROUPED"}
+    bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
     def poll(cls, context):
@@ -1233,7 +1233,7 @@ class SimpleToolbox_OT_RandomiseObjectSetsColours(bpy.types.Operator):
     bl_label = "Randomise"
     bl_idname = "r0tools.object_sets_colours_randomise"
     bl_description = "Randomise the colour of each Object Set, respecting the existing colours (if any) and without overlapping colours.\n\nMODIFIERS:\n- SHIFT: Force randomise all Object Sets' colours\n- CTRL: Force randomise active Object Set colour"
-    bl_options = {"INTERNAL", "UNDO_GROUPED"}
+    bl_options = {"INTERNAL", "UNDO"}
 
     override = False
     override_active = False
@@ -1299,7 +1299,7 @@ class SimpleToolbox_OT_RenameObjectsInObjectSet(bpy.types.Operator):
     bl_label = "Rename Objects in Selected Set"
     bl_idname = "r0tools.object_sets_rename_objects_in_set"
     bl_description = 'Renames Objects in the selected Object Set (Highlighted in the Set List) to take the name of the Object Set they belong to.\n\nExample:\nAn Object Set named "Example Set" will have objects associated to itself renamed to "Example Set", "Example Set.001", "Example Set.002", etc.'
-    bl_options = {"INTERNAL", "UNDO_GROUPED"}
+    bl_options = {"INTERNAL", "UNDO"}
 
     @classmethod
     def poll(cls, context):
@@ -1329,7 +1329,7 @@ class SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections(bpy.types.Operator):
     bl_label = "Move into collections"
     bl_idname = "r0tools.move_objects_in_set_into_collections"
     bl_description = "Moves Objects in the selected Object Set (Highlighted in the Set List) into a collection that is named the samea the set they are contained in.\n\nMODIFIERS:- CTRL: Apply this logic to ALL Object Sets"
-    bl_options = {"INTERNAL", "UNDO_GROUPED"}
+    bl_options = {"INTERNAL", "UNDO"}
 
     do_all = False
 
@@ -1469,7 +1469,7 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
     bl_label = "Remove Nth Edges"
     bl_idname = "r0tools.nth_edges_dissolve"
     bl_description = "Remove Nth (every other) edges from edge loops.\nSelect one edge per disconnected mesh to define the starting point.\n\nBy default, the selection automatically expands to include all connected edges in the loop. To limit the operation to only the manually selected contiguous edges or restrict it to the original ring selection, disable 'Expand Edges.'"
-    bl_options = {"REGISTER", "UNDO_GROUPED"}
+    bl_options = {"REGISTER", "UNDO"}
 
     expand_edges: BoolProperty(name="Expand Edges", default=True)  # type: ignore
     keep_initial_selection: BoolProperty(name="Keep Selected Edges", default=True)  # type: ignore
@@ -1481,12 +1481,6 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
             any(u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]))
             and context.mode == u.OBJECT_MODES.EDIT_MESH
         )
-
-    def invoke(self, context, event):
-        self.expand_edges = True  # Always reset
-        self.keep_initial_selection = True  # Always reset
-
-        return self.execute(context)
 
     def process_object(self, obj, context):
         if u.IS_DEBUG():
@@ -1597,14 +1591,10 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
         for obj in selected_objects:
             self.process_object(obj, context)
 
-        # Ensure object mode for selection restoraion
-        if original_mode != u.OBJECT_MODES.OBJECT:
-            u.set_mode_object()
-
         # Restore selection
         for obj in selected_objects:
-            obj.select_set(True)
-        context.view_layer.objects.active = original_active_obj
+            u.select_object(obj, add=True)
+        u.set_active_object(original_active_obj)
 
         # Return to the original active object and mode
         u.set_object_mode(original_mode)
@@ -1616,7 +1606,7 @@ class SimpleToolbox_OT_RestoreNthEdge(bpy.types.Operator):
     bl_label = "Restore Nth Edges"
     bl_idname = "r0tools.nth_edges_restore"
     bl_description = "Restore Nth (every other) edges from edge loops.\nSelect one edge per disconnected mesh to define the starting point.\n\nBy default, the selection automatically expands to include all connected edges in the loop. To limit the operation to only the manually selected contiguous edges or restrict it to the original ring selection, disable 'Expand Edges.'"
-    bl_options = {"REGISTER", "UNDO_GROUPED"}
+    bl_options = {"REGISTER", "UNDO"}
 
     expand_edges: BoolProperty(name="Expand Edges", default=True)  # type: ignore
     keep_initial_selection: BoolProperty(name="Keep Selected Edges", default=True)  # type: ignore
@@ -1628,12 +1618,6 @@ class SimpleToolbox_OT_RestoreNthEdge(bpy.types.Operator):
             any(u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]))
             and context.mode == u.OBJECT_MODES.EDIT_MESH
         )
-
-    def invoke(self, context, event):
-        self.expand_edges = True  # Always reset
-        self.keep_initial_selection = True  # Always reset
-
-        return self.execute(context)
 
     def process_object(self, obj, context):
         if u.IS_DEBUG():
@@ -1755,7 +1739,7 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
     bl_label = "Restore Rotation"
     bl_idname = "r0tools.rotation_from_selection"
     bl_description = "Given a selection of vertices/edges/faces, align each object such that the selection aligns to the Z Axis.\n\n- SHIFT: Clear object rotations on finish. (Also present in Redo panel)"
-    bl_options = {"REGISTER", "UNDO_GROUPED"}
+    bl_options = {"REGISTER", "UNDO"}
 
     clear_rotation_on_align: BoolProperty(name="Clear Rotation(s)", default=False)  # type: ignore
     origin_to_selection: BoolProperty(name="Origin to selection", default=False)  # type: ignore
