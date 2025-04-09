@@ -367,14 +367,6 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
         name="Module(s)", description="Command-separated list of module names"
     )
 
-    screen_size_pct_prop: FloatProperty(  # type: ignore
-        name="Screen Size Percentage",
-        default=0.0,
-        min=0.0,
-        max=100.0,
-        subtype="PERCENTAGE",
-    )
-
     polygon_threshold: FloatProperty(  # type: ignore
         name="Screen Size Threshold (%)",
         default=1,

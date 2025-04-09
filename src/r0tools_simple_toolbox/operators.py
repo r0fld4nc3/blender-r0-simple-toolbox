@@ -1467,7 +1467,7 @@ class SimpleToolbox_OT_ToggleWireDisplay(bpy.types.Operator):
 # ===================================================================
 class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
     bl_label = "Remove Nth Edges"
-    bl_idname = "r0tools.nth_edges"
+    bl_idname = "r0tools.nth_edges_dissolve"
     bl_description = "Remove Nth (every other) edges from edge loops.\nSelect one edge per disconnected mesh to define the starting point.\n\nBy default, the selection automatically expands to include all connected edges in the loop. To limit the operation to only the manually selected contiguous edges or restrict it to the original ring selection, disable 'Expand Edges.'"
     bl_options = {"REGISTER", "UNDO_GROUPED"}
 
@@ -1481,6 +1481,12 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
             any(u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]))
             and context.mode == u.OBJECT_MODES.EDIT_MESH
         )
+
+    def invoke(self, context, event):
+        self.expand_edges = True  # Always reset
+        self.keep_initial_selection = True  # Always reset
+
+        return self.execute(context)
 
     def process_object(self, obj, context):
         if u.IS_DEBUG():
@@ -1579,6 +1585,145 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
     def execute(self, context):
         if u.IS_DEBUG():
             print("\n------------- Dissolve Nth Edges -------------")
+
+        original_active_obj = context.active_object
+        original_mode = context.mode
+
+        if original_mode != u.OBJECT_MODES.OBJECT:
+            u.set_mode_object()
+
+        # Collect selected mesh objects
+        selected_objects = [obj for obj in context.selected_objects if obj.type == u.OBJECT_TYPES.MESH]
+        for obj in selected_objects:
+            self.process_object(obj, context)
+
+        # Ensure object mode for selection restoraion
+        if original_mode != u.OBJECT_MODES.OBJECT:
+            u.set_mode_object()
+
+        # Restore selection
+        for obj in selected_objects:
+            obj.select_set(True)
+        context.view_layer.objects.active = original_active_obj
+
+        # Return to the original active object and mode
+        u.set_object_mode(original_mode)
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_RestoreNthEdge(bpy.types.Operator):
+    bl_label = "Restore Nth Edges"
+    bl_idname = "r0tools.nth_edges_restore"
+    bl_description = "Restore Nth (every other) edges from edge loops.\nSelect one edge per disconnected mesh to define the starting point.\n\nBy default, the selection automatically expands to include all connected edges in the loop. To limit the operation to only the manually selected contiguous edges or restrict it to the original ring selection, disable 'Expand Edges.'"
+    bl_options = {"REGISTER", "UNDO_GROUPED"}
+
+    expand_edges: BoolProperty(name="Expand Edges", default=True)  # type: ignore
+    keep_initial_selection: BoolProperty(name="Keep Selected Edges", default=True)  # type: ignore
+
+    @classmethod
+    def poll(cls, context):
+        # Ensure at least one object is selected
+        return (
+            any(u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]))
+            and context.mode == u.OBJECT_MODES.EDIT_MESH
+        )
+
+    def invoke(self, context, event):
+        self.expand_edges = True  # Always reset
+        self.keep_initial_selection = True  # Always reset
+
+        return self.execute(context)
+
+    def process_object(self, obj, context):
+        if u.IS_DEBUG():
+            print(f"[DEBUG] Processing {obj.name}")
+
+        # Ensure Object Mode
+        if context.mode != u.OBJECT_MODES.OBJECT:
+            u.set_mode_object()
+
+        # Deselect all, and only select relevant object to operate on
+        u.deselect_all()
+
+        # Make active
+        u.select_object(obj, add=False, set_active=True)
+
+        if context.mode != u.OBJECT_MODES.EDIT_MESH:
+            u.set_mode_edit()
+
+        # Create a bmesh
+        me = obj.data
+        bm = bmesh.from_edit_mesh(me)
+        bm.edges.ensure_lookup_table()
+        bm.select_mode = {"EDGE"}
+
+        # Currently selected edges from all meshes
+        # Ideally this should only be 1 edge per disconnected mesh
+        initial_selection = [edge for edge in bm.edges if edge.select]
+
+        for i, edge in enumerate(initial_selection):
+            if u.IS_DEBUG():
+                print(f"{i} {edge.index}")
+
+            # Deselect all bm edges
+            for e in bm.edges:
+                e.select = False
+
+            # Select the one edge being iterated
+            edge.select = True
+            bm.select_history.clear()  # Optionally clear previous elements
+            bm.select_history.add(edge)  # Make active edge
+
+            # Select the coplanar edge ring
+            bpy.ops.mesh.loop_multi_select(ring=False)
+            # Propagate the selection "upward"
+            bpy.ops.mesh.loop_multi_select(ring=True)
+
+            bpy.ops.mesh.subdivide()
+
+        # Make sure to deselect all bm edges too
+        for e in bm.edges:
+            e.select = False
+
+        for edge in initial_selection:
+            edge.select = True
+        bm.select_history.validate()  # Ensure that only selected elements are in select_history
+
+        # Loop around and "up" and circularise
+        bpy.ops.mesh.loop_multi_select(ring=False)
+        bpy.ops.mesh.loop_multi_select(ring=True)
+        bpy.ops.mesh.looptools_circle(
+            custom_radius=False,
+            fit="best",
+            flatten=True,
+            influence=100,
+            lock_x=False,
+            lock_y=False,
+            lock_z=False,
+            radius=1,
+            angle=0,
+            regular=True,
+        )
+
+        # Select initial selection of edges
+        for e in bm.edges:
+            e.select = False
+
+        if self.keep_initial_selection:
+            print(f"{initial_selection}")
+            for edge in initial_selection:
+                edge.select = True
+
+        # Update the mesh
+        bmesh.update_edit_mesh(me)
+        bm.free()
+
+        u.set_mode_object()
+
+    def execute(self, context):
+        if u.IS_DEBUG():
+            print("\n------------- Restore Nth Edges -------------")
 
         original_active_obj = context.active_object
         original_mode = context.mode
@@ -1984,8 +2129,6 @@ class SimpleToolbox_OT_ClearAxisSharpEdgesZ(bpy.types.Operator):
 
 # fmt: off
 classes = [
-    SimpleToolbox_OT_ExperimentalOP,
-    
     SimpleToolbox_OT_ObjectSetsModal,
     SimpleToolbox_OT_AddObjectSetPopup,
     SimpleToolbox_OT_RenameObjectSet,
@@ -2014,6 +2157,7 @@ classes = [
     SimpleToolbox_OT_FindModifierSearch,
     
     SimpleToolbox_OT_DissolveNthEdge,
+    SimpleToolbox_OT_RestoreNthEdge,
     SimpleToolbox_OT_RestoreRotationFromSelection,
     SimpleToolbox_OT_SelectEmptyObjects,
     SimpleToolbox_OT_ClearAxisSharpEdgesX,

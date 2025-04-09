@@ -128,6 +128,12 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
             row_split = row.split(align=True)
             # Nth Edges Operator
             row_split.operator(SimpleToolbox_OT_DissolveNthEdge.bl_idname)
+            if addon_prefs.experimental_features:
+                row_split.operator(SimpleToolbox_OT_RestoreNthEdge.bl_idname)
+
+            # >> Row
+            row = mesh_ops_box.row(align=True)
+            row_split = row.split(align=True)
             # Restore rotation from Selection
             row_split.operator(SimpleToolbox_OT_RestoreRotationFromSelection.bl_idname)
             
@@ -179,19 +185,6 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
 
         # ====== Online Repository ======
         draw_repo_layout(layout, context)
-
-        # ====== Heavy Experimentals ======
-        if addon_prefs.experimental_features:
-            experimental_ops_box = layout.box()
-            experimental_ops_box.prop(addon_props, "show_experimental_features", icon="TRIA_DOWN" if addon_props.show_experimental_features else "TRIA_RIGHT", emboss=False)
-            if addon_props.show_experimental_features:
-                lods_box = experimental_ops_box.box()
-                row = lods_box.row()
-                row.label(text="LODs")
-                row = lods_box.row()
-                row.operator(SimpleToolbox_OT_ExperimentalOP.bl_idname)
-                row = lods_box.row()
-                row.prop(addon_props, "screen_size_pct_prop", text="Screen Size (%):")
 # fmt: on
 
 
