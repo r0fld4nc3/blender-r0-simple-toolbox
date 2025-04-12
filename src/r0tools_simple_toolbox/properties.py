@@ -132,13 +132,16 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
             return
 
         for i, o in enumerate(self.objects):
-            # What if it's an unknown reference?
             try:
+                if o.object is None:
+                    self.objects.remove(i)
+                    break
+
                 if o.object and o.object.as_pointer != 0 and o.object == obj or o.object.as_pointer == 0:
                     self.objects.remove(i)
                     break
             except Exception as e:
-                print(f"[ERROR] [PROPERTIES] {e}")
+                print(f"[ERROR] [PROPERTIES] '{o.object}' {e}")
 
         # Check if object still exists:
         try:
