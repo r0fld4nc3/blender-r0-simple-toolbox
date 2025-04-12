@@ -2,7 +2,7 @@ import bpy
 
 
 class SimpleToolbox_MT_ObjectSetsActionsMenu(bpy.types.Menu):
-    bl_idname = "r0tools.object_sets_actions_menu"
+    bl_idname = "r0tools.object_sets_MT_actions"
     bl_label = "Object Sets Actions"
 
     def draw(self, context):
