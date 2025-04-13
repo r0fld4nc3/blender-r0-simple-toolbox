@@ -259,6 +259,10 @@ def collections_create_new(name: str):
 
 
 def collection_link_object(collection, obj):
+    # Sometimes, the reference can be NoneType.
+    if not obj:
+        return False
+
     for coll in bpy.data.collections:
         if obj.name in coll.objects:
             coll.objects.unlink(obj)
@@ -268,6 +272,8 @@ def collection_link_object(collection, obj):
         coll.objects.unlink(obj)
 
     collection.objects.link(obj)
+
+    return True
 
 
 def remove_collection(collection):
