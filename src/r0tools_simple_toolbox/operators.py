@@ -1314,6 +1314,9 @@ class SimpleToolbox_OT_RenameObjectsInObjectSet(bpy.types.Operator):
         # This does not account for instances of existing or similar object set names
 
         for obj in iter_objects_of_object_set_at_index(active_index):
+            if not obj:
+                # Sometimes, the reference can be NoneType.
+                continue
             obj.name = active_object_set_name
             renamed_count += 1
 
