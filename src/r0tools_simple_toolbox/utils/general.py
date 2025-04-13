@@ -293,18 +293,6 @@ def collections_create_new(name: str):
     return collection
 
 
-def collection_link_object(collection, obj):
-    for coll in bpy.data.collections:
-        if obj.name in coll.objects:
-            coll.objects.unlink(obj)
-
-    # Loop for user collections that object is linked to
-    for coll in obj.users_collection:
-        coll.objects.unlink(obj)
-
-    collection.objects.link(obj)
-
-
 def collection_set_colour(collection, colour: str):
     collection.color_tag = colour
 
