@@ -8,6 +8,7 @@ import bpy
 import requests
 
 UPDATER_LOG_PREFIX = "[UPDATER]"
+REQUEST_TIMEOUT = 10  # seconds
 
 
 def tuple_version_string(version_str: str):
@@ -140,7 +141,7 @@ def get_repo_remote_json(addon_id: str, ext_repo_name: str) -> dict:
     # Fetch JSON metadata from online repository
     try:
         print(f"{UPDATER_LOG_PREFIX} [INFO] Fetching matadata '{metadata_url}'.")
-        response = requests.get(metadata_url)
+        response = requests.get(metadata_url, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
         metadata = response.json()
     except Exception as e:
@@ -168,7 +169,9 @@ def get_repo_addon_version() -> str:
     releases_latest = f"{RELEASES_PAGE}/latest"
     try:
         print(f"{UPDATER_LOG_PREFIX} [INFO] Fetching URL response for '{releases_latest}'.")
-        response = requests.get(releases_latest, headers={"Content-Type": "application/vnd.github.v3+json"})
+        response = requests.get(
+            releases_latest, headers={"Content-Type": "application/vnd.github.v3+json"}, timeout=REQUEST_TIMEOUT
+        )
         response.raise_for_status()
     except Exception as conn_err:
         print(f"{UPDATER_LOG_PREFIX} [ERROR] {conn_err}")
