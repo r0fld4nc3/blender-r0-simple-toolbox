@@ -79,7 +79,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
             # Select Empty Objects
             row_split.operator(SimpleToolbox_OT_SelectEmptyObjects.bl_idname)
             # Separator
-            row_split.separator(factor=0.5)
+            # row_split.separator(factor=0.5)
 
             # Find Modifiers on Objects
             find_modifiers_box = object_ops_box.box()
