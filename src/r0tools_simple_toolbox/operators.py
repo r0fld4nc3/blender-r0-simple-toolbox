@@ -1642,9 +1642,37 @@ class SimpleToolbox_OT_RestoreNthEdge(bpy.types.Operator):
         # Ideally this should only be 1 edge per disconnected mesh
         initial_selection = [edge for edge in bm.edges if edge.select]
 
+        loops = []  # list of lists
+        edges_to_discard = []
+
+        # Discard "vertical" edges.
+        # These edges are not part of a selection that could form a circular closed loop.
+        # They can typically be identified by having vertices whose indices are directly
+        # a +1, so an edge that would not fit the criteria would be a edge with vertices: [0, 1]
+        # or [12, 13]
+        for edge in initial_selection:
+            link_loops = [l for l in edge.link_loops]
+
+            for i in range(0, len(link_loops), 2):
+                vert_a_index = link_loops[i].vert.index
+                vert_b_index = link_loops[i + 1].vert.index
+
+                vert_max = max(vert_a_index, vert_b_index)
+                vert_min = min(vert_a_index, vert_b_index)
+
+                if vert_max == vert_min + 1:
+                    print(f"1 - Remove Edge: {edge.index}")
+                    if edge not in edges_to_discard:
+                        edges_to_discard.append(edge)
+                elif vert_max != vert_min + 2:
+                    print(f"2 - Remove Edge: {edge.index}")
+                    if edge not in edges_to_discard:
+                        edges_to_discard.append(edge)
+
+        return
+
         for i, edge in enumerate(initial_selection):
-            if u.IS_DEBUG():
-                print(f"{i} {edge.index}")
+            print(f"{i} {edge.index}")
 
             # Deselect all bm edges
             for e in bm.edges:
@@ -1689,17 +1717,20 @@ class SimpleToolbox_OT_RestoreNthEdge(bpy.types.Operator):
         # Select initial selection of edges
         for e in bm.edges:
             e.select = False
+        bm.select_flush_mode()
 
         if self.keep_initial_selection:
-            print(f"{initial_selection}")
             for edge in initial_selection:
                 edge.select = True
+            bm.select_flush_mode()
 
         # Update the mesh
         bmesh.update_edit_mesh(me)
         bm.free()
 
         u.set_mode_object()
+
+    def is_closed_loop(self, start_edge): ...
 
     def execute(self, context):
         if u.IS_DEBUG():
