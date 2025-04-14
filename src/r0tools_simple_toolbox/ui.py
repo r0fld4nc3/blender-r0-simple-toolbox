@@ -34,11 +34,14 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         row.prop(addon_prefs, "experimental_features", text="Experimental", icon="EXPERIMENTAL")
 
         if self.has_update:
+            from .repo import SimpleToolbox_OT_TakeMeToUpdate
             update_box = layout.box()
             update_row = update_box.row(align=True)
             update_row.label(text="", icon="FUND")
             update_row.label(text="UPDATE AVAILABLE", icon="FILE_REFRESH")
             update_row.label(text="", icon="FUND")
+            update_row = update_box.row(align=True)
+            update_row.operator(SimpleToolbox_OT_TakeMeToUpdate.bl_idname, text="Take me there!", icon="INDIRECT_ONLY_ON")
 
         # ====== Dev Tools ======
         if addon_prefs.dev_tools:
