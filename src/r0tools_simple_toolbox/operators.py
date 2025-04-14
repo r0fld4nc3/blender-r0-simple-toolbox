@@ -1188,19 +1188,12 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
             if not self.add_to_selection:
                 u.deselect_all()
 
-            to_become_active = None
-            for item in reversed(object_set.objects):
-                obj = item.object
-                if not u.select_object(obj):
-                    object_set.remove_object(obj)
-                else:
-                    # Set active object
-                    if not self.add_to_selection and not to_become_active:
-                        to_become_active = obj
+            to_become_active = object_set.objects[0].object
+            for object_set_item in reversed(object_set.objects):
+                obj = object_set_item.object
+                u.select_object(obj)
 
-            # Set active object if not adding to selection
-            if not self.add_to_selection:
-                u.set_active_object(to_become_active)
+            u.set_active_object(to_become_active)
 
             self.report({"INFO"}, f"Selected objects in '{object_set.name}'")
         return {"FINISHED"}
