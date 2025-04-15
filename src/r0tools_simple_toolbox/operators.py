@@ -1657,14 +1657,14 @@ class SimpleToolbox_OT_RestoreNthEdge(bpy.types.Operator):
                 vert_a_index = link_loops[i].vert.index
                 vert_b_index = link_loops[i + 1].vert.index
 
-                vert_max = max(vert_a_index, vert_b_index)
-                vert_min = min(vert_a_index, vert_b_index)
+                vert_max_index = max(vert_a_index, vert_b_index)
+                vert_min_index = min(vert_a_index, vert_b_index)
 
-                if vert_max == vert_min + 1:
+                if vert_max_index == vert_min_index + 1:
                     print(f"1 - Remove Edge: {edge.index}")
                     if edge not in edges_to_discard:
                         edges_to_discard.append(edge)
-                elif vert_max != vert_min + 2:
+                elif vert_max_index != vert_min_index + 2:
                     print(f"2 - Remove Edge: {edge.index}")
                     if edge not in edges_to_discard:
                         edges_to_discard.append(edge)
