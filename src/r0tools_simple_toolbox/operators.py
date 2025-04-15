@@ -5,7 +5,7 @@ import sys
 
 import bmesh
 import bpy
-from bpy.props import BoolProperty
+from bpy.props import BoolProperty, IntProperty
 
 from . import utils as u
 from .defines import INTERNAL_NAME
@@ -1604,8 +1604,13 @@ class SimpleToolbox_OT_RestoreNthEdge(bpy.types.Operator):
     bl_description = "Restore Nth (every other) edges from edge loops.\nSelect one edge per disconnected mesh to define the starting point.\n\nBy default, the selection automatically expands to include all connected edges in the loop. To limit the operation to only the manually selected contiguous edges or restrict it to the original ring selection, disable 'Expand Edges.'"
     bl_options = {"REGISTER", "UNDO"}
 
-    expand_edges: BoolProperty(name="Expand Edges", default=True)  # type: ignore
-    keep_initial_selection: BoolProperty(name="Keep Selected Edges", default=True)  # type: ignore
+    max_iterations: IntProperty(  # type: ignore
+        name="Max Iterations",
+        description="Maximum number of edges to process to prevent infinite loops",
+        default=1000,
+        min=1,
+        max=10000,
+    )
 
     @classmethod
     def poll(cls, context):
@@ -1614,6 +1619,120 @@ class SimpleToolbox_OT_RestoreNthEdge(bpy.types.Operator):
             any(u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]))
             and context.mode == u.OBJECT_MODES.EDIT_MESH
         )
+
+    # A lot of this code and logic can and should be attributed to this wonderful soul: https://devtalk.blender.org/t/walking-edge-loops-across-a-mesh-from-c-to-python/14297/4
+    def find_other_loop(self, edge, loop):
+        """
+        Find the loop on the opposite side of the edge
+
+        Args:
+            edge: The BMEdge to find the opposite loop for
+            loop: The current BMLoop
+
+        Returns:
+            The opposite BMLoop or None if not found
+        """
+        if loop.edge == edge:
+            other_loop = loop
+        else:
+            other_loop = loop.link_loop_prev
+
+        other_loop = other_loop.link_loop_radial_next
+
+        # Determine which loop to return based on vertex matching
+        if other_loop.vert == loop.vert:
+            other_loop = other_loop.link_loop_prev
+        elif other_loop.link_loop_next.vert == loop.vert:
+            other_loop = other_loop.link_loop_next
+        else:
+            self.report({"WARNING"}, "Failed to find matching loop")
+            return None
+
+        return other_loop
+
+    def step_fan_loop(self, loop, current_edge):
+        """
+        Step to the next loop in the edge fan
+
+        Args:
+            loop: The current BMLoop
+            current_edge: The current BMEdge
+
+        Returns:
+            The next BMLoop in the fan or None if not found
+        """
+        previous_edge = current_edge
+
+        # Determine the next edge based on the current loop and edge
+        if loop.edge == previous_edge:
+            next_edge = loop.link_loop_prev.edge
+        elif loop.link_loop_prev.edge == previous_edge:
+            next_edge = loop.edge
+        else:
+            self.report({"WARNING"}, "No matching edge found")
+            return None
+
+        # Check if the edge is manifold (has exactly two faces)
+        if next_edge.is_manifold:
+            return self.find_other_loop(next_edge, loop)
+        else:
+            self.report({"INFO"}, "Reached non-manifold edge")
+            return None
+
+    def get_edge_loop(self, bm):
+        # Ensure we have an active edge
+        if not bm.select_history.active or not isinstance(bm.select_history.active, bmesh.types.BMEdge):
+            self.report({"WARNING"}, "No active edge selected")
+            return {"CANCELLED"}
+
+        current_edge = bm.select_history.active
+        loop = current_edge.link_loops[0]
+        prev_current_vertex = loop.vert
+        # prev_other_vertex = loop.edge.other_vert(loop.vert)
+
+        selected_edges = []
+        iteration_count = 0
+
+        # Main edge loop detection algorithm
+        while iteration_count < self.max_iterations:
+            # Get the next loop in the fan
+            new_loop = self.step_fan_loop(loop, current_edge)
+            if new_loop is None:
+                break
+
+            current_edge = new_loop.edge
+            selected_edges.append(current_edge.index)
+
+            # Get vertex references for determining continuation
+            current_vertex = new_loop.vert
+            other_vertex = new_loop.edge.other_vert(new_loop.vert)
+            radial_vertex = new_loop.link_loop_radial_next.vert
+
+            # Determine how to continue based on vertex relationships
+            if current_vertex == radial_vertex and other_vertex != prev_current_vertex:
+                loop = new_loop.link_loop_next
+                prev_current_vertex = other_vertex
+                # prev_other_vertex = current_vertex
+            elif other_vertex == prev_current_vertex:
+                loop = new_loop
+                prev_current_vertex = current_vertex
+                # prev_other_vertex = other_vertex
+            elif current_vertex == prev_current_vertex:
+                loop = new_loop.link_loop_radial_next
+                prev_current_vertex = other_vertex
+                # prev_other_vertex = current_vertex
+            else:
+                self.report({"INFO"}, "Edge loop navigation failed")
+                break
+
+            # Check if loop is complete by coming back to the original edge
+            if current_edge == bm.select_history.active and iteration_count > 0:
+                self.report({"INFO"}, "Completed edge loop")
+                break
+
+            iteration_count += 1
+
+        return selected_edges
 
     def process_object(self, obj, context):
         if u.IS_DEBUG():
@@ -1626,7 +1745,7 @@ class SimpleToolbox_OT_RestoreNthEdge(bpy.types.Operator):
         # Deselect all, and only select relevant object to operate on
         u.deselect_all()
 
-        # Make active
+        # Make this object active
         u.select_object(obj, add=False, set_active=True)
 
         if context.mode != u.OBJECT_MODES.EDIT_MESH:
@@ -1638,57 +1757,21 @@ class SimpleToolbox_OT_RestoreNthEdge(bpy.types.Operator):
         bm.edges.ensure_lookup_table()
         bm.select_mode = {"EDGE"}
 
-        # Currently selected edges from all meshes
-        # Ideally this should only be 1 edge per disconnected mesh
         initial_selection = [edge for edge in bm.edges if edge.select]
 
-        loops = []  # list of lists
-        edges_to_discard = []
+        # Select the coplanar edge ring
+        edge_loop_edges = self.get_edge_loop(bm)
 
-        # Discard "vertical" edges.
-        # These edges are not part of a selection that could form a circular closed loop.
-        # They can typically be identified by having vertices whose indices are directly
-        # a +1, so an edge that would not fit the criteria would be a edge with vertices: [0, 1]
-        # or [12, 13]
-        for edge in initial_selection:
-            link_loops = [l for l in edge.link_loops]
+        # Select all the found edges
+        for edge_index in edge_loop_edges:
+            bm.edges[edge_index].select = True
 
-            for i in range(0, len(link_loops), 2):
-                vert_a_index = link_loops[i].vert.index
-                vert_b_index = link_loops[i + 1].vert.index
+        # Propagate the selection "upward"
+        bpy.ops.mesh.loop_multi_select(ring=True)
 
-                vert_max_index = max(vert_a_index, vert_b_index)
-                vert_min_index = min(vert_a_index, vert_b_index)
+        bpy.ops.mesh.subdivide()
 
-                if vert_max_index == vert_min_index + 1:
-                    print(f"1 - Remove Edge: {edge.index}")
-                    if edge not in edges_to_discard:
-                        edges_to_discard.append(edge)
-                elif vert_max_index != vert_min_index + 2:
-                    print(f"2 - Remove Edge: {edge.index}")
-                    if edge not in edges_to_discard:
-                        edges_to_discard.append(edge)
-
-        return
-
-        for i, edge in enumerate(initial_selection):
-            print(f"{i} {edge.index}")
-
-            # Deselect all bm edges
-            for e in bm.edges:
-                e.select = False
-
-            # Select the one edge being iterated
-            edge.select = True
-            bm.select_history.clear()  # Optionally clear previous elements
-            bm.select_history.add(edge)  # Make active edge
-
-            # Select the coplanar edge ring
-            bpy.ops.mesh.loop_multi_select(ring=False)
-            # Propagate the selection "upward"
-            bpy.ops.mesh.loop_multi_select(ring=True)
-
-            bpy.ops.mesh.subdivide()
+        bm.edges.ensure_lookup_table()  # Recalculate lookup table
 
         # Make sure to deselect all bm edges too
         for e in bm.edges:
@@ -1697,6 +1780,12 @@ class SimpleToolbox_OT_RestoreNthEdge(bpy.types.Operator):
         for edge in initial_selection:
             edge.select = True
         bm.select_history.validate()  # Ensure that only selected elements are in select_history
+
+        edge_loop_edges = self.get_edge_loop(bm)
+
+        # Select all the found edges
+        for edge_index in edge_loop_edges:
+            bm.edges[edge_index].select = True
 
         # Loop around and "up" and circularise
         bpy.ops.mesh.loop_multi_select(ring=False)
@@ -1715,22 +1804,18 @@ class SimpleToolbox_OT_RestoreNthEdge(bpy.types.Operator):
         )
 
         # Select initial selection of edges
-        for e in bm.edges:
-            e.select = False
-        bm.select_flush_mode()
+        for edge in bm.edges:
+            edge.select = False
 
-        if self.keep_initial_selection:
-            for edge in initial_selection:
-                edge.select = True
-            bm.select_flush_mode()
+        for edge in initial_selection:
+            edge.select = True
+        bm.select_flush_mode()
 
         # Update the mesh
         bmesh.update_edit_mesh(me)
         bm.free()
 
         u.set_mode_object()
-
-    def is_closed_loop(self, start_edge): ...
 
     def execute(self, context):
         if u.IS_DEBUG():
@@ -1747,14 +1832,10 @@ class SimpleToolbox_OT_RestoreNthEdge(bpy.types.Operator):
         for obj in selected_objects:
             self.process_object(obj, context)
 
-        # Ensure object mode for selection restoraion
-        if original_mode != u.OBJECT_MODES.OBJECT:
-            u.set_mode_object()
-
         # Restore selection
         for obj in selected_objects:
-            obj.select_set(True)
-        context.view_layer.objects.active = original_active_obj
+            u.select_object(obj, add=True)
+        u.set_active_object(original_active_obj)
 
         # Return to the original active object and mode
         u.set_object_mode(original_mode)
