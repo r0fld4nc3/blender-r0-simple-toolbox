@@ -1237,50 +1237,52 @@ class SimpleToolbox_OT_RandomiseObjectSetsColours(bpy.types.Operator):
 
         if event.shift:
             self.override = True
-        if not event.shift and event.ctrl:
+        elif event.ctrl:
             self.override_active = True
 
         return self.execute(context)
 
     def execute(self, context):
         addon_prefs = u.get_addon_prefs()
-
         default_set_colour = [c for c in addon_prefs.object_sets_default_colour]
-        colours: set = set()
+        used_colours = {(o.set_colour for o in get_object_sets() if o.set_colour != default_set_colour)}
+        active_object_set_name = get_object_set_name_at_index(get_active_object_set_index())
 
         for object_set in get_object_sets():
-            set_colour = [c for c in object_set.set_colour]
+            if object_set.separator:
+                continue
 
-            if set_colour != default_set_colour:
-                if not self.override and not self.override_active:
-                    continue
+            should_change_color = False
+            current_color_is_default = [c for c in object_set.set_colour] == default_set_colour
+            object_set_name = object_set.name
+            is_active_set = object_set_name == active_object_set_name
 
-                # We are overriding curent
-                if self.override_active:
-                    object_set_name = object_set.name
-                    if not object_set_name == get_object_set_name_at_index(get_active_object_set_index()):
-                        # Skip if the names don't match, meaning it's not the active set
-                        continue
-                    else:
-                        print(f"[OPERATORS] Force updating active Object Set colour.")
+            if self.override:
+                # Force override all Object Sets' colours
+                should_change_color = True
+            elif self.override_active and is_active_set:
+                # Force override only the active Object Set colour
+                should_change_color = True
+            elif current_color_is_default and not self.override_active:
+                # Randomise colour of Object Set if the colour is default and we're not specifically overriding anything
+                should_change_color = True
 
-            for _ in range(10):  # While loops can go wrong. Range is more controlled. Boom!
-                new_colour = (
-                    random.uniform(0.000, 1.0),
-                    random.uniform(0.000, 1.0),
-                    random.uniform(0.000, 1.0),
-                    1.0,
-                )
-                if new_colour not in colours and new_colour != default_set_colour:
-                    colours.add(new_colour)
-                    break
-
-            object_set.set_colour = new_colour
+            if should_change_color:
+                for _ in range(10):  # While loops can go wrong. Range is more controlled. Boom!
+                    new_colour = (
+                        random.uniform(0.0, 1.0),
+                        random.uniform(0.0, 1.0),
+                        random.uniform(0.0, 1.0),
+                        1.0,
+                    )
+                    if new_colour not in used_colours and list(new_colour) != default_set_colour:
+                        used_colours.add(new_colour)
+                        object_set.set_colour = new_colour
+                        print(f"[OPERATORS] Updating colour of Object Set '{object_set_name}': {new_colour}")
+                        break
 
         bpy.ops.r0tools.object_sets_refresh()
-
-        self.report({"INFO"}, "Randmoised Object Sets' Colours.")
-
+        self.report({"INFO"}, "Randomised Object Sets' Colours.")
         return {"FINISHED"}
 
 

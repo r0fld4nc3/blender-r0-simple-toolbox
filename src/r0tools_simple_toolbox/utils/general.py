@@ -232,6 +232,18 @@ def iter_scene_objects(selected=False, types: list[str] = []):
             yield o
 
 
+def iter_data_objects(types: list[str] = []):
+    """
+    Iterate through objects in bpy.data.objects
+
+    Args:
+        types: Filter by object types (empty list = all types)
+    """
+    for o in bpy.data.objects:
+        if not types or o.type in types:
+            yield o
+
+
 def iter_obj_children(p_obj, recursive=True):
     """
     Iterate through all children of a given parent object
