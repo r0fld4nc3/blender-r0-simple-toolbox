@@ -1252,7 +1252,6 @@ class SimpleToolbox_OT_RandomiseObjectSetsColours(bpy.types.Operator):
             if object_set.separator:
                 continue
 
-            # Determine if we should change this object set's color
             should_change_color = False
             current_color_is_default = [c for c in object_set.set_colour] == default_set_colour
             object_set_name = object_set.name
