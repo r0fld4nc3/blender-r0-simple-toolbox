@@ -708,6 +708,85 @@ class SimpleToolbox_OT_ClearChildrenRecurse(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_RemoveUnusedMaterials(bpy.types.Operator):
+    bl_idname = "r0tools.remove_unused_material_slots"
+    bl_label = "Remove Unused Materials"
+    bl_description = "Runs the operator to remove all unused materials across all selected objects"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == u.OBJECT_MODES.OBJECT and len(context.selected_objects) > 0
+
+    def invoke(self, context, event):
+        return self.execute(context)
+
+    def execute(self, context):
+        if u.IS_DEBUG():
+            print("\n------------- Remove Unused Materials -------------")
+
+        original_active = u.get_active_object()
+
+        for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
+            # Set active object
+            u.set_active_object(obj)
+
+            bpy.ops.object.material_slot_remove_unused()
+
+        u.set_active_object(original_active)
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_RemoveUnusedVertexGroups(bpy.types.Operator):
+    bl_idname = "r0tools.remove_unused_vertex_groups"
+    bl_label = "Remove Unused Vertex Groups"
+    bl_description = "Removes unused Vertex Groups across all selected objects"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == u.OBJECT_MODES.OBJECT and len(context.selected_objects) > 0
+
+    def invoke(self, context, event):
+        return self.execute(context)
+
+    def execute(self, context):
+        if u.IS_DEBUG():
+            print("\n------------- Remove Unused Materials -------------")
+
+        original_active = u.get_active_object()
+
+        total_removed: int = 0
+
+        for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
+            # Set active object
+            u.set_active_object(obj)
+
+            used_group_indices = set()
+            obj_data = obj.data
+
+            for vert in obj_data.vertices:
+                for vg in vert.groups:
+                    # Only iterates groups that are used
+                    # Is weight check needed? vg.weight > 0?
+                    used_group_indices.add(vg.group)  # This is an index
+
+            before_count = len(obj.vertex_groups)  # Used for reporting later
+
+            for group in reversed(obj.vertex_groups):
+                if group.index not in used_group_indices:
+                    obj.vertex_groups.remove(group)
+
+            total_removed += before_count - len(obj.vertex_groups)
+
+        self.report({"INFO"}, f"Removed {total_removed} Vertex Groups.")
+
+        u.set_active_object(original_active)
+
+        return {"FINISHED"}
+
+
 class SimpleToolbox_OT_FindModifierSearch(bpy.types.Operator):
     bl_idname = "r0tools.find_modifier_search"
     bl_label = "Find Modifiers"
@@ -2137,6 +2216,8 @@ classes = [
     SimpleToolbox_OT_ClearMeshAttributes,
     SimpleToolbox_OT_ClearChildrenRecurse,
     SimpleToolbox_OT_FindModifierSearch,
+    SimpleToolbox_OT_RemoveUnusedMaterials,
+    SimpleToolbox_OT_RemoveUnusedVertexGroups,
     
     SimpleToolbox_OT_DissolveNthEdge,
     SimpleToolbox_OT_RestoreNthEdge,

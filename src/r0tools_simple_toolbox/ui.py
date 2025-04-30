@@ -78,8 +78,14 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
             row_split = row.split(align=True)
             # Select Empty Objects
             row_split.operator(SimpleToolbox_OT_SelectEmptyObjects.bl_idname)
-            # Separator
-            # row_split.separator(factor=0.5)
+
+            # >> Row
+            row = object_ops_box.row(align=True)
+            row_split = row.split(align=True)
+            # Remove unused Materials
+            row_split.operator(SimpleToolbox_OT_RemoveUnusedMaterials.bl_idname)
+            # Remove Unused Vertex Groups
+            row_split.operator(SimpleToolbox_OT_RemoveUnusedVertexGroups.bl_idname)
 
             # Find Modifiers on Objects
             find_modifiers_box = object_ops_box.box()
