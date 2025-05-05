@@ -28,7 +28,7 @@ def set_active_object_set_index(index: int):
         addon_props.object_sets_index = index
 
 
-def get_object_set_at_index(index: int) -> int:
+def get_object_set_at_index(index: int):
     object_sets = get_object_sets()
 
     if index < get_object_sets_count():

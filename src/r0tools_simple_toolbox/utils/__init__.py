@@ -7,6 +7,7 @@ from .context import *  # isort: skip
 from .custom_transform import *  # isort: skip
 from .general import *  # isort: skip
 from .object_sets import *  # isort: skip
+from .vertex_groups import *  # isort: skip
 
 package = __name__
 
@@ -18,6 +19,7 @@ submodules = [
     "custom_transform",
     "general",
     "object_sets",
+    "vertex_groups",
 ]
 # fmt: on
 _module_objects = []

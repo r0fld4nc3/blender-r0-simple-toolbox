@@ -540,7 +540,7 @@ def property_list_update(scene, context, force_run=False):
         # Add unique custom properties to the set
         unique_object_data_props = set()
         unique_mesh_data_props = set()
-        for obj in bpy.context.selected_objects:
+        for obj in iter_scene_objects(selected=True):
             # Object Properties
             for prop_name in obj.keys():
                 if IS_DEBUG():

@@ -84,8 +84,6 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
             row_split = row.split(align=True)
             # Remove unused Materials
             row_split.operator(SimpleToolbox_OT_RemoveUnusedMaterials.bl_idname)
-            # Remove Unused Vertex Groups
-            row_split.operator(SimpleToolbox_OT_RemoveUnusedVertexGroups.bl_idname)
 
             # Find Modifiers on Objects
             find_modifiers_box = object_ops_box.box()
@@ -127,6 +125,15 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 # Clear Custom Properties
                 row = custom_properties_box.row()
                 row.operator(SimpleToolbox_OT_ClearCustomProperties.bl_idname)
+
+
+        # ====== Vertex Groups UI List ======
+        vertex_groups_box = layout.box()
+        row = vertex_groups_box.row()
+        row.prop(addon_props, "show_vertex_groups", icon="TRIA_DOWN" if addon_props.show_vertex_groups else "TRIA_RIGHT", emboss=False)
+        if addon_props.show_vertex_groups:
+            u.draw_vertex_groups_uilist(self.layout, context, vertex_groups_box=vertex_groups_box)
+
         
         # ====== Mesh Ops ======
         mesh_ops_box = layout.box()
