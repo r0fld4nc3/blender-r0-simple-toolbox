@@ -26,12 +26,21 @@ def IS_DEBUG():
 
 def set_active_object(obj: bpy.types.Object):
     """Set the active object in the current view layer"""
-    bpy.context.view_layer.objects.active = obj
+    objects = getattr(bpy.context.view_layer, "objects", None)
+
+    if objects and is_valid_object_global(obj):
+        bpy.context.view_layer.objects.active = obj
 
 
 def get_active_object() -> bpy.types.Object | None:
     """Get the active object from the current view layer"""
-    return bpy.context.view_layer.objects.active
+    objects = getattr(bpy.context.view_layer, "objects", None)
+
+    if objects:
+        return getattr(objects, "active", None)
+
+    # return bpy.context.view_layer.objects.active
+    return None
 
 
 def set_object_mode(mode: str):
@@ -223,6 +232,18 @@ def iter_scene_objects(selected=False, types: list[str] = []):
             yield o
 
 
+def iter_data_objects(types: list[str] = []):
+    """
+    Iterate through objects in bpy.data.objects
+
+    Args:
+        types: Filter by object types (empty list = all types)
+    """
+    for o in bpy.data.objects:
+        if not types or o.type in types:
+            yield o
+
+
 def iter_obj_children(p_obj, recursive=True):
     """
     Iterate through all children of a given parent object
@@ -258,6 +279,10 @@ def collections_create_new(name: str):
 
 
 def collection_link_object(collection, obj):
+    # Sometimes, the reference can be NoneType.
+    if not obj:
+        return False
+
     for coll in bpy.data.collections:
         if obj.name in coll.objects:
             coll.objects.unlink(obj)
@@ -267,6 +292,8 @@ def collection_link_object(collection, obj):
         coll.objects.unlink(obj)
 
     collection.objects.link(obj)
+
+    return True
 
 
 def remove_collection(collection):
@@ -290,18 +317,6 @@ def collections_create_new(name: str):
         collection = bpy.context.scene.collection.children.get(name, None)
 
     return collection
-
-
-def collection_link_object(collection, obj):
-    for coll in bpy.data.collections:
-        if obj.name in coll.objects:
-            coll.objects.unlink(obj)
-
-    # Loop for user collections that object is linked to
-    for coll in obj.users_collection:
-        coll.objects.unlink(obj)
-
-    collection.objects.link(obj)
 
 
 def collection_set_colour(collection, colour: str):
@@ -525,7 +540,7 @@ def property_list_update(scene, context, force_run=False):
         # Add unique custom properties to the set
         unique_object_data_props = set()
         unique_mesh_data_props = set()
-        for obj in bpy.context.selected_objects:
+        for obj in iter_scene_objects(selected=True):
             # Object Properties
             for prop_name in obj.keys():
                 if IS_DEBUG():

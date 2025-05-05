@@ -5,11 +5,12 @@ import sys
 
 import bmesh
 import bpy
-from bpy.props import BoolProperty
+from bpy.props import BoolProperty, FloatVectorProperty, IntProperty, StringProperty
 
 from . import utils as u
 from .defines import INTERNAL_NAME
 from .utils.object_sets import *
+from .utils.vertex_groups import *
 from .uv_ops import select_small_uv_islands
 
 # ===================================================================
@@ -143,7 +144,7 @@ class TRANSFORM_OT_SetCustomOrientation(bpy.types.Operator):
     bl_idname = "r0tools.set_custom_orientation"
     bl_description = "Sets the picked Custom Transform Orientation"
 
-    orientation: bpy.props.StringProperty(name="Orientation")  # type: ignore
+    orientation: StringProperty(name="Orientation")  # type: ignore
 
     def execute(self, context):
         # Reset the _invoked flag after selecting an orientation
@@ -453,7 +454,7 @@ class SimpleToolbox_OT_ClearCustomSplitNormalsData(bpy.types.Operator):
     bl_label = "Clear Split Normals"
     bl_idname = "r0tools.clear_custom_split_normals_data"
     bl_description = "Clears the Custom Split Normals assignments for selected objects and sets AutoSmooth to 180.\nUseful to quickly clear baked normals/shading assignments of multiple meshes at once"
-    bl_options = {"REGISTER", "UNDO_GROUPED"}
+    bl_options = {"REGISTER", "UNDO"}
 
     accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
 
@@ -502,13 +503,15 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
     bl_label = "Delete"
     bl_idname = "r0tools.delete_custom_properties"
     bl_description = "Delete Custom Properties from Object(s)"
-    bl_options = {"REGISTER", "UNDO_GROUPED"}
+    bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
     def poll(cls, context):
         return len(context.selected_objects) > 0
 
     def execute(self, context):
+        addon_props = u.get_addon_props()
+
         if u.IS_DEBUG():
             print("\n------------- Clear Custom Properties -------------")
         object_data_property_deletions = set()
@@ -517,7 +520,7 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
         total_objects = 0
 
         # Find selected properties to remove
-        props_to_remove = [item for item in u.get_addon_props().custom_property_list if item.selected]
+        props_to_remove = [item for item in addon_props.custom_property_list if item.selected]
 
         for obj in context.selected_objects:
             # Remove selected properties
@@ -558,7 +561,7 @@ class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
     bl_label = "Clear Attributes"
     bl_idname = "r0tools.clear_mesh_attributes"
     bl_description = "Clears unneeded mesh(es) attributes created by various addons.\nPreserves some integral and needed attributes such as material_index that is required for multi-material assignments.\nSometimes certain addons or operations will populate this list with attributes you wish to remove at a later date, be it for parsing or exporting"
-    bl_options = {"REGISTER", "UNDO_GROUPED"}
+    bl_options = {"REGISTER", "UNDO"}
 
     def op_clear_mesh_attributes(self):
         """
@@ -620,7 +623,7 @@ class SimpleToolbox_OT_ClearChildrenRecurse(bpy.types.Operator):
     bl_label = "Clear Children"
     bl_idname = "r0tools.clear_all_objects_children"
     bl_description = "For each selected object, clears parenting keeping transform for each child object.\n\n- SHIFT: Recursively clears parenting for ALL object children and sub-children"
-    bl_options = {"REGISTER", "UNDO_GROUPED"}
+    bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
     def poll(cls, context):
@@ -704,6 +707,480 @@ class SimpleToolbox_OT_ClearChildrenRecurse(bpy.types.Operator):
             issues_msg = f"The following objects have raised issues: {', '.join([obj.name for obj in problem_objects])}"
             u.show_notification(issues_msg)
             self.report({"WARNING"}, issues_msg)
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_RemoveUnusedMaterials(bpy.types.Operator):
+    bl_idname = "r0tools.remove_unused_material_slots"
+    bl_label = "Remove Unused Materials"
+    bl_description = "Runs the operator to remove all unused materials across all selected objects"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == u.OBJECT_MODES.OBJECT and len(context.selected_objects) > 0
+
+    def invoke(self, context, event):
+        return self.execute(context)
+
+    def execute(self, context):
+        if u.IS_DEBUG():
+            print("\n------------- Remove Unused Materials -------------")
+
+        original_active = u.get_active_object()
+
+        for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
+            # Set active object
+            u.set_active_object(obj)
+
+            bpy.ops.object.material_slot_remove_unused()
+
+        u.set_active_object(original_active)
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_VgroupsAddPopup(bpy.types.Operator):
+    bl_idname = "r0tools.vgrups_add_popup"
+    bl_label = "Add Vertex Group"
+    bl_description = "Adds a named Vertex Group to all selected objects"
+    bl_options = {"REGISTER", "UNDO"}
+
+    _default_name = "Vertex Group"
+    vertex_group_name: StringProperty(name="Name", default=_default_name)  # type: ignore
+
+    accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
+
+    def invoke(self, context, event):
+        # Reset Name
+        self.vertex_group_name = self._default_name
+
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
+    def draw(self, context):
+        layout = self.layout
+
+        row = layout.row()
+        split = row.split(factor=0.9)
+        split.prop(self, "vertex_group_name")
+
+    def execute(self, context):
+        for obj in u.iter_scene_objects(selected=True):
+            vertex_group_add(obj, self.vertex_group_name)
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_VgroupsRemoveHighlighted(bpy.types.Operator):
+    bl_idname = "r0tools.vgrups_remove_highlighted"
+    bl_label = "Remove Highlighted Vertex Group. Respects locks an dwill not override them."
+    bl_description = "Removes the currently highlighted Vertex Group in the list."
+    bl_options = {"REGISTER", "UNDO"}
+
+    accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
+
+    @classmethod
+    def poll(cls, context):
+        accepted_context = context.mode in cls.accepted_contexts
+        has_selection = len(context.selected_objects) > 0
+        has_vgroups = get_vertex_groups_count() > 0
+
+        return accepted_context and has_selection and has_vgroups
+
+    def invoke(self, context, event):
+        return self.execute(context)
+
+    def execute(self, context):
+        index = get_active_vertex_group_index()
+        highlighted = get_vertex_groups()[index]
+
+        highlighted_name = highlighted.name
+        highlighted_locked = highlighted.locked
+
+        if highlighted_locked:
+            self.report({"WARNING"}, f"Group '{highlighted_name}' is locked.")
+            return {"FINISHED"}
+
+        total_removed = 0
+
+        for obj in u.iter_scene_objects(selected=True):
+            vgroups = obj.vertex_groups
+
+            for vgroup in reversed(vgroups):
+                vgroup_name = vgroup.name
+
+                if vgroup_name == highlighted_name:
+                    vgroups.remove(vgroup)
+                    total_removed += 1
+
+        self.report({"INFO"}, f"Removed {total_removed} Vertex Groups.")
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_RemoveUnusedVertexGroups(bpy.types.Operator):
+    bl_idname = "r0tools.remove_unused_vertex_groups"
+    bl_label = "Remove Unused Vertex Groups"
+    bl_description = "Removes unused Vertex Groups across all selected objects"
+    bl_options = {"REGISTER", "UNDO"}
+
+    accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
+
+    def invoke(self, context, event):
+        return self.execute(context)
+
+    def execute(self, context):
+        if u.IS_DEBUG():
+            print("\n------------- Remove Unused Materials -------------")
+
+        original_active = u.get_active_object()
+
+        total_removed: int = 0
+
+        for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
+            # Set active object
+            u.set_active_object(obj)
+
+            used_group_indices = set()
+            obj_data = obj.data
+
+            for vert in obj_data.vertices:
+                for vg in vert.groups:
+                    # Only iterates groups that are used
+                    # Is weight check needed? vg.weight > 0?
+                    used_group_indices.add(vg.group)  # This is an index
+
+            before_count = len(obj.vertex_groups)  # Used for reporting later
+
+            # Locked vertex groups from UIList. Prevent removal of locked groups.
+            locked_vertex_groups = [vgroup.name for vgroup in get_vertex_groups() if vgroup.locked]
+
+            for group in reversed(obj.vertex_groups):
+                if group.index not in used_group_indices and group.name not in locked_vertex_groups:
+                    obj.vertex_groups.remove(group)
+
+            total_removed += before_count - len(obj.vertex_groups)
+
+        self.report({"INFO"}, f"Removed {total_removed} Vertex Groups.")
+
+        u.set_active_object(original_active)
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_VgroupsRemoveSelected(bpy.types.Operator):
+    bl_idname = "r0tools.vgroups_remove_selected"
+    bl_label = "Remove Selected"
+    bl_description = "Removes, from all selected objects, the corresponding selected vertex groups"
+    bl_options = {"REGISTER", "UNDO"}
+
+    accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
+
+    @classmethod
+    def poll(cls, context):
+        accepted_context = context.mode in cls.accepted_contexts
+        has_vgroups = get_vertex_groups_count() > 0
+
+        return accepted_context and has_vgroups
+
+    def invoke(self, context, event):
+        return self.execute(context)
+
+    def execute(self, context):
+        # Get selected vertex groups
+        total_removed = 0
+
+        # Find selected properties to remove
+        vgroups_names_to_remove = u.get_selected_vgroups_names()
+        highlighted_vg_entry = get_vertex_group_at_index(get_active_vertex_group_index())
+
+        if highlighted_vg_entry is not None:
+            highlighted_vg_entry = highlighted_vg_entry.name
+        else:
+            return {"FINISHED"}
+
+        if len(vgroups_names_to_remove) < 1:
+            # If nothing is checked (selected), use current highlighted item as selection
+            vgroups_names_to_remove = [highlighted_vg_entry]
+
+        locked_vertex_groups_names = [item.name for item in u.get_vertex_groups() if item.locked]
+
+        for obj in u.iter_scene_objects(selected=True):
+            vgroups = obj.vertex_groups
+
+            for vgroup in reversed(vgroups):
+                vgroup_name = vgroup.name
+                locked = vgroup_name in locked_vertex_groups_names
+
+                if vgroup_name in vgroups_names_to_remove and not locked:
+                    vgroups.remove(vgroup)
+                    total_removed += 1
+
+        self.report({"INFO"}, f"Removed {total_removed} Vertex Groups.")
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_VgroupsKeepSelected(bpy.types.Operator):
+    bl_idname = "r0tools.vgroups_keep_selected"
+    bl_label = "Keep Selected"
+    bl_description = "Keeps all selected vertex groups for selected objects while removing all others"
+    bl_options = {"REGISTER", "UNDO"}
+
+    accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
+
+    @classmethod
+    def poll(cls, context):
+        accepted_context = context.mode in cls.accepted_contexts
+        has_vgroups = get_vertex_groups_count() > 0
+
+        return accepted_context and has_vgroups
+
+    def invoke(self, context, event):
+        return self.execute(context)
+
+    def execute(self, context):
+        addon_props = u.get_addon_props()
+
+        # Get selected vertex groups
+        total_removed = 0
+        total_objects = 0
+
+        # Find selected properties to remove
+        vgroups_names_to_remove = u.get_selected_vgroups_names()
+        highlighted_vg_entry = get_vertex_group_at_index(get_active_vertex_group_index())
+
+        if highlighted_vg_entry is not None:
+            highlighted_vg_entry = highlighted_vg_entry.name
+        else:
+            return {"FINISHED"}
+
+        if len(vgroups_names_to_remove) < 1:
+            # If nothing is checked (selected), use current highlighted item as selection
+            vgroups_names_to_remove = [highlighted_vg_entry]
+
+        locked_vertex_groups_names = [item.name for item in u.get_vertex_groups() if item.locked]
+
+        for obj in u.iter_scene_objects(selected=True):
+            vgroups = obj.vertex_groups
+
+            for vgroup in reversed(vgroups):
+                vgroup_name = vgroup.name
+                locked = vgroup_name in locked_vertex_groups_names
+
+                if vgroup_name not in vgroups_names_to_remove and not locked:
+                    vgroups.remove(vgroup)
+                    total_removed += 1
+
+        self.report({"INFO"}, f"Removed {total_removed} Vertex Groups.")
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_VgroupsSelectObjectsWithVgroups(bpy.types.Operator):
+    bl_idname = "r0tools.selected_objects_with_selected_vgroups"
+    bl_label = "Select Objects w/ Vertex Groups"
+    bl_description = "From currently selected objects, selects all objects that contain the selected Vertex Groups"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == u.OBJECT_MODES.OBJECT and len(context.selected_objects) > 0
+
+    def invoke(self, context, event):
+        return self.execute(context)
+
+    def execute(self, context):
+        selected_vertex_groups_names = u.get_selected_vgroups_names()
+        highlighted_vg_entry = get_vertex_group_at_index(get_active_vertex_group_index())
+
+        if highlighted_vg_entry is not None:
+            highlighted_vg_entry = highlighted_vg_entry.name
+        else:
+            return {"FINISHED"}
+
+        if len(selected_vertex_groups_names) < 1:
+            # If nothing is checked (selected), use current highlighted item as selection
+            selected_vertex_groups_names = [highlighted_vg_entry]
+
+        objects_to_select = []
+
+        for obj in u.iter_scene_objects(selected=True):
+            vgroups = obj.vertex_groups
+
+            for vgroup in vgroups:
+                vgroup_name = vgroup.name
+
+                if vgroup_name in selected_vertex_groups_names:
+                    objects_to_select.append(obj)
+                    break
+
+        if objects_to_select:
+            u.set_vertex_groups_depsgraph_do_update(False)
+            u.deselect_all()
+            for obj in objects_to_select:
+                u.select_object(obj)
+
+            u.set_active_object(objects_to_select[0])
+
+        u.set_vertex_groups_depsgraph_do_update(True)
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_VgroupsAssignVertices(bpy.types.Operator):
+    bl_idname = "r0tools.vgroups_assign_vertices"
+    bl_label = "Assign"
+    bl_description = "Assigns selected vertices to selected Vertex Groups"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        # Selected vertex groups
+        selected_vgroups_names = get_selected_vgroups_names()
+        highlighted_vg_entry = get_vertex_group_at_index(get_active_vertex_group_index())
+
+        if highlighted_vg_entry is not None:
+            highlighted_vg_entry = highlighted_vg_entry.name
+        else:
+            return {"FINISHED"}
+
+        if len(selected_vgroups_names) < 1:
+            # If nothing is checked (selected), use current highlighted item as selection
+            selected_vgroups_names = [highlighted_vg_entry]
+
+        for obj in u.iter_scene_objects(selected=True):
+            # Set it as active
+            u.set_active_object(obj)
+
+            # Get the bmesh
+            # bm = bmesh.from_edit_mesh(obj.data)
+            # bm.verts.ensure_lookup_table()
+
+            # Selected vertices
+            # selected_verts_index = [v.index for v in bm.verts if v.select]
+
+            # Add the group(s) they don't exist
+            for vgroup_name in selected_vgroups_names:
+                vertex_group_add(obj, vgroup_name)
+
+            # Now for each selected name, select it at the object vgroup index
+            for vertex_group in iter_obj_vertex_groups(obj):
+                if vertex_group.name in selected_vgroups_names:
+                    if set_obj_active_vertex_group_index(obj, vertex_group):
+                        # Let's try to use the built-in function
+                        bpy.ops.object.vertex_group_assign()
+
+                        # Add vertices to the vertex group. Does not work in edit mode for some reason...
+                        # vertex_group.add(selected_verts_index, 1.0, "ADD")
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_VgroupsUnassignVertices(bpy.types.Operator):
+    bl_idname = "r0tools.vgroups_unassign_vertices"
+    bl_label = "Unassign"
+    bl_description = "Unassigns selected vertices from selected Vertex Groups"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        # Selected vertex groups
+        selected_vgroups_names = get_selected_vgroups_names()
+        highlighted_vg_entry = get_vertex_group_at_index(get_active_vertex_group_index())
+
+        if highlighted_vg_entry is not None:
+            highlighted_vg_entry = highlighted_vg_entry.name
+        else:
+            return {"FINISHED"}
+
+        if len(selected_vgroups_names) < 1:
+            # If nothing is checked (selected), use current highlighted item as selection
+            selected_vgroups_names = [highlighted_vg_entry]
+
+        for obj in u.iter_scene_objects(selected=True):
+            # Set it as active
+            u.set_active_object(obj)
+
+            for vertex_group in iter_obj_vertex_groups(obj):
+                if vertex_group.name in selected_vgroups_names:
+                    if set_obj_active_vertex_group_index(obj, vertex_group):
+                        # Let's try to use the built-in function
+                        bpy.ops.object.vertex_group_remove_from()
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_VgroupsSelectVertices(bpy.types.Operator):
+    bl_idname = "r0tools.vgroups_select_vertices"
+    bl_label = "Select"
+    bl_description = "Selects the vertices assign to the selected Vertex Group(s)"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        # Selected vertex groups
+        selected_vgroups_names = get_selected_vgroups_names()
+        highlighted_vg_entry = get_vertex_group_at_index(get_active_vertex_group_index())
+
+        if highlighted_vg_entry is not None:
+            highlighted_vg_entry = highlighted_vg_entry.name
+        else:
+            return {"FINISHED"}
+
+        if len(selected_vgroups_names) < 1:
+            # If nothing is checked (selected), use current highlighted item as selection
+            selected_vgroups_names = [highlighted_vg_entry]
+
+        for obj in u.iter_scene_objects(selected=True):
+            # Set it as active
+            u.set_active_object(obj)
+
+            for vertex_group in iter_obj_vertex_groups(obj):
+                if vertex_group.name in selected_vgroups_names:
+                    if set_obj_active_vertex_group_index(obj, vertex_group):
+                        # Let's try to use the built-in function
+                        bpy.ops.object.vertex_group_select()
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_VgroupsDeselectVertices(bpy.types.Operator):
+    bl_idname = "r0tools.vgroups_deselect_vertices"
+    bl_label = "Deselect"
+    bl_description = "Deselects the vertices assign to the selected Vertex Group(s)"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        # Selected vertex groups
+        selected_vgroups_names = get_selected_vgroups_names()
+        highlighted_vg_entry = get_vertex_group_at_index(get_active_vertex_group_index())
+
+        if highlighted_vg_entry is not None:
+            highlighted_vg_entry = highlighted_vg_entry.name
+        else:
+            return {"FINISHED"}
+
+        if len(selected_vgroups_names) < 1:
+            # If nothing is checked (selected), use current highlighted item as selection
+            selected_vgroups_names = [highlighted_vg_entry]
+
+        for obj in u.iter_scene_objects(selected=True):
+            # Set it as active
+            u.set_active_object(obj)
+
+            for vertex_group in iter_obj_vertex_groups(obj):
+                if vertex_group.name in selected_vgroups_names:
+                    if set_obj_active_vertex_group_index(obj, vertex_group):
+                        # Let's try to use the built-in function
+                        bpy.ops.object.vertex_group_deselect()
 
         return {"FINISHED"}
 
@@ -834,9 +1311,9 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
 
     _default_name = "New Set"
     _default_colour = (0.0, 0.0, 0.0, 1.0)
-    separator: bpy.props.BoolProperty(default=False)  # type: ignore
-    object_set_name: bpy.props.StringProperty(name="Set Name", default=_default_name)  # type: ignore
-    object_set_colour: bpy.props.FloatVectorProperty(  # type: ignore
+    separator: BoolProperty(default=False)  # type: ignore
+    object_set_name: StringProperty(name="Set Name", default=_default_name)  # type: ignore
+    object_set_colour: FloatVectorProperty(  # type: ignore
         name="Object Set Colour",
         subtype="COLOR",
         size=4,  # RGBA
@@ -971,7 +1448,7 @@ class SimpleToolbox_OT_RenameObjectSet(bpy.types.Operator):
     bl_idname = "r0tools.rename_object_set"
     bl_description = "Rename the selected Object Set entry"
 
-    new_name: bpy.props.StringProperty(name="New Object Set Name", default="")  # type: ignore
+    new_name: StringProperty(name="New Object Set Name", default="")  # type: ignore
 
     def invoke(self, context, event):
         index = get_active_object_set_index()
@@ -1148,7 +1625,7 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
     bl_options = {"INTERNAL"}
 
     add_to_selection = False
-    set_index: bpy.props.IntProperty(default=-1)  # type: ignore
+    set_index: IntProperty(default=-1)  # type: ignore
 
     accepted_contexts = accepted_contexts = [u.OBJECT_MODES.OBJECT]
 
@@ -1188,19 +1665,12 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
             if not self.add_to_selection:
                 u.deselect_all()
 
-            to_become_active = None
-            for item in reversed(object_set.objects):
-                obj = item.object
-                if not u.select_object(obj):
-                    object_set.remove_object(obj)
-                else:
-                    # Set active object
-                    if not self.add_to_selection and not to_become_active:
-                        to_become_active = obj
+            to_become_active = object_set.objects[0].object
+            for object_set_item in reversed(object_set.objects):
+                obj = object_set_item.object
+                u.select_object(obj)
 
-            # Set active object if not adding to selection
-            if not self.add_to_selection:
-                u.set_active_object(to_become_active)
+            u.set_active_object(to_become_active)
 
             self.report({"INFO"}, f"Selected objects in '{object_set.name}'")
         return {"FINISHED"}
@@ -1233,7 +1703,7 @@ class SimpleToolbox_OT_RandomiseObjectSetsColours(bpy.types.Operator):
     bl_label = "Randomise"
     bl_idname = "r0tools.object_sets_colours_randomise"
     bl_description = "Randomise the colour of each Object Set, respecting the existing colours (if any) and without overlapping colours.\n\nMODIFIERS:\n- SHIFT: Force randomise all Object Sets' colours\n- CTRL: Force randomise active Object Set colour"
-    bl_options = {"INTERNAL", "UNDO_GROUPED"}
+    bl_options = {"INTERNAL", "UNDO"}
 
     override = False
     override_active = False
@@ -1244,50 +1714,52 @@ class SimpleToolbox_OT_RandomiseObjectSetsColours(bpy.types.Operator):
 
         if event.shift:
             self.override = True
-        if not event.shift and event.ctrl:
+        elif event.ctrl:
             self.override_active = True
 
         return self.execute(context)
 
     def execute(self, context):
         addon_prefs = u.get_addon_prefs()
-
         default_set_colour = [c for c in addon_prefs.object_sets_default_colour]
-        colours: set = set()
+        used_colours = {(o.set_colour for o in get_object_sets() if o.set_colour != default_set_colour)}
+        active_object_set_name = get_object_set_name_at_index(get_active_object_set_index())
 
         for object_set in get_object_sets():
-            set_colour = [c for c in object_set.set_colour]
+            if object_set.separator:
+                continue
 
-            if set_colour != default_set_colour:
-                if not self.override and not self.override_active:
-                    continue
+            should_change_color = False
+            current_color_is_default = [c for c in object_set.set_colour] == default_set_colour
+            object_set_name = object_set.name
+            is_active_set = object_set_name == active_object_set_name
 
-                # We are overriding curent
-                if self.override_active:
-                    object_set_name = object_set.name
-                    if not object_set_name == get_object_set_name_at_index(get_active_object_set_index()):
-                        # Skip if the names don't match, meaning it's not the active set
-                        continue
-                    else:
-                        print(f"[OPERATORS] Force updating active Object Set colour.")
+            if self.override:
+                # Force override all Object Sets' colours
+                should_change_color = True
+            elif self.override_active and is_active_set:
+                # Force override only the active Object Set colour
+                should_change_color = True
+            elif current_color_is_default and not self.override_active:
+                # Randomise colour of Object Set if the colour is default and we're not specifically overriding anything
+                should_change_color = True
 
-            for _ in range(10):  # While loops can go wrong. Range is more controlled. Boom!
-                new_colour = (
-                    random.uniform(0.000, 1.0),
-                    random.uniform(0.000, 1.0),
-                    random.uniform(0.000, 1.0),
-                    1.0,
-                )
-                if new_colour not in colours and new_colour != default_set_colour:
-                    colours.add(new_colour)
-                    break
-
-            object_set.set_colour = new_colour
+            if should_change_color:
+                for _ in range(10):  # While loops can go wrong. Range is more controlled. Boom!
+                    new_colour = (
+                        random.uniform(0.0, 1.0),
+                        random.uniform(0.0, 1.0),
+                        random.uniform(0.0, 1.0),
+                        1.0,
+                    )
+                    if new_colour not in used_colours and list(new_colour) != default_set_colour:
+                        used_colours.add(new_colour)
+                        object_set.set_colour = new_colour
+                        print(f"[OPERATORS] Updating colour of Object Set '{object_set_name}': {new_colour}")
+                        break
 
         bpy.ops.r0tools.object_sets_refresh()
-
-        self.report({"INFO"}, "Randmoised Object Sets' Colours.")
-
+        self.report({"INFO"}, "Randomised Object Sets' Colours.")
         return {"FINISHED"}
 
 
@@ -1299,7 +1771,7 @@ class SimpleToolbox_OT_RenameObjectsInObjectSet(bpy.types.Operator):
     bl_label = "Rename Objects in Selected Set"
     bl_idname = "r0tools.object_sets_rename_objects_in_set"
     bl_description = 'Renames Objects in the selected Object Set (Highlighted in the Set List) to take the name of the Object Set they belong to.\n\nExample:\nAn Object Set named "Example Set" will have objects associated to itself renamed to "Example Set", "Example Set.001", "Example Set.002", etc.'
-    bl_options = {"INTERNAL", "UNDO_GROUPED"}
+    bl_options = {"INTERNAL", "UNDO"}
 
     @classmethod
     def poll(cls, context):
@@ -1314,6 +1786,9 @@ class SimpleToolbox_OT_RenameObjectsInObjectSet(bpy.types.Operator):
         # This does not account for instances of existing or similar object set names
 
         for obj in iter_objects_of_object_set_at_index(active_index):
+            if not obj:
+                # Sometimes, the reference can be NoneType.
+                continue
             obj.name = active_object_set_name
             renamed_count += 1
 
@@ -1329,7 +1804,7 @@ class SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections(bpy.types.Operator):
     bl_label = "Move into collections"
     bl_idname = "r0tools.move_objects_in_set_into_collections"
     bl_description = "Moves Objects in the selected Object Set (Highlighted in the Set List) into a collection that is named the samea the set they are contained in.\n\nMODIFIERS:- CTRL: Apply this logic to ALL Object Sets"
-    bl_options = {"INTERNAL", "UNDO_GROUPED"}
+    bl_options = {"INTERNAL", "UNDO"}
 
     do_all = False
 
@@ -1467,9 +1942,9 @@ class SimpleToolbox_OT_ToggleWireDisplay(bpy.types.Operator):
 # ===================================================================
 class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
     bl_label = "Remove Nth Edges"
-    bl_idname = "r0tools.nth_edges"
+    bl_idname = "r0tools.nth_edges_dissolve"
     bl_description = "Remove Nth (every other) edges from edge loops.\nSelect one edge per disconnected mesh to define the starting point.\n\nBy default, the selection automatically expands to include all connected edges in the loop. To limit the operation to only the manually selected contiguous edges or restrict it to the original ring selection, disable 'Expand Edges.'"
-    bl_options = {"REGISTER", "UNDO_GROUPED"}
+    bl_options = {"REGISTER", "UNDO"}
 
     expand_edges: BoolProperty(name="Expand Edges", default=True)  # type: ignore
     keep_initial_selection: BoolProperty(name="Keep Selected Edges", default=True)  # type: ignore
@@ -1591,6 +2066,135 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
         for obj in selected_objects:
             self.process_object(obj, context)
 
+        # Restore selection
+        for obj in selected_objects:
+            u.select_object(obj, add=True)
+        u.set_active_object(original_active_obj)
+
+        # Return to the original active object and mode
+        u.set_object_mode(original_mode)
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_RestoreNthEdge(bpy.types.Operator):
+    bl_label = "Restore Nth Edges"
+    bl_idname = "r0tools.nth_edges_restore"
+    bl_description = "Restore Nth (every other) edges from edge loops.\nSelect one edge per disconnected mesh to define the starting point.\n\nBy default, the selection automatically expands to include all connected edges in the loop. To limit the operation to only the manually selected contiguous edges or restrict it to the original ring selection, disable 'Expand Edges.'"
+    bl_options = {"REGISTER", "UNDO"}
+
+    expand_edges: BoolProperty(name="Expand Edges", default=True)  # type: ignore
+    keep_initial_selection: BoolProperty(name="Keep Selected Edges", default=True)  # type: ignore
+
+    @classmethod
+    def poll(cls, context):
+        # Ensure at least one object is selected
+        return (
+            any(u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]))
+            and context.mode == u.OBJECT_MODES.EDIT_MESH
+        )
+
+    def process_object(self, obj, context):
+        if u.IS_DEBUG():
+            print(f"[DEBUG] Processing {obj.name}")
+
+        # Ensure Object Mode
+        if context.mode != u.OBJECT_MODES.OBJECT:
+            u.set_mode_object()
+
+        # Deselect all, and only select relevant object to operate on
+        u.deselect_all()
+
+        # Make active
+        u.select_object(obj, add=False, set_active=True)
+
+        if context.mode != u.OBJECT_MODES.EDIT_MESH:
+            u.set_mode_edit()
+
+        # Create a bmesh
+        me = obj.data
+        bm = bmesh.from_edit_mesh(me)
+        bm.edges.ensure_lookup_table()
+        bm.select_mode = {"EDGE"}
+
+        # Currently selected edges from all meshes
+        # Ideally this should only be 1 edge per disconnected mesh
+        initial_selection = [edge for edge in bm.edges if edge.select]
+
+        for i, edge in enumerate(initial_selection):
+            if u.IS_DEBUG():
+                print(f"{i} {edge.index}")
+
+            # Deselect all bm edges
+            for e in bm.edges:
+                e.select = False
+
+            # Select the one edge being iterated
+            edge.select = True
+            bm.select_history.clear()  # Optionally clear previous elements
+            bm.select_history.add(edge)  # Make active edge
+
+            # Select the coplanar edge ring
+            bpy.ops.mesh.loop_multi_select(ring=False)
+            # Propagate the selection "upward"
+            bpy.ops.mesh.loop_multi_select(ring=True)
+
+            bpy.ops.mesh.subdivide()
+
+        # Make sure to deselect all bm edges too
+        for e in bm.edges:
+            e.select = False
+
+        for edge in initial_selection:
+            edge.select = True
+        bm.select_history.validate()  # Ensure that only selected elements are in select_history
+
+        # Loop around and "up" and circularise
+        bpy.ops.mesh.loop_multi_select(ring=False)
+        bpy.ops.mesh.loop_multi_select(ring=True)
+        bpy.ops.mesh.looptools_circle(
+            custom_radius=False,
+            fit="best",
+            flatten=True,
+            influence=100,
+            lock_x=False,
+            lock_y=False,
+            lock_z=False,
+            radius=1,
+            angle=0,
+            regular=True,
+        )
+
+        # Select initial selection of edges
+        for e in bm.edges:
+            e.select = False
+
+        if self.keep_initial_selection:
+            print(f"{initial_selection}")
+            for edge in initial_selection:
+                edge.select = True
+
+        # Update the mesh
+        bmesh.update_edit_mesh(me)
+        bm.free()
+
+        u.set_mode_object()
+
+    def execute(self, context):
+        if u.IS_DEBUG():
+            print("\n------------- Restore Nth Edges -------------")
+
+        original_active_obj = context.active_object
+        original_mode = context.mode
+
+        if original_mode != u.OBJECT_MODES.OBJECT:
+            u.set_mode_object()
+
+        # Collect selected mesh objects
+        selected_objects = [obj for obj in context.selected_objects if obj.type == u.OBJECT_TYPES.MESH]
+        for obj in selected_objects:
+            self.process_object(obj, context)
+
         # Ensure object mode for selection restoraion
         if original_mode != u.OBJECT_MODES.OBJECT:
             u.set_mode_object()
@@ -1610,7 +2214,7 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
     bl_label = "Restore Rotation"
     bl_idname = "r0tools.rotation_from_selection"
     bl_description = "Given a selection of vertices/edges/faces, align each object such that the selection aligns to the Z Axis.\n\n- SHIFT: Clear object rotations on finish. (Also present in Redo panel)"
-    bl_options = {"REGISTER", "UNDO_GROUPED"}
+    bl_options = {"REGISTER", "UNDO"}
 
     clear_rotation_on_align: BoolProperty(name="Clear Rotation(s)", default=False)  # type: ignore
     origin_to_selection: BoolProperty(name="Origin to selection", default=False)  # type: ignore
@@ -1984,8 +2588,6 @@ class SimpleToolbox_OT_ClearAxisSharpEdgesZ(bpy.types.Operator):
 
 # fmt: off
 classes = [
-    SimpleToolbox_OT_ExperimentalOP,
-    
     SimpleToolbox_OT_ObjectSetsModal,
     SimpleToolbox_OT_AddObjectSetPopup,
     SimpleToolbox_OT_RenameObjectSet,
@@ -2012,8 +2614,21 @@ classes = [
     SimpleToolbox_OT_ClearMeshAttributes,
     SimpleToolbox_OT_ClearChildrenRecurse,
     SimpleToolbox_OT_FindModifierSearch,
+    SimpleToolbox_OT_RemoveUnusedMaterials,
+
+    SimpleToolbox_OT_VgroupsAddPopup,
+    SimpleToolbox_OT_VgroupsRemoveHighlighted,
+    SimpleToolbox_OT_RemoveUnusedVertexGroups,
+    SimpleToolbox_OT_VgroupsRemoveSelected,
+    SimpleToolbox_OT_VgroupsKeepSelected,
+    SimpleToolbox_OT_VgroupsSelectObjectsWithVgroups,
+    SimpleToolbox_OT_VgroupsAssignVertices,
+    SimpleToolbox_OT_VgroupsUnassignVertices,
+    SimpleToolbox_OT_VgroupsSelectVertices,
+    SimpleToolbox_OT_VgroupsDeselectVertices,
     
     SimpleToolbox_OT_DissolveNthEdge,
+    SimpleToolbox_OT_RestoreNthEdge,
     SimpleToolbox_OT_RestoreRotationFromSelection,
     SimpleToolbox_OT_SelectEmptyObjects,
     SimpleToolbox_OT_ClearAxisSharpEdgesX,

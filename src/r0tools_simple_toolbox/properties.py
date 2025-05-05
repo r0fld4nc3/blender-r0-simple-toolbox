@@ -20,7 +20,7 @@ from .keymaps import draw_keymap_settings
 # Properties which are not stored in preferences
 
 
-# ----- Custom Object Properties & Items -----
+# ==== Custom Object Properties & Items =====
 class R0PROP_UL_CustomPropertiesList(bpy.types.UIList):
     """UI List where each entry is a custom property belonging to at least 1 selected object"""
 
@@ -30,8 +30,8 @@ class R0PROP_UL_CustomPropertiesList(bpy.types.UIList):
             row.label(text="", icon="OBJECT_DATA")
         elif item.type == u.CUSTOM_PROPERTIES_TYPES.MESH_DATA:
             row.label(text="", icon="MESH_DATA")
-        row.label(text=item.name)
         row.prop(item, "selected", text="")
+        row.label(text=item.name)
 
 
 class R0PROP_PG_CustomPropertyItem(bpy.types.PropertyGroup):
@@ -40,6 +40,53 @@ class R0PROP_PG_CustomPropertyItem(bpy.types.PropertyGroup):
     name: StringProperty()  # type: ignore
     selected: BoolProperty(default=False)  # type: ignore
     type: StringProperty(default=u.CUSTOM_PROPERTIES_TYPES.OBJECT_DATA)  # type: ignore
+
+
+# ===== Vertex Groups =====
+class R0PROP_UL_VertexGroupsList(bpy.types.UIList):
+    """UI List where each entry is a vertex group belonging to at least 1 selected object"""
+
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        row = layout.row(align=True)
+        row.alignment = "LEFT"
+        row.label(text="", icon="GROUP_VERTEX")
+        row.prop(item, "selected", text="")
+        row.prop(item, "locked", text="", icon_only=True, icon="LOCKED" if item.locked else "UNLOCKED", emboss=False)
+        row.label(text=f"({item.count})")
+        row.label(text=item.name)
+
+
+def update_lock_state_callback(self, context):
+    vertex_group_name = self.name
+
+    # Update persistent state
+    found = False
+    for state in u.iter_vertex_groups_lock_states():
+        if state.name == vertex_group_name:
+            state.locked = self.locked
+            found = True
+            break
+
+    if not found:
+        states = u.get_vertex_groups_lock_states()
+        if states is not None:
+            new_state = states.add()
+            new_state.name = vertex_group_name
+            new_state.locked = self.locked
+
+
+class R0PROP_PG_VertexGroupPropertyItem(bpy.types.PropertyGroup):
+    """Property that represent an entry in the Vertex Groups UI List"""
+
+    name: StringProperty()  # type: ignore
+    count: IntProperty(default=0)  # type: ignore
+    locked: BoolProperty(default=False, update=update_lock_state_callback, description="Lock")  # type: ignore
+    selected: BoolProperty(default=False)  # type: ignore
+
+
+class R0PROP_PG_LockStateEntry(bpy.types.PropertyGroup):
+    name: StringProperty()  # type: ignore
+    locked: IntProperty(default=False)  # type: ignore
 
 
 # ===== Object Sets & Object Items =====
@@ -132,13 +179,16 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
             return
 
         for i, o in enumerate(self.objects):
-            # What if it's an unknown reference?
             try:
+                if o.object is None:
+                    self.objects.remove(i)
+                    break
+
                 if o.object and o.object.as_pointer != 0 and o.object == obj or o.object.as_pointer == 0:
                     self.objects.remove(i)
                     break
             except Exception as e:
-                print(f"[ERROR] [PROPERTIES] {e}")
+                print(f"[ERROR] [PROPERTIES] '{o.object}' {e}")
 
         # Check if object still exists:
         try:
@@ -367,14 +417,6 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
         name="Module(s)", description="Command-separated list of module names"
     )
 
-    screen_size_pct_prop: FloatProperty(  # type: ignore
-        name="Screen Size Percentage",
-        default=0.0,
-        min=0.0,
-        max=100.0,
-        subtype="PERCENTAGE",
-    )
-
     polygon_threshold: FloatProperty(  # type: ignore
         name="Screen Size Threshold (%)",
         default=1,
@@ -407,6 +449,14 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
     # data_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
     # scene_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
     objects_updated: BoolProperty(default=False)  # type: ignore
+
+    show_vertex_groups: BoolProperty(  # type: ignore
+        name="Vertex Groups", description="Manage Vertex Groups of selected objects", default=False
+    )
+    vertex_groups: CollectionProperty(type=R0PROP_PG_VertexGroupPropertyItem)  # type: ignore
+    vertex_groups_lock_states: CollectionProperty(type=R0PROP_PG_LockStateEntry)  # type: ignore
+    vertex_group_list_index: IntProperty(default=0)  # type: ignore
+    vgroups_do_update: BoolProperty(default=True)  # type: ignore
 
     show_find_modifier_search: BoolProperty(  # type: ignore
         name="Find Modifier(s)",
@@ -509,6 +559,8 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
     custom_properties_list_rows: IntProperty(name="Custom Properties List Rows", default=6, min=1)  # type: ignore
 
+    vertex_groups_list_rows: IntProperty(name="Vertex Groups List Rows", default=8, min=1)  # type: ignore
+
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = False
@@ -568,6 +620,9 @@ classes = [
     R0PROP_ObjectSetObjectItem,
     R0PROP_ObjectSetEntryItem,
     R0PROP_UL_ObjectSetsList,
+    R0PROP_PG_VertexGroupPropertyItem,
+    R0PROP_UL_VertexGroupsList,
+    R0PROP_PG_LockStateEntry,
     AddonPreferences,
     r0SimpleToolboxProps,
 ]

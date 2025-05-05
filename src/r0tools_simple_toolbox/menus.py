@@ -2,7 +2,7 @@ import bpy
 
 
 class SimpleToolbox_MT_ObjectSetsActionsMenu(bpy.types.Menu):
-    bl_idname = "r0tools.object_sets_actions_menu"
+    bl_idname = "SIMPLETOOLBOX_MT_object_sets_actions"
     bl_label = "Object Sets Actions"
 
     def draw(self, context):
@@ -18,6 +18,17 @@ class SimpleToolbox_MT_ObjectSetsActionsMenu(bpy.types.Menu):
         layout.operator(SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections.bl_idname, icon="COLLECTION_NEW")
 
 
+class SimpleToolbox_MT_VertexGroupsActionsMenu(bpy.types.Menu):
+    bl_idname = "SIMPLETOOLBOX_MT_vertex_groups_actions"
+    bl_label = "Vertex Groups Actions"
+
+    def draw(self, context):
+        from .operators import SimpleToolbox_OT_RemoveUnusedVertexGroups
+
+        layout = self.layout
+        layout.operator(SimpleToolbox_OT_RemoveUnusedVertexGroups.bl_idname, icon="X")
+
+
 # ===================================================================
 #   Register & Unregister
 # ===================================================================
@@ -25,6 +36,7 @@ class SimpleToolbox_MT_ObjectSetsActionsMenu(bpy.types.Menu):
 # fmt: off
 classes = [
     SimpleToolbox_MT_ObjectSetsActionsMenu,
+    SimpleToolbox_MT_VertexGroupsActionsMenu,
 ]
 # fmt: on
 

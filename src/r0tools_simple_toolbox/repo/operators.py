@@ -1,5 +1,6 @@
 import bpy
 
+from ..defines import INTERNAL_NAME
 from . import ISSUES_BUG_ADD, ISSUES_FEATURE_ADD, ISSUES_PAGE, RELEASES_PAGE, REPOSITORY
 
 
@@ -22,9 +23,7 @@ class SimpleToolbox_OT_OpenRepositoryUrl(bpy.types.Operator):
 class SimpleToolbox_OT_OpenRepositoryIssuePage(bpy.types.Operator):
     bl_label = "Issues"
     bl_idname = "r0tools.open_repo_issue_page"
-    bl_description = (
-        "Open the Issues page, where current features, bugs and discussion is held"
-    )
+    bl_description = "Open the Issues page, where current features, bugs and discussion is held"
     bl_options = {"REGISTER"}
 
     def execute(self, context):
@@ -65,6 +64,28 @@ class SimpleToolbox_OT_OpenReleasesPage(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_TakeMeToUpdate(bpy.types.Operator):
+    bl_label = "Check Update"
+    bl_idname = "r0tools.take_me_to_update"
+    bl_description = "Open relevant page to update the addon"
+    bl_options = {"REGISTER", "INTERNAL"}
+
+    def execute(self, context):
+        split = INTERNAL_NAME.split(".")
+
+        if "bl_ext" in split:
+            # Bring up the User Preferences window and pre-search the addon name
+            bpy.ops.screen.userpref_show()
+
+            bpy.context.preferences.active_section = "EXTENSIONS"
+
+            bpy.data.window_managers["WinMan"].extension_search = "r0tools"
+        else:
+            bpy.ops.r0tools.open_repo_releases_page()
+
+        return {"FINISHED"}
+
+
 class SimpleToolbox_OT_CheckUpdate(bpy.types.Operator):
     bl_label = "Check Update"
     bl_idname = "r0tools.check_for_update"
@@ -89,6 +110,7 @@ classes = [
     SimpleToolbox_OT_OpenCreateIssueBug,
     SimpleToolbox_OT_OpenCreateIssueFeature,
     SimpleToolbox_OT_OpenReleasesPage,
+    SimpleToolbox_OT_TakeMeToUpdate,
     SimpleToolbox_OT_CheckUpdate,
 ]
 

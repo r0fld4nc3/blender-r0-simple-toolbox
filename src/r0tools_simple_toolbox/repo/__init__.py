@@ -5,10 +5,12 @@ ISSUES_FEATURE_ADD = ISSUES_PAGE + "/new?template=feature_request.md"
 RELEASES_PAGE = REPOSITORY + "/releases"
 
 from .operators import (
+    SimpleToolbox_OT_CheckUpdate,
     SimpleToolbox_OT_OpenCreateIssueBug,
     SimpleToolbox_OT_OpenCreateIssueFeature,
     SimpleToolbox_OT_OpenReleasesPage,
     SimpleToolbox_OT_OpenRepositoryIssuePage,
     SimpleToolbox_OT_OpenRepositoryUrl,
+    SimpleToolbox_OT_TakeMeToUpdate,
 )
 from .ui import draw_repo_layout

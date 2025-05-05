@@ -3,6 +3,7 @@ import bpy
 from . import ext_update as upd
 from . import utils as u
 from .defines import ADDON_NAME, VERSION_STR
+from .operators import *
 from .repo import draw_repo_layout
 
 
@@ -33,11 +34,14 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         row.prop(addon_prefs, "experimental_features", text="Experimental", icon="EXPERIMENTAL")
 
         if self.has_update:
+            from .repo import SimpleToolbox_OT_TakeMeToUpdate
             update_box = layout.box()
             update_row = update_box.row(align=True)
             update_row.label(text="", icon="FUND")
             update_row.label(text="UPDATE AVAILABLE", icon="FILE_REFRESH")
             update_row.label(text="", icon="FUND")
+            update_row = update_box.row(align=True)
+            update_row.operator(SimpleToolbox_OT_TakeMeToUpdate.bl_idname, text="Take me there!", icon="INDIRECT_ONLY_ON")
 
         # ====== Dev Tools ======
         if addon_prefs.dev_tools:
@@ -50,7 +54,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 row = reload_user_defined_box.row()
                 row.prop(addon_props, "reload_modules_prop")
                 row = reload_user_defined_box.row()
-                row.operator("r0tools.reload_named_scripts", icon="TOOL_SETTINGS")
+                row.operator(SimpleToolbox_OT_ReloadNamedScripts.bl_idname, icon="TOOL_SETTINGS")
                 if addon_prefs.experimental_features:
                     row = dev_tools_box.row()
                     row.operator("image.reload", icon="IMAGE_DATA")
@@ -61,17 +65,25 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         object_ops_box = layout.box()
         object_ops_box.prop(addon_props, "show_object_ops", icon="TRIA_DOWN" if addon_props.show_object_ops else "TRIA_RIGHT", emboss=False)
         if addon_props.show_object_ops:
+            # >> Row
+            row = object_ops_box.row(align=True)
+            row_split = row.split(align=True)
             # Clear Split Normals Data
-            row = object_ops_box.row(align=True)
-            row.operator("r0tools.clear_custom_split_normals_data")
-
-            # Select Empty Objects
-            row = object_ops_box.row(align=True)
-            row.operator("r0tools.select_empty_objects")
-
+            row_split.operator(SimpleToolbox_OT_ClearCustomSplitNormalsData.bl_idname)
             # Clear Objects Children
+            row_split.operator(SimpleToolbox_OT_ClearChildrenRecurse.bl_idname)
+            
+            # >> Row
             row = object_ops_box.row(align=True)
-            row.operator("r0tools.clear_all_objects_children")
+            row_split = row.split(align=True)
+            # Select Empty Objects
+            row_split.operator(SimpleToolbox_OT_SelectEmptyObjects.bl_idname)
+
+            # >> Row
+            row = object_ops_box.row(align=True)
+            row_split = row.split(align=True)
+            # Remove unused Materials
+            row_split.operator(SimpleToolbox_OT_RemoveUnusedMaterials.bl_idname)
 
             # Find Modifiers on Objects
             find_modifiers_box = object_ops_box.box()
@@ -82,7 +94,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 row.label(text="Name or Type:")
                 row = find_modifiers_box.row()
                 row.prop(addon_props, "find_modifier_search_text", icon="SORTALPHA", text="")
-                row.operator("r0tools.find_modifier_search", icon="VIEWZOOM", text="")
+                row.operator(SimpleToolbox_OT_FindModifierSearch.bl_idname, icon="VIEWZOOM", text="")
             
             # Object Sets Editor
             object_sets_box = object_ops_box.box()
@@ -112,17 +124,34 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 )
                 # Clear Custom Properties
                 row = custom_properties_box.row()
-                row.operator("r0tools.delete_custom_properties")
+                row.operator(SimpleToolbox_OT_ClearCustomProperties.bl_idname)
+
+
+        # ====== Vertex Groups UI List ======
+        vertex_groups_box = layout.box()
+        row = vertex_groups_box.row()
+        row.prop(addon_props, "show_vertex_groups", icon="TRIA_DOWN" if addon_props.show_vertex_groups else "TRIA_RIGHT", emboss=False)
+        if addon_props.show_vertex_groups:
+            u.draw_vertex_groups_uilist(self.layout, context, vertex_groups_box=vertex_groups_box)
+
         
         # ====== Mesh Ops ======
         mesh_ops_box = layout.box()
         mesh_ops_box.prop(addon_props, "show_mesh_ops", icon="TRIA_DOWN" if addon_props.show_mesh_ops else "TRIA_RIGHT", emboss=False)
         if addon_props.show_mesh_ops:
+            # >> Row
+            row = mesh_ops_box.row(align=True)
+            row_split = row.split(align=True)
             # Nth Edges Operator
+            row_split.operator(SimpleToolbox_OT_DissolveNthEdge.bl_idname)
+            if addon_prefs.experimental_features:
+                row_split.operator(SimpleToolbox_OT_RestoreNthEdge.bl_idname)
+
+            # >> Row
             row = mesh_ops_box.row(align=True)
-            row.operator("r0tools.nth_edges")
-            row = mesh_ops_box.row(align=True)
-            row.operator("r0tools.rotation_from_selection")
+            row_split = row.split(align=True)
+            # Restore rotation from Selection
+            row_split.operator(SimpleToolbox_OT_RestoreRotationFromSelection.bl_idname)
             
             # Clear Sharp Edges on Axis
             clear_sharp_edges_box = mesh_ops_box.box()
@@ -133,9 +162,9 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 row.prop(addon_prefs, "clear_sharp_axis_float_prop", text="Threshold")
                 row = clear_sharp_edges_box.row(align=True)
                 row.scale_x = 5
-                row.operator("r0tools.clear_sharp_axis_x", text="X")
-                row.operator("r0tools.clear_sharp_axis_y", text="Y")
-                row.operator("r0tools.clear_sharp_axis_z", text="Z")
+                row.operator(SimpleToolbox_OT_ClearAxisSharpEdgesX.bl_idname, text="X")
+                row.operator(SimpleToolbox_OT_ClearAxisSharpEdgesY.bl_idname, text="Y")
+                row.operator(SimpleToolbox_OT_ClearAxisSharpEdgesZ.bl_idname, text="Z")
         
         # ====== UV Ops ======
         uv_ops_box = layout.box()
@@ -168,23 +197,10 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 col_locks.prop(addon_props, "use_uvisland_sizecheck_area_pixelpercentage", text="")
                 
                 row = uv_island_checks_thresholds_box.row()
-                row.operator("r0tools.uv_check_island_thresholds")
+                row.operator(SimpleToolbox_OT_UVCheckIslandThresholds.bl_idname)
 
         # ====== Online Repository ======
         draw_repo_layout(layout, context)
-
-        # ====== Heavy Experimentals ======
-        if addon_prefs.experimental_features:
-            experimental_ops_box = layout.box()
-            experimental_ops_box.prop(addon_props, "show_experimental_features", icon="TRIA_DOWN" if addon_props.show_experimental_features else "TRIA_RIGHT", emboss=False)
-            if addon_props.show_experimental_features:
-                lods_box = experimental_ops_box.box()
-                row = lods_box.row()
-                row.label(text="LODs")
-                row = lods_box.row()
-                row.operator("r0tools.experimental_op_1")
-                row = lods_box.row()
-                row.prop(addon_props, "screen_size_pct_prop", text="Screen Size (%):")
 # fmt: on
 
 

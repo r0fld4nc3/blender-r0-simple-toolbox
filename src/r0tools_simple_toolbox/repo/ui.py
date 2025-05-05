@@ -4,6 +4,14 @@ from bpy.props import BoolProperty  # type: ignore
 
 def draw_repo_layout(layout, context):
     from ..utils import get_addon_prefs
+    from . import (
+        SimpleToolbox_OT_CheckUpdate,
+        SimpleToolbox_OT_OpenCreateIssueBug,
+        SimpleToolbox_OT_OpenCreateIssueFeature,
+        SimpleToolbox_OT_OpenReleasesPage,
+        SimpleToolbox_OT_OpenRepositoryIssuePage,
+        SimpleToolbox_OT_OpenRepositoryUrl,
+    )
 
     wm = context.window_manager
 
@@ -25,11 +33,11 @@ def draw_repo_layout(layout, context):
         row = repo_box.row()
         split = row.split(factor=0.5)
         # Homepage and Releases
-        split.operator("r0tools.open_repo_homepage", icon="URL")
-        split.operator("r0tools.open_repo_releases_page", icon="URL")
+        split.operator(SimpleToolbox_OT_OpenRepositoryUrl.bl_idname, icon="URL")
+        split.operator(SimpleToolbox_OT_OpenReleasesPage.bl_idname, icon="URL")
         # Check Update Button
         row = repo_box.row()
-        row.operator("r0tools.check_for_update", icon="FILE_REFRESH")
+        row.operator(SimpleToolbox_OT_CheckUpdate.bl_idname, icon="FILE_REFRESH")
         # Check Update on Startup
         row = repo_box.row()
         row.prop(addon_prefs, "check_update_startup", text="Check Update on Startup")
@@ -38,11 +46,11 @@ def draw_repo_layout(layout, context):
         row = issues_box.row()
         # Report Bug & Feature
         split = row.split(factor=0.5)
-        split.operator("r0tools.open_repo_issue_bug_report", icon="URL")
-        split.operator("r0tools.open_repo_issue_feature_request", icon="URL")
+        split.operator(SimpleToolbox_OT_OpenCreateIssueBug.bl_idname, icon="URL")
+        split.operator(SimpleToolbox_OT_OpenCreateIssueFeature.bl_idname, icon="URL")
         # Open Issues Page
         row = issues_box.row()
-        row.operator("r0tools.open_repo_issue_page", icon="URL")
+        row.operator(SimpleToolbox_OT_OpenRepositoryIssuePage.bl_idname, icon="URL")
 
 
 def register():
