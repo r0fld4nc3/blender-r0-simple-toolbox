@@ -31,7 +31,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
 
         row = layout.row()
         row.prop(addon_prefs, "dev_tools", text="Dev Tools", icon="TOOL_SETTINGS")
-        row.prop(addon_prefs, "experimental_features", text="Experimental", icon="EXPERIMENTAL")
+        # split.prop(addon_prefs, "experimental_features", text="Experimental", icon="EXPERIMENTAL")
 
         if self.has_update:
             from .repo import SimpleToolbox_OT_TakeMeToUpdate
@@ -49,6 +49,8 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
             dev_tools_box.prop(addon_props, "show_dev_tools", icon="TRIA_DOWN" if addon_props.show_dev_tools else "TRIA_RIGHT", emboss=False)
             if addon_props.show_dev_tools:
                 row = dev_tools_box.row()
+                row.prop(addon_prefs, "debug", text="Debug", icon="EXPERIMENTAL")
+                row = dev_tools_box.row()
                 row.operator("script.reload", text="Reload All Scripts", icon="PACKAGE")
                 reload_user_defined_box = dev_tools_box.box()
                 row = reload_user_defined_box.row()
@@ -58,8 +60,6 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 if addon_prefs.experimental_features:
                     row = dev_tools_box.row()
                     row.operator("image.reload", icon="IMAGE_DATA")
-                row = dev_tools_box.row()
-                row.prop(addon_prefs, "debug", text="Debug", icon="EXPERIMENTAL")
         
         # ====== Object Ops ======
         object_ops_box = layout.box()
@@ -95,22 +95,16 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 row = find_modifiers_box.row()
                 row.prop(addon_props, "find_modifier_search_text", icon="SORTALPHA", text="")
                 row.operator(SimpleToolbox_OT_FindModifierSearch.bl_idname, icon="VIEWZOOM", text="")
-            
-            # Object Sets Editor
-            object_sets_box = object_ops_box.box()
-            row = object_sets_box.row()
-            row.prop(addon_props, "show_object_sets", icon="TRIA_DOWN" if addon_props.show_object_sets else "TRIA_RIGHT", emboss=False)
-            if addon_props.show_object_sets:
-                u.draw_objects_sets_uilist(self.layout, context, object_sets_box=object_sets_box)
 
             # Custom Properties UI List
             custom_properties_box = object_ops_box.box()
             row = custom_properties_box.row()
             row.prop(addon_props, "show_custom_property_list_prop", icon="TRIA_DOWN" if addon_props.show_custom_property_list_prop else "TRIA_RIGHT", emboss=False)
             if addon_props.show_custom_property_list_prop:
-                # row = custom_properties_box.row()
-                # Row Number Slider (Same as in addon preferences)
-                # row.prop(addon_prefs, "custom_properties_list_rows", text="Rows:")
+                # Row Number Slider
+                row = custom_properties_box.row()
+                split = row.split(factor=0.35)
+                split.prop(addon_prefs, "custom_properties_list_rows", text="Rows:")
                 
                 row = custom_properties_box.row()
                 row.template_list(
@@ -125,6 +119,14 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 # Clear Custom Properties
                 row = custom_properties_box.row()
                 row.operator(SimpleToolbox_OT_ClearCustomProperties.bl_idname)
+
+
+        # ====== Object Sets Editor ======
+        object_sets_box = layout.box()
+        row = object_sets_box.row()
+        row.prop(addon_props, "show_object_sets", icon="TRIA_DOWN" if addon_props.show_object_sets else "TRIA_RIGHT", emboss=False)
+        if addon_props.show_object_sets:
+            u.draw_objects_sets_uilist(self.layout, context, object_sets_box=object_sets_box)
 
 
         # ====== Vertex Groups UI List ======
