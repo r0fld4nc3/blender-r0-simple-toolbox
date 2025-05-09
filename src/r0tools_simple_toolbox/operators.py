@@ -734,6 +734,9 @@ class SimpleToolbox_OT_RemoveUnusedMaterials(bpy.types.Operator):
             # Set active object
             u.set_active_object(obj)
 
+            if u.IS_DEBUG():
+                print(f"Processing '{obj.name}'")
+
             bpy.ops.object.material_slot_remove_unused()
 
         u.set_active_object(original_active)
@@ -1060,10 +1063,7 @@ class SimpleToolbox_OT_VgroupsAssignVertices(bpy.types.Operator):
             # If nothing is checked (selected), use current highlighted item as selection
             selected_vgroups_names = [highlighted_vg_entry]
 
-        for obj in u.iter_scene_objects(selected=True):
-            if obj.type not in self.accepted_object_types:
-                continue
-
+        for obj in u.iter_scene_objects(selected=True, types=self.accepted_object_types):
             # Set it as active
             u.set_active_object(obj)
 
