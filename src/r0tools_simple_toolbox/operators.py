@@ -1044,6 +1044,8 @@ class SimpleToolbox_OT_VgroupsAssignVertices(bpy.types.Operator):
     bl_description = "Assigns selected vertices to selected Vertex Groups"
     bl_options = {"REGISTER", "UNDO"}
 
+    accepted_object_types = [u.OBJECT_TYPES.MESH]
+
     def execute(self, context):
         # Selected vertex groups
         selected_vgroups_names = get_selected_vgroups_names()
@@ -1059,15 +1061,44 @@ class SimpleToolbox_OT_VgroupsAssignVertices(bpy.types.Operator):
             selected_vgroups_names = [highlighted_vg_entry]
 
         for obj in u.iter_scene_objects(selected=True):
+            if obj.type not in self.accepted_object_types:
+                continue
+
             # Set it as active
             u.set_active_object(obj)
 
+            select_mode = u.get_selection_mode()
+            has_selection = False
+
             # Get the bmesh
-            # bm = bmesh.from_edit_mesh(obj.data)
-            # bm.verts.ensure_lookup_table()
+            bm = bmesh.from_edit_mesh(obj.data)
+            bm.verts.ensure_lookup_table()
+            bm.edges.ensure_lookup_table()
+            bm.faces.ensure_lookup_table()
+
+            if select_mode == 0:  # Vertices
+                for v in bm.verts:
+                    if v.select:
+                        has_selection = True
+                        break
+            elif select_mode == 1:  # Edges
+                for e in bm.edges:
+                    if e.select:
+                        has_selection = True
+                        break
+            elif select_mode == 2:  # Faces
+                for f in bm.faces:
+                    if f.select:
+                        has_selection = True
+                        break
+            else:
+                continue
 
             # Selected vertices
             # selected_verts_index = [v.index for v in bm.verts if v.select]
+
+            if not has_selection:
+                continue
 
             # Add the group(s) they don't exist
             for vgroup_name in selected_vgroups_names:
