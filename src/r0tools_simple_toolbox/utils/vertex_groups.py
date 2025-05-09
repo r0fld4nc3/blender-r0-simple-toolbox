@@ -252,6 +252,11 @@ def vertex_groups_list_update(scene, context):
 
 
 def vertex_group_add(obj: bpy.types.Object, vg_name: str):
+    accepted_types = [u.OBJECT_TYPES.MESH]
+
+    if obj.type not in accepted_types:
+        return
+
     obj_vgroup_names = [vgroup.name for vgroup in obj.vertex_groups]
 
     if vg_name not in obj_vgroup_names:
