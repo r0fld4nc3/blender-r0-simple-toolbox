@@ -297,6 +297,14 @@ def draw_vertex_groups_uilist(layout, context, vertex_groups_box=None):
         print(f"[ERROR] No valid layout to use:\n{layout=}\n{vertex_groups_box=}")
         return False
 
+    # Vertex Groups Row Number Slider
+    row = parent.row()
+    split = row.split(factor=0.35)
+    col = split.column()
+    col.prop(addon_prefs, "vertex_groups_list_rows", text="Rows:")
+    col = split.column()
+    col.separator()
+
     row = parent.row()
     split = row.split(factor=0.92)
 
