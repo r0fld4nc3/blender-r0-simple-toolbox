@@ -159,6 +159,16 @@ def vertex_groups_list_update(scene, context):
 
     addon_props = u.get_addon_props()
 
+    # Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock"
+    if (
+        not hasattr(scene, TOOLBOX_PROPS_NAME)
+        or not addon_props.vgroups_do_update
+        or not addon_props.show_vertex_groups
+        or not hasattr(bpy.context, "selected_objects")
+    ):
+        print(f"[WARNING] Early exit.")
+        return None
+
     if not addon_props.vgroups_do_update:
         return None
 
