@@ -159,6 +159,17 @@ def vertex_groups_list_update(scene, context):
 
     addon_props = u.get_addon_props()
 
+    # Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock"
+    if (
+        not hasattr(scene, TOOLBOX_PROPS_NAME)
+        or not addon_props.vgroups_do_update
+        or not addon_props.show_vertex_groups
+        or not hasattr(bpy.context, "selected_objects")
+        or not bpy.context.selected_objects
+    ):
+        print(f"[WARNING] Early exit.")
+        return None
+
     if not addon_props.vgroups_do_update:
         return None
 
@@ -180,11 +191,7 @@ def vertex_groups_list_update(scene, context):
         # Store the current selection state before clearing the list
         selection_state = _vertex_groups_store_states()
 
-        try:
-            addon_props.vertex_groups.clear()
-        except Exception as e:
-            print(f"[WARNING] Property is not writable. Skipping execution: {e}")
-            return None
+        addon_props.vertex_groups.clear()
 
         # Add vertex groups names to set
         vertex_groups_names_count_usorted = {}  # Unsorted
