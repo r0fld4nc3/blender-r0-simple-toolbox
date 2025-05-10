@@ -180,7 +180,11 @@ def vertex_groups_list_update(scene, context):
         # Store the current selection state before clearing the list
         selection_state = _vertex_groups_store_states()
 
-        addon_props.vertex_groups.clear()
+        try:
+            addon_props.vertex_groups.clear()
+        except Exception as e:
+            print(f"[WARNING] Property is not writable. Skipping execution: {e}")
+            return None
 
         # Add vertex groups names to set
         vertex_groups_names_count_usorted = {}  # Unsorted
