@@ -25,6 +25,18 @@ def get_scene_name() -> str:
     return get_scene().name
 
 
+def get_selection_mode(as_str=False) -> int | str:
+    select_mode = bpy.context.tool_settings.mesh_select_mode
+
+    mode_str = "VERT" if select_mode[0] else "EDGE" if select_mode[1] else "FACE" if select_mode[2] else "NONE"
+    mode_int = 0 if select_mode[0] else 1 if select_mode[1] else 2 if select_mode[2] else -1
+
+    if as_str:
+        return mode_str
+
+    return mode_int
+
+
 def get_context_area() -> str | None:
     """Get the current area type or None if unavailable"""
     if not bpy.context.area:

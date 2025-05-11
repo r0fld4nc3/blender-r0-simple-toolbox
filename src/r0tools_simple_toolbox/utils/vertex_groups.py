@@ -154,10 +154,18 @@ def vertex_groups_list_add_groups(props: dict, selection_state: dict):
 def vertex_groups_list_update(scene, context):
     # Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock"
     if not hasattr(scene, TOOLBOX_PROPS_NAME):
-        print(f"[INFO] [GENERAL] Scene does not have proper attribute. Skipping.")
+        print(f"[INFO] [VERTEX_GROUPS] Scene does not have proper attribute. Skipping.")
         return
 
     addon_props = u.get_addon_props()
+
+    # Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock"
+    if not addon_props or addon_props is None:
+        print(f"[INFO] [VERTEX_GROUPS] Addon Properties is None. Skipping.")
+        return None
+    elif not hasattr(bpy.context, "selected_objects"):
+        print(f"[INFO] [VERTEX_GROUPS] Context has not attribute 'selected_objects'. Skipping.")
+        return None
 
     if not addon_props.vgroups_do_update:
         return None
@@ -168,16 +176,23 @@ def vertex_groups_list_update(scene, context):
             print(f"[DEBUG] Vertex Groups Panel is not visible, exiting from running continuous property list update.")
         return None
 
-    if bpy.context.selected_objects:
-        current_selection = {obj.name for obj in u.iter_scene_objects(selected=True)}
+    if not hasattr(bpy.context, "selected_objects"):
+        return
 
+    if bpy.context.selected_objects:
         if u.IS_DEBUG():
             print("------------- Vertex Groups List Update -------------")
 
         # Store the current selection state before clearing the list
         selection_state = _vertex_groups_store_states()
 
-        addon_props.vertex_groups.clear()
+        try:
+            addon_props.vertex_groups.clear()
+        except Exception as e:
+            print(f"[WARNING] Property 'vertex_groups' is not writable for '.clear()'. Skipping.")
+            if u.IS_DEBUG():
+                print(e)
+            return None
 
         # Add vertex groups names to set
         vertex_groups_names_count_usorted = {}  # Unsorted
@@ -202,18 +217,6 @@ def vertex_groups_list_update(scene, context):
         # Populate the UIList
         vertex_groups_list_add_groups(vertex_groups_names_count_sorted, selection_state)
 
-        # Update the last object selection
-        try:
-            addon_props.last_object_selection = ",".join(current_selection)
-        except Exception as e:
-            u.context_error_debug(
-                error=e,
-                extra_prints=[
-                    f"addon_props.last_object_selection: {addon_props.last_object_selection}",
-                    f"{current_selection=}",
-                ],
-            )
-
         vertex_groups_cleanup_lock_states()
 
         # Force UI update
@@ -233,13 +236,6 @@ def vertex_groups_list_update(scene, context):
         except Exception as e:
             print(f"[ERROR] Error clearing vertex groups list when no selected objects: {e}")
             u.context_error_debug(error=e)
-        try:
-            addon_props.last_object_selection = ""
-            if u.IS_DEBUG():
-                print(f"Cleared property last_object_selection")
-        except Exception as e:
-            print(f"[ERROR] Error setting last object selection when no selected objects: {e}")
-            u.context_error_debug(error=e)
 
         # Force UI update
         if bpy.context.screen:
@@ -252,6 +248,11 @@ def vertex_groups_list_update(scene, context):
 
 
 def vertex_group_add(obj: bpy.types.Object, vg_name: str):
+    accepted_types = [u.OBJECT_TYPES.MESH]
+
+    if obj.type not in accepted_types:
+        return
+
     obj_vgroup_names = [vgroup.name for vgroup in obj.vertex_groups]
 
     if vg_name not in obj_vgroup_names:
@@ -296,6 +297,14 @@ def draw_vertex_groups_uilist(layout, context, vertex_groups_box=None):
     else:
         print(f"[ERROR] No valid layout to use:\n{layout=}\n{vertex_groups_box=}")
         return False
+
+    # Vertex Groups Row Number Slider
+    row = parent.row()
+    split = row.split(factor=0.35)
+    col = split.column()
+    col.prop(addon_prefs, "vertex_groups_list_rows", text="Rows:")
+    col = split.column()
+    col.separator()
 
     row = parent.row()
     split = row.split(factor=0.92)
