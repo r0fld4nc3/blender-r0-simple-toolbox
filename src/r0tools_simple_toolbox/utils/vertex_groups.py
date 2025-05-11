@@ -180,8 +180,6 @@ def vertex_groups_list_update(scene, context):
         return
 
     if bpy.context.selected_objects:
-        current_selection = {obj.name for obj in u.iter_scene_objects(selected=True)}
-
         if u.IS_DEBUG():
             print("------------- Vertex Groups List Update -------------")
 
