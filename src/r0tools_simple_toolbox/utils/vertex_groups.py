@@ -191,7 +191,9 @@ def vertex_groups_list_update(scene, context):
         try:
             addon_props.vertex_groups.clear()
         except Exception as e:
-            print(f"[WARNING] Property is not writable. Skipping execution: {e}")
+            print(f"[WARNING] Property 'vertex_groups' is not writable for '.clear()'. Skipping.")
+            if u.IS_DEBUG():
+                print(e)
             return None
 
         # Add vertex groups names to set
@@ -217,18 +219,6 @@ def vertex_groups_list_update(scene, context):
         # Populate the UIList
         vertex_groups_list_add_groups(vertex_groups_names_count_sorted, selection_state)
 
-        # Update the last object selection
-        try:
-            addon_props.last_object_selection = ",".join(current_selection)
-        except Exception as e:
-            u.context_error_debug(
-                error=e,
-                extra_prints=[
-                    f"addon_props.last_object_selection: {addon_props.last_object_selection}",
-                    f"{current_selection=}",
-                ],
-            )
-
         vertex_groups_cleanup_lock_states()
 
         # Force UI update
@@ -247,13 +237,6 @@ def vertex_groups_list_update(scene, context):
                 print(f"Cleared UIList vertex_groups")
         except Exception as e:
             print(f"[ERROR] Error clearing vertex groups list when no selected objects: {e}")
-            u.context_error_debug(error=e)
-        try:
-            addon_props.last_object_selection = ""
-            if u.IS_DEBUG():
-                print(f"Cleared property last_object_selection")
-        except Exception as e:
-            print(f"[ERROR] Error setting last object selection when no selected objects: {e}")
             u.context_error_debug(error=e)
 
         # Force UI update
