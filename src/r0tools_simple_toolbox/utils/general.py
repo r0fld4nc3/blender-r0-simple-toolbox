@@ -1,4 +1,5 @@
 import math
+from pathlib import Path
 
 import bpy
 
@@ -22,6 +23,16 @@ def IS_DEBUG():
 # ==============================
 # OBJECT, MESH, SELECTION
 # ==============================
+
+
+def get_bl_config_path() -> str:
+    script_paths_user = bpy.utils.script_path_user()
+    if not Path(script_paths_user).exists():
+        return ""
+
+    config_folder = Path(script_paths_user).parent
+
+    return str(config_folder)
 
 
 def set_active_object(obj: bpy.types.Object):
