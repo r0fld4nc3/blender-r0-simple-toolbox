@@ -754,6 +754,7 @@ class SimpleToolbox_OT_VgroupsAddPopup(bpy.types.Operator):
     vertex_group_name: StringProperty(name="Name", default=_default_name)  # type: ignore
 
     accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
+    accepted_object_types = [u.OBJECT_TYPES.MESH]
 
     @classmethod
     def poll(cls, context):
@@ -774,7 +775,7 @@ class SimpleToolbox_OT_VgroupsAddPopup(bpy.types.Operator):
         split.prop(self, "vertex_group_name")
 
     def execute(self, context):
-        for obj in u.iter_scene_objects(selected=True):
+        for obj in u.iter_scene_objects(selected=True, types=self.accepted_object_types):
             vertex_group_add(obj, self.vertex_group_name)
 
         return {"FINISHED"}
@@ -787,6 +788,7 @@ class SimpleToolbox_OT_VgroupsRemoveHighlighted(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
+    accepted_object_types = [u.OBJECT_TYPES.MESH]
 
     @classmethod
     def poll(cls, context):
@@ -812,7 +814,7 @@ class SimpleToolbox_OT_VgroupsRemoveHighlighted(bpy.types.Operator):
 
         total_removed = 0
 
-        for obj in u.iter_scene_objects(selected=True):
+        for obj in u.iter_scene_objects(selected=True, types=self.accepted_object_types):
             vgroups = obj.vertex_groups
 
             for vgroup in reversed(vgroups):
@@ -834,6 +836,7 @@ class SimpleToolbox_OT_RemoveUnusedVertexGroups(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
+    accepted_object_types = [u.OBJECT_TYPES.MESH]
 
     @classmethod
     def poll(cls, context):
@@ -850,7 +853,7 @@ class SimpleToolbox_OT_RemoveUnusedVertexGroups(bpy.types.Operator):
 
         total_removed: int = 0
 
-        for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
+        for obj in u.iter_scene_objects(selected=True, types=self.accepted_object_types):
             # Set active object
             u.set_active_object(obj)
 
@@ -888,6 +891,7 @@ class SimpleToolbox_OT_VgroupsRemoveSelected(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
+    accepted_object_types = [u.OBJECT_TYPES.MESH]
 
     @classmethod
     def poll(cls, context):
@@ -918,7 +922,7 @@ class SimpleToolbox_OT_VgroupsRemoveSelected(bpy.types.Operator):
 
         locked_vertex_groups_names = [item.name for item in u.get_vertex_groups() if item.locked]
 
-        for obj in u.iter_scene_objects(selected=True):
+        for obj in u.iter_scene_objects(selected=True, types=self.accepted_object_types):
             vgroups = obj.vertex_groups
 
             for vgroup in reversed(vgroups):
@@ -941,6 +945,7 @@ class SimpleToolbox_OT_VgroupsKeepSelected(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
+    accepted_object_types = [u.OBJECT_TYPES.MESH]
 
     @classmethod
     def poll(cls, context):
@@ -974,7 +979,7 @@ class SimpleToolbox_OT_VgroupsKeepSelected(bpy.types.Operator):
 
         locked_vertex_groups_names = [item.name for item in u.get_vertex_groups() if item.locked]
 
-        for obj in u.iter_scene_objects(selected=True):
+        for obj in u.iter_scene_objects(selected=True, types=self.accepted_object_types):
             vgroups = obj.vertex_groups
 
             for vgroup in reversed(vgroups):
@@ -995,6 +1000,8 @@ class SimpleToolbox_OT_VgroupsSelectObjectsWithVgroups(bpy.types.Operator):
     bl_label = "Select Objects w/ Vertex Groups"
     bl_description = "From currently selected objects, selects all objects that contain the selected Vertex Groups"
     bl_options = {"REGISTER", "UNDO"}
+
+    accepted_object_types = [u.OBJECT_TYPES.MESH]
 
     @classmethod
     def poll(cls, context):
@@ -1018,7 +1025,7 @@ class SimpleToolbox_OT_VgroupsSelectObjectsWithVgroups(bpy.types.Operator):
 
         objects_to_select = []
 
-        for obj in u.iter_scene_objects(selected=True):
+        for obj in u.iter_scene_objects(selected=True, types=self.accepted_object_types):
             vgroups = obj.vertex_groups
 
             for vgroup in vgroups:
@@ -1123,6 +1130,8 @@ class SimpleToolbox_OT_VgroupsUnassignVertices(bpy.types.Operator):
     bl_description = "Unassigns selected vertices from selected Vertex Groups"
     bl_options = {"REGISTER", "UNDO"}
 
+    accepted_object_types = [u.OBJECT_TYPES.MESH]
+
     def execute(self, context):
         # Selected vertex groups
         selected_vgroups_names = get_selected_vgroups_names()
@@ -1137,7 +1146,7 @@ class SimpleToolbox_OT_VgroupsUnassignVertices(bpy.types.Operator):
             # If nothing is checked (selected), use current highlighted item as selection
             selected_vgroups_names = [highlighted_vg_entry]
 
-        for obj in u.iter_scene_objects(selected=True):
+        for obj in u.iter_scene_objects(selected=True, types=self.accepted_object_types):
             # Set it as active
             u.set_active_object(obj)
 
@@ -1156,6 +1165,8 @@ class SimpleToolbox_OT_VgroupsSelectVertices(bpy.types.Operator):
     bl_description = "Selects the vertices assign to the selected Vertex Group(s)"
     bl_options = {"REGISTER", "UNDO"}
 
+    accepted_object_types = [u.OBJECT_TYPES.MESH]
+
     def execute(self, context):
         # Selected vertex groups
         selected_vgroups_names = get_selected_vgroups_names()
@@ -1170,7 +1181,7 @@ class SimpleToolbox_OT_VgroupsSelectVertices(bpy.types.Operator):
             # If nothing is checked (selected), use current highlighted item as selection
             selected_vgroups_names = [highlighted_vg_entry]
 
-        for obj in u.iter_scene_objects(selected=True):
+        for obj in u.iter_scene_objects(selected=True, types=self.accepted_object_types):
             # Set it as active
             u.set_active_object(obj)
 
@@ -1189,6 +1200,8 @@ class SimpleToolbox_OT_VgroupsDeselectVertices(bpy.types.Operator):
     bl_description = "Deselects the vertices assign to the selected Vertex Group(s)"
     bl_options = {"REGISTER", "UNDO"}
 
+    accepted_object_types = [u.OBJECT_TYPES.MESH]
+
     def execute(self, context):
         # Selected vertex groups
         selected_vgroups_names = get_selected_vgroups_names()
@@ -1203,7 +1216,7 @@ class SimpleToolbox_OT_VgroupsDeselectVertices(bpy.types.Operator):
             # If nothing is checked (selected), use current highlighted item as selection
             selected_vgroups_names = [highlighted_vg_entry]
 
-        for obj in u.iter_scene_objects(selected=True):
+        for obj in u.iter_scene_objects(selected=True, types=self.accepted_object_types):
             # Set it as active
             u.set_active_object(obj)
 
