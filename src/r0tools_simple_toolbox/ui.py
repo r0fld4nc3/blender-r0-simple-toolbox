@@ -58,6 +58,8 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 if addon_prefs.experimental_features:
                     row = dev_tools_box.row()
                     row.operator("image.reload", icon="IMAGE_DATA")
+                    row = dev_tools_box.row()
+                    row.operator(SimpleToolbox_OT_FixImageDataPaths.bl_idname, icon="IMAGE_DATA")
                 row = dev_tools_box.row()
                 row.prop(addon_prefs, "debug", text="Debug", icon="EXPERIMENTAL")
         

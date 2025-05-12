@@ -2,6 +2,7 @@ import importlib
 import math
 import random
 import sys
+from pathlib import Path
 
 import bmesh
 import bpy
@@ -443,6 +444,53 @@ class SimpleToolbox_OT_ReloadNamedScripts(bpy.types.Operator):
             print(f"Error reporting results: {e}")
 
         u.show_notification(reload_msg)
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_FixImageDataPaths(bpy.types.Operator):
+    bl_label = "Fix Image Data Paths"
+    bl_idname = "r0tools.fix_image_data_paths"
+    bl_description = "Attempts to fix image data paths for broken link/filepath data references.\n-SHIFT: Dry Run (will not make any changes. Check terminal for output)"
+    bl_options = {"REGISTER", "UNDO"}
+
+    dry_run: BoolProperty(default=False, name="Dry Run")  # type: ignore
+
+    def invoke(self, context, event):
+        self.dry_run = False  # Always reset
+
+        if event.shift:
+            self.dry_run = True
+
+        return self.execute(context)
+
+    def execute(self, context):
+        blender_version = f"{bpy.app.version[0]}.{bpy.app.version[1]}"
+        config_path = u.get_bl_config_path()
+
+        if not config_path:
+            print(f"[WARN] Config path '{config_path}' is not valid.")
+            return {"FINISHED"}
+
+        for image in bpy.data.images:
+            fp: str = image.filepath
+
+            is_relative_fp: bool = fp.startswith("//") or fp.startswith("\\\\")
+
+            if not Path(fp).exists() and not is_relative_fp:
+                fp_split = fp.split(blender_version)
+                if len(fp_split) > 1:
+                    print(f"Fix  : {fp}")
+                    fp_fix = config_path + fp_split[1]
+                    if Path(fp_fix).exists():
+                        if not self.dry_run:
+                            image.filepath = fp_fix
+                            print(f"Fixed: {fp_fix}")
+                        else:
+                            print(f"[DRY] Fixed: {fp_fix}")
+                    else:
+                        print(f"Not fixed: {fp} -> ({fp_fix})")
+                    print()
 
         return {"FINISHED"}
 
@@ -2653,6 +2701,7 @@ classes = [
     TRANSFORM_OT_SetCustomOrientation,
     
     SimpleToolbox_OT_ReloadNamedScripts,
+    SimpleToolbox_OT_FixImageDataPaths,
     SimpleToolbox_OT_ClearCustomSplitNormalsData,
     SimpleToolbox_OT_ClearCustomProperties,
     SimpleToolbox_OT_ClearMeshAttributes,
