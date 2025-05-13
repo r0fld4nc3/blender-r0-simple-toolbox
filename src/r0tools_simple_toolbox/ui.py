@@ -31,7 +31,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
 
         row = layout.row()
         row.prop(addon_prefs, "dev_tools", text="Dev Tools", icon="TOOL_SETTINGS")
-        split.prop(addon_prefs, "experimental_features", text="Experimental", icon="EXPERIMENTAL")
+        row.prop(addon_prefs, "experimental_features", text="Experimental", icon="EXPERIMENTAL")
 
         if self.has_update:
             from .repo import SimpleToolbox_OT_TakeMeToUpdate
