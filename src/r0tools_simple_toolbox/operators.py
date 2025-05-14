@@ -1723,16 +1723,8 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        object_sets = get_object_sets()
-        active_index = get_active_object_set_index()
-
-        # Evaluate polls
         accepted_contexts = context.mode in cls.accepted_contexts
-        has_objects = object_sets[active_index].count > 0 if len(object_sets) else False
-        has_objects = get_object_set_at_index(active_index).count > 0 if len(object_sets) else False
-        is_separator = get_object_set_at_index(active_index).separator if len(object_sets) else False
-
-        return accepted_contexts and has_objects and not is_separator
+        return accepted_contexts
 
     def invoke(self, context, event):
         self.add_to_selection = False  # Always reset
@@ -1750,6 +1742,10 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
 
         if 0 <= index < get_object_sets_count():
             object_set = get_object_set_at_index(index)
+
+            # If separator or no objects in the set, don't do anything
+            if object_set.separator or object_set.count < 1:
+                return {"FINISHED"}
 
             if u.IS_DEBUG():
                 print(f"{self.add_to_selection=}")
