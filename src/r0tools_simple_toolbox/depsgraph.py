@@ -10,6 +10,7 @@ def handler_depsgraph_post_update(scene, depsgraph):
     # Check specifically for object deletions
     if depsgraph.id_type_updated(u.DEPSGRAPH_ID_TYPES.OBJECT):
         u.cleanup_object_set_invalid_references(scene)
+        u.object_sets_update_mesh_stats(scene)
         u.property_list_update(scene, bpy.context)
         u.vertex_groups_list_update(scene, bpy.context)
     CustomTransformsOrientationsTracker.track_custom_orientations(scene)

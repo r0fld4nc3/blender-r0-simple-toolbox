@@ -160,6 +160,9 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
         default=(0.0, 0.0, 0.0, 1.0),
         update=set_object_set_colour,  # This passes `Context` as an argument....
     )
+    verts: bpy.props.IntProperty(default=0)  # type: ignore
+    edges: bpy.props.IntProperty(default=0)  # type: ignore
+    faces: bpy.props.IntProperty(default=0)  # type: ignore
 
     def assign_object(self, obj):
         if self.separator:
@@ -250,6 +253,11 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
         from .operators import SimpleToolbox_OT_SelectObjectSet
 
         addon_prefs = u.get_addon_prefs()
+        addon_props = u.get_addon_props()
+
+        show_verts = addon_props.object_sets_show_mesh_verts
+        show_edges = addon_props.object_sets_show_mesh_edges
+        show_faces = addon_props.object_sets_show_mesh_faces
 
         # Check if the item to insert is a separator
         if item.separator:
@@ -318,6 +326,24 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
             col_item_count = info_row.row(align=True)
             col_item_count.alignment = "RIGHT"
             col_item_count.label(text=f"({item.count})", icon="NONE")
+
+            # Vertices
+            if show_verts:
+                col_vert_count = info_row.row(align=True)
+                col_vert_count.alignment = "RIGHT"
+                col_vert_count.label(text=f"({item.verts:,})", icon="NONE")
+
+            # Edges
+            if show_edges:
+                col_edge_count = info_row.row(align=True)
+                col_edge_count.alignment = "RIGHT"
+                col_edge_count.label(text=f"({item.edges:,})", icon="NONE")
+
+            # Faces
+            if show_faces:
+                col_face_count = info_row.row(align=True)
+                col_face_count.alignment = "RIGHT"
+                col_face_count.label(text=f"({item.faces:,})", icon="NONE")
 
         elif self.layout_type in {"GRID"}:
             layout.alignment = "CENTER"
@@ -449,6 +475,9 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
     # data_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
     # scene_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
     objects_updated: BoolProperty(default=False)  # type: ignore
+    object_sets_show_mesh_verts: BoolProperty(default=False)  # type: ignore
+    object_sets_show_mesh_edges: BoolProperty(default=False)  # type: ignore
+    object_sets_show_mesh_faces: BoolProperty(default=False)  # type: ignore
 
     show_vertex_groups: BoolProperty(  # type: ignore
         name="Vertex Groups", description="Manage Vertex Groups of selected objects", default=False
