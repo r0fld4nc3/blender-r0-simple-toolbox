@@ -160,6 +160,7 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
         default=(0.0, 0.0, 0.0, 1.0),
         update=set_object_set_colour,  # This passes `Context` as an argument....
     )
+    expanded: bpy.props.BoolProperty(default=False, name="Expand")  # type: ignore
     verts: bpy.props.IntProperty(default=0)  # type: ignore
     edges: bpy.props.IntProperty(default=0)  # type: ignore
     faces: bpy.props.IntProperty(default=0)  # type: ignore
@@ -269,7 +270,8 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
             return
 
         if self.layout_type in {"DEFAULT", "COMPACT"}:
-            row = layout.row(align=True)
+            main_container = layout.column(align=True)
+            row = main_container.row(align=True)
 
             # Configure accordingly for object sets colour
             if addon_prefs.object_sets_use_colour:
@@ -327,23 +329,40 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
             col_item_count.alignment = "RIGHT"
             col_item_count.label(text=f"({item.count})", icon="NONE")
 
-            # Vertices
-            if show_verts:
-                col_vert_count = info_row.row(align=True)
-                col_vert_count.alignment = "RIGHT"
-                col_vert_count.label(text=f"({item.verts:,})", icon="NONE")
+            # Fill space to give room to expanded button
+            info_row.separator(factor=1.0)
 
-            # Edges
-            if show_edges:
-                col_edge_count = info_row.row(align=True)
-                col_edge_count.alignment = "RIGHT"
-                col_edge_count.label(text=f"({item.edges:,})", icon="NONE")
+            # Expand/Collapse Mesh Stats
+            if any([show_verts, show_edges, show_faces]):
+                expand_icon = "TRIA_DOWN" if item.expanded else "TRIA_LEFT"
+                info_row.prop(item, "expanded", text="", icon=expand_icon, emboss=False)
 
-            # Faces
-            if show_faces:
-                col_face_count = info_row.row(align=True)
-                col_face_count.alignment = "RIGHT"
-                col_face_count.label(text=f"({item.faces:,})", icon="NONE")
+            if item.expanded:
+                # Indented row
+                stats_row = main_container.row()
+                stats_row.alignment = "RIGHT"
+                stats_row.scale_y = 0.9
+
+                # Indentation
+                stats_row.separator(factor=4.0)
+
+                # Stats Column
+                col_stats = stats_row.column(align=True)
+
+                # Vertices
+                if show_verts:
+                    row_vert_count = col_stats.row(align=True)
+                    row_vert_count.label(text=f"({item.verts:,})", icon="VERTEXSEL")
+
+                # Edges
+                if show_edges:
+                    row_edge_count = col_stats.row(align=True)
+                    row_edge_count.label(text=f"({item.edges:,})", icon="EDGESEL")
+
+                # Faces
+                if show_faces:
+                    row_face_count = col_stats.row(align=True)
+                    row_face_count.label(text=f"({item.faces:,})", icon="FACESEL")
 
         elif self.layout_type in {"GRID"}:
             layout.alignment = "CENTER"
@@ -475,9 +494,9 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
     # data_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
     # scene_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
     objects_updated: BoolProperty(default=False)  # type: ignore
-    object_sets_show_mesh_verts: BoolProperty(default=False)  # type: ignore
-    object_sets_show_mesh_edges: BoolProperty(default=False)  # type: ignore
-    object_sets_show_mesh_faces: BoolProperty(default=False)  # type: ignore
+    object_sets_show_mesh_verts: BoolProperty(default=False, name="Show Total Vertex Count", description="Toggle showing Object Set's total vertex count")  # type: ignore
+    object_sets_show_mesh_edges: BoolProperty(default=False, name="Show Total Edge Count", description="Toggle showing Object Set's total edge count")  # type: ignore
+    object_sets_show_mesh_faces: BoolProperty(default=False, name="Show Total Face Count", description="Toggle showing Object Set's total face count")  # type: ignore
 
     show_vertex_groups: BoolProperty(  # type: ignore
         name="Vertex Groups", description="Manage Vertex Groups of selected objects", default=False
