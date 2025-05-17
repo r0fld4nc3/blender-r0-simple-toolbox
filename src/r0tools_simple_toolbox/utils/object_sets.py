@@ -197,6 +197,10 @@ def object_sets_update_mesh_stats(scene):
                     total_faces += len(to_mesh.polygons)
             except Exception as e:
                 print(f"Error processing {obj.name}: {e}")
+            finally:
+                # Always cleanup temporary mesh
+                if to_mesh or to_mesh is not None:
+                    obj_eval.to_mesh_clear()
 
         # Update all stats
         if show_verts:
