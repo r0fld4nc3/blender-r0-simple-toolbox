@@ -78,10 +78,10 @@ def update_lock_state_callback(self, context):
 class R0PROP_PG_VertexGroupPropertyItem(bpy.types.PropertyGroup):
     """Property that represent an entry in the Vertex Groups UI List"""
 
-    name: StringProperty()  # type: ignore
-    count: IntProperty(default=0)  # type: ignore
-    locked: BoolProperty(default=False, update=update_lock_state_callback, description="Lock")  # type: ignore
-    selected: BoolProperty(default=False)  # type: ignore
+    name: StringProperty(name="Vertex Group Name")  # type: ignore
+    count: IntProperty(default=0, name="Object Count", description="Count of objects where this vertex group belongs to")  # type: ignore
+    locked: BoolProperty(default=False, name="Locked", update=update_lock_state_callback, description="Locks the vertex group to prevent modification, such as deletion")  # type: ignore
+    selected: BoolProperty(default=False, name="Selected")  # type: ignore
 
 
 class R0PROP_PG_LockStateEntry(bpy.types.PropertyGroup):
@@ -337,32 +337,35 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
                 expand_icon = "TRIA_DOWN" if item.expanded else "TRIA_LEFT"
                 info_row.prop(item, "expanded", text="", icon=expand_icon, emboss=False)
 
-            if item.expanded:
-                # Indented row
-                stats_row = main_container.row()
-                stats_row.alignment = "RIGHT"
-                stats_row.scale_y = 0.9
+                if item.expanded:
+                    # Indented row
+                    stats_row = main_container.row()
+                    stats_row.alignment = "LEFT"
+                    stats_row.scale_y = 0.9
 
-                # Indentation
-                stats_row.separator(factor=4.0)
+                    # Indentation
+                    split = stats_row.split(factor=0.1)
 
-                # Stats Column
-                col_stats = stats_row.column(align=True)
+                    # First part of split is the indentation
+                    split.label(text="")
 
-                # Vertices
-                if show_verts:
-                    row_vert_count = col_stats.row(align=True)
-                    row_vert_count.label(text=f"({item.verts:,})", icon="VERTEXSEL")
+                    # Stats Column
+                    col_stats = split.column(align=True)
 
-                # Edges
-                if show_edges:
-                    row_edge_count = col_stats.row(align=True)
-                    row_edge_count.label(text=f"({item.edges:,})", icon="EDGESEL")
+                    # Vertices
+                    if show_verts:
+                        row_vert_count = col_stats.row(align=True)
+                        row_vert_count.label(text=f" {item.verts:,}", icon="VERTEXSEL")
 
-                # Faces
-                if show_faces:
-                    row_face_count = col_stats.row(align=True)
-                    row_face_count.label(text=f"({item.faces:,})", icon="FACESEL")
+                    # Edges
+                    if show_edges:
+                        row_edge_count = col_stats.row(align=True)
+                        row_edge_count.label(text=f" {item.edges:,}", icon="EDGESEL")
+
+                    # Faces
+                    if show_faces:
+                        row_face_count = col_stats.row(align=True)
+                        row_face_count.label(text=f" {item.faces:,}", icon="FACESEL")
 
         elif self.layout_type in {"GRID"}:
             layout.alignment = "CENTER"
@@ -490,7 +493,7 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
         default=False,
     )
     object_sets: CollectionProperty(type=R0PROP_ObjectSetEntryItem)  # type: ignore
-    object_sets_index: IntProperty(default=0)  # type: ignore
+    object_sets_index: IntProperty(default=0, name="Object Set")  # type: ignore
     # data_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
     # scene_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
     objects_updated: BoolProperty(default=False)  # type: ignore
@@ -503,7 +506,7 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
     )
     vertex_groups: CollectionProperty(type=R0PROP_PG_VertexGroupPropertyItem)  # type: ignore
     vertex_groups_lock_states: CollectionProperty(type=R0PROP_PG_LockStateEntry)  # type: ignore
-    vertex_group_list_index: IntProperty(default=0)  # type: ignore
+    vertex_group_list_index: IntProperty(default=0, name="Vertex Group")  # type: ignore
     vgroups_do_update: BoolProperty(default=True)  # type: ignore
 
     show_find_modifier_search: BoolProperty(  # type: ignore
