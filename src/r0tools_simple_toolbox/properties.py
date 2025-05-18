@@ -417,6 +417,39 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
 #   ADDON PROPERTIES
 # ===================================================================
 class r0SimpleToolboxProps(bpy.types.PropertyGroup):
+    # =======================================================================
+    # Categories
+
+    cat_show_object_ops: BoolProperty(
+        name="Show Object Ops", description="Show operations for Object context", default=True
+    )  # type: ignore
+
+    cat_show_mesh_ops: BoolProperty(
+        name="Show Mesh Ops", description="Show operations for Mesh context", default=True
+    )  # type: ignore
+
+    cat_show_uv_ops: BoolProperty(
+        name="Show UV Ops", description="Show operations for UV context", default=False
+    )  # type: ignore
+
+    cat_show_find_modifiers_ops: BoolProperty(
+        name="Show Find Modifiers", description="Show operations for Finding Modifiers", default=True
+    )  # type: ignore
+
+    cat_show_object_sets_editor: BoolProperty(
+        name="Show Object Sets Editor", description="Show Object Sets Editor", default=True
+    )  # type: ignore
+
+    cat_show_vertex_groups_editor: BoolProperty(
+        name="Show Vertex Groups Editor", description="Show Vertex Groups Editor", default=False
+    )  # type: ignore
+
+    cat_show_custom_properties_editor: BoolProperty(
+        name="Show Custom Properties Editor", description="Show Custom Properties Editor", default=False
+    )  # type: ignore
+
+    # =======================================================================
+
     show_dev_tools: BoolProperty(  # type: ignore
         name="Dev Tools",
         description="Show or hide the development options section",
