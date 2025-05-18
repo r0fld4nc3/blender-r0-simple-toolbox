@@ -78,10 +78,10 @@ def update_lock_state_callback(self, context):
 class R0PROP_PG_VertexGroupPropertyItem(bpy.types.PropertyGroup):
     """Property that represent an entry in the Vertex Groups UI List"""
 
-    name: StringProperty()  # type: ignore
-    count: IntProperty(default=0)  # type: ignore
-    locked: BoolProperty(default=False, update=update_lock_state_callback, description="Lock")  # type: ignore
-    selected: BoolProperty(default=False)  # type: ignore
+    name: StringProperty(name="Vertex Group Name")  # type: ignore
+    count: IntProperty(default=0, name="Object Count", description="Count of objects where this vertex group belongs to")  # type: ignore
+    locked: BoolProperty(default=False, name="Locked", update=update_lock_state_callback, description="Locks the vertex group to prevent modification, such as deletion")  # type: ignore
+    selected: BoolProperty(default=False, name="Selected")  # type: ignore
 
 
 class R0PROP_PG_LockStateEntry(bpy.types.PropertyGroup):
@@ -160,6 +160,10 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
         default=(0.0, 0.0, 0.0, 1.0),
         update=set_object_set_colour,  # This passes `Context` as an argument....
     )
+    expanded: bpy.props.BoolProperty(default=False, name="Expand")  # type: ignore
+    verts: bpy.props.IntProperty(default=0)  # type: ignore
+    edges: bpy.props.IntProperty(default=0)  # type: ignore
+    faces: bpy.props.IntProperty(default=0)  # type: ignore
 
     def assign_object(self, obj):
         if self.separator:
@@ -250,6 +254,11 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
         from .operators import SimpleToolbox_OT_SelectObjectSet
 
         addon_prefs = u.get_addon_prefs()
+        addon_props = u.get_addon_props()
+
+        show_verts = addon_props.object_sets_show_mesh_verts
+        show_edges = addon_props.object_sets_show_mesh_edges
+        show_faces = addon_props.object_sets_show_mesh_faces
 
         # Check if the item to insert is a separator
         if item.separator:
@@ -261,7 +270,8 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
             return
 
         if self.layout_type in {"DEFAULT", "COMPACT"}:
-            row = layout.row(align=True)
+            main_container = layout.column(align=True)
+            row = main_container.row(align=True)
 
             # Configure accordingly for object sets colour
             if addon_prefs.object_sets_use_colour:
@@ -318,6 +328,44 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
             col_item_count = info_row.row(align=True)
             col_item_count.alignment = "RIGHT"
             col_item_count.label(text=f"({item.count})", icon="NONE")
+
+            # Fill space to give room to expanded button
+            info_row.separator(factor=1.0)
+
+            # Expand/Collapse Mesh Stats
+            if any([show_verts, show_edges, show_faces]):
+                expand_icon = "TRIA_DOWN" if item.expanded else "TRIA_LEFT"
+                info_row.prop(item, "expanded", text="", icon=expand_icon, emboss=False)
+
+                if item.expanded:
+                    # Indented row
+                    stats_row = main_container.row()
+                    stats_row.alignment = "LEFT"
+                    stats_row.scale_y = 0.9
+
+                    # Indentation
+                    split = stats_row.split(factor=0.1)
+
+                    # First part of split is the indentation
+                    split.label(text="")
+
+                    # Stats Column
+                    col_stats = split.column(align=True)
+
+                    # Vertices
+                    if show_verts:
+                        row_vert_count = col_stats.row(align=True)
+                        row_vert_count.label(text=f" {item.verts:,}", icon="VERTEXSEL")
+
+                    # Edges
+                    if show_edges:
+                        row_edge_count = col_stats.row(align=True)
+                        row_edge_count.label(text=f" {item.edges:,}", icon="EDGESEL")
+
+                    # Faces
+                    if show_faces:
+                        row_face_count = col_stats.row(align=True)
+                        row_face_count.label(text=f" {item.faces:,}", icon="FACESEL")
 
         elif self.layout_type in {"GRID"}:
             layout.alignment = "CENTER"
@@ -445,17 +493,20 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
         default=False,
     )
     object_sets: CollectionProperty(type=R0PROP_ObjectSetEntryItem)  # type: ignore
-    object_sets_index: IntProperty(default=0)  # type: ignore
+    object_sets_index: IntProperty(default=0, name="Object Set")  # type: ignore
     # data_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
     # scene_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
     objects_updated: BoolProperty(default=False)  # type: ignore
+    object_sets_show_mesh_verts: BoolProperty(default=False, name="Show Total Vertex Count", description="Toggle showing Object Set's total vertex count")  # type: ignore
+    object_sets_show_mesh_edges: BoolProperty(default=False, name="Show Total Edge Count", description="Toggle showing Object Set's total edge count")  # type: ignore
+    object_sets_show_mesh_faces: BoolProperty(default=False, name="Show Total Face Count", description="Toggle showing Object Set's total face count")  # type: ignore
 
     show_vertex_groups: BoolProperty(  # type: ignore
         name="Vertex Groups", description="Manage Vertex Groups of selected objects", default=False
     )
     vertex_groups: CollectionProperty(type=R0PROP_PG_VertexGroupPropertyItem)  # type: ignore
     vertex_groups_lock_states: CollectionProperty(type=R0PROP_PG_LockStateEntry)  # type: ignore
-    vertex_group_list_index: IntProperty(default=0)  # type: ignore
+    vertex_group_list_index: IntProperty(default=0, name="Vertex Group")  # type: ignore
     vgroups_do_update: BoolProperty(default=True)  # type: ignore
 
     show_find_modifier_search: BoolProperty(  # type: ignore

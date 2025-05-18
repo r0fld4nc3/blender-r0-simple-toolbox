@@ -1,3 +1,4 @@
+import bmesh
 import bpy
 
 from .. import utils as u
@@ -108,6 +109,125 @@ def move_object_set_to_index(from_index, to_index):
     object_sets.move(from_index, to_index)
 
 
+def cleanup_object_set_invalid_references(scene):
+    """
+    Remove invalid object references from object sets
+
+    This cleans up references to deleted objects to prevent errors.
+    """
+    if u.IS_DEBUG():
+        print("------------- Cleanup Object Sets Invalid References -------------")
+
+    # Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock"
+    if not hasattr(scene, TOOLBOX_PROPS_NAME):
+        print(f"[INFO] [OBJECT_SETS] Scene does not have proper attribute. Skipping.")
+        return
+
+    addon_props = u.get_addon_props()
+
+    # Focus only on cleaning object sets without rebuilding scene_objects/data_objects
+    for object_set in addon_props.object_sets:
+        # Identify invalid objects without modifying anything yet
+        invalid_objects = []
+        for i, object_item in enumerate(object_set.objects):
+            obj = object_item.object
+            if not obj or obj.name not in scene.objects:
+                invalid_objects.append(obj)
+
+        cleaned_up = 0
+        for obj in reversed(invalid_objects):
+            try:
+                object_set.remove_object(obj)
+                cleaned_up += 1
+            except Exception as e:
+                print(f"[ERROR] [OBJECT_SETS] Failed to remove object {obj}: {e}")
+
+        if cleaned_up:
+            print(f"Cleaned up {cleaned_up} references for Object Set '{object_set.name}'")
+
+    # Force UI Update to reflect changes
+    for window in bpy.context.window_manager.windows:
+        for area in window.screen.areas:
+            if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
+                area.tag_redraw()
+
+
+def object_sets_update_mesh_stats(scene):
+    if u.IS_DEBUG():
+        print("------------- Object Sets Update Mesh Stats -------------")
+
+    # Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock"
+    if not hasattr(scene, TOOLBOX_PROPS_NAME):
+        print(f"[INFO] [OBJECT_SETS] Scene does not have proper attribute. Skipping.")
+        return
+
+    addon_props = u.get_addon_props()
+
+    show_verts = addon_props.object_sets_show_mesh_verts
+    show_edges = addon_props.object_sets_show_mesh_edges
+    show_faces = addon_props.object_sets_show_mesh_faces
+
+    if not any([show_verts, show_edges, show_faces]):
+        return
+
+    # Get the evaluated version of the object (with modifiers applied)
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+
+    for object_set in addon_props.object_sets:
+        total_verts = 0
+        total_edges = 0
+        total_faces = 0
+
+        for obj_item in object_set.objects:
+            obj = obj_item.object
+            if obj.type not in [u.OBJECT_TYPES.MESH, u.OBJECT_TYPES.CURVE]:
+                continue
+
+            # Get the evaluated version of the object with modifiers applied
+            obj_eval = obj.evaluated_get(depsgraph)
+
+            to_mesh = None
+            try:
+                to_mesh = obj_eval.to_mesh()
+                if show_verts:
+                    total_verts += len(to_mesh.vertices)
+                if show_edges:
+                    total_edges += len(to_mesh.edges)
+                if show_faces:
+                    total_faces += len(to_mesh.polygons)
+            except Exception as e:
+                print(f"Error processing {obj.name}: {e}")
+            finally:
+                # Always cleanup temporary mesh
+                if to_mesh or to_mesh is not None:
+                    obj_eval.to_mesh_clear()
+
+        # Update all stats
+        if show_verts:
+            object_set.verts = total_verts
+        if show_edges:
+            object_set.edges = total_edges
+        if show_faces:
+            object_set.faces = total_faces
+
+
+@bpy.app.handlers.persistent
+def refresh_object_sets_colours(context):
+    """Refresh colors for all object sets"""
+    if u.IS_DEBUG():
+        print("[OBJECT_SETS] Force Refreshing Object Sets' Colours")
+    addon_prefs = u.get_addon_prefs()
+    object_sets = get_object_sets()
+
+    if not addon_prefs.object_sets_use_colour:
+        return
+
+    for object_set in object_sets:
+        if u.IS_DEBUG():
+            print(f"[DEBUG] Refresh: {object_set.name}")
+        object_set.update_object_set_colour(context)
+
+
 def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     """
     Draw the Objects Sets UI list
@@ -152,6 +272,15 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     col.prop(addon_prefs, "object_sets_list_rows", text="Rows:")
     col = split.column()
     col.separator()
+
+    # Object Sets Visual Aids
+    row = parent.row()
+    # Show mesh verts
+    row.prop(addon_props, "object_sets_show_mesh_verts", text="", icon="VERTEXSEL")
+    # Show mesh edges
+    row.prop(addon_props, "object_sets_show_mesh_edges", text="", icon="EDGESEL")
+    # Show mesh faces
+    row.prop(addon_props, "object_sets_show_mesh_faces", text="", icon="FACESEL")
 
     row = parent.row()
     split = row.split(factor=0.92)  # Affects right side button width
@@ -200,63 +329,3 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     # row_col = split.row()
     # op = row_col.operator(SimpleToolbox_OT_SelectObjectSet.bl_idname)
     # op.set_index = -1
-
-
-def cleanup_object_set_invalid_references(scene):
-    """
-    Remove invalid object references from object sets
-
-    This cleans up references to deleted objects to prevent errors.
-    """
-    if u.IS_DEBUG():
-        print("------------- Cleanup Object Sets Invalid References -------------")
-
-    # Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock"
-    if not hasattr(scene, TOOLBOX_PROPS_NAME):
-        print(f"[INFO] [OBJECT_SETS] Scene does not have proper attribute. Skipping.")
-        return
-
-    addon_props = u.get_addon_props()
-
-    # Focus only on cleaning object sets without rebuilding scene_objects/data_objects
-    for object_set in addon_props.object_sets:
-        # Identify invalid objects without modifying anything yet
-        invalid_objects = []
-        for i, object_item in enumerate(object_set.objects):
-            obj = object_item.object
-            if not obj or obj.name not in scene.objects:
-                invalid_objects.append(obj)
-
-        cleaned_up = 0
-        for obj in reversed(invalid_objects):
-            try:
-                object_set.remove_object(obj)
-                cleaned_up += 1
-            except Exception as e:
-                print(f"[ERROR] [OBJECT_SETS] Failed to remove object {obj}: {e}")
-
-        if cleaned_up:
-            print(f"Cleaned up {cleaned_up} references for Object Set '{object_set.name}'")
-
-    # Force UI Update to reflect changes
-    for window in bpy.context.window_manager.windows:
-        for area in window.screen.areas:
-            if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
-                area.tag_redraw()
-
-
-@bpy.app.handlers.persistent
-def refresh_object_sets_colours(context):
-    """Refresh colors for all object sets"""
-    if u.IS_DEBUG():
-        print("[OBJECT_SETS] Force Refreshing Object Sets' Colours")
-    addon_prefs = u.get_addon_prefs()
-    object_sets = get_object_sets()
-
-    if not addon_prefs.object_sets_use_colour:
-        return
-
-    for object_set in object_sets:
-        if u.IS_DEBUG():
-            print(f"[DEBUG] Refresh: {object_set.name}")
-        object_set.update_object_set_colour(context)
