@@ -1889,9 +1889,9 @@ class SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections(bpy.types.Operator):
     Moves objects in selected Object Set into collections named as the Set they are contained in.
     """
 
-    bl_label = "Move into collections"
+    bl_label = "Move to collections"
     bl_idname = "r0tools.move_objects_in_set_into_collections"
-    bl_description = "Moves Objects in the selected Object Set (Highlighted in the Set List) into a collection that is named the samea the set they are contained in.\n\nMODIFIERS:- CTRL: Apply this logic to ALL Object Sets"
+    bl_description = "Moves Objects in the selected Object Set (Highlighted in the Set List) into a collection that is named the same as the set they are contained in.\n\nMODIFIERS:- SHIFT: Apply this logic to ALL Object Sets"
     bl_options = {"INTERNAL", "UNDO"}
 
     do_all = False
@@ -1903,7 +1903,7 @@ class SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections(bpy.types.Operator):
     def invoke(self, context, event):
         self.do_all = False  # Always reset
 
-        if event.ctrl:
+        if event.shift:
             self.do_all = True
 
         return self.execute(context)
@@ -1913,6 +1913,96 @@ class SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections(bpy.types.Operator):
 
         if u.IS_DEBUG():
             print("\n------------- Move Objects In Object Sets Into Set Collections -------------")
+
+        active_index = get_active_object_set_index()
+        active_name = get_object_set_name_at_index(active_index)
+        collections = []
+
+        if not self.do_all:
+            collection = u.collections_create_new(active_name)
+            # Append newly or referenced collection.
+            collections.append(collection)
+
+            if not collection:
+                return {"CANCELLED"}
+
+            for obj in iter_objects_of_object_set_at_index(active_index):
+                u.collection_link_object(collection, obj, unlink_others=True)
+        else:
+            i = get_object_sets_count()
+            for object_set in reversed(get_object_sets()):
+                i -= 1
+                print(i, object_set.name)
+                if object_set.separator:
+                    continue
+                collection = u.collections_create_new(get_object_set_name_at_index(i))
+                # Append newly or referenced collection.
+                collections.append(collection)
+
+                for obj in iter_objects_of_object_set_at_index(i):
+                    u.collection_link_object(collection, obj, unlink_others=True)
+
+        # Delete empty collections for tidiness
+        # Sometimes it can be that objects are created in one collection and
+        # moved to another if they belong to another Object Set, which means
+        # they can shift collections as they are added from bottom to top.
+
+        # Also apply colours here while we're at it (iterating over collections)
+        colours = u.COLLECTION_COLOURS.values()
+        applied_colours: list[str] = []
+        for coll in reversed(collections):
+            if len(coll.objects) < 1:
+                u.remove_collection(coll)
+                collections.remove(coll)
+            else:
+                # Reset applied if full
+                if len(applied_colours) >= len(colours):
+                    applied_colours.clear()
+
+                # Apply colour
+                colour = random.choice(colours)
+                if colour in applied_colours:
+                    for i in range(10):
+                        colour = random.choice(colours)
+                        if colour not in applied_colours:
+                            break
+
+                u.collection_set_colour(coll, colour)
+                if colour not in applied_colours:
+                    applied_colours.append(colour)
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_LinkObjectsInObjectSetsToCollections(bpy.types.Operator):
+    """
+    Links objects in selected Object Set into collections named as the Set they are contained in.
+    """
+
+    bl_label = "Link to collections"
+    bl_idname = "r0tools.link_objects_in_set_to_collections"
+    bl_description = "Links Objects in the selected Object Set (Highlighted in the Set List) into a collection that is named the same as the set they are contained in.\n\nMODIFIERS:- SHIFT: Apply this logic to ALL Object Sets"
+    bl_options = {"INTERNAL", "UNDO"}
+
+    do_all = False
+
+    @classmethod
+    def poll(cls, context):
+        return get_object_sets_count() > 0
+
+    def invoke(self, context, event):
+        self.do_all = False  # Always reset
+
+        if event.shift:
+            self.do_all = True
+
+        return self.execute(context)
+
+    def execute(self, context):
+        import random
+
+        if u.IS_DEBUG():
+            print("\n------------- Link Objects In Object Sets To Set Collections -------------")
 
         active_index = get_active_object_set_index()
         active_name = get_object_set_name_at_index(active_index)
@@ -2689,6 +2779,7 @@ classes = [
     SimpleToolbox_OT_RandomiseObjectSetsColours,
     SimpleToolbox_OT_RenameObjectsInObjectSet,
     SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections,
+    SimpleToolbox_OT_LinkObjectsInObjectSetsToCollections,
     
     SimpleToolbox_OT_ToggleWireDisplay,
     
