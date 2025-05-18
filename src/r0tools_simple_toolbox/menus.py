@@ -8,6 +8,7 @@ class SimpleToolbox_MT_ObjectSetsActionsMenu(bpy.types.Menu):
     def draw(self, context):
         from .operators import (
             SimpleToolbox_OT_ForceRefreshObjectSets,
+            SimpleToolbox_OT_LinkObjectsInObjectSetsToCollections,
             SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections,
             SimpleToolbox_OT_RenameObjectsInObjectSet,
         )
@@ -16,6 +17,7 @@ class SimpleToolbox_MT_ObjectSetsActionsMenu(bpy.types.Menu):
         layout.operator(SimpleToolbox_OT_ForceRefreshObjectSets.bl_idname, icon="FILE_REFRESH")
         layout.operator(SimpleToolbox_OT_RenameObjectsInObjectSet.bl_idname, icon="OUTLINER_OB_FONT")
         layout.operator(SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections.bl_idname, icon="COLLECTION_NEW")
+        layout.operator(SimpleToolbox_OT_LinkObjectsInObjectSetsToCollections.bl_idname, icon="COLLECTION_NEW")
 
 
 class SimpleToolbox_MT_VertexGroupsActionsMenu(bpy.types.Menu):
