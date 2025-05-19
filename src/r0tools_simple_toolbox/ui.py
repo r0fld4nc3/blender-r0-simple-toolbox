@@ -79,8 +79,6 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                     row.operator("image.reload", icon="IMAGE_DATA")
                     row = dev_tools_box.row()
                     row.operator(SimpleToolbox_OT_FixImageDataPaths.bl_idname, icon="IMAGE_DATA")
-                row = dev_tools_box.row()
-                row.prop(addon_prefs, "debug", text="Debug", icon="EXPERIMENTAL")
 
         # ====== Find Modifiers on Objects ======
         if cat_show_find_modifiers_ops and not cat_show_object_ops:
