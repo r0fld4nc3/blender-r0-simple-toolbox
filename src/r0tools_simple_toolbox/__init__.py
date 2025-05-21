@@ -1,5 +1,5 @@
 bl_info = {
-    "name": "(DEV) r0Tools - Simple Toolbox",
+    "name": "(DEV) r0Tools - Simple Toolbox.object-sets-mesh-stats",
     "author": "Artur Rosário",
     "version": (0, 0, 30),
     "blender": (4, 2, 0),
