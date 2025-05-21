@@ -164,6 +164,7 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
     verts: bpy.props.IntProperty(default=0)  # type: ignore
     edges: bpy.props.IntProperty(default=0)  # type: ignore
     faces: bpy.props.IntProperty(default=0)  # type: ignore
+    tris: bpy.props.IntProperty(default=0)  # type: ignore
 
     def assign_object(self, obj):
         if self.separator:
@@ -259,6 +260,7 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
         show_verts = addon_props.object_sets_show_mesh_verts
         show_edges = addon_props.object_sets_show_mesh_edges
         show_faces = addon_props.object_sets_show_mesh_faces
+        show_tris = addon_props.object_sets_show_mesh_tris
 
         # Check if the item to insert is a separator
         if item.separator:
@@ -333,7 +335,7 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
             info_row.separator(factor=1.0)
 
             # Expand/Collapse Mesh Stats
-            if any([show_verts, show_edges, show_faces]):
+            if any([show_verts, show_edges, show_faces, show_tris]):
                 expand_icon = "TRIA_DOWN" if item.expanded else "TRIA_LEFT"
                 info_row.prop(item, "expanded", text="", icon=expand_icon, emboss=False)
 
@@ -366,6 +368,11 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
                     if show_faces:
                         row_face_count = col_stats.row(align=True)
                         row_face_count.label(text=f" {item.faces:,}", icon="FACESEL")
+
+                    # Triangles
+                    if show_tris:
+                        row_tri_count = col_stats.row(align=True)
+                        row_tri_count.label(text=f" {item.tris:,}", icon="MESH_DATA")
 
         elif self.layout_type in {"GRID"}:
             layout.alignment = "CENTER"
@@ -500,6 +507,7 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
     object_sets_show_mesh_verts: BoolProperty(default=False, name="Show Total Vertex Count", description="Toggle showing Object Set's total vertex count")  # type: ignore
     object_sets_show_mesh_edges: BoolProperty(default=False, name="Show Total Edge Count", description="Toggle showing Object Set's total edge count")  # type: ignore
     object_sets_show_mesh_faces: BoolProperty(default=False, name="Show Total Face Count", description="Toggle showing Object Set's total face count")  # type: ignore
+    object_sets_show_mesh_tris: BoolProperty(default=False, name="Show Total Triangle Count", description="Toggle showing Object Set's total triangle count")  # type: ignore
 
     show_vertex_groups: BoolProperty(  # type: ignore
         name="Vertex Groups", description="Manage Vertex Groups of selected objects", default=False

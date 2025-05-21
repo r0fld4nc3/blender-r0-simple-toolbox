@@ -166,8 +166,9 @@ def object_sets_update_mesh_stats(scene):
     show_verts = addon_props.object_sets_show_mesh_verts
     show_edges = addon_props.object_sets_show_mesh_edges
     show_faces = addon_props.object_sets_show_mesh_faces
+    show_tris = addon_props.object_sets_show_mesh_tris
 
-    if not any([show_verts, show_edges, show_faces]):
+    if not any([show_verts, show_edges, show_faces, show_tris]):
         return
 
     # Get the evaluated version of the object (with modifiers applied)
@@ -177,6 +178,7 @@ def object_sets_update_mesh_stats(scene):
         total_verts = 0
         total_edges = 0
         total_faces = 0
+        total_tris = 0
 
         for obj_item in object_set.objects:
             obj = obj_item.object
@@ -195,6 +197,10 @@ def object_sets_update_mesh_stats(scene):
                     total_edges += len(to_mesh.edges)
                 if show_faces:
                     total_faces += len(to_mesh.polygons)
+                if show_tris:
+                    for poly in to_mesh.polygons:
+                        # Number of triangles = vertices in face - 2
+                        total_tris += len(poly.vertices) - 2
             except Exception as e:
                 print(f"Error processing {obj.name}: {e}")
             finally:
@@ -209,6 +215,8 @@ def object_sets_update_mesh_stats(scene):
             object_set.edges = total_edges
         if show_faces:
             object_set.faces = total_faces
+        if show_tris:
+            object_set.tris = total_tris
 
 
 @bpy.app.handlers.persistent
@@ -281,6 +289,8 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     row.prop(addon_props, "object_sets_show_mesh_edges", text="", icon="EDGESEL")
     # Show mesh faces
     row.prop(addon_props, "object_sets_show_mesh_faces", text="", icon="FACESEL")
+    # Show mesh triangles
+    row.prop(addon_props, "object_sets_show_mesh_tris", text="", icon="MESH_DATA")
 
     row = parent.row()
     split = row.split(factor=0.92)  # Affects right side button width
