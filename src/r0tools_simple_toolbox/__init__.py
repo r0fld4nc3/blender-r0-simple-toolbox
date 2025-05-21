@@ -105,7 +105,7 @@ class AddonRegisterHelper:
         for module in reversed(self.modules):
             if hasattr(module, "unregister"):
                 try:
-                    print(f"[INIT] Register module: {module.__name__}")
+                    print(f"[INIT] Unregister module: {module.__name__}")
                     module.unregister()
                 except Exception as e:
                     print(f"[ERROR] Error unregistering module {module.__name__}: {str(e)}")
