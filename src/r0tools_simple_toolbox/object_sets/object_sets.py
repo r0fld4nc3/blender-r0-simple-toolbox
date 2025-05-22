@@ -246,7 +246,7 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
         object_sets_box: Optional box to draw within
     """
     from ..menus import SimpleToolbox_MT_ObjectSetsActionsMenu
-    from . import (
+    from .operators import (
         SimpleToolbox_OT_AddObjectSetPopup,
         SimpleToolbox_OT_AddToObjectSet,
         SimpleToolbox_OT_MoveObjectSetItem,

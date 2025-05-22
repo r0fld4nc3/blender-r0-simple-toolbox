@@ -22,6 +22,7 @@ modules = (
     ".ui",
     ".utils",
     ".object_sets",
+    ".vertex_groups",
     ".depsgraph",
     ".defines",
     ".repo.operators",
