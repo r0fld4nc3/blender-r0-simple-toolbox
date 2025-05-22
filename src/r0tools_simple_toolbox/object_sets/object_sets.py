@@ -253,7 +253,6 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
         SimpleToolbox_OT_RandomiseObjectSetsColours,
         SimpleToolbox_OT_RemoveFromObjectSet,
         SimpleToolbox_OT_RemoveObjectSet,
-        SimpleToolbox_OT_SelectObjectSet,
     )
 
     addon_prefs = u.get_addon_prefs()
@@ -312,8 +311,6 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     col.operator(SimpleToolbox_OT_RemoveObjectSet.bl_idname, text="-")
     if len(addon_props.object_sets) > 1:  # Show buttons only when applicable
         col.separator(factor=1.0)  # Spacer
-        # col.operator(SimpleToolbox_OT_MoveObjectSetItemUp.bl_idname, icon="TRIA_UP", text="")
-        # col.operator(SimpleToolbox_OT_MoveObjectSetItemDown.bl_idname, icon="TRIA_DOWN", text="")
         col.operator(SimpleToolbox_OT_MoveObjectSetItem.bl_idname, icon="TRIA_UP", text="").direction = "UP"
         col.operator(SimpleToolbox_OT_MoveObjectSetItem.bl_idname, icon="TRIA_DOWN", text="").direction = "DOWN"
 
@@ -336,7 +333,3 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     row_col = split.row(align=True)
     row_col.operator(SimpleToolbox_OT_AddToObjectSet.bl_idname)
     row_col.operator(SimpleToolbox_OT_RemoveFromObjectSet.bl_idname)
-    # Select Object Set Button
-    # row_col = split.row()
-    # op = row_col.operator(SimpleToolbox_OT_SelectObjectSet.bl_idname)
-    # op.set_index = -1
