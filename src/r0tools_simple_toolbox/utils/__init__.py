@@ -10,6 +10,7 @@ from ..object_sets.object_sets import *  # isort: skip
 from .vertex_groups import *  # isort: skip
 
 package = __name__
+module = "UTILS"
 
 # fmt: off
 # List of submodlules, keep in sync with imports
@@ -39,16 +40,16 @@ def _import_submodules():
                 module = importlib.import_module(f".{module_name}", package)
 
             _module_objects.append(module)
-            print(f"[UTILS] Imported: {module.__name__}")
+            print(f"[{module}] Imported: {module.__name__}")
         except Exception as e:
-            print(f"[UTILS] Error importing {module_name}: {str(e)}")
+            print(f"[{module}] Error importing {module_name}: {str(e)}")
 
     return _module_objects
 
 
 def register():
     global _module_objects
-    print("[UTILS] Registering utility submodules")
+    print("[{module}] Registering utility submodules")
 
     if not _module_objects:
         _import_submodules()
@@ -56,20 +57,20 @@ def register():
     for module in _module_objects:
         if hasattr(module, "register"):
             try:
-                print(f"[UTILS] Registering {module.__name__}")
+                print(f"[{module}] Registering {module.__name__}")
                 module.register()
             except Exception as e:
-                print(f"[UTILS] Error registering {module.__name__}: {str(e)}")
+                print(f"[{module}] Error registering {module.__name__}: {str(e)}")
 
 
 def unregister():
     global _module_objects
-    print("[UTILS] Unregistering utility submodules")
+    print("[{module}] Unregistering utility submodules")
 
     for module in reversed(_module_objects):
         if hasattr(module, "register"):
             try:
-                print(f"[UTILS] Unregistering {module.__name__}")
+                print(f"[{module}] Unregistering {module.__name__}")
                 module.unregister()
             except Exception as e:
-                print(f"[UTILS] Error unregistering {module.__name__}: {str(e)}")
+                print(f"[{module}] Error unregistering {module.__name__}: {str(e)}")
