@@ -249,8 +249,7 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     from ..operators import (
         SimpleToolbox_OT_AddObjectSetPopup,
         SimpleToolbox_OT_AddToObjectSet,
-        SimpleToolbox_OT_MoveObjectSetItemDown,
-        SimpleToolbox_OT_MoveObjectSetItemUp,
+        SimpleToolbox_OT_MoveObjectSetItem,
         SimpleToolbox_OT_RandomiseObjectSetsColours,
         SimpleToolbox_OT_RemoveFromObjectSet,
         SimpleToolbox_OT_RemoveObjectSet,
@@ -313,8 +312,10 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     col.operator(SimpleToolbox_OT_RemoveObjectSet.bl_idname, text="-")
     if len(addon_props.object_sets) > 1:  # Show buttons only when applicable
         col.separator(factor=1.0)  # Spacer
-        col.operator(SimpleToolbox_OT_MoveObjectSetItemUp.bl_idname, icon="TRIA_UP", text="")
-        col.operator(SimpleToolbox_OT_MoveObjectSetItemDown.bl_idname, icon="TRIA_DOWN", text="")
+        # col.operator(SimpleToolbox_OT_MoveObjectSetItemUp.bl_idname, icon="TRIA_UP", text="")
+        # col.operator(SimpleToolbox_OT_MoveObjectSetItemDown.bl_idname, icon="TRIA_DOWN", text="")
+        col.operator(SimpleToolbox_OT_MoveObjectSetItem.bl_idname, icon="TRIA_UP", text="").direction = "UP"
+        col.operator(SimpleToolbox_OT_MoveObjectSetItem.bl_idname, icon="TRIA_DOWN", text="").direction = "DOWN"
 
     col.separator(factor=1.0)  # Spacer
     col.operator(SimpleToolbox_OT_RandomiseObjectSetsColours.bl_idname, text="", icon="NODE_MATERIAL")

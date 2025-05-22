@@ -1564,13 +1564,14 @@ class SimpleToolbox_OT_RenameObjectSet(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class SimpleToolbox_OT_MoveObjectSetItemUp(bpy.types.Operator):
-    bl_label = "Move Object Set Up"
-    bl_idname = "r0tools.move_object_set_item_up"
-    bl_description = "Move the selected Object Set up.\n\nMODIFIERS:\n- SHIFT: Move to Top"
+class SimpleToolbox_OT_MoveObjectSetItem(bpy.types.Operator):
+    bl_label = "Move Object Set"
+    bl_idname = "r0tools.objet_set_item_move"
+    bl_description = "Move the selected Object Set up or down.\n\nMODIFIERS:\n- SHIFT: Move to Top/Bottom"
     bl_options = {"INTERNAL"}
 
     absolute: BoolProperty(default=False)  # type: ignore
+    direction: bpy.props.StringProperty(default="")  # type: ignore
 
     def invoke(self, context, event):
         self.absolute = False  # Always reset
@@ -1582,58 +1583,33 @@ class SimpleToolbox_OT_MoveObjectSetItemUp(bpy.types.Operator):
 
     def execute(self, context):
         active_index = get_active_object_set_index()
+        object_sets = get_object_sets()
         separator = get_object_set_at_index(active_index).separator
 
-        if active_index > 0:
-            if self.absolute:
-                to_index = 0  # All the way up
-            else:
-                to_index = active_index - 1
+        if self.direction == "UP":
+            if active_index > 0:
+                if self.absolute:
+                    to_index = 0  # All the way up
+                else:
+                    to_index = active_index - 1
 
-            move_object_set_to_index(active_index, to_index)
-            set_active_object_set_index(to_index)
-            if not separator:
-                object_set_at_index_update_count(active_index)
-                object_set_at_index_update_count(to_index)
+                move_object_set_to_index(active_index, to_index)
+                set_active_object_set_index(to_index)
+                if not separator:
+                    object_set_at_index_update_count(active_index)
+                    object_set_at_index_update_count(to_index)
+        elif self.direction == "DOWN":
+            if active_index < len(object_sets) - 1:
+                if self.absolute:
+                    to_index = len(object_sets) - 1  # All the way down
+                else:
+                    to_index = active_index + 1
 
-        return {"FINISHED"}
-
-
-class SimpleToolbox_OT_MoveObjectSetItemDown(bpy.types.Operator):
-    """Move the active Object Set down in the list"""
-
-    bl_label = "Move Object Set Down"
-    bl_idname = "r0tools.move_object_set_item_down"
-    bl_description = "Move the selected Object Set down.\n\nMODIFIERS:\n- SHIFT: Move to Bottom"
-    bl_options = {"INTERNAL"}
-
-    absolute: BoolProperty(default=False)  # type: ignore
-
-    def invoke(self, context, event):
-        self.absolute = False  # Always reset
-
-        if event.shift:
-            self.absolute = True
-
-        return self.execute(context)
-
-    def execute(self, context):
-        addon_props = u.get_addon_props()
-        object_sets = addon_props.object_sets
-        active_index = get_active_object_set_index()
-        separator = addon_props.object_sets[active_index].separator
-
-        if active_index < len(object_sets) - 1:
-            if self.absolute:
-                to_index = len(object_sets) - 1  # All the way down
-            else:
-                to_index = active_index + 1
-
-            object_sets.move(active_index, to_index)
-            set_active_object_set_index(to_index)
-            if not separator:
-                addon_props.object_sets[active_index].update_count()
-                addon_props.object_sets[to_index].update_count()
+                object_sets.move(active_index, to_index)
+                set_active_object_set_index(to_index)
+                if not separator:
+                    object_sets[active_index].update_count()
+                    object_sets[to_index].update_count()
 
         return {"FINISHED"}
 
@@ -2769,8 +2745,7 @@ classes = [
     SimpleToolbox_OT_ObjectSetsModal,
     SimpleToolbox_OT_AddObjectSetPopup,
     SimpleToolbox_OT_RenameObjectSet,
-    SimpleToolbox_OT_MoveObjectSetItemUp,
-    SimpleToolbox_OT_MoveObjectSetItemDown,
+    SimpleToolbox_OT_MoveObjectSetItem,
     SimpleToolbox_OT_RemoveObjectSet,
     SimpleToolbox_OT_AddToObjectSet,
     SimpleToolbox_OT_RemoveFromObjectSet,
