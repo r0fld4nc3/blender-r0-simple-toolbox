@@ -274,7 +274,7 @@ def set_obj_active_vertex_group_index(obj, vertex_group: int) -> bool:
 
 def draw_vertex_groups_uilist(layout, context, vertex_groups_box=None):
     from ..menus import SimpleToolbox_MT_VertexGroupsActionsMenu
-    from ..operators import (
+    from .operators import (
         SimpleToolbox_OT_VgroupsAddPopup,
         SimpleToolbox_OT_VgroupsAssignVertices,
         SimpleToolbox_OT_VgroupsDeselectVertices,

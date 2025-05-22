@@ -293,7 +293,7 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
     """UI List where each entry is an Object Set that itself contains references to Objects added to the set"""
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
-        from .operators import SimpleToolbox_OT_SelectObjectSet
+        from .object_sets import SimpleToolbox_OT_SelectObjectSet
 
         addon_prefs = u.get_addon_prefs()
         addon_props = u.get_addon_props()

@@ -6,7 +6,7 @@ class SimpleToolbox_MT_ObjectSetsActionsMenu(bpy.types.Menu):
     bl_label = "Object Sets Actions"
 
     def draw(self, context):
-        from .operators import (
+        from .object_sets import (
             SimpleToolbox_OT_ForceRefreshObjectSets,
             SimpleToolbox_OT_LinkObjectsInObjectSetsToCollections,
             SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections,
@@ -25,7 +25,7 @@ class SimpleToolbox_MT_VertexGroupsActionsMenu(bpy.types.Menu):
     bl_label = "Vertex Groups Actions"
 
     def draw(self, context):
-        from .operators import SimpleToolbox_OT_RemoveUnusedVertexGroups
+        from .vertex_groups import SimpleToolbox_OT_RemoveUnusedVertexGroups
 
         layout = self.layout
         layout.operator(SimpleToolbox_OT_RemoveUnusedVertexGroups.bl_idname, icon="X")
