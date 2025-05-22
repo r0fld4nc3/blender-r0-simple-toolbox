@@ -21,6 +21,7 @@ modules = (
     ".menus",
     ".ui",
     ".utils",
+    ".object_sets",
     ".depsgraph",
     ".defines",
     ".repo.operators",

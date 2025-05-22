@@ -6,7 +6,7 @@ class SimpleToolbox_MT_ObjectSetsActionsMenu(bpy.types.Menu):
     bl_label = "Object Sets Actions"
 
     def draw(self, context):
-        from .operators import (
+        from .object_sets import (
             SimpleToolbox_OT_ForceRefreshObjectSets,
             SimpleToolbox_OT_LinkObjectsInObjectSetsToCollections,
             SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections,
