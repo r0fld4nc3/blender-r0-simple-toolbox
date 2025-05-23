@@ -176,9 +176,6 @@ def vertex_groups_list_update(scene, context):
             print(f"[DEBUG] Vertex Groups Panel is not visible, exiting from running continuous property list update.")
         return None
 
-    if not hasattr(bpy.context, "selected_objects"):
-        return
-
     if bpy.context.selected_objects:
         if u.IS_DEBUG():
             print("------------- Vertex Groups List Update -------------")
