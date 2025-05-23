@@ -527,7 +527,7 @@ def property_list_update(scene, context, force_run=False):
     # Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock"
     if not hasattr(scene, TOOLBOX_PROPS_NAME):
         print(f"[INFO] [GENERAL] Scene does not have proper attribute. Skipping.")
-        return
+        return None
 
     addon_props = get_addon_props()
 
@@ -539,6 +539,11 @@ def property_list_update(scene, context, force_run=False):
             )
         return None
 
+    # Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock"
+    if not hasattr(bpy.context, "selected_objects"):
+        print(f"[INFO] [GENERAL] Context has not attribute 'selected_objects'. Skipping.")
+        return None
+
     if bpy.context.selected_objects or force_run:
         current_selection = {obj.name for obj in iter_scene_objects(selected=True)}
 
@@ -548,7 +553,11 @@ def property_list_update(scene, context, force_run=False):
         # Store the current selection state before clearing the list
         selection_state = _custom_properties_store_states()
 
-        addon_props.custom_property_list.clear()
+        try:
+            addon_props.custom_property_list.clear()
+        except Exception as e:
+            print(f"[ERROR] [GENERAL] {e}")
+            return None
 
         # Add unique custom properties to the set
         unique_object_data_props = set()
