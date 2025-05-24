@@ -2,7 +2,7 @@ from pathlib import Path
 
 import bpy
 
-from ..defines import INTERNAL_NAME
+from ..defines import INTERNAL_NAME, TOOLBOX_PROPS_NAME
 
 
 def get_addon_props():
@@ -88,6 +88,42 @@ def get_uvmap_size_y():
     """Get selected UV Map Size in Y"""
     addon_props = get_addon_props()
     return int(addon_props.uv_size_y)
+
+
+def is_writing_context_safe(scene, check_addon_props: bool = False) -> bool:
+    """
+    Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock
+    """
+
+    from .general import IS_DEBUG
+
+    addon_prefs = get_addon_prefs()
+
+    if not hasattr(scene, TOOLBOX_PROPS_NAME):
+        if addon_prefs is not None and hasattr(addon_prefs, "lock_states_avoided"):
+            addon_prefs.lock_states_avoided += 1
+        if IS_DEBUG():
+            print(f"[INFO] [CONTEXT] Scene does not have proper attribute. Skipping.")
+        return False
+
+    if check_addon_props:
+        addon_props = get_addon_props()
+
+        if not addon_props or addon_props is None:
+            if addon_prefs is not None and hasattr(addon_prefs, "lock_states_avoided"):
+                addon_prefs.lock_states_avoided += 1
+            if IS_DEBUG():
+                print(f"[INFO] [CONTEXT] Addon Properties is {addon_props}. Skipping.")
+            return None
+
+    if not hasattr(bpy.context, "selected_objects"):
+        if addon_prefs is not None and hasattr(addon_prefs, "lock_states_avoided"):
+            addon_prefs.lock_states_avoided += 1
+        if IS_DEBUG():
+            print(f"[INFO] [CONTEXT] Context has no attribute 'selected_objects'. Skipping.")
+        return False
+
+    return True
 
 
 def save_preferences():
