@@ -152,28 +152,16 @@ def vertex_groups_list_add_groups(props: dict, selection_state: dict):
 
 
 def vertex_groups_list_update(scene, context):
-    # Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock"
-    if not hasattr(scene, TOOLBOX_PROPS_NAME):
-        print(f"[INFO] [VERTEX_GROUPS] Scene does not have proper attribute. Skipping.")
-        return
+    if not u.is_writing_context_safe(scene, check_addon_props=True):
+        return None
 
     addon_props = u.get_addon_props()
-
-    # Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock"
-    if not addon_props or addon_props is None:
-        print(f"[INFO] [VERTEX_GROUPS] Addon Properties is None. Skipping.")
-        return None
-    elif not hasattr(bpy.context, "selected_objects"):
-        print(f"[INFO] [VERTEX_GROUPS] Context has not attribute 'selected_objects'. Skipping.")
-        return None
 
     if not addon_props.vgroups_do_update:
         return None
 
     if not addon_props.show_vertex_groups:
         # Skip update if panel is not visible
-        if u.IS_DEBUG():
-            print(f"[DEBUG] Vertex Groups Panel is not visible, exiting from running continuous property list update.")
         return None
 
     if bpy.context.selected_objects:

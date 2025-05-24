@@ -118,10 +118,8 @@ def cleanup_object_set_invalid_references(scene):
     if u.IS_DEBUG():
         print("------------- Cleanup Object Sets Invalid References -------------")
 
-    # Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock"
-    if not hasattr(scene, TOOLBOX_PROPS_NAME):
-        print(f"[INFO] [OBJECT_SETS] Scene does not have proper attribute. Skipping.")
-        return
+    if not u.is_writing_context_safe(scene, check_addon_props=True):
+        return None
 
     addon_props = u.get_addon_props()
 
@@ -156,10 +154,8 @@ def object_sets_update_mesh_stats(scene):
     if u.IS_DEBUG():
         print("------------- Object Sets Update Mesh Stats -------------")
 
-    # Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock"
-    if not hasattr(scene, TOOLBOX_PROPS_NAME):
-        print(f"[INFO] [OBJECT_SETS] Scene does not have proper attribute. Skipping.")
-        return
+    if not u.is_writing_context_safe(scene, check_addon_props=True):
+        return None
 
     addon_props = u.get_addon_props()
 
@@ -225,6 +221,7 @@ def refresh_object_sets_colours(context):
     if u.IS_DEBUG():
         print("[OBJECT_SETS] Force Refreshing Object Sets' Colours")
     addon_prefs = u.get_addon_prefs()
+
     object_sets = get_object_sets()
 
     if not addon_prefs.object_sets_use_colour:
