@@ -524,19 +524,15 @@ def property_list_update(scene, context, force_run=False):
     when object selection changes.
     """
 
-    # Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock"
-    if not hasattr(scene, TOOLBOX_PROPS_NAME):
-        print(f"[INFO] [GENERAL] Scene does not have proper attribute. Skipping.")
+    from .context import is_writing_context_safe
+
+    if not is_writing_context_safe(scene, check_addon_props=True):
         return None
 
     addon_props = get_addon_props()
 
     if not addon_props.show_custom_property_list_prop and not force_run:
         # Skip update if panel is not visible
-        if IS_DEBUG():
-            print(
-                f"[DEBUG] Custom Properties Panel is not visible, exiting from running continuous property list update."
-            )
         return None
 
     # Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock"

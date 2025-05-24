@@ -639,52 +639,58 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
     debug: BoolProperty(name="Debug", description="Set Debug State", default=False)  # type: ignore
 
-    check_update_startup: BoolProperty(  # type: ignore
+    lock_states_avoided: IntProperty(
+        name="Avoided Locks",
+        description="Silly counter to log how many crashes were avoided by forbidden ID context writes",
+        default=0,
+    )  # type: ignore
+
+    check_update_startup: BoolProperty(
         name="Check Update on Startup",
         description="Flag to set whether to check for extension updates on startup or not",
         default=True,
-    )
+    )  # type: ignore
 
-    experimental_features: BoolProperty(  # type: ignore
+    experimental_features: BoolProperty(
         name="Experimental Features",
         description="Enable experimental features",
         default=False,
-    )
+    )  # type: ignore
 
-    dev_tools: BoolProperty(  # type: ignore
+    dev_tools: BoolProperty(
         name="Dev Tools",
         description="Enable Dev Tool features",
         default=False,
-    )
+    )  # type: ignore
 
-    clear_sharp_axis_float_prop: FloatProperty(  # type: ignore
+    clear_sharp_axis_float_prop: FloatProperty(
         name="Clear Sharp Axis Threshold",
         default=0.0,
         min=0.0,
         description="Threshold value for vertex/edge selection",
         update=lambda self, context: u.save_preferences(),
-    )
+    )  # type: ignore
 
-    object_sets_use_colour: BoolProperty(  # type: ignore
+    object_sets_use_colour: BoolProperty(
         name="Object Sets Use Colour",
         description="Objects Sets are given a colour. This colour is set as the Object's Colour depending on which set it is in and the viewport wire display is set to use Object as the display type",
         default=True,
-    )
+    )  # type: ignore
 
-    object_sets_colour_allow_override: BoolProperty(  # type: ignore
+    object_sets_colour_allow_override: BoolProperty(
         name="Allow Colour Override",
         description="Allow colour override for objects that area already present in Object Sets and are added or modified in other sets. When disallowed, the object will (hopefully) only retain the colour of the first Object Set is contained in.\nWhen allowed, the object will change colours freely depending on the last modified set, given the object is contained within.",
         default=False,
-    )
+    )  # type: ignore
 
-    object_sets_default_colour: FloatVectorProperty(  # type: ignore
+    object_sets_default_colour: FloatVectorProperty(
         name="Object Sets Default Colour",
         subtype="COLOR",
         size=4,  # RGBA
         min=0.0,
         max=1.0,
         default=(0.0, 0.0, 0.0, 1.0),
-    )
+    )  # type: ignore
 
     object_sets_modal_width: IntProperty(name="Object Sets Modal Width", default=300, min=0, max=400)  # type: ignore
 
@@ -697,6 +703,9 @@ class AddonPreferences(bpy.types.AddonPreferences):
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = False
+
+        lock_states_avoided_row = layout.row()
+        lock_states_avoided_row.label(text=f"Lock States Avoided: {self.lock_states_avoided}")
 
         row = layout.row()
         row.prop(self, "debug", text="Debug Mode")

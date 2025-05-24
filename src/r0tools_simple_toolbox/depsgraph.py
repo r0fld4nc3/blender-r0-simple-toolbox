@@ -9,6 +9,10 @@ def handler_depsgraph_post_update(scene, depsgraph):
     """Handler that runs after depsgraph updates"""
     # Check specifically for object deletions
     if depsgraph.id_type_updated(u.DEPSGRAPH_ID_TYPES.OBJECT):
+        if not u.is_writing_context_safe(scene, check_addon_props=True):
+            print("[INFO] [DEPSGRAH] We avoided an addon lock crash.")
+            return None
+
         u.cleanup_object_set_invalid_references(scene)
         u.object_sets_update_mesh_stats(scene)
         u.property_list_update(scene, bpy.context)
