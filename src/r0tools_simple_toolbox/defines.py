@@ -1,5 +1,7 @@
 from . import bl_info
 
+_mod = "DEFINES"
+
 
 def _version_str(version_tuple: tuple):
     v_str = ".".join([str(n) for n in version_tuple])
@@ -16,11 +18,11 @@ def _set_addon_internal_name(from_name: str):
         if len(split) >= 3 and split[0].lower() == "bl_ext":  # Probably an extension
             for split_item in split:
                 if from_name in split_item:
-                    print(f"{from_name} is an extension: {__package__}")
+                    print(f"[INFO] [{_mod}] {from_name} is an extension: {__package__}")
                     return __package__
 
     # Extension name not found
-    print(f"{from_name} not found as an extension")
+    print(f"[INFO] [{_mod}] {from_name} not found as an extension")
     return from_name
 
 

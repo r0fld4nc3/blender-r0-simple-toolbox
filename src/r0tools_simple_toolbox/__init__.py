@@ -1,7 +1,7 @@
 bl_info = {
     "name": "r0Tools - Simple Toolbox",
     "author": "Artur Rosário",
-    "version": (0, 0, 29),
+    "version": (0, 0, 30),
     "blender": (4, 2, 0),
     "location": "3D View > Tool",
     "description": "Miscellaneous Utilities",
@@ -21,11 +21,15 @@ modules = (
     ".menus",
     ".ui",
     ".utils",
+    ".object_sets",
+    ".vertex_groups",
     ".depsgraph",
     ".defines",
     ".repo.operators",
     ".repo.ui",
 )
+
+_mod = "__INIT__"
 
 
 def get_module_names() -> List[str]:
@@ -39,7 +43,7 @@ def cleanup_modules():
     for module_name in module_names:
         if module_name in sys.modules:
             del sys.modules[module_name]
-            print(f"Cleaned up module: {module_name}")
+            print(f"[INFO] [{_mod}] Cleaned up module: {module_name}")
 
 
 def import_modules() -> List[object]:
@@ -49,9 +53,9 @@ def import_modules() -> List[object]:
         try:
             imported_module = importlib.import_module(module, __package__)
             module_objects.append(imported_module)
-            print(f"Imported: {imported_module.__name__}")
+            print(f"[INFO] [{_mod}] Imported: {imported_module.__name__}")
         except Exception as e:
-            print(f"Error importing {module}: {str(e)}")
+            print(f"[INFO] [{_mod}] Error importing {module}: {str(e)}")
     return module_objects
 
 
@@ -60,9 +64,9 @@ def reload_modules(module_objects: List[object]):
     for module in module_objects:
         try:
             importlib.reload(module)
-            print(f"Reloaded: {module.__name__}")
+            print(f"[INFO] [{_mod}] Reloaded: {module.__name__}")
         except Exception as e:
-            print(f"Error reloading {module.__name__}: {str(e)}")
+            print(f"[INFO] [{_mod}] Error reloading {module.__name__}: {str(e)}")
 
 
 class AddonRegisterHelper:
@@ -89,10 +93,10 @@ class AddonRegisterHelper:
         for module in self.modules:
             if hasattr(module, "register"):
                 try:
-                    print(f"[INIT] Register module: {module.__name__}")
+                    print(f"[INFO] [{_mod}] Register module: {module.__name__}")
                     module.register()
                 except Exception as e:
-                    print(f"[ERROR] Error registering module {module.__name__}: {str(e)}")
+                    print(f"[ERROR] [{_mod}] Error registering module {module.__name__}: {str(e)}")
 
         print("-------------------------------------------------------------\n")
 
@@ -105,10 +109,10 @@ class AddonRegisterHelper:
         for module in reversed(self.modules):
             if hasattr(module, "unregister"):
                 try:
-                    print(f"[INIT] Register module: {module.__name__}")
+                    print(f"[INFO] [{_mod}] Unregister module: {module.__name__}")
                     module.unregister()
                 except Exception as e:
-                    print(f"[ERROR] Error unregistering module {module.__name__}: {str(e)}")
+                    print(f"[ERROR] [{_mod}] Error unregistering module {module.__name__}: {str(e)}")
 
 
 # Create global instance

@@ -2,23 +2,15 @@ import importlib
 import sys
 
 # Import order here is really important!
-from .constants import *  # isort: skip
-from .context import *  # isort: skip
-from .custom_transform import *  # isort: skip
-from .general import *  # isort: skip
-from ..object_sets.object_sets import *  # isort: skip
-from ..vertex_groups.vertex_groups import *  # isort: skip
+from .operators import *  # isort: skip
 
 package = __name__
-_mod = "UTILS.__INIT__"
+_mod = "OBJECT_SETS"
 
 # fmt: off
 # List of submodlules, keep in sync with imports
 submodules = [
-    "constants",
-    "context",
-    "custom_transform",
-    "general",
+    "operators",
 ]
 # fmt: on
 _module_objects = []
@@ -63,7 +55,7 @@ def register():
 
 def unregister():
     global _module_objects
-    print(f"[INFO] [{_mod}] Unregistering utility submodules")
+    print(f"[INFO] [{_mod}]  Unregistering utility submodules")
 
     for module in reversed(_module_objects):
         if hasattr(module, "register"):

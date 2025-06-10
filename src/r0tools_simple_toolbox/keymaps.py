@@ -3,6 +3,8 @@ import rna_keymap_ui
 
 from . import utils as u
 
+_mod = "KEYMAPS"
+
 KEYMAP_CONFIGS = {
     "r0tools.toggle_wire_display_mode": {
         "default_key": "FOUR",  # Default key if no user override.
@@ -99,7 +101,7 @@ addon_keymaps = []
 
 
 def register_keymaps():
-    print(f"[KEYMAPS] Register Keymaps")
+    print(f"[INFO] [{_mod}] Register Keymaps")
     addon_prefs = u.get_addon_prefs()
     wm = bpy.context.window_manager
     kc = wm.keyconfigs.addon
@@ -126,10 +128,10 @@ def register_keymaps():
 
 
 def unregister_keymaps():
-    print(f"[KEYMAPS] Unregister Keymaps")
+    print(f"[INFO] [{_mod}] Unregister Keymaps")
 
     for km, kmi in addon_keymaps:
-        print(f"[KEYMAPS] Remove {kmi.idname}")
+        print(f"[INFO] [{_mod}] Remove {kmi.idname}")
         km.keymap_items.remove(kmi)
 
     addon_keymaps.clear()

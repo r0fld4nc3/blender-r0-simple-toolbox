@@ -11,6 +11,8 @@ TEXTURE_SIZE_X = 4096  # Texture resolution in pixels (e.g., 4096x4096)
 TEXTURE_SIZE_Y = 4096  # Texture resolution in pixels (e.g., 4096x4096)
 TEXTURE_SIZE_SQ = TEXTURE_SIZE_X * TEXTURE_SIZE_Y
 
+_mod = "UV_OPS.METHODS"
+
 
 def get_uv_islands(obj):
     """Find UV islands in an object's active UV map while correctly handling overlapping islands."""
@@ -106,7 +108,7 @@ def calculate_uv_area(uv_x: int, uv_y: int, obj, islands):
 
     if IS_DEBUG():
         if batch_print:
-            print("\n".join(batch_print))
+            print(f"[DEBUG] [{_mod}] \n".join(batch_print))
 
     return uv_areas
 
@@ -127,13 +129,13 @@ def select_small_uv_islands(
     """
 
     if IS_DEBUG():
-        print(f"[DEBUG] Selecting Small UV Islands")
-        print(f"[DEBUG] Obj: {obj}")
-        print(f"[DEBUG] UV X: {uv_x}")
-        print(f"[DEBUG] UV Y: {uv_y}")
-        print(f"[DEBUG] Threshold: {threshold}")
-        print(f"[DEBUG] Threshold Pixel Coverage: {threshold_px_coverage}")
-        print(f"[DEBUG] Threshold Percent: {threshold_pct}")
+        print(f"[DEBUG] [{_mod}] Selecting Small UV Islands")
+        print(f"[DEBUG] [{_mod}] Obj: {obj}")
+        print(f"[DEBUG] [{_mod}] UV X: {uv_x}")
+        print(f"[DEBUG] [{_mod}] UV Y: {uv_y}")
+        print(f"[DEBUG] [{_mod}] Threshold: {threshold}")
+        print(f"[DEBUG] [{_mod}] Threshold Pixel Coverage: {threshold_px_coverage}")
+        print(f"[DEBUG] [{_mod}] Threshold Percent: {threshold_pct}")
 
     uv_island_sync = bpy.context.scene.tool_settings.use_uv_select_sync
 
@@ -167,7 +169,7 @@ def select_small_uv_islands(
                 batch_print.add(f"{obj.name} | Island {i} too small: Pixel Area Percentage: {pixel_area_pct}%")
 
     if IS_DEBUG() and batch_print:
-        print("\n".join(batch_print))
+        print(f"[DEBUG] [{_mod}] \n".join(batch_print))
 
     # Switch to Edit Mode to select faces
     bpy.ops.object.mode_set(mode="EDIT")
@@ -197,5 +199,5 @@ if __name__ == "__main__":
                 obj, TEXTURE_SIZE_X, TEXTURE_SIZE_Y, threshold=THRESHOLD
             )
             print(
-                f"Object: {obj.name}, Small UV Islands Selected: {len(small_faces)} Faces, {len(small_verts)} Vertices"
+                f"[INFO] [{_mod}] Object: {obj.name}, Small UV Islands Selected: {len(small_faces)} Faces, {len(small_verts)} Vertices"
             )

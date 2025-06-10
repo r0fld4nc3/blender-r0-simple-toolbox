@@ -2,23 +2,15 @@ import importlib
 import sys
 
 # Import order here is really important!
-from .constants import *  # isort: skip
-from .context import *  # isort: skip
-from .custom_transform import *  # isort: skip
-from .general import *  # isort: skip
-from ..object_sets.object_sets import *  # isort: skip
-from ..vertex_groups.vertex_groups import *  # isort: skip
+from .operators import *  # isort: skip
 
 package = __name__
-_mod = "UTILS.__INIT__"
+_mod = "VERTEX_GROUPS.__INIT__"
 
 # fmt: off
 # List of submodlules, keep in sync with imports
 submodules = [
-    "constants",
-    "context",
-    "custom_transform",
-    "general",
+    "operators",
 ]
 # fmt: on
 _module_objects = []
@@ -40,7 +32,7 @@ def _import_submodules():
             _module_objects.append(module)
             print(f"[INFO] [{_mod}] Imported: {module.__name__}")
         except Exception as e:
-            print(f"[ERROR] [{_mod}] Error importing {module_name}: {str(e)}")
+            print(f"[INFO] [{_mod}] Error importing {module_name}: {str(e)}")
 
     return _module_objects
 
@@ -55,7 +47,7 @@ def register():
     for module in _module_objects:
         if hasattr(module, "register"):
             try:
-                print(f"[INFO] [{_mod}] Registering {module.__name__}")
+                print(f"[INFO] [{_mod}]  Registering {module.__name__}")
                 module.register()
             except Exception as e:
                 print(f"[ERROR] [{_mod}] Error registering {module.__name__}: {str(e)}")

@@ -14,6 +14,8 @@ from . import utils as u
 from .defines import INTERNAL_NAME
 from .keymaps import draw_keymap_settings
 
+_mod = "PROPERTIES"
+
 # ===================================================================
 #   ADDON PROPS
 # ===================================================================
@@ -53,7 +55,14 @@ class R0PROP_UL_VertexGroupsList(bpy.types.UIList):
         row.prop(item, "selected", text="")
         row.prop(item, "locked", text="", icon_only=True, icon="LOCKED" if item.locked else "UNLOCKED", emboss=False)
         row.label(text=f"({item.count})")
-        row.label(text=item.name)
+        # Conditionally allow renaming based on lock status
+        if item.locked:
+            row.label(text=item.name)
+        else:
+            # Need a scaled row to keep layout and also display full name without being cut-off
+            scaled_row = row.row()
+            scaled_row.scale_x = 2.0
+            scaled_row.prop(item, "name", text="", emboss=False)
 
 
 def update_lock_state_callback(self, context):
@@ -75,13 +84,50 @@ def update_lock_state_callback(self, context):
             new_state.locked = self.locked
 
 
+def update_vertex_group_name_callback(self, context):
+    if not hasattr(self, "previous_name"):
+        return
+
+    old_name = getattr(self, "previous_name", self.name)
+    new_name = self.name
+
+    accepted_objects = [u.OBJECT_TYPES.MESH]
+
+    # Store current name for future reference
+    self.previous_name = new_name
+
+    # Skip if name hasn't changed
+    if old_name == new_name:
+        return
+
+    # Do renaming
+    renamed_count = 0
+    if u.IS_DEBUG():
+        renamed_objects = []
+    for obj in context.selected_objects:
+        if obj.type in accepted_objects and old_name in obj.vertex_groups:
+            obj.vertex_groups[old_name].name = new_name
+            renamed_count += 1
+
+            if u.IS_DEBUG():
+                renamed_objects.append(obj.name)
+
+    if renamed_count > 0:
+        print(f"[INFO] [{_mod}] Renamed vertex group '{old_name}' to '{new_name}' in {renamed_count} objects")
+        if u.IS_DEBUG():
+            print("\t• " + "\n\t• ".join(renamed_objects))
+
+
 class R0PROP_PG_VertexGroupPropertyItem(bpy.types.PropertyGroup):
     """Property that represent an entry in the Vertex Groups UI List"""
 
-    name: StringProperty()  # type: ignore
-    count: IntProperty(default=0)  # type: ignore
-    locked: BoolProperty(default=False, update=update_lock_state_callback, description="Lock")  # type: ignore
-    selected: BoolProperty(default=False)  # type: ignore
+    name: StringProperty(name="Vertex Group Name", update=update_vertex_group_name_callback)  # type: ignore
+    count: IntProperty(default=0, name="Object Count", description="Count of objects where this vertex group belongs to")  # type: ignore
+    locked: BoolProperty(default=False, name="Locked", update=update_lock_state_callback, description="Locks the vertex group to prevent modification, such as deletion")  # type: ignore
+    selected: BoolProperty(default=False, name="Selected")  # type: ignore
+
+    # Store previous name for rename ops
+    previous_name: StringProperty(name="Previous Name")  # type: ignore
 
 
 class R0PROP_PG_LockStateEntry(bpy.types.PropertyGroup):
@@ -113,12 +159,12 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
             containing_sets = self.check_object_in_sets(obj)
             if not containing_sets:  # Object not in an Object Set
                 if u.IS_DEBUG():
-                    print(f"[DEBUG] Object {obj.name} not present in any Object Set.")
+                    print(f"[DEBUG] [{_mod}] Object {obj.name} not present in any Object Set.")
                 obj.color = self.set_colour
             elif containing_sets:
                 if u.IS_DEBUG():
                     print(
-                        f"[DEBUG] Object {obj.name} contained in {len(containing_sets)} Object Sets. Allow Colour Override is {allow_override}"
+                        f"[DEBUG] [{_mod}] Object {obj.name} contained in {len(containing_sets)} Object Sets. Allow Colour Override is {allow_override}"
                     )
                 if not allow_override:
                     obj.color = containing_sets[0].set_colour
@@ -160,6 +206,11 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
         default=(0.0, 0.0, 0.0, 1.0),
         update=set_object_set_colour,  # This passes `Context` as an argument....
     )
+    expanded: bpy.props.BoolProperty(default=False, name="Expand")  # type: ignore
+    verts: bpy.props.IntProperty(default=0)  # type: ignore
+    edges: bpy.props.IntProperty(default=0)  # type: ignore
+    faces: bpy.props.IntProperty(default=0)  # type: ignore
+    tris: bpy.props.IntProperty(default=0)  # type: ignore
 
     def assign_object(self, obj):
         if self.separator:
@@ -188,13 +239,13 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
                     self.objects.remove(i)
                     break
             except Exception as e:
-                print(f"[ERROR] [PROPERTIES] '{o.object}' {e}")
+                print(f"[ERROR] [{_mod}] '{o.object}' {e}")
 
         # Check if object still exists:
         try:
             valid = u.is_valid_object_global(obj)
         except Exception as e:
-            print(f"[ERROR] [PROPERTIES] Is valid object global check error: {e}")
+            print(f"[ERROR] [{_mod}] Is valid object global check error: {e}")
             self.update_count()
             return
 
@@ -238,7 +289,7 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
 
         self.count = len(self.objects)
         if u.IS_DEBUG():
-            print(f"[DEBUG] Updated count for Set '{self.name}': {self.count}")
+            print(f"[DEBUG] [{_mod}] Updated count for Set '{self.name}': {self.count}")
 
         self.update_object_set_colour(self)
 
@@ -247,9 +298,15 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
     """UI List where each entry is an Object Set that itself contains references to Objects added to the set"""
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
-        from .operators import SimpleToolbox_OT_SelectObjectSet
+        from .object_sets import SimpleToolbox_OT_SelectObjectSet
 
         addon_prefs = u.get_addon_prefs()
+        addon_props = u.get_addon_props()
+
+        show_verts = addon_props.object_sets_show_mesh_verts
+        show_edges = addon_props.object_sets_show_mesh_edges
+        show_faces = addon_props.object_sets_show_mesh_faces
+        show_tris = addon_props.object_sets_show_mesh_tris
 
         # Check if the item to insert is a separator
         if item.separator:
@@ -261,7 +318,8 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
             return
 
         if self.layout_type in {"DEFAULT", "COMPACT"}:
-            row = layout.row(align=True)
+            main_container = layout.column(align=True)
+            row = main_container.row(align=True)
 
             # Configure accordingly for object sets colour
             if addon_prefs.object_sets_use_colour:
@@ -302,14 +360,6 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
             # Add spacing after the operation is complete
             col_select_set.separator(factor=0.5)
 
-            """
-            if (
-                not addon_prefs.object_sets_use_colour
-                or not addon_prefs.experimental_features
-            ):
-                icon_row = info_row.row(align=True)
-                icon_row.label(text="", icon="MESH_CUBE")
-            """
             # Name
             col_name = info_row.row(align=True)
             col_name.prop(item, "name", text="", emboss=False, icon="NONE")
@@ -318,6 +368,49 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
             col_item_count = info_row.row(align=True)
             col_item_count.alignment = "RIGHT"
             col_item_count.label(text=f"({item.count})", icon="NONE")
+
+            # Fill space to give room to expanded button
+            info_row.separator(factor=1.0)
+
+            # Expand/Collapse Mesh Stats
+            if any([show_verts, show_edges, show_faces, show_tris]):
+                expand_icon = "TRIA_DOWN" if item.expanded else "TRIA_LEFT"
+                info_row.prop(item, "expanded", text="", icon=expand_icon, emboss=False)
+
+                if item.expanded:
+                    # Indented row
+                    stats_row = main_container.row()
+                    stats_row.alignment = "LEFT"
+                    stats_row.scale_y = 0.9
+
+                    # Indentation
+                    split = stats_row.split(factor=0.1)
+
+                    # First part of split is the indentation
+                    split.label(text="")
+
+                    # Stats Column
+                    col_stats = split.column(align=True)
+
+                    # Vertices
+                    if show_verts:
+                        row_vert_count = col_stats.row(align=True)
+                        row_vert_count.label(text=f" {item.verts:,}", icon="VERTEXSEL")
+
+                    # Edges
+                    if show_edges:
+                        row_edge_count = col_stats.row(align=True)
+                        row_edge_count.label(text=f" {item.edges:,}", icon="EDGESEL")
+
+                    # Faces
+                    if show_faces:
+                        row_face_count = col_stats.row(align=True)
+                        row_face_count.label(text=f" {item.faces:,}", icon="FACESEL")
+
+                    # Triangles
+                    if show_tris:
+                        row_tri_count = col_stats.row(align=True)
+                        row_tri_count.label(text=f" {item.tris:,}", icon="MESH_DATA")
 
         elif self.layout_type in {"GRID"}:
             layout.alignment = "CENTER"
@@ -328,6 +421,39 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
 #   ADDON PROPERTIES
 # ===================================================================
 class r0SimpleToolboxProps(bpy.types.PropertyGroup):
+    # =======================================================================
+    # Categories
+
+    cat_show_object_ops: BoolProperty(
+        name="Show Object Ops", description="Show operations for Object context", default=True
+    )  # type: ignore
+
+    cat_show_mesh_ops: BoolProperty(
+        name="Show Mesh Ops", description="Show operations for Mesh context", default=True
+    )  # type: ignore
+
+    cat_show_uv_ops: BoolProperty(
+        name="Show UV Ops", description="Show operations for UV context", default=False
+    )  # type: ignore
+
+    cat_show_find_modifiers_ops: BoolProperty(
+        name="Show Find Modifiers", description="Show operations for Finding Modifiers", default=True
+    )  # type: ignore
+
+    cat_show_object_sets_editor: BoolProperty(
+        name="Show Object Sets Editor", description="Show Object Sets Editor", default=True
+    )  # type: ignore
+
+    cat_show_vertex_groups_editor: BoolProperty(
+        name="Show Vertex Groups Editor", description="Show Vertex Groups Editor", default=False
+    )  # type: ignore
+
+    cat_show_custom_properties_editor: BoolProperty(
+        name="Show Custom Properties Editor", description="Show Custom Properties Editor", default=False
+    )  # type: ignore
+
+    # =======================================================================
+
     show_dev_tools: BoolProperty(  # type: ignore
         name="Dev Tools",
         description="Show or hide the development options section",
@@ -445,10 +571,22 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
         default=False,
     )
     object_sets: CollectionProperty(type=R0PROP_ObjectSetEntryItem)  # type: ignore
-    object_sets_index: IntProperty(default=0)  # type: ignore
+    object_sets_index: IntProperty(default=0, name="Object Set")  # type: ignore
     # data_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
     # scene_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
     objects_updated: BoolProperty(default=False)  # type: ignore
+    object_sets_show_mesh_verts: BoolProperty(default=False, name="Show Total Vertex Count", description="Toggle showing Object Set's total vertex count")  # type: ignore
+    object_sets_show_mesh_edges: BoolProperty(default=False, name="Show Total Edge Count", description="Toggle showing Object Set's total edge count")  # type: ignore
+    object_sets_show_mesh_faces: BoolProperty(default=False, name="Show Total Face Count", description="Toggle showing Object Set's total face count")  # type: ignore
+    object_sets_show_mesh_tris: BoolProperty(default=False, name="Show Total Triangle Count", description="Toggle showing Object Set's total triangle count")  # type: ignore
+
+    show_vertex_groups: BoolProperty(  # type: ignore
+        name="Vertex Groups", description="Manage Vertex Groups of selected objects", default=False
+    )
+    vertex_groups: CollectionProperty(type=R0PROP_PG_VertexGroupPropertyItem)  # type: ignore
+    vertex_groups_lock_states: CollectionProperty(type=R0PROP_PG_LockStateEntry)  # type: ignore
+    vertex_group_list_index: IntProperty(default=0, name="Vertex Group")  # type: ignore
+    vgroups_do_update: BoolProperty(default=True)  # type: ignore
 
     show_vertex_groups: BoolProperty(  # type: ignore
         name="Vertex Groups", description="Manage Vertex Groups of selected objects", default=False
@@ -506,52 +644,58 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
     debug: BoolProperty(name="Debug", description="Set Debug State", default=False)  # type: ignore
 
-    check_update_startup: BoolProperty(  # type: ignore
+    lock_states_avoided: IntProperty(
+        name="Avoided Locks",
+        description="Silly counter to log how many crashes were avoided by forbidden ID context writes",
+        default=0,
+    )  # type: ignore
+
+    check_update_startup: BoolProperty(
         name="Check Update on Startup",
         description="Flag to set whether to check for extension updates on startup or not",
         default=True,
-    )
+    )  # type: ignore
 
-    experimental_features: BoolProperty(  # type: ignore
+    experimental_features: BoolProperty(
         name="Experimental Features",
         description="Enable experimental features",
         default=False,
-    )
+    )  # type: ignore
 
-    dev_tools: BoolProperty(  # type: ignore
+    dev_tools: BoolProperty(
         name="Dev Tools",
         description="Enable Dev Tool features",
         default=False,
-    )
+    )  # type: ignore
 
-    clear_sharp_axis_float_prop: FloatProperty(  # type: ignore
+    clear_sharp_axis_float_prop: FloatProperty(
         name="Clear Sharp Axis Threshold",
         default=0.0,
         min=0.0,
         description="Threshold value for vertex/edge selection",
         update=lambda self, context: u.save_preferences(),
-    )
+    )  # type: ignore
 
-    object_sets_use_colour: BoolProperty(  # type: ignore
+    object_sets_use_colour: BoolProperty(
         name="Object Sets Use Colour",
-        description="Objects Sets are given a colour. This colour is set as the Object's Colour depending on which set it is in and the viewport wire display is set to use Object as the display type",
+        description="Objects Sets are assigned a colour. Each object within the set is also assigned the colour of the Object Set it is contained in.\nTo view the objects with their assigned colour, change the Viewport Shading either to 'Wire Shading > Object' and/or 'Color > Object'.\nWhen an object is contained in multiple Object Sets, depending on the setting that allows the override, it will display in either the colour of the first Object Set it is found in, or the last",
         default=True,
-    )
+    )  # type: ignore
 
-    object_sets_colour_allow_override: BoolProperty(  # type: ignore
+    object_sets_colour_allow_override: BoolProperty(
         name="Allow Colour Override",
         description="Allow colour override for objects that area already present in Object Sets and are added or modified in other sets. When disallowed, the object will (hopefully) only retain the colour of the first Object Set is contained in.\nWhen allowed, the object will change colours freely depending on the last modified set, given the object is contained within.",
         default=False,
-    )
+    )  # type: ignore
 
-    object_sets_default_colour: FloatVectorProperty(  # type: ignore
+    object_sets_default_colour: FloatVectorProperty(
         name="Object Sets Default Colour",
         subtype="COLOR",
         size=4,  # RGBA
         min=0.0,
         max=1.0,
         default=(0.0, 0.0, 0.0, 1.0),
-    )
+    )  # type: ignore
 
     object_sets_modal_width: IntProperty(name="Object Sets Modal Width", default=300, min=0, max=400)  # type: ignore
 
@@ -564,6 +708,9 @@ class AddonPreferences(bpy.types.AddonPreferences):
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = False
+
+        lock_states_avoided_row = layout.row()
+        lock_states_avoided_row.label(text=f"Lock States Avoided: {self.lock_states_avoided}")
 
         row = layout.row()
         row.prop(self, "debug", text="Debug Mode")
@@ -608,7 +755,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
     def save_axis_threshold(self):
         addon_prefs = bpy.context.preferences.addons[INTERNAL_NAME].preferences
         addon_prefs.clear_sharp_axis_float_prop = self.clear_sharp_axis_float_prop
-        # print(f"Saved Property: clear_sharp_axis_float_prop -> {self.clear_sharp_axis_float_prop}")
+        # print(f"[INFO] [{_mod}] Saved Property: clear_sharp_axis_float_prop -> {self.clear_sharp_axis_float_prop}")
 
 
 # ===================================================================
@@ -630,10 +777,10 @@ classes = [
 
 def register():
     for cls in classes:
-        print(f"[PROPERTIES] Register {cls.__name__}")
+        print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
-    print("[PROPERTIES] Register bpy.types.Scene.r0fl_toolbox_props")
+    print("[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_props")
     # Registering to Scene also has the side effect of saving properties on a per scene/file basis, which is nice!
     bpy.types.Scene.r0fl_toolbox_props = PointerProperty(type=r0SimpleToolboxProps)
 
@@ -641,16 +788,16 @@ def register():
     global DEBUG
     if addon_prefs.debug:
         DEBUG = True
-        print(f"[PROPERTIES] Set Addon Debug to True")
+        print(f"[INFO] [{_mod}] Set Addon Debug to True")
     else:
         DEBUG = False
-        print(f"[PROPERTIES] Set Addon Debug to False")
+        print(f"[INFO] [{_mod}] Set Addon Debug to False")
 
 
 def unregister():
     for cls in classes:
-        print(f"[PROPERTIES] Unregister {cls.__name__}")
+        print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
 
-    print(f"[PROPERTIES] Unregister bpy.types.Scene.r0fl_toolbox_props")
+    print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_props")
     del bpy.types.Scene.r0fl_toolbox_props
