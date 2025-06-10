@@ -33,17 +33,6 @@ class SimpleToolbox_MT_VertexGroupsActionsMenu(bpy.types.Menu):
         layout.operator(SimpleToolbox_OT_RemoveUnusedVertexGroups.bl_idname, icon="X")
 
 
-class SimpleToolbox_MT_VertexGroupsActionsMenu(bpy.types.Menu):
-    bl_idname = "SIMPLETOOLBOX_MT_vertex_groups_actions"
-    bl_label = "Vertex Groups Actions"
-
-    def draw(self, context):
-        from .operators import SimpleToolbox_OT_RemoveUnusedVertexGroups
-
-        layout = self.layout
-        layout.operator(SimpleToolbox_OT_RemoveUnusedVertexGroups.bl_idname, icon="X")
-
-
 # ===================================================================
 #   Register & Unregister
 # ===================================================================
