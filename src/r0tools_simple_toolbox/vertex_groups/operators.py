@@ -67,7 +67,15 @@ class SimpleToolbox_OT_VgroupsRemoveHighlighted(bpy.types.Operator):
 
     def execute(self, context):
         index = get_active_vertex_group_index()
-        highlighted = get_vertex_groups()[index]
+        vertex_groups = get_vertex_groups()
+        if 0 >= index < len(vertex_groups) - 1:
+            highlighted = get_vertex_groups()[index]
+        else:
+            highlighted = None
+
+        if not highlighted:
+            self.report({"INFO"}, f"Aborted removal. Invalid Index.")
+            return {"CANCELLED"}
 
         highlighted_name = highlighted.name
         highlighted_locked = highlighted.locked
@@ -178,7 +186,7 @@ class SimpleToolbox_OT_VgroupsRemoveSelected(bpy.types.Operator):
         if highlighted_vg_entry is not None:
             highlighted_vg_entry = highlighted_vg_entry.name
         else:
-            return {"FINISHED"}
+            return {"CANCELLED"}
 
         if len(vgroups_names_to_remove) < 1:
             # If nothing is checked (selected), use current highlighted item as selection
