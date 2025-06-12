@@ -335,6 +335,38 @@ class SimpleToolbox_OT_RemoveFromObjectSet(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_RemoveFromAllObjectSets(bpy.types.Operator):
+    bl_label = "Remove From All Sets"
+    bl_idname = "r0tools.remove_from_all_object_sets"
+    bl_description = "Remove selected object(s) from all Object Sets"
+    bl_options = {"INTERNAL"}
+
+    accepted_contexts = [u.OBJECT_MODES.OBJECT]
+
+    @classmethod
+    def poll(cls, context):
+        object_sets = get_object_sets()
+
+        # Evaluate polls
+        accepted_contexts = context.mode in cls.accepted_contexts
+        object_sets_present = True if len(object_sets) > 0 else False
+        len_selected_objects = len(context.selected_objects) > 0
+
+        return accepted_contexts and len_selected_objects and object_sets_present
+
+    def execute(self, context):
+        object_sets = get_object_sets()
+
+        for obj in context.selected_objects:
+            for index, object_set in enumerate(object_sets):
+                object_sets_objects = [obj for obj in iter_objects_of_object_set_at_index(index)]
+                if obj in object_sets_objects:
+                    object_set.remove_object(obj)
+
+        self.report({"INFO"}, f"Removed selected objects from all Object Sets")
+        return {"FINISHED"}
+
+
 class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
     bl_label = "Select"
     bl_idname = "r0tools.select_object_set"
@@ -707,6 +739,7 @@ classes = [
     SimpleToolbox_OT_RemoveObjectSet,
     SimpleToolbox_OT_AddToObjectSet,
     SimpleToolbox_OT_RemoveFromObjectSet,
+    SimpleToolbox_OT_RemoveFromAllObjectSets,
     SimpleToolbox_OT_SelectObjectSet,
     SimpleToolbox_OT_ForceRefreshObjectSets,
     SimpleToolbox_OT_RandomiseObjectSetsColours,
