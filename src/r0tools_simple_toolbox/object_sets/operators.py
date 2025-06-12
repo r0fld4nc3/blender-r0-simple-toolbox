@@ -285,13 +285,16 @@ class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
 
         if 0 <= index < get_object_sets_count():
             object_set = get_object_set_at_index(index)
+            object_set_count_before = object_set.count
 
             for obj in context.selected_objects:
                 object_set.assign_object(obj)
 
+            object_set_count_after = object_set.count - object_set_count_before
+
             self.report(
                 {"INFO"},
-                f"Added {len(context.selected_objects)} objects to Set '{object_set.name}'",
+                f"Added {object_set_count_after} object(s) to Set '{object_set.name}'",
             )
         return {"FINISHED"}
 
