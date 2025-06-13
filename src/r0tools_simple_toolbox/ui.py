@@ -34,7 +34,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         categories_row.prop(addon_props, "cat_show_object_ops", text="", icon="EVENT_O")
         categories_row.prop(addon_props, "cat_show_mesh_ops", text="", icon="EVENT_M")
         categories_row.prop(addon_props, "cat_show_uv_ops", text="", icon="EVENT_U")
-        categories_row.prop(addon_props, "cat_show_custom_properties_editor", text="", icon="OUTLINER_DATA_MESH")
+        categories_row.prop(addon_props, "cat_show_custom_properties_editor", text="", icon="EVENT_C")
         categories_row.prop(addon_props, "cat_show_find_modifiers_ops", text="", icon="MODIFIER")
         categories_row.prop(addon_props, "cat_show_object_sets_editor", text="", icon="MESH_CUBE")
         categories_row.prop(addon_props, "cat_show_vertex_groups_editor", text="", icon="GROUP_VERTEX")
