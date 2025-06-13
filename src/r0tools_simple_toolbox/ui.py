@@ -23,6 +23,15 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
     def _update_callback(cls, result):
         cls.has_update = result
 
+        # Trigger redraw
+        try:
+            for area in bpy.context.screen.areas:
+                if area.type == cls.bl_space_type:
+                    area.tag_redraw()
+        except Exception as e:
+            print(f"[ERROR] [{_mod}] Failed to redraw on callback:\n{e}")
+
+
     
     def draw(self, context):
         addon_props = u.get_addon_props()
@@ -285,7 +294,8 @@ def register():
         print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
-    upd.trigger_update_check()
+    # upd.trigger_update_check()
+    upd.trigger_thread_update_check()
 
 
 def unregister():

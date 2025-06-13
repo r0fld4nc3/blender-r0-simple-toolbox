@@ -95,9 +95,10 @@ class SimpleToolbox_OT_CheckUpdate(bpy.types.Operator):
     bl_options = {"REGISTER"}
 
     def execute(self, context):
-        from ..ext_update import trigger_update_check
+        from ..ext_update import trigger_thread_update_check, trigger_update_check
 
-        trigger_update_check()
+        # trigger_update_check()
+        trigger_thread_update_check()
 
         return {"FINISHED"}
 
