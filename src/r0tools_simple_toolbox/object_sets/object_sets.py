@@ -154,6 +154,55 @@ def cleanup_object_set_invalid_references(scene):
                 area.tag_redraw()
 
 
+def cleanup_object_set_invalid_references_o1(scene):
+    """Optimised cleanup using batch operations"""
+
+    if not u.is_writing_context_safe(scene, check_addon_props=True):
+        return None
+
+    addon_props = u.get_addon_props()
+
+    if not addon_props.cat_show_object_sets_editor or not addon_props.cat_show_object_sets_editor:
+        return False
+
+    # Build set of object names for O(1) lookup
+    valid_objects = set(scene.objects.keys())
+    total_cleaned = 0
+
+    for object_set in addon_props.object_sets:
+        if object_set.separator:
+            continue
+
+        # Collect indices in one pass
+        indices_to_remove = [
+            i
+            for i, item in enumerate(object_set.objects)
+            if item.object is None or item.object.name not in valid_objects
+        ]
+
+        if not indices_to_remove:
+            continue
+
+        # Remove in reverse order
+        cleaned_up = 0
+        for i in reversed(indices_to_remove):
+            try:
+                object_set.objects.remove(i)
+                cleaned_up += 1
+            except Exception as e:
+                print(f"[ERROR] [{_mod}] Failed to remove object at index {i} of {object_set.name}: {e}")
+
+        object_set.update_count()
+        total_cleaned += len(indices_to_remove)
+
+        print(f"[INFO] [{_mod}] Cleaned up {cleaned_up} references for Object Set '{object_set.name}'")
+
+    if total_cleaned > 0:
+        for area in bpy.context.screen.areas:
+            if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
+                area.tag_redraw()
+
+
 def object_sets_update_mesh_stats(scene):
     if u.IS_DEBUG():
         print("------------- Object Sets Update Mesh Stats -------------")
