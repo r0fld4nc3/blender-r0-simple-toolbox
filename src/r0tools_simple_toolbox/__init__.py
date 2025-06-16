@@ -1,5 +1,5 @@
 bl_info = {
-    "name": "r0Tools - Simple Toolbox.hotfix1",
+    "name": "r0Tools - Simple Toolbox.hotfix2",
     "author": "Artur Rosário",
     "version": (0, 0, 30),
     "blender": (4, 2, 0),

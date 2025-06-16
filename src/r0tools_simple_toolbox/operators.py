@@ -1348,7 +1348,7 @@ class SimpleToolbox_OT_SelectEmptyObjects(bpy.types.Operator):
             if not u.is_object_visible_in_viewport(obj):
                 continue
 
-            print(f"[INFO] [{_mod}] \nProcessing:", obj.name)
+            print(f"[INFO] [{_mod}] Processing:", obj.name)
 
             temp_mesh = None
             temp_obj = None
