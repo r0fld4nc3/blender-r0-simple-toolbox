@@ -162,7 +162,7 @@ def vertex_groups_list_update(scene, context):
     if not addon_props.vgroups_do_update:
         return None
 
-    if not addon_props.show_vertex_groups:
+    if not addon_props.cat_show_vertex_groups_editor or not addon_props.show_vertex_groups:
         # Skip update if panel is not visible
         return None
 

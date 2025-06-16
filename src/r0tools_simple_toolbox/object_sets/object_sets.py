@@ -124,6 +124,9 @@ def cleanup_object_set_invalid_references(scene):
 
     addon_props = u.get_addon_props()
 
+    if not addon_props.cat_show_object_sets_editor or not addon_props.cat_show_object_sets_editor:
+        return False
+
     # Focus only on cleaning object sets without rebuilding scene_objects/data_objects
     for object_set in addon_props.object_sets:
         # Identify invalid objects without modifying anything yet
@@ -159,6 +162,9 @@ def object_sets_update_mesh_stats(scene):
         return None
 
     addon_props = u.get_addon_props()
+
+    if not addon_props.cat_show_object_sets_editor or not addon_props.cat_show_object_sets_editor:
+        return False
 
     show_verts = addon_props.object_sets_show_mesh_verts
     show_edges = addon_props.object_sets_show_mesh_edges
