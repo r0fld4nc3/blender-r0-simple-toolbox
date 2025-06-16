@@ -68,7 +68,7 @@ class SimpleToolbox_OT_VgroupsRemoveHighlighted(bpy.types.Operator):
     def execute(self, context):
         index = get_active_vertex_group_index()
         vertex_groups = get_vertex_groups()
-        if 0 >= index < len(vertex_groups) - 1:
+        if 0 <= index < len(vertex_groups):
             highlighted = get_vertex_groups()[index]
         else:
             highlighted = None
