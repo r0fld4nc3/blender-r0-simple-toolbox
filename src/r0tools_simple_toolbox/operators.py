@@ -507,7 +507,7 @@ class SimpleToolbox_OT_ClearCustomSplitNormalsData(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
+        return context.mode in cls.accepted_contexts and u.get_selected_objects(context)
 
     def op_clear_custom_split_normals_data(self, objects):
         """
@@ -554,7 +554,7 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return len(context.selected_objects) > 0
+        return u.get_selected_objects(context)
 
     def execute(self, context):
         addon_props = u.get_addon_props()
@@ -674,10 +674,7 @@ class SimpleToolbox_OT_ClearChildrenRecurse(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return (
-            any(u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]))
-            and context.mode == u.OBJECT_MODES.OBJECT
-        )
+        return u.get_selected_objects(context) and context.mode == u.OBJECT_MODES.OBJECT
 
     recurse: BoolProperty(name="Recursively clear all children", default=False)  # type: ignore
 
@@ -766,7 +763,7 @@ class SimpleToolbox_OT_RemoveUnusedMaterials(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.mode == u.OBJECT_MODES.OBJECT and len(context.selected_objects) > 0
+        return context.mode == u.OBJECT_MODES.OBJECT and u.get_selected_objects(context)
 
     def invoke(self, context, event):
         return self.execute(context)
@@ -946,10 +943,7 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         # Ensure at least one object is selected
-        return (
-            any(u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]))
-            and context.mode == u.OBJECT_MODES.EDIT_MESH
-        )
+        return u.get_selected_objects(context) and context.mode == u.OBJECT_MODES.EDIT_MESH
 
     def process_object(self, obj, context):
         if u.IS_DEBUG():
@@ -1083,10 +1077,7 @@ class SimpleToolbox_OT_RestoreNthEdge(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         # Ensure at least one object is selected
-        return (
-            any(u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]))
-            and context.mode == u.OBJECT_MODES.EDIT_MESH
-        )
+        return u.get_selected_objects(context) and context.mode == u.OBJECT_MODES.EDIT_MESH
 
     def process_object(self, obj, context):
         if u.IS_DEBUG():
@@ -1216,10 +1207,7 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return (
-            any(u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]))
-            and context.mode == u.OBJECT_MODES.EDIT_MESH
-        )
+        return u.get_selected_objects(context) and context.mode == u.OBJECT_MODES.EDIT_MESH
 
     def invoke(self, context, event):
         self.clear_rotation_on_align = False  # Always reset
@@ -1446,7 +1434,7 @@ class SimpleToolbox_OT_ClearAxisSharpEdgesX(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
+        return context.mode in cls.accepted_contexts and u.get_selected_objects(context)
 
     def execute(self, context):
         u.op_clear_sharp_along_axis("Y")  # Y so as to clear along the axis, not across it
@@ -1463,7 +1451,7 @@ class SimpleToolbox_OT_ClearAxisSharpEdgesY(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
+        return context.mode in cls.accepted_contexts and u.get_selected_objects(context)
 
     def execute(self, context):
         u.op_clear_sharp_along_axis("X")  # X so as to clear along the axis, not across it
@@ -1484,7 +1472,7 @@ class SimpleToolbox_OT_UVCheckIslandThresholds(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
+        return context.mode in cls.accepted_contexts and u.get_selected_objects(context)
 
     def execute(self, context):
         print("\n------------- Check UV Islands Size Thresholds -------------")
@@ -1569,7 +1557,7 @@ class SimpleToolbox_OT_ClearAxisSharpEdgesZ(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
+        return context.mode in cls.accepted_contexts and u.get_selected_objects(context)
 
     def execute(self, context):
         u.op_clear_sharp_along_axis("Z")  # Z: along the XY axis
