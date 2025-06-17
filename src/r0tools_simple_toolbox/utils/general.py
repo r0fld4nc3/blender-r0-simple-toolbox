@@ -245,7 +245,7 @@ def iter_scene_objects(selected=False, types: list[str] = []):
     """
     iters = bpy.data.objects
     if selected:
-        iters = bpy.context.selected_objects
+        iters = get_selected_objects()
 
     for o in iters:
         if not types or o.type in types:
@@ -421,7 +421,7 @@ def op_clear_sharp_along_axis(axis: str):
     print(f"[INFO] [{_mod}] Threshold: {threshold}")
 
     # Collect select objects
-    objects = [obj for obj in bpy.context.selected_objects if obj.type == "MESH"]
+    objects = [obj for obj in get_selected_objects() if obj.type == "MESH"]
 
     print(f"[INFO] [{_mod}] Objects: {objects}")
 
@@ -555,7 +555,7 @@ def property_list_update(scene, context, force_run=False):
         # Skip update if panel is not visible
         return None
 
-    if bpy.context.selected_objects or force_run:
+    if get_selected_objects() or force_run:
         current_selection = {obj.name for obj in iter_scene_objects(selected=True)}
 
         if IS_DEBUG():

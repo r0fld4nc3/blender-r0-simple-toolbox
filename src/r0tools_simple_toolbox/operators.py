@@ -633,7 +633,7 @@ class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
             bpy.types.FloatVectorAttributeValue,
         )
 
-        for obj in bpy.context.selected_objects:
+        for obj in u.get_selected_objects():
             if obj.type == u.OBJECT_TYPES.MESH:
                 bpy.context.view_layer.objects.active = obj
                 mesh = bpy.context.object.data
@@ -887,7 +887,7 @@ class SimpleToolbox_OT_ToggleWireDisplay(bpy.types.Operator):
         wires = 0
         textureds = 0
         other = 0
-        objects = [obj for obj in bpy.context.selected_objects if obj and obj.type == "MESH"]
+        objects = [obj for obj in u.get_selected_objects() if obj and obj.type == "MESH"]
 
         if not objects:
             return {"FINISHED"}
@@ -1509,7 +1509,7 @@ class SimpleToolbox_OT_UVCheckIslandThresholds(bpy.types.Operator):
         )
 
         # Store object selection
-        original_selection = bpy.context.selected_objects
+        original_selection = u.get_selected_objects()
         # Store active object
         original_active = u.get_active_object()
         # Object, Edit Modes?

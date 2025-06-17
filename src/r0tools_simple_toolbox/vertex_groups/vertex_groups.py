@@ -166,7 +166,7 @@ def vertex_groups_list_update(scene, context):
         # Skip update if panel is not visible
         return None
 
-    if bpy.context.selected_objects:
+    if u.get_selected_objects():
         if u.IS_DEBUG():
             print("------------- Vertex Groups List Update -------------")
 
