@@ -1,13 +1,9 @@
-from datetime import datetime
-
 import bpy
 
 from . import utils as u
 from .operators import CustomTransformsOrientationsTracker
 
 _mod = "DEPSGRAPH"
-
-_time_strfmt = "%H:%M:%S"
 
 _last_object_count = 0
 
@@ -25,27 +21,6 @@ def _object_count_changed() -> bool:
     return changed
 
 
-@u.deferred(delay=0.1, min_interval=0.1)
-def deferred_object_sets_update():
-    scene = bpy.context.scene
-
-    if not u.is_writing_context_safe(scene, check_addon_props=True):
-        return
-
-    if _object_count_changed():
-        u.cleanup_object_set_invalid_references_o1(scene)
-
-
-@u.deferred(delay=1, min_interval=0.1)
-def deferred_mesh_stats_update():
-    scene = bpy.context.scene
-
-    if not u.is_writing_context_safe(scene, check_addon_props=True):
-        return
-
-    u.object_sets_update_mesh_stats(scene)
-
-
 @bpy.app.handlers.persistent
 def handler_depsgraph_post_update(scene, depsgraph):
     """Handler that runs after depsgraph updates"""
@@ -56,14 +31,17 @@ def handler_depsgraph_post_update(scene, depsgraph):
             print(f"[INFO] [{_mod}] We avoided an addon lock crash.")
             return None
 
-        deferred_object_sets_update()
+        if _object_count_changed():
+            u.timer_manager.schedule(u.cleanup_object_set_invalid_references_o1, delay=0.1, min_interval=0.1)
 
-        deferred_mesh_stats_update()
+        u.timer_manager.schedule(u.object_sets_update_mesh_stats, delay=1, min_interval=1)
 
         u.vertex_groups_list_update(scene, bpy.context)
 
         u.property_list_update(scene, bpy.context)
-    CustomTransformsOrientationsTracker.track_custom_orientations(scene)
+    CustomTransformsOrientationsTracker.track_custom_orientations(
+        scene,
+    )
 
 
 depsgraph_handlers = [handler_depsgraph_post_update]
