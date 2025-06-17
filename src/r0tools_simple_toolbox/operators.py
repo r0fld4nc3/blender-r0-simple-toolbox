@@ -1649,6 +1649,6 @@ def unregister():
         bpy.utils.unregister_class(cls)
 
     unregister_keymapping()
-    # CustomTransformsOrientationsTracker.unregister_handler()
+    CustomTransformsOrientationsTracker.unregister_handler()
 
     _BUILTIN_ORIENTATIONS_PIE.draw = _ORIGINAL_ORIENTATIONS_PIE_DRAW
