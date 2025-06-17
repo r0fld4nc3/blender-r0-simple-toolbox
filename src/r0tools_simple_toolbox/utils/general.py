@@ -56,7 +56,10 @@ def get_active_object() -> bpy.types.Object | None:
     return None
 
 
-def get_selected_objects() -> list:
+def get_selected_objects(context: bpy.types.Context | None = None) -> list:
+    if context is not None:
+        return context.selected_objects
+
     return bpy.context.selected_objects
 
 
