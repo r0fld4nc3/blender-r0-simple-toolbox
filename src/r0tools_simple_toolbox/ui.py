@@ -194,10 +194,14 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 # >> Row
                 row = mesh_ops_box.row(align=True)
                 row_split = row.split(align=True)
-                # Nth Edges Operator
+                # Remove Nth Edges Operator
                 row_split.operator(SimpleToolbox_OT_DissolveNthEdge.bl_idname)
                 if addon_prefs.experimental_features:
                     row_split.operator(SimpleToolbox_OT_RestoreNthEdge.bl_idname)
+
+                # >> Row
+                row = mesh_ops_box.row(align=True)
+                row.operator(SimpleToolbox_OT_ResetEdgeData.bl_idname)
 
                 # >> Row
                 row = mesh_ops_box.row(align=True)

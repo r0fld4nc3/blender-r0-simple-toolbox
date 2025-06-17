@@ -1195,6 +1195,68 @@ class SimpleToolbox_OT_RestoreNthEdge(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_ResetEdgeData(bpy.types.Operator):
+    bl_label = "Reset Edge Data"
+    bl_idname = "r0tools.reset_edge_data"
+    bl_description = "Removes Seams, Sharps, Creases and Bevel Edge Weights from edges"
+    bl_options = {"REGISTER", "UNDO"}
+
+    reset_sharp: BoolProperty(name="Sharp", default=True)  # type: ignore
+    reset_seam: BoolProperty(name="Seam", default=True)  # type: ignore
+    reset_crease: BoolProperty(name="Crease", default=True)  # type: ignore
+    reset_bevel_weight: BoolProperty(name="Bevel Weight", default=True)  # type: ignore
+
+    @classmethod
+    def poll(cls, context):
+        return u.get_selected_objects(context) and context.mode == u.OBJECT_MODES.EDIT_MESH
+
+    def invoke(self, context, event):
+        addon_prefs = u.get_addon_prefs()
+
+        self.reset_sharp = addon_prefs.edge_reset_sharp
+        self.reset_seam = addon_prefs.edge_reset_seam
+        self.reset_crease = addon_prefs.edge_reset_crease
+        self.reset_bevel_weight = addon_prefs.edge_reset_bevel_weight
+
+        # Show the redo panel
+        # return context.window_manager.invoke_props_dialog(self)
+
+        return self.execute(context)
+
+    def execute(self, context):
+        addon_prefs = u.get_addon_prefs()
+
+        # Sync operator preferences to Addon Preferences
+        addon_prefs.edge_reset_sharp = self.reset_sharp
+        addon_prefs.edge_reset_seam = self.reset_seam
+        addon_prefs.edge_reset_crease = self.reset_crease
+        addon_prefs.edge_reset_bevel_weight = self.reset_bevel_weight
+
+        for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
+            bm = bmesh.from_edit_mesh(obj.data)
+
+            bm.edges.ensure_lookup_table()
+
+            crease_layer = bm.edges.layers.float.get("crease_edge", None)
+            edge_bevel_layer = bm.edges.layers.float.get("bevel_weight_edge", None)
+
+            for edge in bm.edges:
+                if edge.select:
+                    if self.reset_seam:
+                        edge.seam = False
+                    if self.reset_sharp:
+                        edge.smooth = True  # smooth=True means sharp=False
+                    if self.reset_crease and crease_layer:
+                        edge[crease_layer] = 0.0
+
+                    if self.reset_bevel_weight and edge_bevel_layer:
+                        edge[edge_bevel_layer] = 0.0
+
+            bmesh.update_edit_mesh(obj.data)
+
+        return {"FINISHED"}
+
+
 class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
     bl_label = "Restore Rotation"
     bl_idname = "r0tools.rotation_from_selection"
@@ -1587,6 +1649,7 @@ classes = [
     
     SimpleToolbox_OT_DissolveNthEdge,
     SimpleToolbox_OT_RestoreNthEdge,
+    SimpleToolbox_OT_ResetEdgeData,
     SimpleToolbox_OT_RestoreRotationFromSelection,
     SimpleToolbox_OT_SelectEmptyObjects,
     SimpleToolbox_OT_ClearAxisSharpEdgesX,
