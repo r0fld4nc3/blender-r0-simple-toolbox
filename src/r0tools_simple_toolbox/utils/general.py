@@ -56,6 +56,10 @@ def get_active_object() -> bpy.types.Object | None:
     return None
 
 
+def get_selected_objects() -> list:
+    return bpy.context.selected_objects
+
+
 def set_object_mode(mode: str):
     """
     Set the current object mode
