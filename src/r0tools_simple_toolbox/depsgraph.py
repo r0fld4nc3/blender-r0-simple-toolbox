@@ -1,4 +1,4 @@
-import time
+from datetime import datetime
 
 import bpy
 
@@ -7,36 +7,48 @@ from .operators import CustomTransformsOrientationsTracker
 
 _mod = "DEPSGRAPH"
 
-_last_timed_execution = 0
-_very_frequent_update_interval = 5  # 5 seconds
-_frequent_update_interval = 60  # 1 minute
-_infrequent_update_interval = 300  # 5 minutes
+_time_strfmt = "%H:%M:%S"
 
-_LAST_OBJECT_COUNT_KEY = "last_object_count"
-_LAST_CLEANUP_TIME_KEY = "last_cleanup_time"
-_PENDING_CLEANUP_KEY = "pending_cleanup"
-
-# fmt: off
-_cleanup_cache = {
-    _LAST_OBJECT_COUNT_KEY: 0,
-    _LAST_CLEANUP_TIME_KEY: 0,
-    _PENDING_CLEANUP_KEY: False
-}
-# fmt: on
+_last_object_count = 0
 
 
-def _set_last_timed_execution(set_to):
-    global _last_timed_execution
+def _object_count_changed() -> bool:
+    global _last_object_count
 
-    if set_to != _last_timed_execution:
-        _last_timed_execution = set_to
+    scene = bpy.context.scene
+    scene_objects_count = len(scene.objects)
+
+    changed = scene_objects_count < _last_object_count
+
+    _last_object_count = scene_objects_count
+
+    return changed
+
+
+@u.deferred(delay=0.1, min_interval=0.1)
+def deferred_object_sets_update():
+    scene = bpy.context.scene
+
+    if not u.is_writing_context_safe(scene, check_addon_props=True):
+        return
+
+    if _object_count_changed():
+        u.cleanup_object_set_invalid_references_o1(scene)
+
+
+@u.deferred(delay=1, min_interval=0.1)
+def deferred_mesh_stats_update():
+    scene = bpy.context.scene
+
+    if not u.is_writing_context_safe(scene, check_addon_props=True):
+        return
+
+    u.object_sets_update_mesh_stats(scene)
 
 
 @bpy.app.handlers.persistent
 def handler_depsgraph_post_update(scene, depsgraph):
     """Handler that runs after depsgraph updates"""
-    global _last_timed_execution
-    global _cleanup_cache
 
     # Check specifically for object deletions
     if depsgraph.id_type_updated(u.DEPSGRAPH_ID_TYPES.OBJECT):
@@ -44,49 +56,14 @@ def handler_depsgraph_post_update(scene, depsgraph):
             print(f"[INFO] [{_mod}] We avoided an addon lock crash.")
             return None
 
-        # Store results once
-        now = time.time()
-        time_diff = now - _last_timed_execution
-        _frequent_interval_passed = time_diff > _frequent_update_interval
+        deferred_object_sets_update()
 
-        # Object count changed?
-        current_object_count = len(scene.objects)
-        if current_object_count < _cleanup_cache[_LAST_OBJECT_COUNT_KEY]:
-            _cleanup_cache[_PENDING_CLEANUP_KEY] = True
+        deferred_mesh_stats_update()
 
-        _cleanup_cache[_LAST_OBJECT_COUNT_KEY] = current_object_count
-
-        bpy.app.timers.register(deferred_cleanup, first_interval=0.1)
-
-        if _frequent_interval_passed:
-            _set_last_timed_execution(now)
-            print(f"[MONITOR] [{_mod}] Frequent interval passed")
-            u.object_sets_update_mesh_stats(scene)
+        u.vertex_groups_list_update(scene, bpy.context)
 
         u.property_list_update(scene, bpy.context)
-        u.vertex_groups_list_update(scene, bpy.context)
     CustomTransformsOrientationsTracker.track_custom_orientations(scene)
-
-
-def deferred_cleanup():
-    """
-    Deferred cleanup to avoid stuttering
-    """
-
-    if not _cleanup_cache[_PENDING_CLEANUP_KEY]:
-        return None  # Stop timer
-
-    scene = bpy.context.scene
-
-    if not u.is_writing_context_safe(scene, check_addon_props=True):
-        return 0.1
-
-    print(f"[MONITOR] [{_mod}] Deferred cleanup")
-
-    u.cleanup_object_set_invalid_references_o1(scene)
-    _cleanup_cache[_PENDING_CLEANUP_KEY] = False
-
-    return None  # Stop timer
 
 
 depsgraph_handlers = [handler_depsgraph_post_update]
