@@ -8,7 +8,15 @@ class DeferredTimerManager:
     def __init__(self):
         self._timers: Dict[str, Dict[str, Any]] = {}
 
-    def schedule(self, func: Callable, delay: float = 0.1, min_interval: float = 0.0, timer_id: Optional[str] = None):
+    def schedule(
+        self,
+        func: Callable,
+        args=(),
+        kwargs=None,
+        delay: float = 0.1,
+        min_interval: float = 0.0,
+        timer_id: Optional[str] = None,
+    ):
         """
         Schedule a function to run after a delay.
 
@@ -22,10 +30,20 @@ class DeferredTimerManager:
             bool: True if scheduled, False if already pending or throttled
         """
 
-        timer_id = timer_id or func.__name__
+        if kwargs is None:
+            kwargs = {}
+
+        timer_id = timer_id or f"{func.__name__}_{id(args)}_{id(kwargs)}"
 
         if timer_id not in self._timers:
-            self._timers[timer_id] = {"func": func, "pending": False, "last_run": 0, "min_interval": min_interval}
+            self._timers[timer_id] = {
+                "func": func,
+                "args": args,
+                "kwargs": kwargs,
+                "pending": False,
+                "last_run": 0,
+                "min_interval": min_interval,
+            }
 
         timer_info = self._timers[timer_id]
 
@@ -43,13 +61,13 @@ class DeferredTimerManager:
             if timer_id not in self._timers:
                 return None
 
-            result = timer_info["func"]()
+            result = timer_info["func"](*timer_info["args"], **timer_info["kwargs"])
 
             # Update state
             timer_info["pending"] = False
             timer_info["last_run"] = time.time()
 
-            return result
+            return result if isinstance(result, (int, float)) else None
 
         # Schedule
         timer_info["pending"] = True
@@ -80,7 +98,9 @@ def deferred(delay: float = 0.1, min_interval: float = 0.0):
 
                 return result if isinstance(result, (int, float)) else None
 
-            timer_manager.schedule(executor, delay=delay, min_interval=min_interval, timer_id=func.__name__)
+            timer_manager.schedule(
+                executor, args=args, kwargs=kwargs, delay=delay, min_interval=min_interval, timer_id=func.__name__
+            )
 
         return wrapper
 
