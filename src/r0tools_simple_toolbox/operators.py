@@ -1206,6 +1206,22 @@ class SimpleToolbox_OT_ResetEdgeData(bpy.types.Operator):
     reset_crease: BoolProperty(name="Crease", default=True)  # type: ignore
     reset_bevel_weight: BoolProperty(name="Bevel Weight", default=True)  # type: ignore
 
+    def draw(self, context):
+        layout = self.layout
+
+        row = layout.row()
+        row.label(text="Pick what to affect. Changes are persistent.", icon="INFO")
+
+        row = layout.row()
+        split = row.split(align=True)
+        split.prop(self, "reset_sharp")
+        split.prop(self, "reset_seam")
+
+        row = layout.row()
+        split = row.split(align=True)
+        split.prop(self, "reset_crease")
+        split.prop(self, "reset_bevel_weight")
+
     @classmethod
     def poll(cls, context):
         return u.get_selected_objects(context) and context.mode == u.OBJECT_MODES.EDIT_MESH
