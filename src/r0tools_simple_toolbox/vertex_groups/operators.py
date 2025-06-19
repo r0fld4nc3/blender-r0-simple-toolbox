@@ -96,6 +96,8 @@ class SimpleToolbox_OT_VgroupsRemoveHighlighted(bpy.types.Operator):
                     vgroups.remove(vgroup)
                     total_removed += 1
 
+        u.vertex_groups_list_update(force=True)
+
         self.report({"INFO"}, f"Removed {total_removed} Vertex Groups.")
 
         return {"FINISHED"}
@@ -249,6 +251,8 @@ class SimpleToolbox_OT_VgroupsRemoveSelected(bpy.types.Operator):
                     vgroups.remove(vgroup)
                     total_removed += 1
 
+        u.vertex_groups_list_update(force=True)
+
         self.report({"INFO"}, f"Removed {total_removed} Vertex Groups.")
 
         return {"FINISHED"}
@@ -305,6 +309,8 @@ class SimpleToolbox_OT_VgroupsKeepSelected(bpy.types.Operator):
                 if vgroup_name not in vgroups_names_to_remove and not locked:
                     vgroups.remove(vgroup)
                     total_removed += 1
+
+        u.vertex_groups_list_update(force=True)
 
         self.report({"INFO"}, f"Removed {total_removed} Vertex Groups.")
 

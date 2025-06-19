@@ -178,7 +178,7 @@ def _needs_update():
     return False
 
 
-def vertex_groups_list_update():
+def vertex_groups_list_update(force: bool = False):
     scene = bpy.context.scene
 
     if not u.is_writing_context_safe(scene, check_addon_props=True):
@@ -186,15 +186,16 @@ def vertex_groups_list_update():
 
     addon_props = u.get_addon_props()
 
-    if not addon_props.vgroups_do_update:
-        return None
+    if not force:
+        if not addon_props.vgroups_do_update:
+            return None
+
+        # Check if update is required
+        if not _needs_update():
+            return None
 
     if not addon_props.cat_show_vertex_groups_editor or not addon_props.show_vertex_groups:
         # Skip update if panel is not visible
-        return None
-
-    # Check if update is required
-    if not _needs_update():
         return None
 
     global _vertex_groups_cache
