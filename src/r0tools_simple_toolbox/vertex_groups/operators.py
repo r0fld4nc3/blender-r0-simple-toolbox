@@ -156,6 +156,50 @@ class SimpleToolbox_OT_RemoveUnusedVertexGroups(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_VgroupsLockStateAll(bpy.types.Operator):
+    bl_idname = "r0tools.vgroups_lock_state_all"
+    bl_label = "Lock/Unlock All"
+    bl_description = "Lock/Unlock all vertex groups in the list"
+    bl_options = {"INTERNAL", "UNDO"}
+
+    action: bpy.props.EnumProperty(
+        name="Action",
+        description="Lock or unlock all vertex groups",
+        items=[("LOCK", "Lock All", "Lock all vertex groups"), ("UNLOCK", "Unlock All", "Unlock all vertex groups")],
+        default="UNLOCK",
+    )  # type: ignore
+
+    accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
+    accepted_object_types = [u.OBJECT_TYPES.MESH]
+
+    @classmethod
+    def poll(cls, context):
+        accepted_context = context.mode in cls.accepted_contexts
+        has_vgroups = get_vertex_groups_count() > 0
+
+        return accepted_context and has_vgroups
+
+    def invoke(self, context, event):
+        return self.execute(context)
+
+    def execute(self, context):
+        vertex_groups = get_vertex_groups()
+        vertex_group_count = get_vertex_groups_count()
+
+        if self.action == "LOCK":
+            for item in vertex_groups:
+                item.locked = True
+
+            self.report({"INFO"}, f"Locked {vertex_group_count} Vertex Groups.")
+        elif self.action == "UNLOCK":
+            for item in vertex_groups:
+                item.locked = False
+
+            self.report({"INFO"}, f"Unlocked {vertex_group_count} Vertex Groups.")
+
+        return {"FINISHED"}
+
+
 class SimpleToolbox_OT_VgroupsRemoveSelected(bpy.types.Operator):
     bl_idname = "r0tools.vgroups_remove_selected"
     bl_label = "Remove Selected"
@@ -506,6 +550,7 @@ classes = [
     SimpleToolbox_OT_VgroupsAddPopup,
     SimpleToolbox_OT_VgroupsRemoveHighlighted,
     SimpleToolbox_OT_RemoveUnusedVertexGroups,
+    SimpleToolbox_OT_VgroupsLockStateAll,
     SimpleToolbox_OT_VgroupsRemoveSelected,
     SimpleToolbox_OT_VgroupsKeepSelected,
     SimpleToolbox_OT_VgroupsSelectObjectsWithVgroups,
