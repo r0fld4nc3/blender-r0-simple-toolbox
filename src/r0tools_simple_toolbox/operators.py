@@ -88,8 +88,8 @@ class CustomTransformsOrientationsTracker:
                 cls._last_tracked_orientations = current_orientation_set
 
                 # Update UI
-                for area in bpy.context.screen.areas:
-                    area.tag_redraw()
+                # for area in bpy.context.screen.areas:
+                # area.tag_redraw()
         except Exception as e:
             print(f"[ERROR] [{_mod}] Error tracking custom orientations: {e}")
             u.context_error_debug(error=e)
