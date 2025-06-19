@@ -42,6 +42,11 @@ class SimpleToolbox_OT_VgroupsAddPopup(bpy.types.Operator):
         for obj in u.iter_scene_objects(selected=True, types=self.accepted_object_types):
             vertex_group_add(obj, self.vertex_group_name)
 
+        u.vertex_groups_list_update(force=True)
+
+        if context.mode == u.OBJECT_MODES.EDIT_MESH:
+            bpy.ops.r0tools.vgroups_assign_vertices()
+
         return {"FINISHED"}
 
 
