@@ -21,9 +21,9 @@ def handler_depsgraph_post_update(scene, depsgraph):
 
         u.timer_manager.schedule(u.object_sets_update_mesh_stats, delay=0.5, min_interval=1)
 
-        u.timer_manager.schedule(u.vertex_groups_list_update, (scene, bpy.context), delay=0, min_interval=0.05)
+        u.timer_manager.schedule(u.vertex_groups_list_update, delay=0, min_interval=0.05)
 
-        u.property_list_update(scene, bpy.context)
+        u.property_list_update()
     CustomTransformsOrientationsTracker.track_custom_orientations(
         scene,
     )

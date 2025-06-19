@@ -574,13 +574,15 @@ def custom_property_list_add_props(props: set | list, prop_type, selection_state
             context_error_debug(error=e)
 
 
-def property_list_update(scene, context, force_run=False):
+def property_list_update(force_run=False):
     """
     Update property list based on selected objects
 
     This function updates the custom property list panel
     when object selection changes.
     """
+
+    scene = bpy.context.scene
 
     from .context import is_writing_context_safe
 

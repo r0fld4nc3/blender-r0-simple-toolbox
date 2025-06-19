@@ -178,7 +178,9 @@ def _needs_update():
     return False
 
 
-def vertex_groups_list_update(scene, context):
+def vertex_groups_list_update():
+    scene = bpy.context.scene
+
     if not u.is_writing_context_safe(scene, check_addon_props=True):
         return None
 
