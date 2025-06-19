@@ -5,21 +5,6 @@ from .operators import CustomTransformsOrientationsTracker
 
 _mod = "DEPSGRAPH"
 
-_last_object_count = 0
-
-
-def _object_count_changed() -> bool:
-    global _last_object_count
-
-    scene = bpy.context.scene
-    scene_objects_count = len(scene.objects)
-
-    changed = scene_objects_count < _last_object_count
-
-    _last_object_count = scene_objects_count
-
-    return changed
-
 
 @bpy.app.handlers.persistent
 def handler_depsgraph_post_update(scene, depsgraph):
@@ -31,12 +16,12 @@ def handler_depsgraph_post_update(scene, depsgraph):
             print(f"[INFO] [{_mod}] We avoided an addon lock crash.")
             return None
 
-        if _object_count_changed():
-            u.timer_manager.schedule(u.cleanup_object_set_invalid_references_o1, delay=0.1, min_interval=0.1)
+        if u.object_count_changed():
+            u.timer_manager.schedule(u.cleanup_object_set_invalid_references_o1, delay=0, min_interval=0.1)
 
-        u.timer_manager.schedule(u.object_sets_update_mesh_stats, delay=1, min_interval=1)
+        u.timer_manager.schedule(u.object_sets_update_mesh_stats, delay=0.5, min_interval=1)
 
-        u.vertex_groups_list_update(scene, bpy.context)
+        u.timer_manager.schedule(u.vertex_groups_list_update, (scene, bpy.context), delay=0, min_interval=0.05)
 
         u.property_list_update(scene, bpy.context)
     CustomTransformsOrientationsTracker.track_custom_orientations(

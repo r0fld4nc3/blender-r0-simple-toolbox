@@ -15,6 +15,11 @@ from ..utils import (
 
 _mod = "UTILS.GENERAL"
 
+# ===============
+# === CACHING ===
+# ===============
+_last_object_count = 0
+
 
 def IS_DEBUG():
     """Return current debug state"""
@@ -352,6 +357,28 @@ def object_in_collection(obj, collection):
     return collection in obj.users_collection
 
 
+def object_count_changed() -> bool:
+    global _last_object_count
+
+    scene = bpy.context.scene
+    scene_objects_count = len(scene.objects)
+
+    changed = scene_objects_count < _last_object_count
+
+    _last_object_count = scene_objects_count
+
+    return changed
+
+
+def get_selected_objects_hash():
+    """Generate hash to detect selection changes"""
+    hash_value = 0
+    for obj in iter_scene_objects(selected=True):
+        hash_value ^= hash(obj.name)
+
+    return hash_value
+
+
 # ==============================
 # MESH SELECTION MODE
 # ==============================
@@ -396,6 +423,21 @@ def force_redraw_all():
     for window in bpy.context.window_manager.windows:
         for area in window.screen.areas:
             area.tag_redraw()
+
+
+def tag_redraw_if_visible():
+    if not bpy.context.screen:
+        return
+
+    for area in bpy.context.screen.areas:
+        if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
+            if area.type == "PROPERTIES":
+                for space in area.spaces:
+                    if hasattr(space, "context") and space.context == "DATA":
+                        area.tag_redraw()
+                        break
+            else:
+                area.tag_redraw()
 
 
 # ==============================
