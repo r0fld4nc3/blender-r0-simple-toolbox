@@ -448,7 +448,13 @@ class SimpleToolbox_OT_VgroupsAssignVertices(bpy.types.Operator):
             # Assign the vertices to groups
             for vert in verts_to_assign:
                 for vg_index in vg_indices:
-                    vert[deform_layer][vg_index] = 1.0
+                    try:
+                        vert[deform_layer][vg_index] = 1.0
+                    except ReferenceError as ref_error:
+                        if u.IS_DEBUG():
+                            print(f"[DEBUG] [{_mod}] AddPopup: {e}")
+                    except Exception as e:
+                        print(f"[ERROR] [{_mod}] AddPopup: {e}")
 
             bmesh.update_edit_mesh(mesh)
 
