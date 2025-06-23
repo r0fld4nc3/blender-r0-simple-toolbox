@@ -96,6 +96,27 @@ def get_vertex_groups_lock_states():
     return addon_props.vertex_groups_lock_states
 
 
+def set_vertex_group_highlighted_by_name(vertex_group_name: str) -> int:
+    """
+    Set vertex group to be highlighted (same as clicked to select) in the UIList.
+
+    Returns `index` if succesful, `-1` if name was not found
+    """
+    addon_props = u.get_addon_props()
+
+    vertex_groups = get_vertex_groups()
+
+    if not vertex_groups:
+        return -1
+
+    for i, vgroup in enumerate(vertex_groups):
+        if vgroup.name == vertex_group_name:
+            addon_props.vertex_group_list_index = i
+            return i
+
+    return -1
+
+
 def iter_vertex_groups_lock_states():
     for state in get_vertex_groups_lock_states():
         yield state
@@ -278,7 +299,7 @@ def iter_obj_vertex_groups(obj):
         yield vertex_group
 
 
-def set_obj_active_vertex_group_index(obj, vertex_group: int) -> bool:
+def set_obj_active_vertex_group(obj, vertex_group) -> bool:
     if vertex_group.index < len(obj.vertex_groups):
         obj.vertex_groups.active_index = vertex_group.index
         return True

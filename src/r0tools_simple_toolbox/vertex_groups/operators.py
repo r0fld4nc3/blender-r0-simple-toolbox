@@ -42,7 +42,9 @@ class SimpleToolbox_OT_VgroupsAddPopup(bpy.types.Operator):
         for obj in u.iter_scene_objects(selected=True, types=self.accepted_object_types):
             vertex_group_add(obj, self.vertex_group_name)
 
-        u.vertex_groups_list_update(force=True)
+        vertex_groups_list_update(force=True)
+
+        set_vertex_group_highlighted_by_name(self.vertex_group_name)
 
         if context.mode == u.OBJECT_MODES.EDIT_MESH:
             bpy.ops.r0tools.vgroups_assign_vertices()
@@ -452,9 +454,9 @@ class SimpleToolbox_OT_VgroupsAssignVertices(bpy.types.Operator):
                         vert[deform_layer][vg_index] = 1.0
                     except ReferenceError as ref_error:
                         if u.IS_DEBUG():
-                            print(f"[DEBUG] [{_mod}] AddPopup: {e}")
+                            print(f"[DEBUG] [{_mod}] AssignVertices: {e}")
                     except Exception as e:
-                        print(f"[ERROR] [{_mod}] AddPopup: {e}")
+                        print(f"[ERROR] [{_mod}] AssignVertices: {e}")
 
             bmesh.update_edit_mesh(mesh)
 
