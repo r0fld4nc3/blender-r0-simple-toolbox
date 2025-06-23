@@ -88,8 +88,8 @@ class CustomTransformsOrientationsTracker:
                 cls._last_tracked_orientations = current_orientation_set
 
                 # Update UI
-                for area in bpy.context.screen.areas:
-                    area.tag_redraw()
+                # for area in bpy.context.screen.areas:
+                # area.tag_redraw()
         except Exception as e:
             print(f"[ERROR] [{_mod}] Error tracking custom orientations: {e}")
             u.context_error_debug(error=e)
@@ -594,7 +594,7 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
 
         total_deletions = len(object_data_property_deletions) + len(mesh_data_property_deletions)
 
-        u.property_list_update(bpy.context.scene, context, force_run=True)
+        u.property_list_update(force_run=True)
 
         # u.show_notification(f"Deleted {total_deletions} propertie(s) across {total_objects} object(s)")
         self.report(

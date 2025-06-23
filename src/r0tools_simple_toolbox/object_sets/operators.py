@@ -292,6 +292,8 @@ class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
 
             object_set_count_after = object_set.count - object_set_count_before
 
+            u.timer_manager.schedule(object_sets_update_mesh_stats, delay=1, min_interval=1)
+
             self.report(
                 {"INFO"},
                 f"Added {object_set_count_after} object(s) to Set '{object_set.name}'",
@@ -332,6 +334,9 @@ class SimpleToolbox_OT_RemoveFromObjectSet(bpy.types.Operator):
                 total_removed += 1
 
             self.report({"INFO"}, f"Removed {total_removed} objects of Set '{object_set.name}'")
+
+        u.timer_manager.schedule(object_sets_update_mesh_stats, delay=1, min_interval=1)
+
         return {"FINISHED"}
 
 
@@ -364,6 +369,9 @@ class SimpleToolbox_OT_RemoveFromAllObjectSets(bpy.types.Operator):
                     object_set.remove_object(obj)
 
         self.report({"INFO"}, f"Removed selected objects from all Object Sets")
+
+        u.timer_manager.schedule(object_sets_update_mesh_stats, delay=1, min_interval=1)
+
         return {"FINISHED"}
 
 

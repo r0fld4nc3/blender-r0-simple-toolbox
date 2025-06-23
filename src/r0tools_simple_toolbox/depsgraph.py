@@ -1,5 +1,3 @@
-import time
-
 import bpy
 
 from . import utils as u
@@ -7,24 +5,10 @@ from .operators import CustomTransformsOrientationsTracker
 
 _mod = "DEPSGRAPH"
 
-_last_timed_execution = 0
-
-_very_frequent_update_interval = 5  # 5 seconds
-_frequent_update_interval = 60  # 1 minute
-_infrequent_update_interval = 300  # 5 minutes
-
-
-def _set_last_timed_execution(set_to):
-    global _last_timed_execution
-
-    if set_to != _last_timed_execution:
-        _last_timed_execution = set_to
-
 
 @bpy.app.handlers.persistent
 def handler_depsgraph_post_update(scene, depsgraph):
     """Handler that runs after depsgraph updates"""
-    global _last_timed_execution
 
     # Check specifically for object deletions
     if depsgraph.id_type_updated(u.DEPSGRAPH_ID_TYPES.OBJECT):
@@ -32,25 +16,17 @@ def handler_depsgraph_post_update(scene, depsgraph):
             print(f"[INFO] [{_mod}] We avoided an addon lock crash.")
             return None
 
-        # Store results once
-        now = time.time()
-        time_diff = now - _last_timed_execution
-        _frequent_interval_passed = time_diff > _frequent_update_interval
-        _infrequent_interval_passed = time_diff > _infrequent_update_interval
+        if u.object_count_changed():
+            u.timer_manager.schedule(u.cleanup_object_set_invalid_references_o1, delay=0, min_interval=0.1)
 
-        if _infrequent_interval_passed:
-            _set_last_timed_execution(now)
-            print(f"[MONITOR] [{_mod}] Infrequent interval passed")
-            u.cleanup_object_set_invalid_references(scene)
+        u.timer_manager.schedule(u.object_sets_update_mesh_stats, delay=0.5, min_interval=1)
 
-        if _frequent_interval_passed:
-            _set_last_timed_execution(now)
-            print(f"[MONITOR] [{_mod}] Frequent interval passed")
-            u.object_sets_update_mesh_stats(scene)
+        u.timer_manager.schedule(u.vertex_groups_list_update, delay=0, min_interval=0.05)
 
-        u.property_list_update(scene, bpy.context)
-        u.vertex_groups_list_update(scene, bpy.context)
-    CustomTransformsOrientationsTracker.track_custom_orientations(scene)
+        u.property_list_update()
+    CustomTransformsOrientationsTracker.track_custom_orientations(
+        scene,
+    )
 
 
 depsgraph_handlers = [handler_depsgraph_post_update]
