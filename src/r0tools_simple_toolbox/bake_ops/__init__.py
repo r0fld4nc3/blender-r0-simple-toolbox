@@ -5,7 +5,7 @@ import sys
 from .operators import *  # isort: skip
 
 package = __name__
-_mod = "BAKE TOOLS"
+_mod = "BAKE OPS"
 
 # fmt: off
 # List of submodlules, keep in sync with imports

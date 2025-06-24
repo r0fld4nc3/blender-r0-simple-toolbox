@@ -4,7 +4,7 @@ from bpy.props import BoolProperty, FloatVectorProperty, IntProperty, StringProp
 
 from .. import utils as u
 
-_mod = "BAKE_TOOLS.OPERATORS"
+_mod = "BAKE_OPS.OPERATORS"
 
 
 class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):

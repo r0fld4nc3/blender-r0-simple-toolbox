@@ -2,7 +2,7 @@ import bpy
 
 from . import ext_update as upd
 from . import utils as u
-from .bake_tools import SimpleToolbox_OT_EdgeDataToVertexColour
+from .bake_ops import SimpleToolbox_OT_EdgeDataToVertexColour
 from .defines import ADDON_NAME, VERSION_STR
 from .operators import *
 from .repo import draw_repo_layout
