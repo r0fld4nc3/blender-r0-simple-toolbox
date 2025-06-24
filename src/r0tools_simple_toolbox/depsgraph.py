@@ -13,7 +13,7 @@ def handler_depsgraph_post_update(scene, depsgraph):
     # Check specifically for object deletions
     if depsgraph.id_type_updated(u.DEPSGRAPH_ID_TYPES.OBJECT):
         if not u.is_writing_context_safe(scene, check_addon_props=True):
-            print(f"[INFO] [{_mod}] Avoided an addon state lock.")
+            print(f"[INFO] [{_mod}] Avoided an addon write lock.")
             return None
 
         if u.object_count_changed():
