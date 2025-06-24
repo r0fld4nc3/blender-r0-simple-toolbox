@@ -116,9 +116,9 @@ def update_vertex_group_name_callback(self, context):
                 renamed_objects.append(obj.name)
 
     if renamed_count > 0:
-        print(f"[INFO] [{_mod}] Renamed vertex group '{old_name}' to '{new_name}' in {renamed_count} objects")
+        u.LOG(f"[INFO] [{_mod}] Renamed vertex group '{old_name}' to '{new_name}' in {renamed_count} objects")
         if u.IS_DEBUG():
-            print("\t• " + "\n\t• ".join(renamed_objects))
+            u.LOG("\t• " + "\n\t• ".join(renamed_objects))
 
 
 class R0PROP_PG_VertexGroupPropertyItem(bpy.types.PropertyGroup):
@@ -647,6 +647,8 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
     debug: BoolProperty(name="Debug", description="Set Debug State", default=False)  # type: ignore
 
+    log_output: BoolProperty(name="Log", description="Whehter to produce regular Log output", default=False)  # type: ignore
+
     lock_states_avoided: IntProperty(
         name="Avoided Locks",
         description="Silly counter to log how many crashes were avoided by forbidden ID context writes",
@@ -725,6 +727,9 @@ class AddonPreferences(bpy.types.AddonPreferences):
         row.prop(self, "debug", text="Debug Mode")
 
         row = layout.row()
+        row.prop(self, "log_output", text="Log Output")
+
+        row = layout.row()
         row.prop(self, "experimental_features", text="Experimental Features")
 
         row = layout.row()
@@ -764,7 +769,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
     def save_axis_threshold(self):
         addon_prefs = bpy.context.preferences.addons[INTERNAL_NAME].preferences
         addon_prefs.clear_sharp_axis_float_prop = self.clear_sharp_axis_float_prop
-        # print(f"[INFO] [{_mod}] Saved Property: clear_sharp_axis_float_prop -> {self.clear_sharp_axis_float_prop}")
+        # u.LOG(f"[INFO] [{_mod}] Saved Property: clear_sharp_axis_float_prop -> {self.clear_sharp_axis_float_prop}")
 
 
 # ===================================================================

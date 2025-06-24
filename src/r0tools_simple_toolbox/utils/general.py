@@ -28,6 +28,13 @@ def IS_DEBUG():
     return DEBUG or addon_prefs.debug
 
 
+def LOG(*values: object, sep: str | None = "", end: str | None = "\n", flush=False):
+    """Return current debug state"""
+    addon_prefs = get_addon_prefs()
+    if addon_prefs.log_output:
+        print(*values, sep=sep, end=end, flush=flush)
+
+
 # ==============================
 # OBJECT, MESH, SELECTION
 # ==============================
@@ -470,16 +477,16 @@ def op_clear_sharp_along_axis(axis: str):
     Args:
         axis: The axis to clear sharp edges along (X, Y, or Z)
     """
-    print(f"\n=== Clear Sharp Along Axis {axis}")
+    LOG(f"\n=== Clear Sharp Along Axis {axis}")
     axis = str(axis).upper()
 
     threshold = get_addon_prefs().clear_sharp_axis_float_prop
-    print(f"[INFO] [{_mod}] Threshold: {threshold}")
+    LOG(f"[INFO] [{_mod}] Threshold: {threshold}")
 
     # Collect select objects
     objects = [obj for obj in get_selected_objects() if obj.type == "MESH"]
 
-    print(f"[INFO] [{_mod}] Objects: {objects}")
+    LOG(f"[INFO] [{_mod}] Objects: {objects}")
 
     if not objects:
         return False
@@ -487,15 +494,15 @@ def op_clear_sharp_along_axis(axis: str):
     for obj in objects:
         # Set the active object
         bpy.context.view_layer.objects.active = obj
-        print(f"[INFO] [{_mod}] Iterating: {obj.name}")
+        LOG(f"[INFO] [{_mod}] Iterating: {obj.name}")
 
         # Check the mode
         mode = obj.mode
-        print(f"[INFO] [{_mod}] Mode: {mode}")
+        LOG(f"[INFO] [{_mod}] Mode: {mode}")
 
         # Access mesh data
         mesh = obj.data
-        print(f"[INFO] [{_mod}] Mesh: {mesh}")
+        LOG(f"[INFO] [{_mod}] Mesh: {mesh}")
 
         # Store the selection mode
         # Tuple of Booleans for each of the 3 modes

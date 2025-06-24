@@ -207,6 +207,15 @@ def vertex_groups_list_update(force: bool = False):
 
     addon_props = u.get_addon_props()
 
+    # Additional write check
+    try:
+        if hasattr(addon_props.vertex_groups, "clear"):
+            _ = len(addon_props.vertex_groups)
+    except AttributeError as e:
+        if u.IS_DEBUG():
+            print(f"[DEBUG] [{_mod}] Property not accessible: {e}")
+        return None
+
     if not force:
         if not addon_props.vgroups_do_update:
             return None
@@ -254,7 +263,7 @@ def vertex_groups_list_update(force: bool = False):
         # Update the cache
         _vertex_groups_cache = vertex_groups_new
 
-        # Cleanup only when needed
+        # Cleanup only when/if needed
         if len(vertex_groups_new) != len(addon_props.vertex_groups):
             vertex_groups_cleanup_lock_states()
 

@@ -76,6 +76,9 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
             if addon_props.show_dev_tools:
                 row = dev_tools_box.row()
                 row.prop(addon_prefs, "debug", text="Debug", icon="EXPERIMENTAL")
+                row.prop(addon_prefs, "log_output", text="Log", icon="CONSOLE")
+                row = dev_tools_box.row()
+                row.operator(BUILTINS_OT_IconViewer.bl_idname)
                 row = dev_tools_box.row()
                 row.operator("script.reload", text="Reload All Scripts", icon="PACKAGE")
                 reload_user_defined_box = dev_tools_box.box()

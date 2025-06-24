@@ -97,16 +97,42 @@ def is_writing_context_safe(scene, check_addon_props: bool = False) -> bool:
     Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock
     """
 
-    from .general import IS_DEBUG
+    from .general import IS_DEBUG, LOG
 
     addon_prefs = get_addon_prefs()
 
     if not hasattr(scene, TOOLBOX_PROPS_NAME):
         if addon_prefs is not None and hasattr(addon_prefs, "lock_states_avoided"):
             addon_prefs.lock_states_avoided += 1
-        if IS_DEBUG():
-            print(f"[INFO] [{_mod}] Scene does not have proper attribute. Skipping.")
+            LOG(f"[INFO] [{_mod}] Scene does not have proper attribute. Skipping.")
         return False
+
+    # Maybe we can skip this one?
+    """
+    # Check if we're in a modal operation
+    if bpy.context.mode != "OBJECT" and hasattr(bpy.context, "active_operator"):
+        LOG(f"[MONITOR] [{_mod}] Currently in modal operation. Skipping.")
+        return False
+    """
+
+    # Check if rendering or baking is active
+    if scene.render.use_lock_interface:
+        LOG(f"[MONITOR] [{_mod}] Interface is locked (rendering/baking). Skipping.")
+        return False
+
+    # Check for active jobs
+    jobs = ("RENDER", "COMPOSITE", "OBJECT_BAKE")
+    jobs_active = [bpy.app.is_job_running(job) for job in jobs]
+    if any(jobs_active):
+        LOG(f"[MONITOR] [{_mod}] Active job(s) detected. Skipping.")
+        return False
+
+    # Additional check for bake operator
+    if hasattr(bpy.context, "active_operator") and bpy.context.active_operator:
+        op_idname = bpy.context.active_operator.bl_idname
+        if "bake" in op_idname.lower():
+            LOG(f"[MONITOR] [{_mod}] Bake operator active: {op_idname}. Skipping.")
+            return False
 
     if check_addon_props:
         addon_props = get_addon_props()
@@ -114,15 +140,13 @@ def is_writing_context_safe(scene, check_addon_props: bool = False) -> bool:
         if not addon_props or addon_props is None:
             if addon_prefs is not None and hasattr(addon_prefs, "lock_states_avoided"):
                 addon_prefs.lock_states_avoided += 1
-            if IS_DEBUG():
-                print(f"[INFO] [{_mod}] Addon Properties is {addon_props}. Skipping.")
+                LOG(f"[INFO] [{_mod}] Addon Properties is {addon_props}. Skipping.")
             return None
 
     if not hasattr(bpy.context, "selected_objects"):
         if addon_prefs is not None and hasattr(addon_prefs, "lock_states_avoided"):
             addon_prefs.lock_states_avoided += 1
-        if IS_DEBUG():
-            print(f"[INFO] [{_mod}] Context has no attribute 'selected_objects'. Skipping.")
+            LOG(f"[INFO] [{_mod}] Context has no attribute 'selected_objects'. Skipping.")
         return False
 
     return True
