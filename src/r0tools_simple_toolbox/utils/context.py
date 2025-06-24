@@ -104,7 +104,7 @@ def is_writing_context_safe(scene, check_addon_props: bool = False) -> bool:
     if not hasattr(scene, TOOLBOX_PROPS_NAME):
         if addon_prefs is not None and hasattr(addon_prefs, "lock_states_avoided"):
             addon_prefs.lock_states_avoided += 1
-            LOG(f"[INFO] [{_mod}] Scene does not have proper attribute. Skipping.")
+            LOG(f"[INFO] [{_mod}] Scene does not have proper attribute(s). Skipping.")
         return False
 
     # Maybe we can skip this one?
@@ -140,8 +140,18 @@ def is_writing_context_safe(scene, check_addon_props: bool = False) -> bool:
         if not addon_props or addon_props is None:
             if addon_prefs is not None and hasattr(addon_prefs, "lock_states_avoided"):
                 addon_prefs.lock_states_avoided += 1
-                LOG(f"[INFO] [{_mod}] Addon Properties is {addon_props}. Skipping.")
-            return None
+                LOG(f"[INFO] [{_mod}] Invalid Addon Properties: {addon_props}. Skipping.")
+            return False
+
+        # Test writing capabilities
+        # Vertex Groups
+        try:
+            if hasattr(addon_props, "cat_show_vertex_groups_editor"):
+                if addon_props.cat_show_vertex_groups_editor:
+                    if hasattr(addon_props.vertex_groups, "clear"):
+                        _ = len(addon_props.vertex_groups)
+        except (AttributeError, RuntimeError) as e:
+            LOG(f"[ERROR] [{_mod}] Property not accessible: {e}")
 
     if not hasattr(bpy.context, "selected_objects"):
         if addon_prefs is not None and hasattr(addon_prefs, "lock_states_avoided"):
