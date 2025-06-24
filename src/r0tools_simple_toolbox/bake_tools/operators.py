@@ -58,20 +58,26 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
 
                 if connected_edges:
                     if crease_layer:
-                        # Average crease values
-                        crease_sum = sum(edge[crease_layer] for edge in connected_edges)
-                        crease_average = crease_sum / len(connected_edges)
-                        # Clamp 0-1
-                        vertex_crease_values[vert.index] = max(0.0, min(1.0, crease_average))
+                        # Only consider edges with crease values > 0
+                        edges_with_crease = [edge[crease_layer] for edge in connected_edges if edge[crease_layer] > 0]
+                        if edges_with_crease:
+                            crease_average = sum(edges_with_crease) / len(edges_with_crease)
+                            vertex_crease_values[vert.index] = max(0.0, min(1.0, crease_average))
+                        else:
+                            vertex_crease_values[vert.index] = 0.0
                     else:
                         vertex_crease_values[vert.index] = 0.0
 
                     if edge_bevel_layer:
-                        # Average bevel values
-                        bevel_sum = sum(edge[edge_bevel_layer] for edge in connected_edges)
-                        bevel_average = bevel_sum / len(connected_edges)
-                        # Clamp 0-1
-                        vertex_bevel_values[vert.index] = max(0.0, min(1.0, bevel_average))
+                        # Only consider edges with bevel values > 0
+                        edges_with_bevel = [
+                            edge[edge_bevel_layer] for edge in connected_edges if edge[edge_bevel_layer] > 0
+                        ]
+                        if edges_with_bevel:
+                            bevel_average = sum(edges_with_bevel) / len(edges_with_bevel)
+                            vertex_bevel_values[vert.index] = max(0.0, min(1.0, bevel_average))
+                        else:
+                            vertex_bevel_values[vert.index] = 0.0
                     else:
                         vertex_bevel_values[vert.index] = 0.0
                 else:
