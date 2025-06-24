@@ -221,6 +221,14 @@ def deselect_all_bmesh(bmesh_obj):
         face.select = False
 
 
+def bmesh_get_crease_layer(bm):
+    return bm.edges.layers.float.get("crease_edge", None)
+
+
+def bmesh_get_bevel_weight_edge_layer(bm):
+    return bm.edges.layers.float.get("bevel_weight_edge", None)
+
+
 def object_in_view_layer(obj, context=None):
     """Check if object is in the active view layer"""
     ctx = bpy.context

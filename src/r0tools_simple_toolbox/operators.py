@@ -1269,8 +1269,8 @@ class SimpleToolbox_OT_ResetEdgeData(bpy.types.Operator):
 
             bm.edges.ensure_lookup_table()
 
-            crease_layer = bm.edges.layers.float.get("crease_edge", None)
-            edge_bevel_layer = bm.edges.layers.float.get("bevel_weight_edge", None)
+            crease_layer = u.bmesh_get_crease_layer(bm)
+            edge_bevel_layer = u.bmesh_get_bevel_weight_edge_layer(bm)
 
             for edge in bm.edges:
                 if edge.select:

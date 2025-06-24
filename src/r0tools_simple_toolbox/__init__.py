@@ -1,5 +1,5 @@
 bl_info = {
-    "name": "r0Tools - Simple Toolbox.dev",
+    "name": "r0Tools - Simple Toolbox.edge-data-to-vertex-colours",
     "author": "Artur Rosário",
     "version": (0, 0, 31),
     "blender": (4, 2, 0),
@@ -27,6 +27,7 @@ modules = (
     ".defines",
     ".repo.operators",
     ".repo.ui",
+    ".bake_tools",
 )
 
 _mod = "__INIT__"

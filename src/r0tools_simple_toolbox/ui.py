@@ -2,6 +2,7 @@ import bpy
 
 from . import ext_update as upd
 from . import utils as u
+from .bake_tools import SimpleToolbox_OT_EdgeDataToVertexColour
 from .defines import ADDON_NAME, VERSION_STR
 from .operators import *
 from .repo import draw_repo_layout
@@ -86,6 +87,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 row.prop(addon_props, "reload_modules_prop")
                 row = reload_user_defined_box.row()
                 row.operator(SimpleToolbox_OT_ReloadNamedScripts.bl_idname, icon="TOOL_SETTINGS")
+                
                 if addon_prefs.experimental_features:
                     row = dev_tools_box.row()
                     row.operator("image.reload", icon="IMAGE_DATA")
@@ -283,6 +285,13 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                     
                     row = uv_island_checks_thresholds_box.row()
                     row.operator(SimpleToolbox_OT_UVCheckIslandThresholds.bl_idname)
+
+        if addon_prefs.experimental_features:
+            experimental_features_box = layout.box()
+            experimental_features_box.prop(addon_props, "show_experimental_features", icon="TRIA_DOWN" if addon_props.show_experimental_features else "TRIA_RIGHT", emboss=False)
+            if addon_props.show_experimental_features:
+                row = experimental_features_box.row()
+                row.operator(SimpleToolbox_OT_EdgeDataToVertexColour.bl_idname)
 
         # ====== Online Repository ======
         draw_repo_layout(layout, context)
