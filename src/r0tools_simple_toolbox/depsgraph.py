@@ -52,5 +52,5 @@ def unregister():
             bpy.app.handlers.depsgraph_update_post.remove(handler)
 
     for handler in load_post_handlers:
-        print(f"[INFO] [{_mod}] Register load_post_handler: {handler.__name__}")
+        print(f"[INFO] [{_mod}] Unregister load_post_handler: {handler.__name__}")
         bpy.app.handlers.load_post.remove(handler)

@@ -291,7 +291,9 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
             experimental_features_box.prop(addon_props, "show_experimental_features", icon="TRIA_DOWN" if addon_props.show_experimental_features else "TRIA_RIGHT", emboss=False)
             if addon_props.show_experimental_features:
                 row = experimental_features_box.row()
-                row.operator(SimpleToolbox_OT_EdgeDataToVertexColour.bl_idname)
+                row.operator(SimpleToolbox_OT_EdgeDataToVertexColour.bl_idname, icon="GROUP_VCOL")
+                row = experimental_features_box.row()
+                u.draw_edge_bweights_presets_uilist(self.layout, context, edge_bweights_box=experimental_features_box)
 
         # ====== Online Repository ======
         draw_repo_layout(layout, context)
