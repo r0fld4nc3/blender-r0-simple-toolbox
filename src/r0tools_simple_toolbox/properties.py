@@ -22,7 +22,9 @@ _mod = "PROPERTIES"
 # Properties which are not stored in preferences
 
 
-# ==== Custom Object Properties & Items =====
+##############################################
+###### Custom Object Properties & Items ######
+##############################################
 class R0PROP_UL_CustomPropertiesList(bpy.types.UIList):
     """UI List where each entry is a custom property belonging to at least 1 selected object"""
 
@@ -44,7 +46,9 @@ class R0PROP_PG_CustomPropertyItem(bpy.types.PropertyGroup):
     type: StringProperty(default=u.CUSTOM_PROPERTIES_TYPES.OBJECT_DATA)  # type: ignore
 
 
-# ===== Vertex Groups =====
+###########################
+###### Vertex Groups ######
+###########################
 class R0PROP_UL_VertexGroupsList(bpy.types.UIList):
     """UI List where each entry is a vertex group belonging to at least 1 selected object"""
 
@@ -138,7 +142,9 @@ class R0PROP_PG_LockStateEntry(bpy.types.PropertyGroup):
     locked: IntProperty(default=False)  # type: ignore
 
 
-# ===== Object Sets & Object Items =====
+########################################
+###### Object Sets & Object Items ######
+########################################
 class R0PROP_ObjectSetObjectItem(bpy.types.PropertyGroup):
     """Property representing a reference to an Object within an Object Set"""
 
@@ -420,6 +426,59 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
             layout.label(text=item.name)
 
 
+##############################
+###### Edge Ops & Items ######
+##############################
+class R0PROP_BWeightPresetItem(bpy.types.PropertyGroup):
+    """Individual bevel weight preset item"""
+
+    value: FloatProperty(
+        name="Bevel Weight", description="Bevel weight value", default=0.0, min=0.0, max=1.0
+    )  # type: ignore
+
+
+class R0PROP_PG_EdgeBWeightsPresets(bpy.types.PropertyGroup):
+    """Collection of bevel weight presets"""
+
+    presets: CollectionProperty(type=R0PROP_BWeightPresetItem)  # type: ignore
+    active_index: IntProperty(default=0)  # type: ignore
+
+
+class R0PROP_UL_EdgeBWeightsList(bpy.types.UIList):
+    """UI List for bevel weight presets"""
+
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        from .bake_ops import SimpleToolbox_OT_ApplyBWeightPreset
+
+        if self.layout_type in {"DEFAULT", "COMPACT"}:
+            # Info Row
+            info_row = layout.row(align=True)
+
+            # Apply Preset Button
+            col_apply = info_row.row(align=True)
+            """
+            Store a reference to the Operator and assign it the preset_index property
+            so we can apply the specific preset value at this row/index
+            without having to first select the row!
+            """
+            op = col_apply.operator(SimpleToolbox_OT_ApplyBWeightPreset.bl_idname, text="", icon="PLUS", emboss=False)
+            # Set the property before adding to layout
+            op.preset_index = index
+            # Add spacing after the operation is complete
+            col_apply.separator(factor=0.5)
+
+            # Preset Value
+            col_value = info_row.row(align=True)
+            col_value.label(text=f"{item.value:.2f}", icon="NONE")
+
+            # Fill space
+            info_row.separator(factor=1.0)
+
+        elif self.layout_type in {"GRID"}:
+            layout.alignment = "CENTER"
+            layout.label(text=f"{item.value:.2f}")
+
+
 # ===================================================================
 #   ADDON PROPERTIES
 # ===================================================================
@@ -638,6 +697,8 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
         update=lambda self, context: u.save_preferences(),
     )
 
+    edge_bweights_presets: PointerProperty(type=R0PROP_PG_EdgeBWeightsPresets)  # type: ignore
+
 
 # ===================================================================
 #   ADDON PREFS
@@ -784,9 +845,15 @@ classes = [
     R0PROP_PG_VertexGroupPropertyItem,
     R0PROP_UL_VertexGroupsList,
     R0PROP_PG_LockStateEntry,
+    R0PROP_BWeightPresetItem,
+    R0PROP_PG_EdgeBWeightsPresets,
+    R0PROP_UL_EdgeBWeightsList,
     AddonPreferences,
     r0SimpleToolboxProps,
 ]
+
+
+load_post_handlers = [u.initialize_bweight_presets]
 
 
 def register():
@@ -797,6 +864,10 @@ def register():
     print("[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_props")
     # Registering to Scene also has the side effect of saving properties on a per scene/file basis, which is nice!
     bpy.types.Scene.r0fl_toolbox_props = PointerProperty(type=r0SimpleToolboxProps)
+
+    for handler in load_post_handlers:
+        print(f"[INFO] [{_mod}] Register load_post_handler: {handler.__name__}")
+        bpy.app.handlers.load_post.append(handler)
 
     addon_prefs = u.get_addon_prefs()
     global DEBUG
@@ -812,6 +883,10 @@ def unregister():
     for cls in classes:
         print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
+
+    for handler in load_post_handlers:
+        print(f"[INFO] [{_mod}] Unregister load_post_handler: {handler.__name__}")
+        bpy.app.handlers.load_post.remove(handler)
 
     print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_props")
     del bpy.types.Scene.r0fl_toolbox_props

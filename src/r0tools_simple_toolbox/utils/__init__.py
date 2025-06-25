@@ -9,6 +9,7 @@ from .general import *  # isort: skip
 from ..object_sets.object_sets import *  # isort: skip
 from ..vertex_groups.vertex_groups import *  # isort: skip
 from .defer import timer_manager, deferred  # isort: skip
+from .edge_data import draw_edge_bweights_presets_uilist, initialize_bweight_presets  # isort: skip
 
 package = __name__
 _mod = "UTILS.__INIT__"
@@ -20,7 +21,8 @@ submodules = [
     "context",
     "custom_transform",
     "general",
-    "defer"
+    "defer",
+    "edge_data"
 ]
 # fmt: on
 _module_objects = []

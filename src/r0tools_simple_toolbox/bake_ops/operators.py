@@ -111,9 +111,45 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_ApplyBWeightPreset(bpy.types.Operator):
+    bl_label = "Apply"
+    bl_idname = "r0tools.apply_selected_bweight_value_preset"
+    bl_description = "Apply selected Edge Bevel Weight value preset to selected edges"
+    bl_options = {"REGISTER", "UNDO"}
+
+    accepted_contexts = [u.OBJECT_MODES.EDIT_MESH]
+    preset_index: IntProperty(default=-1)  # type: ignore
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode in cls.accepted_contexts and u.get_selected_objects(context)
+
+    def execute(self, context):
+        addon_props = u.get_addon_props()
+
+        value = addon_props.edge_bweights_presets.presets[self.preset_index].value
+
+        for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
+            bm = bmesh.from_edit_mesh(obj.data)
+
+            bm.edges.ensure_lookup_table()
+
+            crease_layer = u.bmesh_get_crease_layer(bm)
+            edge_bevel_layer = u.bmesh_get_bevel_weight_edge_layer(bm)
+
+            for edge in bm.edges:
+                if edge.select:
+                    edge[edge_bevel_layer] = value
+
+            bmesh.update_edit_mesh(obj.data)
+
+        return {"FINISHED"}
+
+
 # fmt: off
 classes = [
-    SimpleToolbox_OT_EdgeDataToVertexColour
+    SimpleToolbox_OT_EdgeDataToVertexColour,
+    SimpleToolbox_OT_ApplyBWeightPreset
 ]
 # fmt: on
 
