@@ -461,7 +461,7 @@ class R0PROP_UL_EdgeBWeightsList(bpy.types.UIList):
             so we can apply the specific preset value at this row/index
             without having to first select the row!
             """
-            op = col_apply.operator(SimpleToolbox_OT_ApplyBWeightPreset.bl_idname, text="", icon="PLUS", emboss=False)
+            op = col_apply.operator(SimpleToolbox_OT_ApplyBWeightPreset.bl_idname, text="", icon="PLUS")
             # Set the property before adding to layout
             op.preset_index = index
             # Add spacing after the operation is complete
