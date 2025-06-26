@@ -452,10 +452,10 @@ class R0PROP_UL_EdgeBWeightsList(bpy.types.UIList):
 
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             # Info Row
-            info_row = layout.row(align=True)
+            item_row = layout.row(align=True)
 
             # Apply Preset Button
-            col_apply = info_row.row(align=True)
+            col_apply = item_row.row(align=True)
             """
             Store a reference to the Operator and assign it the preset_index property
             so we can apply the specific preset value at this row/index
@@ -468,11 +468,11 @@ class R0PROP_UL_EdgeBWeightsList(bpy.types.UIList):
             col_apply.separator(factor=0.5)
 
             # Preset Value
-            col_value = info_row.row(align=True)
+            col_value = item_row.row(align=True)
             col_value.label(text=f"{item.value:.2f}", icon="NONE")
 
             # Fill space
-            info_row.separator(factor=1.0)
+            item_row.separator(factor=1.0)
 
         elif self.layout_type in {"GRID"}:
             layout.alignment = "CENTER"
