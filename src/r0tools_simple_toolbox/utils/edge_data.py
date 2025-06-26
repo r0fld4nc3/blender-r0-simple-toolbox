@@ -7,7 +7,7 @@ def draw_edge_bweights_presets_uilist(layout, context, edge_bweights_box=None):
     """
     Draw the Edge Bevel Weights Presets UI list
     """
-    from ..bake_ops import SimpleToolbox_OT_ApplyBWeightPreset
+    from ..data_ops import SimpleToolbox_OT_ApplyBWeightPreset
     from . import LOG, get_addon_props
 
     addon_props = get_addon_props()

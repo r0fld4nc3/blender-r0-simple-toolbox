@@ -27,7 +27,7 @@ modules = (
     ".defines",
     ".repo.operators",
     ".repo.ui",
-    ".bake_ops",
+    ".data_ops",
 )
 
 _mod = "__INIT__"

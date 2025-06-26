@@ -448,7 +448,7 @@ class R0PROP_UL_EdgeBWeightsList(bpy.types.UIList):
     """UI List for bevel weight presets"""
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
-        from .bake_ops import SimpleToolbox_OT_ApplyBWeightPreset
+        from .data_ops import SimpleToolbox_OT_ApplyBWeightPreset
 
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             # Info Row
