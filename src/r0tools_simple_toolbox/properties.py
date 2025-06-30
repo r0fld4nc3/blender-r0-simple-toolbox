@@ -696,8 +696,8 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
 class r0SimpleToolboxEdgeDataProps(bpy.types.PropertyGroup):
     edge_bweights_presets: PointerProperty(type=R0PROP_PG_EdgeBWeightsPresets)  # type: ignore
 
-    apply_as_bevel_weights: BoolProperty(name="Apply as Bevel Weights", description="Apply selected preset value as Edge Bevel Weight", default=True)  # type: ignore
-    apply_as_creases: BoolProperty(name="Apply as Creases", description="Apply selected preset value as Crease", default=False)  # type: ignore
+    apply_as_bevel_weights: BoolProperty(name="As Bevel Weights", description="Apply selected preset value as Edge Bevel Weight", default=True)  # type: ignore
+    apply_as_creases: BoolProperty(name="As Creases", description="Apply selected preset value as Crease", default=False)  # type: ignore
 
     bevel_weights_to_vcol: BoolProperty(name="Bevel Weights", description="Attempt to convert Bevel Edge Weights to Vertex Colours", default=True)  # type: ignore
 
