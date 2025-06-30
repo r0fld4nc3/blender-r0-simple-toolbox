@@ -1,6 +1,12 @@
 import bmesh
 import bpy
-from bpy.props import BoolProperty, FloatVectorProperty, IntProperty, StringProperty
+from bpy.props import (
+    BoolProperty,
+    FloatProperty,
+    FloatVectorProperty,
+    IntProperty,
+    StringProperty,
+)
 
 from .. import utils as u
 
@@ -137,6 +143,12 @@ class SimpleToolbox_OT_ApplyBWeightPreset(bpy.types.Operator):
             crease_layer = u.bmesh_get_crease_layer(bm)
             edge_bevel_layer = u.bmesh_get_bevel_weight_edge_layer(bm)
 
+            if not edge_bevel_layer:
+                edge_bevel_layer = u.bmesh_new_bevel_weight_edge_layer(bm)
+
+            if not crease_layer:
+                crease_layer = u.bmesh_new_crease_layer(bm)
+
             for edge in bm.edges:
                 if edge.select:
                     edge[edge_bevel_layer] = value
@@ -146,10 +158,48 @@ class SimpleToolbox_OT_ApplyBWeightPreset(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_ApplyBWeightValue(bpy.types.Operator):
+    bl_label = "Apply"
+    bl_idname = "r0tools.apply_bweight_value"
+    bl_description = "Apply selected Edge Bevel Weight value preset to selected edges"
+    bl_options = {"REGISTER", "UNDO"}
+
+    accepted_contexts = [u.OBJECT_MODES.EDIT_MESH]
+    value: FloatProperty(default=0.0)  # type: ignore
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode in cls.accepted_contexts and u.get_selected_objects(context)
+
+    def execute(self, context):
+        for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
+            bm = bmesh.from_edit_mesh(obj.data)
+
+            bm.edges.ensure_lookup_table()
+
+            crease_layer = u.bmesh_get_crease_layer(bm)
+            edge_bevel_layer = u.bmesh_get_bevel_weight_edge_layer(bm)
+
+            if not edge_bevel_layer:
+                edge_bevel_layer = u.bmesh_new_bevel_weight_edge_layer(bm)
+
+            if not crease_layer:
+                crease_layer = u.bmesh_new_crease_layer(bm)
+
+            for edge in bm.edges:
+                if edge.select:
+                    edge[edge_bevel_layer] = self.value
+
+            bmesh.update_edit_mesh(obj.data)
+
+        return {"FINISHED"}
+
+
 # fmt: off
 classes = [
     SimpleToolbox_OT_EdgeDataToVertexColour,
-    SimpleToolbox_OT_ApplyBWeightPreset
+    SimpleToolbox_OT_ApplyBWeightPreset,
+    SimpleToolbox_OT_ApplyBWeightValue
 ]
 # fmt: on
 

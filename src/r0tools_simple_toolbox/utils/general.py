@@ -225,8 +225,20 @@ def bmesh_get_crease_layer(bm):
     return bm.edges.layers.float.get("crease_edge", None)
 
 
+def bmesh_new_crease_layer(bm):
+    bm.edges.layers.float.new("crease_edge")
+
+    return bmesh_get_crease_layer(bm)
+
+
 def bmesh_get_bevel_weight_edge_layer(bm):
     return bm.edges.layers.float.get("bevel_weight_edge", None)
+
+
+def bmesh_new_bevel_weight_edge_layer(bm):
+    bm.edges.layers.float.new("bevel_weight_edge")
+
+    return bmesh_get_bevel_weight_edge_layer(bm)
 
 
 def object_in_view_layer(obj, context=None):

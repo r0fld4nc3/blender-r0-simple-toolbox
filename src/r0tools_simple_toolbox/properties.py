@@ -450,33 +450,28 @@ class R0PROP_UL_EdgeBWeightsList(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         from .data_ops import SimpleToolbox_OT_ApplyBWeightPreset
 
-        if self.layout_type in {"DEFAULT", "COMPACT"}:
-            # Info Row
-            item_row = layout.row(align=True)
+        # Info Row
+        item_row = layout.row(align=True)
 
-            # Apply Preset Button
-            col_apply = item_row.row(align=True)
-            """
-            Store a reference to the Operator and assign it the preset_index property
-            so we can apply the specific preset value at this row/index
-            without having to first select the row!
-            """
-            op = col_apply.operator(SimpleToolbox_OT_ApplyBWeightPreset.bl_idname, text="", icon="PLUS")
-            # Set the property before adding to layout
-            op.preset_index = index
-            # Add spacing after the operation is complete
-            col_apply.separator(factor=0.5)
+        # Apply Preset Button
+        col_apply = item_row.row(align=True)
+        """
+        Store a reference to the Operator and assign it the preset_index property
+        so we can apply the specific preset value at this row/index
+        without having to first select the row!
+        """
+        op = col_apply.operator(SimpleToolbox_OT_ApplyBWeightPreset.bl_idname, text="", icon="PLUS")
+        # Set the property before adding to layout
+        op.preset_index = index
+        # Add spacing after the operation is complete
+        col_apply.separator(factor=0.5)
 
-            # Preset Value
-            col_value = item_row.row(align=True)
-            col_value.label(text=f"{item.value:.2f}", icon="NONE")
+        # Preset Value
+        col_value = item_row.row(align=True)
+        col_value.label(text=f"{item.value:.2f}", icon="NONE")
 
-            # Fill space
-            item_row.separator(factor=1.0)
-
-        elif self.layout_type in {"GRID"}:
-            layout.alignment = "CENTER"
-            layout.label(text=f"{item.value:.2f}")
+        # Fill space
+        item_row.separator(factor=1.0)
 
 
 # ===================================================================
@@ -700,6 +695,10 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
     edge_bweights_presets: PointerProperty(type=R0PROP_PG_EdgeBWeightsPresets)  # type: ignore
 
 
+# class r0SimpleToolboxEdgeDataProps(type.types.PropertyGroup):
+# edge_bweights_presets: PointerProperty(type=R0PROP_PG_EdgeBWeightsPresets)  # type: ignore
+
+
 # ===================================================================
 #   ADDON PREFS
 # ===================================================================
@@ -776,6 +775,8 @@ class AddonPreferences(bpy.types.AddonPreferences):
     edge_reset_seam: BoolProperty(name="Reset Edge Seam", description="Set whether to always reset this component", default=True)  # type: ignore
     edge_reset_crease: BoolProperty(name="Reset Edge Crease", description="Set whether to always reset this component", default=True)  # type: ignore
     edge_reset_bevel_weight: BoolProperty(name="Reset Edge Bevel Weight", description="Set whether to always reset this component", default=True)  # type: ignore
+
+    edge_data_bweight_preset_grid_buttons_toggle: BoolProperty(name="Toggle List/Grid", description="Toggle between a list view or a grid button view", default=False)  # type: ignore
 
     def draw(self, context):
         layout = self.layout
@@ -861,7 +862,7 @@ def register():
         print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
-    print("[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_props")
+    print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_props")
     # Registering to Scene also has the side effect of saving properties on a per scene/file basis, which is nice!
     bpy.types.Scene.r0fl_toolbox_props = PointerProperty(type=r0SimpleToolboxProps)
 

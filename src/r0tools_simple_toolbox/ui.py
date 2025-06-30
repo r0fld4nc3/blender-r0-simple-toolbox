@@ -293,7 +293,11 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 row = experimental_features_box.row()
                 row.operator(SimpleToolbox_OT_EdgeDataToVertexColour.bl_idname, icon="GROUP_VCOL")
                 row = experimental_features_box.row()
-                u.draw_edge_bweights_presets_uilist(self.layout, context, edge_bweights_box=experimental_features_box)
+                bweight_presets_box = row.box()
+                row = bweight_presets_box.row()
+                row.prop(addon_prefs, "edge_data_bweight_preset_grid_buttons_toggle", icon="MESH_GRID", text="")
+                row.label(text=f"{'Bevel Weight Preset Grid' if addon_prefs.edge_data_bweight_preset_grid_buttons_toggle else 'Bevel Weight Preset List'}")
+                u.draw_edge_bweights_presets_uilist(self.layout, context, edge_bweights_box=bweight_presets_box)
 
         # ====== Online Repository ======
         draw_repo_layout(layout, context)
