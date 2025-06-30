@@ -21,7 +21,12 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return u.get_selected_objects(context)
+        addon_edge_data_props = u.get_addon_edge_data_props()
+
+        apply_as_bevel_weight = addon_edge_data_props.apply_as_bevel_weights
+        apply_as_crease = addon_edge_data_props.apply_as_creases
+
+        return u.get_selected_objects(context) and any([apply_as_bevel_weight, apply_as_crease])
 
     def execute(self, context):
         addon_props = u.get_addon_props()
