@@ -2,6 +2,7 @@ import importlib
 import sys
 
 # Import order here is really important!
+# fmt: off
 from .constants import *  # isort: skip
 from .context import *  # isort: skip
 from .custom_transform import *  # isort: skip
@@ -9,7 +10,11 @@ from .general import *  # isort: skip
 from ..object_sets.object_sets import *  # isort: skip
 from ..vertex_groups.vertex_groups import *  # isort: skip
 from .defer import timer_manager, deferred  # isort: skip
-from .edge_data import draw_edge_bweights_presets_uilist, initialize_bweight_presets  # isort: skip
+from .edge_data import (  # isort: skip
+    draw_edge_bweights_presets_uilist,
+    initialize_bweight_presets,
+)
+# fmt: on
 
 package = __name__
 _mod = "UTILS.__INIT__"

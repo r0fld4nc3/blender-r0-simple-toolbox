@@ -11,7 +11,7 @@ _mod = "UI"
 
 # fmt: off
 class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
-    bl_idname = 'OBJECT_PT_quick_toolbox'
+    bl_idname = 'OBJECT_PT_simple_toolbox'
     bl_label = f'{ADDON_NAME} ({VERSION_STR})'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -37,6 +37,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
     def draw(self, context):
         addon_props = u.get_addon_props()
         addon_prefs = u.get_addon_prefs()
+        experimental_props = u.get_addon_experimental_props()
         
         layout = self.layout
 
@@ -290,25 +291,64 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
             experimental_features_box = layout.box()
             experimental_features_box.prop(addon_props, "show_experimental_features", icon="TRIA_DOWN" if addon_props.show_experimental_features else "TRIA_RIGHT", emboss=False)
             if addon_props.show_experimental_features:
-                row = experimental_features_box.row()
-                row.operator(SimpleToolbox_OT_EdgeDataToVertexColour.bl_idname, icon="GROUP_VCOL")
-                row = experimental_features_box.row()
-                bweight_presets_box = row.box()
-                row = bweight_presets_box.row()
-                row.prop(addon_prefs, "edge_data_bweight_preset_grid_buttons_toggle", icon="MESH_GRID", text="")
-                row.label(text=f"{'Bevel Weight Preset Grid' if addon_prefs.edge_data_bweight_preset_grid_buttons_toggle else 'Bevel Weight Preset List'}")
-                u.draw_edge_bweights_presets_uilist(self.layout, context, edge_bweights_box=bweight_presets_box)
+                exp_edge_data_row = experimental_features_box.row()
+                exp_edge_data_row.prop(experimental_props, "show_edge_data_ops", icon="TRIA_DOWN" if experimental_props.show_edge_data_ops else "TRIA_RIGHT", emboss=False)
+                if experimental_props.show_edge_data_ops:
+                    row = experimental_features_box.row()
+                    row.operator(SimpleToolbox_OT_EdgeDataToVertexColour.bl_idname, icon="GROUP_VCOL")
+                    row = experimental_features_box.row()
+                    bweight_presets_box = row.box()
+                    row = bweight_presets_box.row()
+                    row.prop(addon_prefs, "edge_data_bweight_preset_grid_buttons_toggle", icon="MESH_GRID", text="")
+                    row.label(text=f"{'Bevel Weight Preset Grid' if addon_prefs.edge_data_bweight_preset_grid_buttons_toggle else 'Bevel Weight Preset List'}")
+                    u.draw_edge_bweights_presets_uilist(self.layout, context, edge_bweights_box=bweight_presets_box)
 
         # ====== Online Repository ======
         draw_repo_layout(layout, context)
 # fmt: on
 
 
+class r0Tools_PT_SimpleToolboxEdgeDataOps(bpy.types.Panel):
+    bl_idname = "OBJECT_PT_simple_toolbox_edge_data"
+    bl_label = f"Edge Data Ops ({VERSION_STR})"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Item"
+    # bl_options = {"DEFAULT_CLOSED"}
+    has_update = False
+
+    def draw(self, context):
+        addon_props = u.get_addon_props()
+        addon_prefs = u.get_addon_prefs()
+
+        layout = self.layout
+
+        if addon_prefs.experimental_features:
+            row = layout.row()
+            row.operator(SimpleToolbox_OT_EdgeDataToVertexColour.bl_idname, icon="GROUP_VCOL")
+            row = layout.row()
+            bweight_presets_box = row.box()
+            row = bweight_presets_box.row()
+            row.prop(addon_prefs, "edge_data_bweight_preset_grid_buttons_toggle", icon="MESH_GRID", text="")
+            row.label(
+                text=f"{'Bevel Weight Preset Grid' if addon_prefs.edge_data_bweight_preset_grid_buttons_toggle else 'Bevel Weight Preset List'}"
+            )
+            u.draw_edge_bweights_presets_uilist(self.layout, context, edge_bweights_box=bweight_presets_box)
+
+
+def unregister():
+    for cls in classes:
+        print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        bpy.utils.unregister_class(cls)
+
+    bpy.types.VIEW3D_PT_transform.remove(u.draw_bweights_in_transform_panel)
+
+
 # -------------------------------------------------------------------
 #   Register & Unregister
 # -------------------------------------------------------------------
 
-classes = [r0Tools_PT_SimpleToolbox]
+classes = [r0Tools_PT_SimpleToolbox, r0Tools_PT_SimpleToolboxEdgeDataOps]
 
 
 def register():

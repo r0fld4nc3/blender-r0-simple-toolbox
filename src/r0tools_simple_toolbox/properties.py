@@ -696,6 +696,19 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
 class r0SimpleToolboxEdgeDataProps(bpy.types.PropertyGroup):
     edge_bweights_presets: PointerProperty(type=R0PROP_PG_EdgeBWeightsPresets)  # type: ignore
 
+    apply_as_bevel_weights: BoolProperty(name="Apply as Bevel Weights", description="Apply selected preset value as Edge Bevel Weight", default=True)  # type: ignore
+    apply_as_creases: BoolProperty(name="Apply as Creases", description="Apply selected preset value as Crease", default=False)  # type: ignore
+
+    bevel_weights_to_vcol: BoolProperty(name="Bevel Weights", description="Attempt to convert Bevel Edge Weights to Vertex Colours", default=True)  # type: ignore
+
+    crease_to_vcol: BoolProperty(name="Creases", description="Attempt to convert Creases to Vertex Colours", default=False)  # type: ignore
+
+
+class r0SimpleToolboxExperimentalProps(bpy.types.PropertyGroup):
+    show_edge_data_ops: BoolProperty(
+        name="Edge Data Ops", description="Toggle visibility of experimental Edge Data Operators", default=True
+    )  # type: ignore
+
 
 # ===================================================================
 #   ADDON PREFS
@@ -768,7 +781,9 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
     vertex_groups_list_rows: IntProperty(name="Vertex Groups List Rows", default=8, min=1)  # type: ignore
 
-    # Edge Data Reset
+    #######################
+    ### Edge Data Reset ###
+    #######################
     edge_reset_sharp: BoolProperty(name="Reset Edge Sharpness", description="Set whether to always reset this component", default=True)  # type: ignore
     edge_reset_seam: BoolProperty(name="Reset Edge Seam", description="Set whether to always reset this component", default=True)  # type: ignore
     edge_reset_crease: BoolProperty(name="Reset Edge Crease", description="Set whether to always reset this component", default=True)  # type: ignore
@@ -850,6 +865,7 @@ classes = [
     AddonPreferences,
     r0SimpleToolboxProps,
     r0SimpleToolboxEdgeDataProps,
+    r0SimpleToolboxExperimentalProps,
 ]
 
 
@@ -867,6 +883,9 @@ def register():
 
     print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_edge_data_props")
     bpy.types.Scene.r0fl_toolbox_edge_data_props = PointerProperty(type=r0SimpleToolboxEdgeDataProps)
+
+    print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_experimental_props")
+    bpy.types.Scene.r0fl_toolbox_experimental_props = PointerProperty(type=r0SimpleToolboxExperimentalProps)
 
     for handler in load_post_handlers:
         print(f"[INFO] [{_mod}] Register load_post_handler: {handler.__name__}")
@@ -896,3 +915,6 @@ def unregister():
 
     print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_edge_data_props")
     del bpy.types.Scene.r0fl_toolbox_edge_data_props
+
+    print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_experimental_props")
+    del bpy.types.Scene.r0fl_toolbox_experimental_props

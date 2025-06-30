@@ -14,7 +14,7 @@ _mod = "DATA_OPS.OPERATORS"
 
 
 class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
-    bl_label = "Edge Data -> VCol"
+    bl_label = "Edge Data to Vertex Colours"
     bl_idname = "r0tools.edge_data_to_vertex_colours"
     bl_description = "Convert Edge Data to Vertex Colours"
     bl_options = {"REGISTER", "UNDO"}
@@ -25,11 +25,18 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
 
     def execute(self, context):
         addon_props = u.get_addon_props()
+        addon_edge_data_props = u.get_addon_edge_data_props()
 
-        vcol_bevel_layer_name = "Bevel"
-        vcol_crease_layer_name = "Crease"
+        bevel_weights_to_vcol = addon_edge_data_props.bevel_weights_to_vcol
+        crease_to_vcol = addon_edge_data_props.crease_to_vcol
+
+        vcol_bevel_layer_name = "BevelToVcol"
+        vcol_crease_layer_name = "CreaseToVcol"
 
         for obj in u.iter_scene_objects(selected=True, types=u.OBJECT_TYPES.MESH):
+            if not any([bevel_weights_to_vcol, crease_to_vcol]):
+                return {"CANCELLED"}
+
             mesh = obj.data
 
             if obj.mode == "EDIT":
@@ -47,13 +54,15 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
             edge_bevel_layer = u.bmesh_get_bevel_weight_edge_layer(bm)
 
             # Create or get vertex color layers in bmesh
-            crease_vcol_layer = bm.loops.layers.color.get(vcol_crease_layer_name)
-            if not crease_vcol_layer:
-                crease_vcol_layer = bm.loops.layers.color.new(vcol_crease_layer_name)
+            if crease_to_vcol:
+                crease_vcol_layer = bm.loops.layers.color.get(vcol_crease_layer_name)
+                if not crease_vcol_layer:
+                    crease_vcol_layer = bm.loops.layers.color.new(vcol_crease_layer_name)
 
-            bevel_vcol_layer = bm.loops.layers.color.get(vcol_bevel_layer_name)
-            if not bevel_vcol_layer:
-                bevel_vcol_layer = bm.loops.layers.color.new(vcol_bevel_layer_name)
+            if bevel_weights_to_vcol:
+                bevel_vcol_layer = bm.loops.layers.color.get(vcol_bevel_layer_name)
+                if not bevel_vcol_layer:
+                    bevel_vcol_layer = bm.loops.layers.color.new(vcol_bevel_layer_name)
 
             # Calculate vertex values by averaging connected edge values
             vertex_crease_values = {}
@@ -63,44 +72,53 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
                 connected_edges = vert.link_edges
 
                 if connected_edges:
-                    if crease_layer:
-                        # Only consider edges with crease values > 0
-                        edges_with_crease = [edge[crease_layer] for edge in connected_edges if edge[crease_layer] > 0]
-                        if edges_with_crease:
-                            crease_average = sum(edges_with_crease) / len(edges_with_crease)
-                            vertex_crease_values[vert.index] = max(0.0, min(1.0, crease_average))
+                    if crease_to_vcol:
+                        if crease_layer:
+                            # Only consider edges with crease values > 0
+                            edges_with_crease = [
+                                edge[crease_layer] for edge in connected_edges if edge[crease_layer] > 0
+                            ]
+                            if edges_with_crease:
+                                crease_average = sum(edges_with_crease) / len(edges_with_crease)
+                                vertex_crease_values[vert.index] = max(0.0, min(1.0, crease_average))
+                            else:
+                                vertex_crease_values[vert.index] = 0.0
                         else:
                             vertex_crease_values[vert.index] = 0.0
-                    else:
-                        vertex_crease_values[vert.index] = 0.0
 
-                    if edge_bevel_layer:
-                        # Only consider edges with bevel values > 0
-                        edges_with_bevel = [
-                            edge[edge_bevel_layer] for edge in connected_edges if edge[edge_bevel_layer] > 0
-                        ]
-                        if edges_with_bevel:
-                            bevel_average = sum(edges_with_bevel) / len(edges_with_bevel)
-                            vertex_bevel_values[vert.index] = max(0.0, min(1.0, bevel_average))
+                    if bevel_weights_to_vcol:
+                        if edge_bevel_layer:
+                            # Only consider edges with bevel values > 0
+                            edges_with_bevel = [
+                                edge[edge_bevel_layer] for edge in connected_edges if edge[edge_bevel_layer] > 0
+                            ]
+                            if edges_with_bevel:
+                                bevel_average = sum(edges_with_bevel) / len(edges_with_bevel)
+                                vertex_bevel_values[vert.index] = max(0.0, min(1.0, bevel_average))
+                            else:
+                                vertex_bevel_values[vert.index] = 0.0
                         else:
                             vertex_bevel_values[vert.index] = 0.0
-                    else:
-                        vertex_bevel_values[vert.index] = 0.0
                 else:
-                    vertex_crease_values[vert.index] = 0.0
-                    vertex_bevel_values[vert.index] = 0.0
+                    if crease_to_vcol:
+                        vertex_crease_values[vert.index] = 0.0
+                    if bevel_weights_to_vcol:
+                        vertex_bevel_values[vert.index] = 0.0
 
             # Apply values to loops
             # Vertex Colors are stored per face corner
             for face in bm.faces:
                 for loop in face.loops:
                     vert_idx = loop.vert.index
-                    crease_value = vertex_crease_values.get(vert_idx, 0.0)
-                    bevel_value = vertex_bevel_values.get(vert_idx, 0.0)
+                    if crease_to_vcol:
+                        crease_value = vertex_crease_values.get(vert_idx, 0.0)
+                        # Grayscale
+                        loop[crease_vcol_layer] = (crease_value, crease_value, crease_value, 1.0)
 
-                    # Grayscale
-                    loop[crease_vcol_layer] = (crease_value, crease_value, crease_value, 1.0)
-                    loop[bevel_vcol_layer] = (bevel_value, bevel_value, bevel_value, 1.0)
+                    if bevel_weights_to_vcol:
+                        bevel_value = vertex_bevel_values.get(vert_idx, 0.0)
+                        # Grayscale
+                        loop[bevel_vcol_layer] = (bevel_value, bevel_value, bevel_value, 1.0)
 
             if obj.mode == "EDIT":
                 bmesh.update_edit_mesh(mesh)
@@ -109,9 +127,10 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
                 bm.free()
 
             # Set Bevel layer as active and renderable
-            vcol_bevel_attribute_layer = mesh.color_attributes.get(vcol_bevel_layer_name)
-            if vcol_bevel_attribute_layer:
-                mesh.color_attributes.active_color = vcol_bevel_attribute_layer
+            if bevel_weights_to_vcol:
+                vcol_bevel_attribute_layer = mesh.color_attributes.get(vcol_bevel_layer_name)
+                if vcol_bevel_attribute_layer:
+                    mesh.color_attributes.active_color = vcol_bevel_attribute_layer
                 # bpy.ops.geometry.color_attribute_render_set(name="Bevel")
 
         return {"FINISHED"}

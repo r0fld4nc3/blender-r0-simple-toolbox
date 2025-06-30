@@ -28,7 +28,12 @@ def draw_edge_bweights_presets_uilist(layout, context, edge_bweights_box=None):
         LOG(f"[ERROR] No valid layout to use:\n{layout=}\n{edge_bweights_box=}")
         return False
 
-    # Presets Row Number Slider
+    # Where to apply to
+    row = parent.row()
+    row.prop(addon_edge_data_props, "apply_as_bevel_weights", toggle=True)
+    row = parent.row()
+    row.prop(addon_edge_data_props, "apply_as_creases", toggle=True)
+
     row = parent.row()
 
     if not grid_view:
@@ -46,10 +51,10 @@ def draw_edge_bweights_presets_uilist(layout, context, edge_bweights_box=None):
         values = addon_edge_data_props.edge_bweights_presets.presets
 
         row = parent.row()
-        split = row.split(factor=0.4)
+        split = row.split(factor=0.45)
 
         # === Left Column: Most Used ===
-        num_cols_most_used = 3
+        num_cols_most_used = 2
         most_used_box = split.box()
         most_used_col = most_used_box.column()
 
@@ -61,11 +66,12 @@ def draw_edge_bweights_presets_uilist(layout, context, edge_bweights_box=None):
 
             if index < len(values):
                 preset = values[index]
-                op = row.operator(SimpleToolbox_OT_ApplyBWeightValue.bl_idname, text=f"{preset.value:.2f}")
+                value = f"{preset.value*100:.2f}".split(".")[0] + "%"
+                op = row.operator(SimpleToolbox_OT_ApplyBWeightValue.bl_idname, text=value)
                 op.value = preset.value
 
         # === Right Column: Precise ===
-        num_cols_precise = 5
+        num_cols_precise = 3
         precise_box = split.box()
         precise_col = precise_box.column()
 
@@ -77,17 +83,9 @@ def draw_edge_bweights_presets_uilist(layout, context, edge_bweights_box=None):
 
             if index < len(values):
                 preset = values[index]
-                op = row.operator(SimpleToolbox_OT_ApplyBWeightValue.bl_idname, text=f"{preset.value:.2f}")
+                value = f"{preset.value*100:.2f}".split(".")[0] + "%"
+                op = row.operator(SimpleToolbox_OT_ApplyBWeightValue.bl_idname, text=value)
                 op.value = preset.value
-
-        """
-        for offset in range(0, len(values), 5):
-            row = parent.row()
-            for i in range(5):
-                value = values[offset + i].value
-                op = row.operator(SimpleToolbox_OT_ApplyBWeightValue.bl_idname, text=f"{value:.2f}")
-                op.value = value
-        """
 
 
 @bpy.app.handlers.persistent
