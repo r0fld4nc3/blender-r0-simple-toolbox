@@ -16,7 +16,9 @@ _mod = "DATA_OPS.OPERATORS"
 class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
     bl_label = "Edge Data to Vertex Colours"
     bl_idname = "r0tools.edge_data_to_vertex_colours"
-    bl_description = "Convert Edge Data to Vertex Colours"
+    bl_description = (
+        "Convert Edge Data to Vertex Colours.\nAvailable Edge Data to convert:\n- Edge Bevel Weight.\n-Edge Creases"
+    )
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
