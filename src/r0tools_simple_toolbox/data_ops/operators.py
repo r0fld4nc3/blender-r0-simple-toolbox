@@ -281,6 +281,14 @@ class SimpleToolbox_OT_ApplyBWeightValue(bpy.types.Operator):
 
         return self.execute(context)
 
+    def draw(self, context):
+        layout = self.layout
+        if self.select_instead:
+            layout.label(text="Select: ")
+        else:
+            layout.label(text="Apply: ")
+        layout.prop(self, "value", text="Value")
+
     def execute(self, context):
         if self.select_instead:
             bpy.ops.r0tools.edge_data_select_edges_with_value(value_to_select=self.value)
