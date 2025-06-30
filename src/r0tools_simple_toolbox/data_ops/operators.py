@@ -131,9 +131,9 @@ class SimpleToolbox_OT_ApplyBWeightPreset(bpy.types.Operator):
         return context.mode in cls.accepted_contexts and u.get_selected_objects(context)
 
     def execute(self, context):
-        addon_props = u.get_addon_props()
+        addon_edge_data_props = u.get_addon_edge_data_props()
 
-        value = addon_props.edge_bweights_presets.presets[self.preset_index].value
+        value = addon_edge_data_props.edge_bweights_presets.presets[self.preset_index].value
 
         for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
             bm = bmesh.from_edit_mesh(obj.data)

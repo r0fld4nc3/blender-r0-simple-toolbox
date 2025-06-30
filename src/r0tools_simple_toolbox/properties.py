@@ -692,11 +692,9 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
         update=lambda self, context: u.save_preferences(),
     )
 
+
+class r0SimpleToolboxEdgeDataProps(bpy.types.PropertyGroup):
     edge_bweights_presets: PointerProperty(type=R0PROP_PG_EdgeBWeightsPresets)  # type: ignore
-
-
-# class r0SimpleToolboxEdgeDataProps(type.types.PropertyGroup):
-# edge_bweights_presets: PointerProperty(type=R0PROP_PG_EdgeBWeightsPresets)  # type: ignore
 
 
 # ===================================================================
@@ -851,6 +849,7 @@ classes = [
     R0PROP_UL_EdgeBWeightsList,
     AddonPreferences,
     r0SimpleToolboxProps,
+    r0SimpleToolboxEdgeDataProps,
 ]
 
 
@@ -865,6 +864,9 @@ def register():
     print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_props")
     # Registering to Scene also has the side effect of saving properties on a per scene/file basis, which is nice!
     bpy.types.Scene.r0fl_toolbox_props = PointerProperty(type=r0SimpleToolboxProps)
+
+    print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_edge_data_props")
+    bpy.types.Scene.r0fl_toolbox_edge_data_props = PointerProperty(type=r0SimpleToolboxEdgeDataProps)
 
     for handler in load_post_handlers:
         print(f"[INFO] [{_mod}] Register load_post_handler: {handler.__name__}")
@@ -891,3 +893,6 @@ def unregister():
 
     print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_props")
     del bpy.types.Scene.r0fl_toolbox_props
+
+    print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_edge_data_props")
+    del bpy.types.Scene.r0fl_toolbox_edge_data_props

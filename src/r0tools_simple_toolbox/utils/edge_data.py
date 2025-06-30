@@ -11,10 +11,11 @@ def draw_edge_bweights_presets_uilist(layout, context, edge_bweights_box=None):
     Draw the Edge Bevel Weights Presets UI list
     """
     from ..data_ops import SimpleToolbox_OT_ApplyBWeightValue
-    from . import LOG, get_addon_prefs, get_addon_props
+    from . import LOG, get_addon_edge_data_props, get_addon_prefs, get_addon_props
 
     addon_props = get_addon_props()
     addon_prefs = get_addon_prefs()
+    addon_edge_data_props = get_addon_edge_data_props()
 
     grid_view = addon_prefs.edge_data_bweight_preset_grid_buttons_toggle
 
@@ -35,14 +36,14 @@ def draw_edge_bweights_presets_uilist(layout, context, edge_bweights_box=None):
         row.template_list(
             "R0PROP_UL_EdgeBWeightsList",
             "edge_bweights_presets",
-            addon_props.edge_bweights_presets,  # Collection owner
+            addon_edge_data_props.edge_bweights_presets,  # Collection owner
             "presets",  # Collection property
-            addon_props.edge_bweights_presets,  # Active item owner
+            addon_edge_data_props.edge_bweights_presets,  # Active item owner
             "active_index",  # Active item property
             rows=10,
         )
     else:
-        values = addon_props.edge_bweights_presets.presets
+        values = addon_edge_data_props.edge_bweights_presets.presets
 
         row = parent.row()
         split = row.split(factor=0.4)
@@ -92,20 +93,20 @@ def draw_edge_bweights_presets_uilist(layout, context, edge_bweights_box=None):
 @bpy.app.handlers.persistent
 def initialize_bweight_presets(dummy):
     """Initialize bevel weight presets with default values"""
-    from . import LOG, get_addon_props
+    from . import LOG, get_addon_edge_data_props
 
-    addon_props = get_addon_props()
+    addon_edge_data_props = get_addon_edge_data_props()
 
     LOG(f"[INFO] [{_mod}] Initialising Edge Bevel Weight Presets")
 
     # Clear existing presets
-    addon_props.edge_bweights_presets.presets.clear()
+    addon_edge_data_props.edge_bweights_presets.presets.clear()
 
     # Add 0
-    preset = addon_props.edge_bweights_presets.presets.add()
+    preset = addon_edge_data_props.edge_bweights_presets.presets.add()
     preset.value = 0.0
 
     # Add preset values from 0.10 to 1.00 in steps of 0.05
     for i in range(10, 101, 5):
-        preset = addon_props.edge_bweights_presets.presets.add()
+        preset = addon_edge_data_props.edge_bweights_presets.presets.add()
         preset.value = round(i / 100.0, 2)
