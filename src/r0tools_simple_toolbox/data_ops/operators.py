@@ -1,3 +1,5 @@
+import math
+
 import bmesh
 import bpy
 from bpy.props import (
@@ -37,8 +39,8 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
         bevel_weights_to_vcol = addon_edge_data_props.bevel_weights_to_vcol
         crease_to_vcol = addon_edge_data_props.crease_to_vcol
 
-        vcol_bevel_layer_name = "BevelToVcol"
-        vcol_crease_layer_name = "CreaseToVcol"
+        vcol_bevel_layer_name = addon_edge_data_props.vcol_bevel_layer_name
+        vcol_crease_layer_name = addon_edge_data_props.vcol_crease_layer_name
 
         for obj in u.iter_scene_objects(selected=True, types=u.OBJECT_TYPES.MESH):
             if not any([bevel_weights_to_vcol, crease_to_vcol]):
@@ -61,38 +63,24 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
             edge_bevel_layer = u.bmesh_get_bevel_weight_edge_layer(bm)
 
             # Create or get vertex color layers in bmesh
-            if crease_to_vcol:
-                crease_vcol_layer = bm.loops.layers.color.get(vcol_crease_layer_name)
-                if not crease_vcol_layer:
-                    crease_vcol_layer = bm.loops.layers.color.new(vcol_crease_layer_name)
-
             if bevel_weights_to_vcol:
                 bevel_vcol_layer = bm.loops.layers.color.get(vcol_bevel_layer_name)
                 if not bevel_vcol_layer:
                     bevel_vcol_layer = bm.loops.layers.color.new(vcol_bevel_layer_name)
 
+            if crease_to_vcol:
+                crease_vcol_layer = bm.loops.layers.color.get(vcol_crease_layer_name)
+                if not crease_vcol_layer:
+                    crease_vcol_layer = bm.loops.layers.color.new(vcol_crease_layer_name)
+
             # Calculate vertex values by averaging connected edge values
-            vertex_crease_values = {}
             vertex_bevel_values = {}
+            vertex_crease_values = {}
 
             for vert in bm.verts:
                 connected_edges = vert.link_edges
 
                 if connected_edges:
-                    if crease_to_vcol:
-                        if crease_layer:
-                            # Only consider edges with crease values > 0
-                            edges_with_crease = [
-                                edge[crease_layer] for edge in connected_edges if edge[crease_layer] > 0
-                            ]
-                            if edges_with_crease:
-                                crease_average = sum(edges_with_crease) / len(edges_with_crease)
-                                vertex_crease_values[vert.index] = max(0.0, min(1.0, crease_average))
-                            else:
-                                vertex_crease_values[vert.index] = 0.0
-                        else:
-                            vertex_crease_values[vert.index] = 0.0
-
                     if bevel_weights_to_vcol:
                         if edge_bevel_layer:
                             # Only consider edges with bevel values > 0
@@ -106,6 +94,20 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
                                 vertex_bevel_values[vert.index] = 0.0
                         else:
                             vertex_bevel_values[vert.index] = 0.0
+
+                    if crease_to_vcol:
+                        if crease_layer:
+                            # Only consider edges with crease values > 0
+                            edges_with_crease = [
+                                edge[crease_layer] for edge in connected_edges if edge[crease_layer] > 0
+                            ]
+                            if edges_with_crease:
+                                crease_average = sum(edges_with_crease) / len(edges_with_crease)
+                                vertex_crease_values[vert.index] = max(0.0, min(1.0, crease_average))
+                            else:
+                                vertex_crease_values[vert.index] = 0.0
+                        else:
+                            vertex_crease_values[vert.index] = 0.0
                 else:
                     if crease_to_vcol:
                         vertex_crease_values[vert.index] = 0.0
@@ -117,15 +119,15 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
             for face in bm.faces:
                 for loop in face.loops:
                     vert_idx = loop.vert.index
-                    if crease_to_vcol:
-                        crease_value = vertex_crease_values.get(vert_idx, 0.0)
-                        # Grayscale
-                        loop[crease_vcol_layer] = (crease_value, crease_value, crease_value, 1.0)
-
                     if bevel_weights_to_vcol:
                         bevel_value = vertex_bevel_values.get(vert_idx, 0.0)
                         # Grayscale
                         loop[bevel_vcol_layer] = (bevel_value, bevel_value, bevel_value, 1.0)
+
+                    if crease_to_vcol:
+                        crease_value = vertex_crease_values.get(vert_idx, 0.0)
+                        # Grayscale
+                        loop[crease_vcol_layer] = (crease_value, crease_value, crease_value, 1.0)
 
             if obj.mode == "EDIT":
                 bmesh.update_edit_mesh(mesh)
@@ -143,43 +145,115 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class SimpleToolbox_OT_ApplyBWeightPreset(bpy.types.Operator):
-    bl_label = "Apply"
-    bl_idname = "r0tools.apply_selected_bweight_value_preset"
-    bl_description = "Apply selected Edge Bevel Weight value preset to selected edges"
+class SimpleToolbox_OT_SelectEdgesWithValue(bpy.types.Operator):
+    bl_label = "Select Edges With Value"
+    bl_idname = "r0tools.edge_data_select_edges_with_value"
+    bl_description = (
+        "Convert Edge Data to Vertex Colours.\nAvailable Edge Data to convert:\n- Edge Bevel Weight.\n-Edge Creases"
+    )
     bl_options = {"REGISTER", "UNDO"}
 
     accepted_contexts = [u.OBJECT_MODES.EDIT_MESH]
-    preset_index: IntProperty(default=-1)  # type: ignore
+
+    value_to_select: FloatProperty(default=0.0)  # type: ignore
+
+    select_bweights: BoolProperty(default=True)  # type: ignore
+    select_creases: BoolProperty(default=False)  # type: ignore
 
     @classmethod
     def poll(cls, context):
         return context.mode in cls.accepted_contexts and u.get_selected_objects(context)
 
     def execute(self, context):
-        addon_edge_data_props = u.get_addon_edge_data_props()
-
-        value = addon_edge_data_props.edge_bweights_presets.presets[self.preset_index].value
-
         for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
             bm = bmesh.from_edit_mesh(obj.data)
 
             bm.edges.ensure_lookup_table()
 
-            crease_layer = u.bmesh_get_crease_layer(bm)
             edge_bevel_layer = u.bmesh_get_bevel_weight_edge_layer(bm)
+            crease_layer = u.bmesh_get_crease_layer(bm)
 
-            if not edge_bevel_layer:
-                edge_bevel_layer = u.bmesh_new_bevel_weight_edge_layer(bm)
-
-            if not crease_layer:
-                crease_layer = u.bmesh_new_crease_layer(bm)
+            active_edge = None
 
             for edge in bm.edges:
-                if edge.select:
-                    edge[edge_bevel_layer] = value
+                should_select = False
+
+                if self.select_bweights and edge_bevel_layer:
+                    bweight_value = edge[edge_bevel_layer]
+                    if math.isclose(bweight_value, self.value_to_select):
+                        should_select = True
+
+                if self.select_creases and crease_layer:
+                    crease_value = edge[crease_layer]
+                    if math.isclose(crease_value, self.value_to_select):
+                        should_select = True
+
+                # Update edge selection state
+                if edge.select != should_select:
+                    edge.select = should_select
+
+                    if should_select and not active_edge:
+                        active_edge = edge
+
+            if active_edge:
+                bm.select_history.clear()
+                bm.select_history.add(edge)
 
             bmesh.update_edit_mesh(obj.data)
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_ApplyBWeightPreset(bpy.types.Operator):
+    bl_label = "Apply"
+    bl_idname = "r0tools.apply_selected_bweight_value_preset"
+    bl_description = "Apply selected Edge Bevel Weight value preset to selected edges.\n\nMODIFIERS:\n- SHIFT: Select edges with value"
+    bl_options = {"REGISTER", "UNDO"}
+
+    accepted_contexts = [u.OBJECT_MODES.EDIT_MESH]
+    preset_index: IntProperty(default=-1)  # type: ignore
+
+    select_instead: BoolProperty(default=False)  # type: ignore
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode in cls.accepted_contexts and u.get_selected_objects(context)
+
+    def invoke(self, context, event):
+        self.select_instead = False  # Always reset
+
+        if event.shift:
+            self.select_instead = True
+
+        return self.execute(context)
+
+    def execute(self, context):
+        addon_edge_data_props = u.get_addon_edge_data_props()
+
+        value = addon_edge_data_props.edge_bweights_presets.presets[self.preset_index].value
+
+        if self.select_instead:
+            bpy.ops.r0tools.edge_data_select_edges_with_value(value_to_select=self.value)
+        else:
+            for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
+                bm = bmesh.from_edit_mesh(obj.data)
+
+                bm.edges.ensure_lookup_table()
+
+                crease_layer = u.bmesh_get_crease_layer(bm)
+                edge_bevel_layer = u.bmesh_get_bevel_weight_edge_layer(bm)
+
+                if not edge_bevel_layer:
+                    edge_bevel_layer = u.bmesh_new_bevel_weight_edge_layer(bm)
+
+                if not crease_layer:
+                    crease_layer = u.bmesh_new_crease_layer(bm)
+
+                for edge in bm.edges:
+                    if edge.select:
+                        edge[edge_bevel_layer] = value
+
+                bmesh.update_edit_mesh(obj.data)
 
         return {"FINISHED"}
 
@@ -187,36 +261,49 @@ class SimpleToolbox_OT_ApplyBWeightPreset(bpy.types.Operator):
 class SimpleToolbox_OT_ApplyBWeightValue(bpy.types.Operator):
     bl_label = "Apply"
     bl_idname = "r0tools.apply_bweight_value"
-    bl_description = "Apply selected Edge Bevel Weight value preset to selected edges"
+    bl_description = "Apply selected Edge Bevel Weight value preset to selected edges.\n\nMODIFIERS:\n- SHIFT: Select edges with value"
     bl_options = {"REGISTER", "UNDO"}
 
     accepted_contexts = [u.OBJECT_MODES.EDIT_MESH]
     value: FloatProperty(default=0.0)  # type: ignore
 
+    select_instead: BoolProperty(default=False)  # type: ignore
+
     @classmethod
     def poll(cls, context):
         return context.mode in cls.accepted_contexts and u.get_selected_objects(context)
 
+    def invoke(self, context, event):
+        self.select_instead = False  # Always reset
+
+        if event.shift:
+            self.select_instead = True
+
+        return self.execute(context)
+
     def execute(self, context):
-        for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
-            bm = bmesh.from_edit_mesh(obj.data)
+        if self.select_instead:
+            bpy.ops.r0tools.edge_data_select_edges_with_value(value_to_select=self.value)
+        else:
+            for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
+                bm = bmesh.from_edit_mesh(obj.data)
 
-            bm.edges.ensure_lookup_table()
+                bm.edges.ensure_lookup_table()
 
-            crease_layer = u.bmesh_get_crease_layer(bm)
-            edge_bevel_layer = u.bmesh_get_bevel_weight_edge_layer(bm)
+                crease_layer = u.bmesh_get_crease_layer(bm)
+                edge_bevel_layer = u.bmesh_get_bevel_weight_edge_layer(bm)
 
-            if not edge_bevel_layer:
-                edge_bevel_layer = u.bmesh_new_bevel_weight_edge_layer(bm)
+                if not edge_bevel_layer:
+                    edge_bevel_layer = u.bmesh_new_bevel_weight_edge_layer(bm)
 
-            if not crease_layer:
-                crease_layer = u.bmesh_new_crease_layer(bm)
+                if not crease_layer:
+                    crease_layer = u.bmesh_new_crease_layer(bm)
 
-            for edge in bm.edges:
-                if edge.select:
-                    edge[edge_bevel_layer] = self.value
+                for edge in bm.edges:
+                    if edge.select:
+                        edge[edge_bevel_layer] = self.value
 
-            bmesh.update_edit_mesh(obj.data)
+                bmesh.update_edit_mesh(obj.data)
 
         return {"FINISHED"}
 
@@ -225,7 +312,8 @@ class SimpleToolbox_OT_ApplyBWeightValue(bpy.types.Operator):
 classes = [
     SimpleToolbox_OT_EdgeDataToVertexColour,
     SimpleToolbox_OT_ApplyBWeightPreset,
-    SimpleToolbox_OT_ApplyBWeightValue
+    SimpleToolbox_OT_ApplyBWeightValue,
+    SimpleToolbox_OT_SelectEdgesWithValue
 ]
 # fmt: on
 

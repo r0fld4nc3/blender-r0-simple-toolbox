@@ -10,7 +10,10 @@ def draw_edge_bweights_presets_uilist(layout, context, edge_bweights_box=None):
     """
     Draw the Edge Bevel Weights Presets UI list
     """
-    from ..data_ops import SimpleToolbox_OT_ApplyBWeightValue
+    from ..data_ops import (
+        SimpleToolbox_OT_ApplyBWeightValue,
+        SimpleToolbox_OT_SelectEdgesWithValue,
+    )
     from . import LOG, get_addon_edge_data_props, get_addon_prefs, get_addon_props
 
     addon_props = get_addon_props()

@@ -694,6 +694,9 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
 
 
 class r0SimpleToolboxEdgeDataProps(bpy.types.PropertyGroup):
+    vcol_bevel_layer_name = StringProperty(default="BevelToVcol")
+    vcol_crease_layer_name = StringProperty(default="CreaseToVcol")
+
     edge_bweights_presets: PointerProperty(type=R0PROP_PG_EdgeBWeightsPresets)  # type: ignore
 
     apply_as_bevel_weights: BoolProperty(name="As Bevel Weights", description="Apply selected preset value as Edge Bevel Weight", default=True)  # type: ignore
