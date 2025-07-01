@@ -441,7 +441,7 @@ class R0PROP_PG_EdgeBWeightsPresets(bpy.types.PropertyGroup):
     """Collection of bevel weight presets"""
 
     presets: CollectionProperty(type=R0PROP_BWeightPresetItem)  # type: ignore
-    active_index: IntProperty(default=0)  # type: ignore
+    active_index: IntProperty(default=0, description="Active Index")  # type: ignore
 
 
 class R0PROP_UL_EdgeBWeightsList(bpy.types.UIList):
@@ -696,8 +696,8 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
 
 
 class r0SimpleToolboxEdgeDataProps(bpy.types.PropertyGroup):
-    vcol_bevel_layer_name = StringProperty(default="BevelToVcol")
-    vcol_crease_layer_name = StringProperty(default="CreaseToVcol")
+    vcol_bevel_layer_name: StringProperty(default="BevelToVcol")  # type: ignore
+    vcol_crease_layer_name: StringProperty(default="CreaseToVcol")  # type: ignore
 
     edge_bweights_presets: PointerProperty(type=R0PROP_PG_EdgeBWeightsPresets)  # type: ignore
 

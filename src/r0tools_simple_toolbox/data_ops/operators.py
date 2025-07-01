@@ -19,9 +19,17 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
     bl_label = "Edge Data to Vertex Colours"
     bl_idname = "r0tools.edge_data_to_vertex_colours"
     bl_description = (
-        "Convert Edge Data to Vertex Colours.\nAvailable Edge Data to convert:\n- Edge Bevel Weight.\n-Edge Creases"
+        "Convert Edge Data to Vertex Colours.\nAvailable Edge Data to convert:\n- Edge Bevel Weight.\n- Edge Creases"
     )
     bl_options = {"REGISTER", "UNDO"}
+
+    bevel_weights_to_vcol: BoolProperty(
+        name="Convert Bevel Weights", description="Convert Edge Bevel Weights to a Color Attribute"
+    )  # type: ignore
+
+    crease_to_vcol: BoolProperty(
+        name="Convert Creases", description="Convert Edge Creases to a Color Attribute"
+    )  # type: ignore
 
     @classmethod
     def poll(cls, context):
@@ -32,18 +40,32 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
 
         return u.get_selected_objects(context) and any([apply_as_bevel_weight, apply_as_crease])
 
-    def execute(self, context):
-        addon_props = u.get_addon_props()
+    def invoke(self, context, event):
         addon_edge_data_props = u.get_addon_edge_data_props()
 
-        bevel_weights_to_vcol = addon_edge_data_props.bevel_weights_to_vcol
-        crease_to_vcol = addon_edge_data_props.crease_to_vcol
+        self.bevel_weights_to_vcol = addon_edge_data_props.bevel_weights_to_vcol
+        self.crease_to_vcol = addon_edge_data_props.crease_to_vcol
+
+        return self.execute(context)
+
+    def draw(self, context):
+        layout = self.layout
+        row = layout.row(align=True)
+        row.prop(self, "bevel_weights_to_vcol", toggle=True)
+        row.prop(self, "crease_to_vcol", toggle=True)
+
+    def execute(self, context):
+        addon_edge_data_props = u.get_addon_edge_data_props()
+
+        # Update addon properties based on selection
+        addon_edge_data_props.bevel_weights_to_vcol = self.bevel_weights_to_vcol
+        addon_edge_data_props.crease_to_vcol = self.crease_to_vcol
 
         vcol_bevel_layer_name = addon_edge_data_props.vcol_bevel_layer_name
         vcol_crease_layer_name = addon_edge_data_props.vcol_crease_layer_name
 
         for obj in u.iter_scene_objects(selected=True, types=u.OBJECT_TYPES.MESH):
-            if not any([bevel_weights_to_vcol, crease_to_vcol]):
+            if not any([self.bevel_weights_to_vcol, self.crease_to_vcol]):
                 return {"CANCELLED"}
 
             mesh = obj.data
@@ -63,12 +85,12 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
             edge_bevel_layer = u.bmesh_get_bevel_weight_edge_layer(bm)
 
             # Create or get vertex color layers in bmesh
-            if bevel_weights_to_vcol:
+            if self.bevel_weights_to_vcol:
                 bevel_vcol_layer = bm.loops.layers.color.get(vcol_bevel_layer_name)
                 if not bevel_vcol_layer:
                     bevel_vcol_layer = bm.loops.layers.color.new(vcol_bevel_layer_name)
 
-            if crease_to_vcol:
+            if self.crease_to_vcol:
                 crease_vcol_layer = bm.loops.layers.color.get(vcol_crease_layer_name)
                 if not crease_vcol_layer:
                     crease_vcol_layer = bm.loops.layers.color.new(vcol_crease_layer_name)
@@ -81,7 +103,7 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
                 connected_edges = vert.link_edges
 
                 if connected_edges:
-                    if bevel_weights_to_vcol:
+                    if self.bevel_weights_to_vcol:
                         if edge_bevel_layer:
                             # Only consider edges with bevel values > 0
                             edges_with_bevel = [
@@ -95,7 +117,7 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
                         else:
                             vertex_bevel_values[vert.index] = 0.0
 
-                    if crease_to_vcol:
+                    if self.crease_to_vcol:
                         if crease_layer:
                             # Only consider edges with crease values > 0
                             edges_with_crease = [
@@ -109,9 +131,9 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
                         else:
                             vertex_crease_values[vert.index] = 0.0
                 else:
-                    if crease_to_vcol:
+                    if self.crease_to_vcol:
                         vertex_crease_values[vert.index] = 0.0
-                    if bevel_weights_to_vcol:
+                    if self.bevel_weights_to_vcol:
                         vertex_bevel_values[vert.index] = 0.0
 
             # Apply values to loops
@@ -119,12 +141,12 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
             for face in bm.faces:
                 for loop in face.loops:
                     vert_idx = loop.vert.index
-                    if bevel_weights_to_vcol:
+                    if self.bevel_weights_to_vcol:
                         bevel_value = vertex_bevel_values.get(vert_idx, 0.0)
                         # Grayscale
                         loop[bevel_vcol_layer] = (bevel_value, bevel_value, bevel_value, 1.0)
 
-                    if crease_to_vcol:
+                    if self.crease_to_vcol:
                         crease_value = vertex_crease_values.get(vert_idx, 0.0)
                         # Grayscale
                         loop[crease_vcol_layer] = (crease_value, crease_value, crease_value, 1.0)
@@ -135,12 +157,18 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
                 bm.to_mesh(mesh)
                 bm.free()
 
-            # Set Bevel layer as active and renderable
-            if bevel_weights_to_vcol:
+            # Set Bevel layer as active
+            if self.bevel_weights_to_vcol:
                 vcol_bevel_attribute_layer = mesh.color_attributes.get(vcol_bevel_layer_name)
                 if vcol_bevel_attribute_layer:
                     mesh.color_attributes.active_color = vcol_bevel_attribute_layer
                 # bpy.ops.geometry.color_attribute_render_set(name="Bevel")
+
+            # Set Crease layer as active
+            elif self.crease_to_vcol:
+                vcol_crease_attribute_layer = mesh.color_attributes.get(vcol_crease_layer_name)
+                if vcol_crease_attribute_layer:
+                    mesh.color_attributes.active_color = vcol_crease_attribute_layer
 
         return {"FINISHED"}
 
@@ -248,6 +276,9 @@ class SimpleToolbox_OT_ApplyBWeightPreset(bpy.types.Operator):
     def execute(self, context):
         addon_edge_data_props = u.get_addon_edge_data_props()
 
+        apply_as_bevel_weight = addon_edge_data_props.apply_as_bevel_weights
+        apply_as_crease = addon_edge_data_props.apply_as_creases
+
         value = -1
 
         # Prioritise `value`
@@ -295,7 +326,11 @@ class SimpleToolbox_OT_ApplyBWeightPreset(bpy.types.Operator):
 
                 for edge in bm.edges:
                     if edge.select:
-                        edge[edge_bevel_layer] = value
+                        if apply_as_bevel_weight:
+                            edge[edge_bevel_layer] = value
+
+                        if apply_as_crease:
+                            edge[crease_layer] = value
 
                 bmesh.update_edit_mesh(obj.data)
 
