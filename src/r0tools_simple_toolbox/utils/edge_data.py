@@ -12,7 +12,7 @@ def draw_edge_bweights_presets_uilist(layout, context, edge_bweights_box=None):
     """
     from ..data_ops import (
         SimpleToolbox_OT_ApplyBWeightPreset,
-        SimpleToolbox_OT_SelectEdgesWithValue,
+        SimpleToolbox_OT_SelectColourAttributeLayer,
     )
     from . import LOG, get_addon_edge_data_props, get_addon_prefs, get_addon_props
 
@@ -36,6 +36,15 @@ def draw_edge_bweights_presets_uilist(layout, context, edge_bweights_box=None):
     row.prop(addon_edge_data_props, "apply_as_bevel_weights", toggle=True)
     # row = parent.row()
     row.prop(addon_edge_data_props, "apply_as_creases", toggle=True)
+
+    # Layer to select
+    row = parent.row(align=True)
+    op = row.operator(SimpleToolbox_OT_SelectColourAttributeLayer.bl_idname, text="Select Bevel Layer")
+    op.select_bevel_layer = True
+    op.select_crease_layer = False
+    op = row.operator(SimpleToolbox_OT_SelectColourAttributeLayer.bl_idname, text="Select Crease Layer")
+    op.select_bevel_layer = False
+    op.select_crease_layer = True
 
     row = parent.row()
 
