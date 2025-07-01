@@ -233,7 +233,7 @@ class SimpleToolbox_OT_ApplyBWeightPreset(bpy.types.Operator):
         value = addon_edge_data_props.edge_bweights_presets.presets[self.preset_index].value
 
         if self.select_instead:
-            bpy.ops.r0tools.edge_data_select_edges_with_value(value_to_select=self.value)
+            bpy.ops.r0tools.edge_data_select_edges_with_value(value_to_select=value)
         else:
             for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
                 bm = bmesh.from_edit_mesh(obj.data)
