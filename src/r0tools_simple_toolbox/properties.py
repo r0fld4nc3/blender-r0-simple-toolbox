@@ -468,8 +468,9 @@ class R0PROP_UL_EdgeBWeightsList(bpy.types.UIList):
         col_apply.separator(factor=0.5)
 
         # Preset Value
+        item_value = f"{item.value*100:.2f}".split(".")[0] + "%"
         col_value = item_row.row(align=True)
-        col_value.label(text=f"{item.value:.2f}", icon="NONE")
+        col_value.label(text=item_value, icon="NONE")
 
         # Fill space
         item_row.separator(factor=1.0)
