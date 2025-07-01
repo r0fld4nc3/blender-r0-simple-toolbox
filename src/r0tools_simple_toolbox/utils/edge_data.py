@@ -32,7 +32,7 @@ def draw_edge_bweights_presets_uilist(layout, context, edge_bweights_box=None):
         return False
 
     # Where to apply to
-    row = parent.row()
+    row = parent.row(align=True)
     row.prop(addon_edge_data_props, "apply_as_bevel_weights", toggle=True)
     # row = parent.row()
     row.prop(addon_edge_data_props, "apply_as_creases", toggle=True)
