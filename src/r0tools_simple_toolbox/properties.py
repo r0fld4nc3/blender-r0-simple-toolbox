@@ -463,6 +463,7 @@ class R0PROP_UL_EdgeBWeightsList(bpy.types.UIList):
         op = col_apply.operator(SimpleToolbox_OT_ApplyBWeightPreset.bl_idname, text="", icon="PLUS")
         # Set the property before adding to layout
         op.preset_index = index
+        op.value = item.value
         # Add spacing after the operation is complete
         col_apply.separator(factor=0.5)
 
@@ -702,9 +703,9 @@ class r0SimpleToolboxEdgeDataProps(bpy.types.PropertyGroup):
     apply_as_bevel_weights: BoolProperty(name="As Bevel Weights", description="Apply selected preset value as Edge Bevel Weight", default=True)  # type: ignore
     apply_as_creases: BoolProperty(name="As Creases", description="Apply selected preset value as Crease", default=False)  # type: ignore
 
-    bevel_weights_to_vcol: BoolProperty(name="Bevel Weights", description="Attempt to convert Bevel Edge Weights to Vertex Colours", default=True)  # type: ignore
+    bevel_weights_to_vcol: BoolProperty(name="Bevel Weights", description="Convert Bevel Edge Weights to Vertex Colours", default=True)  # type: ignore
 
-    crease_to_vcol: BoolProperty(name="Creases", description="Attempt to convert Creases to Vertex Colours", default=False)  # type: ignore
+    crease_to_vcol: BoolProperty(name="Creases", description="Convert Creases to Vertex Colours", default=False)  # type: ignore
 
 
 class r0SimpleToolboxExperimentalProps(bpy.types.PropertyGroup):

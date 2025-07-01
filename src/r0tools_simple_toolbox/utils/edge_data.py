@@ -11,7 +11,7 @@ def draw_edge_bweights_presets_uilist(layout, context, edge_bweights_box=None):
     Draw the Edge Bevel Weights Presets UI list
     """
     from ..data_ops import (
-        SimpleToolbox_OT_ApplyBWeightValue,
+        SimpleToolbox_OT_ApplyBWeightPreset,
         SimpleToolbox_OT_SelectEdgesWithValue,
     )
     from . import LOG, get_addon_edge_data_props, get_addon_prefs, get_addon_props
@@ -70,7 +70,7 @@ def draw_edge_bweights_presets_uilist(layout, context, edge_bweights_box=None):
             if index < len(values):
                 preset = values[index]
                 value = f"{preset.value*100:.2f}".split(".")[0] + "%"
-                op = row.operator(SimpleToolbox_OT_ApplyBWeightValue.bl_idname, text=value)
+                op = row.operator(SimpleToolbox_OT_ApplyBWeightPreset.bl_idname, text=value)
                 op.value = preset.value
 
         # === Right Column: Precise ===
@@ -87,7 +87,7 @@ def draw_edge_bweights_presets_uilist(layout, context, edge_bweights_box=None):
             if index < len(values):
                 preset = values[index]
                 value = f"{preset.value*100:.2f}".split(".")[0] + "%"
-                op = row.operator(SimpleToolbox_OT_ApplyBWeightValue.bl_idname, text=value)
+                op = row.operator(SimpleToolbox_OT_ApplyBWeightPreset.bl_idname, text=value)
                 op.value = preset.value
 
 

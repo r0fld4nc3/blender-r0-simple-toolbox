@@ -148,9 +148,7 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
 class SimpleToolbox_OT_SelectEdgesWithValue(bpy.types.Operator):
     bl_label = "Select Edges With Value"
     bl_idname = "r0tools.edge_data_select_edges_with_value"
-    bl_description = (
-        "Convert Edge Data to Vertex Colours.\nAvailable Edge Data to convert:\n- Edge Bevel Weight.\n-Edge Creases"
-    )
+    bl_description = "Select edges with bevel weight or creases with a determined value"
     bl_options = {"REGISTER", "UNDO"}
 
     accepted_contexts = [u.OBJECT_MODES.EDIT_MESH]
@@ -207,13 +205,17 @@ class SimpleToolbox_OT_SelectEdgesWithValue(bpy.types.Operator):
 class SimpleToolbox_OT_ApplyBWeightPreset(bpy.types.Operator):
     bl_label = "Apply"
     bl_idname = "r0tools.apply_selected_bweight_value_preset"
-    bl_description = "Apply selected Edge Bevel Weight value preset to selected edges.\n\nMODIFIERS:\n- SHIFT: Select edges with value"
+    bl_description = "Apply selected Edge Bevel Weight value preset to selected edges.\n\nMODIFIERS:\n- SHIFT: Select bevel weighted edges with value.\n- CTRL: Select creased edges with value"
     bl_options = {"REGISTER", "UNDO"}
 
     accepted_contexts = [u.OBJECT_MODES.EDIT_MESH]
     preset_index: IntProperty(default=-1)  # type: ignore
+    value: FloatProperty(default=-1.0)  # type: ignore
 
     select_instead: BoolProperty(default=False)  # type: ignore
+
+    select_bweights: BoolProperty(default=False)  # type: ignore
+    select_creases: BoolProperty(default=False)  # type: ignore
 
     @classmethod
     def poll(cls, context):
@@ -221,19 +223,61 @@ class SimpleToolbox_OT_ApplyBWeightPreset(bpy.types.Operator):
 
     def invoke(self, context, event):
         self.select_instead = False  # Always reset
+        self.select_bweights = False  # Always reset
+        self.select_creases = False  # Always reset
 
         if event.shift:
             self.select_instead = True
+            self.select_bweights = True
+            self.select_creases = False
+        elif event.ctrl:
+            self.select_instead = True
+            self.select_bweights = False
+            self.select_creases = True
 
         return self.execute(context)
+
+    def draw(self, context):
+        layout = self.layout
+        if self.select_instead:
+            layout.label(text="Select: ")
+        else:
+            layout.label(text="Apply: ")
+        layout.prop(self, "value", text="Value")
 
     def execute(self, context):
         addon_edge_data_props = u.get_addon_edge_data_props()
 
-        value = addon_edge_data_props.edge_bweights_presets.presets[self.preset_index].value
+        value = -1
+
+        # Prioritise `value`
+        if self.value >= 0:
+            value = self.value
+        elif self.preset_index >= 0:
+            # Ensure index is not out of bounds
+            presets = addon_edge_data_props.edge_bweight_presets.presets
+            if self.preset_index < len(presets):
+                value = presets[self.preset_index].value
+            else:
+                self.report({"ERROR", f"Preset index {self.preset_index} is out of range."})
+                return {"CANCELLED"}
+
+        # Exit if we still don't have a valid value
+        if value < 0:
+            self.report({"INFO"}, "No value or preset specified.")
+            return {"FINISHED"}
 
         if self.select_instead:
-            bpy.ops.r0tools.edge_data_select_edges_with_value(value_to_select=value)
+            if 0 <= value <= 1:
+                # fmt: off
+                bpy.ops.r0tools.edge_data_select_edges_with_value(
+                    value_to_select=value,
+                    select_bweights=self.select_bweights,
+                    select_creases=self.select_creases
+                )
+                # fmt: on
+            else:
+                return {"CANCELLED"}
         else:
             for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
                 bm = bmesh.from_edit_mesh(obj.data)
@@ -258,69 +302,10 @@ class SimpleToolbox_OT_ApplyBWeightPreset(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class SimpleToolbox_OT_ApplyBWeightValue(bpy.types.Operator):
-    bl_label = "Apply"
-    bl_idname = "r0tools.apply_bweight_value"
-    bl_description = "Apply selected Edge Bevel Weight value preset to selected edges.\n\nMODIFIERS:\n- SHIFT: Select edges with value"
-    bl_options = {"REGISTER", "UNDO"}
-
-    accepted_contexts = [u.OBJECT_MODES.EDIT_MESH]
-    value: FloatProperty(default=0.0)  # type: ignore
-
-    select_instead: BoolProperty(default=False)  # type: ignore
-
-    @classmethod
-    def poll(cls, context):
-        return context.mode in cls.accepted_contexts and u.get_selected_objects(context)
-
-    def invoke(self, context, event):
-        self.select_instead = False  # Always reset
-
-        if event.shift:
-            self.select_instead = True
-
-        return self.execute(context)
-
-    def draw(self, context):
-        layout = self.layout
-        if self.select_instead:
-            layout.label(text="Select: ")
-        else:
-            layout.label(text="Apply: ")
-        layout.prop(self, "value", text="Value")
-
-    def execute(self, context):
-        if self.select_instead:
-            bpy.ops.r0tools.edge_data_select_edges_with_value(value_to_select=self.value)
-        else:
-            for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
-                bm = bmesh.from_edit_mesh(obj.data)
-
-                bm.edges.ensure_lookup_table()
-
-                crease_layer = u.bmesh_get_crease_layer(bm)
-                edge_bevel_layer = u.bmesh_get_bevel_weight_edge_layer(bm)
-
-                if not edge_bevel_layer:
-                    edge_bevel_layer = u.bmesh_new_bevel_weight_edge_layer(bm)
-
-                if not crease_layer:
-                    crease_layer = u.bmesh_new_crease_layer(bm)
-
-                for edge in bm.edges:
-                    if edge.select:
-                        edge[edge_bevel_layer] = self.value
-
-                bmesh.update_edit_mesh(obj.data)
-
-        return {"FINISHED"}
-
-
 # fmt: off
 classes = [
     SimpleToolbox_OT_EdgeDataToVertexColour,
     SimpleToolbox_OT_ApplyBWeightPreset,
-    SimpleToolbox_OT_ApplyBWeightValue,
     SimpleToolbox_OT_SelectEdgesWithValue
 ]
 # fmt: on
