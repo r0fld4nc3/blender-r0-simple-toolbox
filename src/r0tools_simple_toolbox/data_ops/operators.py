@@ -1,4 +1,5 @@
 import math
+import time
 
 import bmesh
 import bpy
@@ -63,6 +64,8 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
 
         vcol_bevel_layer_name = addon_edge_data_props.vcol_bevel_layer_name
         vcol_crease_layer_name = addon_edge_data_props.vcol_crease_layer_name
+
+        start_time = time.time()
 
         for obj in u.iter_scene_objects(selected=True, types=u.OBJECT_TYPES.MESH):
             if not any([self.bevel_weights_to_vcol, self.crease_to_vcol]):
@@ -163,6 +166,13 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
             # Set Crease layer as active
             elif self.crease_to_vcol:
                 bpy.ops.r0tools.select_vcol_layer(select_crease_layer=True)
+
+        end_time = time.time()
+        total_time = end_time - start_time
+        duration_msg = f"Finished. Took {total_time:.4f} seconds."
+
+        u.LOG(f"EdgeDataToVertexColour: {duration_msg}")
+        self.report({"INFO"}, duration_msg)
 
         return {"FINISHED"}
 
