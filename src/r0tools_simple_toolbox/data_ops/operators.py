@@ -67,8 +67,15 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
 
         start_time = time.time()
 
+        ### Progress Bar ###
+        wm = context.window_manager
+        total_objects = len(u.get_selected_objects(context))
+        total_processed = 0
+        wm.progress_begin(0, total_objects)
+
         for obj in u.iter_scene_objects(selected=True, types=u.OBJECT_TYPES.MESH):
             if not any([self.bevel_weights_to_vcol, self.crease_to_vcol]):
+                wm.progress_end()
                 return {"CANCELLED"}
 
             mesh = obj.data
@@ -167,6 +174,10 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
             elif self.crease_to_vcol:
                 bpy.ops.r0tools.select_vcol_layer(select_crease_layer=True)
 
+            total_processed += 1
+            wm.progress_update(total_processed)
+
+        wm.progress_end()
         end_time = time.time()
         total_time = end_time - start_time
         duration_msg = f"Finished. Took {total_time:.4f} seconds."
