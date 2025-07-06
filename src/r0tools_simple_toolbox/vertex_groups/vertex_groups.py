@@ -263,7 +263,7 @@ def vertex_groups_list_update(force: bool = False):
         # Update the cache
         _vertex_groups_cache = vertex_groups_new
 
-        # Cleanup only when/if needed
+        # Cleanup only when needed
         if len(vertex_groups_new) != len(addon_props.vertex_groups):
             vertex_groups_cleanup_lock_states()
 

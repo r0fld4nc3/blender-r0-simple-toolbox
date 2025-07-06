@@ -569,7 +569,7 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
     use_uvisland_sizecheck_area_pixelcoverage: BoolProperty(  # type: ignore
         name="Use Area Pixel Coverage",
         description="Use Area Squared (px²) of UV Island",
-        default=True,
+        default=False,
     )
 
     uvisland_sizecheck_area_pixelpercentage: FloatProperty(  # type: ignore
@@ -794,7 +794,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
     edge_reset_crease: BoolProperty(name="Reset Edge Crease", description="Set whether to always reset this component", default=True)  # type: ignore
     edge_reset_bevel_weight: BoolProperty(name="Reset Edge Bevel Weight", description="Set whether to always reset this component", default=True)  # type: ignore
 
-    edge_data_bweight_preset_grid_buttons_toggle: BoolProperty(name="Toggle List/Grid", description="Toggle between a list view or a grid button view", default=False)  # type: ignore
+    edge_data_bweight_preset_grid_buttons_toggle: BoolProperty(name="Toggle List/Grid", description="Toggle between a list view or a grid button view", default=True)  # type: ignore
 
     def draw(self, context):
         layout = self.layout

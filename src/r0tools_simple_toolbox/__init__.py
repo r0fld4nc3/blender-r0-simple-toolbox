@@ -2,7 +2,7 @@ bl_info = {
     "name": "r0Tools - Simple Toolbox.edge-data-to-vertex-colours",
     "author": "Artur Rosário",
     "version": (0, 0, 31),
-    "blender": (4, 2, 0),
+    "blender": (4, 2, 5),
     "location": "3D View > Tool",
     "description": "Miscellaneous Utilities",
     "warning": "",

@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "r0tools_simple_toolbox"
-version = "0.0.30"
+version = "0.0.31"
 name = "r0Tools - Simple Toolbox"
 tagline = "General workflow utitlies"
 maintainer = "https://github.com/r0fld4nc3"
@@ -14,7 +14,7 @@ website = "https://github.com/r0fld4nc3/blender-r0-simple-toolbox"
 # # https://docs.blender.org/manual/en/dev/advanced/extensions/tags.html
 tags = ["3D View", "Modeling", "Mesh", "Object", "Pipeline"]
 
-blender_version_min = "4.2.0"
+blender_version_min = "4.2.5"
 
 # License conforming to https://spdx.org/licenses/ (use "SPDX: prefix)
 # # https://docs.blender.org/manual/en/dev/advanced/extensions/licenses.html
