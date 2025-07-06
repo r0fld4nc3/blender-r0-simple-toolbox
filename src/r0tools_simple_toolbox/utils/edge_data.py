@@ -52,7 +52,7 @@ def draw_edge_bweights_presets_uilist(layout, context, edge_bweights_box=None):
         # Left Section - List
         row.template_list(
             "R0PROP_UL_EdgeBWeightsList",
-            "edge_bweights_presets",
+            "",
             addon_edge_data_props.edge_bweights_presets,  # Collection owner
             "presets",  # Collection property
             addon_edge_data_props.edge_bweights_presets,  # Active item owner

@@ -301,7 +301,7 @@ class SimpleToolbox_OT_ApplyBWeightPreset(bpy.types.Operator):
             value = self.value
         elif self.preset_index >= 0:
             # Ensure index is not out of bounds
-            presets = addon_edge_data_props.edge_bweight_presets.presets
+            presets = addon_edge_data_props.edge_bweights_presets.presets
             if self.preset_index < len(presets):
                 value = presets[self.preset_index].value
             else:
