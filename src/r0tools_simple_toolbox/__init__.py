@@ -1,5 +1,5 @@
 bl_info = {
-    "name": "r0Tools - Simple Toolbox.edge-data-to-vertex-colours",
+    "name": "r0Tools - Simple Toolbox.dev",
     "author": "Artur Rosário",
     "version": (0, 0, 31),
     "blender": (4, 2, 0),
