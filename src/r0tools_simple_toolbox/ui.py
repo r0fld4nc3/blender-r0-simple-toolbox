@@ -108,17 +108,18 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 row.prop(addon_props, "find_modifier_search_text", icon="SORTALPHA", text="")
                 row.operator(SimpleToolbox_OT_FindModifierSearch.bl_idname, icon="VIEWZOOM", text="")
 
-                # Found objects UIList
-                row = find_modifiers_box.row()
-                row.template_list(
-                "R0PROP_UL_FindModifierObjectsList",
-                "",
-                find_modifier_props.objects_list,  # Collection owner
-                "found_objects",  # Collection property
-                find_modifier_props.objects_list,  # Active item owner
-                "active_index",  # Active item property
-                rows=10,
-                )
+                if addon_prefs.experimental_features:
+                    # Found objects UIList
+                    row = find_modifiers_box.row()
+                    row.template_list(
+                    "R0PROP_UL_FindModifierObjectsList",
+                    "",
+                    find_modifier_props.objects_list,  # Collection owner
+                    "found_objects",  # Collection property
+                    find_modifier_props.objects_list,  # Active item owner
+                    "active_index",  # Active item property
+                    rows=10,
+                    )
             
         # ====== Object Ops ======
         if cat_show_object_ops:
