@@ -569,7 +569,7 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
     use_uvisland_sizecheck_area_pixelcoverage: BoolProperty(  # type: ignore
         name="Use Area Pixel Coverage",
         description="Use Area Squared (px²) of UV Island",
-        default=True,
+        default=False,
     )
 
     uvisland_sizecheck_area_pixelpercentage: FloatProperty(  # type: ignore
