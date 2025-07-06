@@ -317,6 +317,13 @@ class r0Tools_PT_SimpleToolboxEdgeDataOps(bpy.types.Panel):
     # bl_options = {"DEFAULT_CLOSED"}
     has_update = False
 
+    @classmethod
+    def poll(cls, context):
+        addon_prefs = u.get_addon_prefs()
+        experimental_props = addon_prefs.experimental_features
+
+        return experimental_props
+
     def draw(self, context):
         addon_props = u.get_addon_props()
         addon_prefs = u.get_addon_prefs()
