@@ -502,10 +502,10 @@ class R0PROP_UL_FindModifierObjectsList(bpy.types.UIList):
 
         # Category header
         if item.category_name:
-            row = layout.row(align=True)
+            row = layout.row()
             expand_icon = "MODIFIER_DATA" if item.expanded else "TRIA_RIGHT"
-            row.prop(item, "expanded", text=item.category_name, icon=expand_icon, emboss=False)
-
+            row.prop(item, "expanded", text="", icon=expand_icon, emboss=False)
+            row.label(text=item.category_name)
         # Object entry
         else:
             found_obj = item.obj
