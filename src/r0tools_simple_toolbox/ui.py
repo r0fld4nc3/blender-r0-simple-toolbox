@@ -96,14 +96,14 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                     row = dev_tools_box.row()
                     row.operator(SimpleToolbox_OT_FixImageDataPaths.bl_idname, icon="IMAGE_DATA")
 
-        # ====== Find Modifiers on Objects ======
-        if cat_show_find_modifiers_ops and not cat_show_object_ops:
+        # ====== Find Modifiers ======
+        if cat_show_find_modifiers_ops:
             find_modifiers_box = layout.box()
             row = find_modifiers_box.row()
             row.prop(addon_props, "show_find_modifier_search", icon="TRIA_DOWN" if addon_props.show_find_modifier_search else "TRIA_RIGHT", emboss=False)
             if addon_props.show_find_modifier_search:
                 row = find_modifiers_box.row()
-                row.label(text="Name or Type:")
+                row.label(text="Name or Type (comma-separated):")
                 row = find_modifiers_box.row()
                 row.prop(addon_props, "find_modifier_search_text", icon="SORTALPHA", text="")
                 row.operator(SimpleToolbox_OT_FindModifierSearch.bl_idname, icon="VIEWZOOM", text="")
@@ -144,20 +144,6 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 row_split = row.split(align=True)
                 # Remove unused Materials
                 row_split.operator(SimpleToolbox_OT_RemoveUnusedMaterials.bl_idname)
-
-                # ====== Find Modifiers on Objects ======
-                # Kept here as it can be group into object ops, if possible.
-                # Kept above as well in case the Object Ops is not visible
-                if cat_show_find_modifiers_ops and cat_show_object_ops:
-                    find_modifiers_box = object_ops_box.box()
-                    row = find_modifiers_box.row()
-                    row.prop(addon_props, "show_find_modifier_search", icon="TRIA_DOWN" if addon_props.show_find_modifier_search else "TRIA_RIGHT", emboss=False)
-                    if addon_props.show_find_modifier_search:
-                        row = find_modifiers_box.row()
-                        row.label(text="Name or Type:")
-                        row = find_modifiers_box.row()
-                        row.prop(addon_props, "find_modifier_search_text", icon="SORTALPHA", text="")
-                        row.operator(SimpleToolbox_OT_FindModifierSearch.bl_idname, icon="VIEWZOOM", text="")
 
                 # ====== Custom Properties UI List ======
                 # Kept here as it can be group into object ops, if possible.
