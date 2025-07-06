@@ -336,14 +336,6 @@ class r0Tools_PT_SimpleToolboxEdgeDataOps(bpy.types.Panel):
             u.draw_edge_bweights_presets_uilist(self.layout, context, edge_bweights_box=bweight_presets_box)
 
 
-def unregister():
-    for cls in classes:
-        print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
-        bpy.utils.unregister_class(cls)
-
-    bpy.types.VIEW3D_PT_transform.remove(u.draw_bweights_in_transform_panel)
-
-
 # -------------------------------------------------------------------
 #   Register & Unregister
 # -------------------------------------------------------------------
@@ -364,3 +356,5 @@ def unregister():
     for cls in classes:
         print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
+
+    bpy.types.VIEW3D_PT_transform.remove(u.draw_bweights_in_transform_panel)
