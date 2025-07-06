@@ -850,6 +850,9 @@ class SimpleToolbox_OT_FindModifierSearch(bpy.types.Operator):
         if not self.add_to_selection:
             u.deselect_all()
 
+        # Support for Found Objects UIList
+        found_objects = []
+
         for obj in view_layer_objs:
             if not u.object_visible(obj):
                 continue
@@ -885,7 +888,110 @@ class SimpleToolbox_OT_FindModifierSearch(bpy.types.Operator):
                                 u.select_object(obj)
                                 is_found = True
 
+                        if is_found:
+                            found_objects.append(obj)
+
                         break
+
+        if u.is_writing_context_safe(context.scene):
+            addon_find_modifier_props = u.get_addon_find_modifier_props()
+            addon_find_modifier_props.objects_list.found_objects.clear()
+
+            for obj in sorted(list(found_objects), key=lambda o: o.name):
+                list_item = addon_find_modifier_props.objects_list.found_objects.add()
+                list_item.obj = obj
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_FindModifierSelectObject(bpy.types.Operator):
+    bl_idname = "r0tools.find_modifier_select_object"
+    bl_label = "Select Object"
+    bl_description = "Select this object and make it active.\n\n- SHIFT: Add to selection"
+    bl_options = {"REGISTER", "UNDO"}
+
+    # This property will receive the object name from the UIList button.
+    object_name: bpy.props.StringProperty(default="")  # type: ignore
+    add_to_selection: bpy.props.BoolProperty(default=False)  # type: ignore
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == u.OBJECT_MODES.OBJECT
+
+    def invoke(self, context, event):
+        self.add_to_selection = False  # Always reset
+
+        if event.shift:
+            self.add_to_selection = True
+
+        return self.execute(context)
+
+    def execute(self, context):
+        """
+        if self.select_all:
+            return self.execute_select_all(context)
+        else:
+            return self.execute_select_single(context)
+        """
+
+        return self.execute_select_single(context)
+
+    def execute_select_all(self, context):
+        """Unused"""
+        addon_find_modifier_props = u.get_addon_find_modifier_props()
+        found_items = addon_find_modifier_props.objects_list.found_objects
+
+        if not found_items:
+            self.report({"WARNING"}, "No objects in the list to select.")
+            return {"CANCELLED"}
+
+        if not self.add_to_selection:
+            u.deselect_all()
+
+        objects_to_select = []
+        for item in found_items:
+            if item.obj:
+                objects_to_select.append(item.obj)
+
+        if not objects_to_select:
+            return {"CANCELLED"}
+
+        for obj in objects_to_select:
+            obj.select_set(True)
+
+        context.view_layer.objects.active = objects_to_select[0]
+
+        return {"FINISHED"}
+
+    def execute_select_single(self, context):
+        if not self.object_name:
+            self.report({"WARNING"}, "No object name provided.")
+            return {"CANCELLED"}
+
+        target_obj = bpy.data.objects.get(self.object_name)
+        if not target_obj:
+            self.report({"WARNING"}, f"Object '{self.object_name}' not found.")
+            return {"CANCELLED"}
+
+        if self.add_to_selection:
+            u.select_object(target_obj, add=True, set_active=True)
+        else:
+            u.deselect_all()
+            u.select_object(target_obj, add=False, set_active=True)
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_FindModifierClearList(bpy.types.Operator):
+    bl_idname = "r0tools.find_modifier_clear_list"
+    bl_label = "Clear List"
+    bl_description = "Clears the found objects list"
+    bl_options = {"REGISTER"}
+
+    def execute(self, context):
+        if u.is_writing_context_safe(context.scene):
+            addon_find_modifier_props = u.get_addon_find_modifier_props()
+            addon_find_modifier_props.objects_list.found_objects.clear()
 
         return {"FINISHED"}
 
@@ -1677,7 +1783,11 @@ classes = [
     SimpleToolbox_OT_ClearCustomProperties,
     SimpleToolbox_OT_ClearMeshAttributes,
     SimpleToolbox_OT_ClearChildrenRecurse,
+    
     SimpleToolbox_OT_FindModifierSearch,
+    SimpleToolbox_OT_FindModifierSelectObject,
+    SimpleToolbox_OT_FindModifierClearList,
+    
     SimpleToolbox_OT_RemoveUnusedMaterials,
     
     SimpleToolbox_OT_DissolveNthEdge,

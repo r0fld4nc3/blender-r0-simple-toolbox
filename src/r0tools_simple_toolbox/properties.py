@@ -476,6 +476,41 @@ class R0PROP_UL_EdgeBWeightsList(bpy.types.UIList):
         item_row.separator(factor=1.0)
 
 
+#############################
+### Find Modifier & Items ###
+#############################
+class R0PROP_FindModifierListItem(bpy.types.PropertyGroup):
+    """
+    Represents a single item in the found objects UIList.
+    """
+
+    obj: bpy.props.PointerProperty(name="Object", type=bpy.types.Object)  # type: ignore
+
+
+class R0PROP_PG_FindModifierListProperties(bpy.types.PropertyGroup):
+    found_objects: bpy.props.CollectionProperty(type=R0PROP_FindModifierListItem)  # type: ignore
+    active_index: IntProperty(default=0, description="Active Index")  # type: ignore
+
+
+class R0PROP_UL_FindModifierObjectsList(bpy.types.UIList):
+    """UI List populated by object's that contain the searched for modifiers"""
+
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        from .operators import SimpleToolbox_OT_FindModifierSelectObject
+
+        found_obj = item.obj
+
+        if not found_obj:
+            layout.label(text="<Object Not Found>", icon="ERROR")
+
+        row = layout.row()
+
+        op = row.operator(SimpleToolbox_OT_FindModifierSelectObject.bl_idname, text="", icon="RESTRICT_SELECT_OFF")
+        op.object_name = found_obj.name
+
+        row.prop(found_obj, "name", text="", emboss=False)
+
+
 # ===================================================================
 #   ADDON PROPERTIES
 # ===================================================================
@@ -629,6 +664,7 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
         description="Manage different object selections via an Object Set editor",
         default=False,
     )
+
     object_sets: CollectionProperty(type=R0PROP_ObjectSetEntryItem)  # type: ignore
     object_sets_index: IntProperty(default=0, name="Object Set")  # type: ignore
     # data_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
@@ -713,6 +749,10 @@ class r0SimpleToolboxExperimentalProps(bpy.types.PropertyGroup):
     show_edge_data_ops: BoolProperty(
         name="Edge Data Ops", description="Toggle visibility of experimental Edge Data Operators", default=True
     )  # type: ignore
+
+
+class r0SimpleToolboxFindModifierProps(bpy.types.PropertyGroup):
+    objects_list: PointerProperty(type=R0PROP_PG_FindModifierListProperties)  # type: ignore
 
 
 # ===================================================================
@@ -867,10 +907,14 @@ classes = [
     R0PROP_BWeightPresetItem,
     R0PROP_PG_EdgeBWeightsPresets,
     R0PROP_UL_EdgeBWeightsList,
+    R0PROP_FindModifierListItem,
+    R0PROP_PG_FindModifierListProperties,
+    R0PROP_UL_FindModifierObjectsList,
     AddonPreferences,
     r0SimpleToolboxProps,
     r0SimpleToolboxEdgeDataProps,
     r0SimpleToolboxExperimentalProps,
+    r0SimpleToolboxFindModifierProps,
 ]
 
 
@@ -888,6 +932,9 @@ def register():
 
     print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_edge_data_props")
     bpy.types.Scene.r0fl_toolbox_edge_data_props = PointerProperty(type=r0SimpleToolboxEdgeDataProps)
+
+    print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_find_modifier_props")
+    bpy.types.Scene.r0fl_toolbox_find_modifier_props = PointerProperty(type=r0SimpleToolboxFindModifierProps)
 
     print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_experimental_props")
     bpy.types.Scene.r0fl_toolbox_experimental_props = PointerProperty(type=r0SimpleToolboxExperimentalProps)
@@ -920,6 +967,9 @@ def unregister():
 
     print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_edge_data_props")
     del bpy.types.Scene.r0fl_toolbox_edge_data_props
+
+    print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_find_modifier_props")
+    del bpy.types.Scene.r0fl_toolbox_find_modifier_props
 
     print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_experimental_props")
     del bpy.types.Scene.r0fl_toolbox_experimental_props
