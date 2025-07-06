@@ -1,5 +1,5 @@
 bl_info = {
-    "name": "r0Tools - Simple Toolbox.dev",
+    "name": "r0Tools - Simple Toolbox.dev-optimise-depsgraph-cleanup",
     "author": "Artur Rosário",
     "version": (0, 0, 31),
     "blender": (4, 2, 0),
