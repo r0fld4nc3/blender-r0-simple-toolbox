@@ -22,7 +22,9 @@ _mod = "PROPERTIES"
 # Properties which are not stored in preferences
 
 
-# ==== Custom Object Properties & Items =====
+##############################################
+###### Custom Object Properties & Items ######
+##############################################
 class R0PROP_UL_CustomPropertiesList(bpy.types.UIList):
     """UI List where each entry is a custom property belonging to at least 1 selected object"""
 
@@ -44,7 +46,9 @@ class R0PROP_PG_CustomPropertyItem(bpy.types.PropertyGroup):
     type: StringProperty(default=u.CUSTOM_PROPERTIES_TYPES.OBJECT_DATA)  # type: ignore
 
 
-# ===== Vertex Groups =====
+###########################
+###### Vertex Groups ######
+###########################
 class R0PROP_UL_VertexGroupsList(bpy.types.UIList):
     """UI List where each entry is a vertex group belonging to at least 1 selected object"""
 
@@ -66,6 +70,9 @@ class R0PROP_UL_VertexGroupsList(bpy.types.UIList):
 
 
 def update_lock_state_callback(self, context):
+    if not u.is_writing_context_safe(context.scene):
+        return
+
     vertex_group_name = self.name
 
     # Update persistent state
@@ -113,9 +120,9 @@ def update_vertex_group_name_callback(self, context):
                 renamed_objects.append(obj.name)
 
     if renamed_count > 0:
-        print(f"[INFO] [{_mod}] Renamed vertex group '{old_name}' to '{new_name}' in {renamed_count} objects")
+        u.LOG(f"[INFO] [{_mod}] Renamed vertex group '{old_name}' to '{new_name}' in {renamed_count} objects")
         if u.IS_DEBUG():
-            print("\t• " + "\n\t• ".join(renamed_objects))
+            u.LOG("\t• " + "\n\t• ".join(renamed_objects))
 
 
 class R0PROP_PG_VertexGroupPropertyItem(bpy.types.PropertyGroup):
@@ -135,7 +142,9 @@ class R0PROP_PG_LockStateEntry(bpy.types.PropertyGroup):
     locked: IntProperty(default=False)  # type: ignore
 
 
-# ===== Object Sets & Object Items =====
+########################################
+###### Object Sets & Object Items ######
+########################################
 class R0PROP_ObjectSetObjectItem(bpy.types.PropertyGroup):
     """Property representing a reference to an Object within an Object Set"""
 
@@ -417,6 +426,56 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
             layout.label(text=item.name)
 
 
+##############################
+###### Edge Ops & Items ######
+##############################
+class R0PROP_BWeightPresetItem(bpy.types.PropertyGroup):
+    """Individual bevel weight preset item"""
+
+    value: FloatProperty(
+        name="Bevel Weight", description="Bevel weight value", default=0.0, min=0.0, max=1.0
+    )  # type: ignore
+
+
+class R0PROP_PG_EdgeBWeightsPresets(bpy.types.PropertyGroup):
+    """Collection of bevel weight presets"""
+
+    presets: CollectionProperty(type=R0PROP_BWeightPresetItem)  # type: ignore
+    active_index: IntProperty(default=0, description="Active Index")  # type: ignore
+
+
+class R0PROP_UL_EdgeBWeightsList(bpy.types.UIList):
+    """UI List for bevel weight presets"""
+
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        from .data_ops import SimpleToolbox_OT_ApplyBWeightPreset
+
+        # Info Row
+        item_row = layout.row(align=True)
+
+        # Apply Preset Button
+        col_apply = item_row.row(align=True)
+        """
+        Store a reference to the Operator and assign it the preset_index property
+        so we can apply the specific preset value at this row/index
+        without having to first select the row!
+        """
+        op = col_apply.operator(SimpleToolbox_OT_ApplyBWeightPreset.bl_idname, text="", icon="PLUS")
+        # Set the property before adding to layout
+        op.preset_index = index
+        op.value = item.value
+        # Add spacing after the operation is complete
+        col_apply.separator(factor=0.5)
+
+        # Preset Value
+        item_value = f"{item.value*100:.2f}".split(".")[0] + "%"
+        col_value = item_row.row(align=True)
+        col_value.label(text=item_value, icon="NONE")
+
+        # Fill space
+        item_row.separator(factor=1.0)
+
+
 # ===================================================================
 #   ADDON PROPERTIES
 # ===================================================================
@@ -510,7 +569,7 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
     use_uvisland_sizecheck_area_pixelcoverage: BoolProperty(  # type: ignore
         name="Use Area Pixel Coverage",
         description="Use Area Squared (px²) of UV Island",
-        default=True,
+        default=False,
     )
 
     uvisland_sizecheck_area_pixelpercentage: FloatProperty(  # type: ignore
@@ -636,6 +695,26 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
     )
 
 
+class r0SimpleToolboxEdgeDataProps(bpy.types.PropertyGroup):
+    vcol_bevel_layer_name: StringProperty(default="BevelToVcol")  # type: ignore
+    vcol_crease_layer_name: StringProperty(default="CreaseToVcol")  # type: ignore
+
+    edge_bweights_presets: PointerProperty(type=R0PROP_PG_EdgeBWeightsPresets)  # type: ignore
+
+    apply_as_bevel_weights: BoolProperty(name="As Bevel Weights", description="Apply selected preset value as Edge Bevel Weight", default=True)  # type: ignore
+    apply_as_creases: BoolProperty(name="As Creases", description="Apply selected preset value as Crease", default=False)  # type: ignore
+
+    bevel_weights_to_vcol: BoolProperty(name="Bevel Weights", description="Convert Bevel Edge Weights to Vertex Colours", default=True)  # type: ignore
+
+    crease_to_vcol: BoolProperty(name="Creases", description="Convert Creases to Vertex Colours", default=False)  # type: ignore
+
+
+class r0SimpleToolboxExperimentalProps(bpy.types.PropertyGroup):
+    show_edge_data_ops: BoolProperty(
+        name="Edge Data Ops", description="Toggle visibility of experimental Edge Data Operators", default=True
+    )  # type: ignore
+
+
 # ===================================================================
 #   ADDON PREFS
 # ===================================================================
@@ -643,6 +722,8 @@ class AddonPreferences(bpy.types.AddonPreferences):
     bl_idname = INTERNAL_NAME
 
     debug: BoolProperty(name="Debug", description="Set Debug State", default=False)  # type: ignore
+
+    log_output: BoolProperty(name="Log", description="Whehter to produce regular Log output", default=False)  # type: ignore
 
     lock_states_avoided: IntProperty(
         name="Avoided Locks",
@@ -705,6 +786,16 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
     vertex_groups_list_rows: IntProperty(name="Vertex Groups List Rows", default=8, min=1)  # type: ignore
 
+    #######################
+    ### Edge Data Reset ###
+    #######################
+    edge_reset_sharp: BoolProperty(name="Reset Edge Sharpness", description="Set whether to always reset this component", default=True)  # type: ignore
+    edge_reset_seam: BoolProperty(name="Reset Edge Seam", description="Set whether to always reset this component", default=True)  # type: ignore
+    edge_reset_crease: BoolProperty(name="Reset Edge Crease", description="Set whether to always reset this component", default=True)  # type: ignore
+    edge_reset_bevel_weight: BoolProperty(name="Reset Edge Bevel Weight", description="Set whether to always reset this component", default=True)  # type: ignore
+
+    edge_data_bweight_preset_grid_buttons_toggle: BoolProperty(name="Toggle List/Grid", description="Toggle between a list view or a grid button view", default=False)  # type: ignore
+
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = False
@@ -714,6 +805,9 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
         row = layout.row()
         row.prop(self, "debug", text="Debug Mode")
+
+        row = layout.row()
+        row.prop(self, "log_output", text="Log Output")
 
         row = layout.row()
         row.prop(self, "experimental_features", text="Experimental Features")
@@ -755,7 +849,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
     def save_axis_threshold(self):
         addon_prefs = bpy.context.preferences.addons[INTERNAL_NAME].preferences
         addon_prefs.clear_sharp_axis_float_prop = self.clear_sharp_axis_float_prop
-        # print(f"[INFO] [{_mod}] Saved Property: clear_sharp_axis_float_prop -> {self.clear_sharp_axis_float_prop}")
+        # u.LOG(f"[INFO] [{_mod}] Saved Property: clear_sharp_axis_float_prop -> {self.clear_sharp_axis_float_prop}")
 
 
 # ===================================================================
@@ -770,9 +864,17 @@ classes = [
     R0PROP_PG_VertexGroupPropertyItem,
     R0PROP_UL_VertexGroupsList,
     R0PROP_PG_LockStateEntry,
+    R0PROP_BWeightPresetItem,
+    R0PROP_PG_EdgeBWeightsPresets,
+    R0PROP_UL_EdgeBWeightsList,
     AddonPreferences,
     r0SimpleToolboxProps,
+    r0SimpleToolboxEdgeDataProps,
+    r0SimpleToolboxExperimentalProps,
 ]
+
+
+load_post_handlers = [u.initialize_bweight_presets]
 
 
 def register():
@@ -780,9 +882,19 @@ def register():
         print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
-    print("[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_props")
+    print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_props")
     # Registering to Scene also has the side effect of saving properties on a per scene/file basis, which is nice!
     bpy.types.Scene.r0fl_toolbox_props = PointerProperty(type=r0SimpleToolboxProps)
+
+    print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_edge_data_props")
+    bpy.types.Scene.r0fl_toolbox_edge_data_props = PointerProperty(type=r0SimpleToolboxEdgeDataProps)
+
+    print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_experimental_props")
+    bpy.types.Scene.r0fl_toolbox_experimental_props = PointerProperty(type=r0SimpleToolboxExperimentalProps)
+
+    for handler in load_post_handlers:
+        print(f"[INFO] [{_mod}] Register load_post_handler: {handler.__name__}")
+        bpy.app.handlers.load_post.append(handler)
 
     addon_prefs = u.get_addon_prefs()
     global DEBUG
@@ -799,5 +911,15 @@ def unregister():
         print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
 
+    for handler in load_post_handlers:
+        print(f"[INFO] [{_mod}] Unregister load_post_handler: {handler.__name__}")
+        bpy.app.handlers.load_post.remove(handler)
+
     print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_props")
     del bpy.types.Scene.r0fl_toolbox_props
+
+    print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_edge_data_props")
+    del bpy.types.Scene.r0fl_toolbox_edge_data_props
+
+    print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_experimental_props")
+    del bpy.types.Scene.r0fl_toolbox_experimental_props

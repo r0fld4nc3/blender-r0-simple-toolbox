@@ -1,6 +1,7 @@
 import math
 from pathlib import Path
 
+import bmesh
 import bpy
 
 from ..defines import DEBUG, TOOLBOX_PROPS_NAME
@@ -15,11 +16,23 @@ from ..utils import (
 
 _mod = "UTILS.GENERAL"
 
+# ===============
+# === CACHING ===
+# ===============
+_last_object_count = 0
+
 
 def IS_DEBUG():
     """Return current debug state"""
     addon_prefs = get_addon_prefs()
     return DEBUG or addon_prefs.debug
+
+
+def LOG(*values: object, sep: str | None = "", end: str | None = "\n", flush=False):
+    """Return current debug state"""
+    addon_prefs = get_addon_prefs()
+    if addon_prefs.log_output:
+        print(*values, sep=sep, end=end, flush=flush)
 
 
 # ==============================
@@ -54,6 +67,13 @@ def get_active_object() -> bpy.types.Object | None:
 
     # return bpy.context.view_layer.objects.active
     return None
+
+
+def get_selected_objects(context: bpy.types.Context | None = None) -> list:
+    if context is not None:
+        return context.selected_objects
+
+    return bpy.context.selected_objects
 
 
 def set_object_mode(mode: str):
@@ -191,6 +211,36 @@ def deselect_all():
         bpy.ops.object.select_all(action="DESELECT")
 
 
+def deselect_all_bmesh(bmesh_obj):
+    # Deselect all elements
+    for vert in bmesh_obj.verts:
+        vert.select = False
+    for edge in bmesh_obj.edges:
+        edge.select = False
+    for face in bmesh_obj.faces:
+        face.select = False
+
+
+def bmesh_get_crease_layer(bm):
+    return bm.edges.layers.float.get("crease_edge", None)
+
+
+def bmesh_new_crease_layer(bm):
+    bm.edges.layers.float.new("crease_edge")
+
+    return bmesh_get_crease_layer(bm)
+
+
+def bmesh_get_bevel_weight_edge_layer(bm):
+    return bm.edges.layers.float.get("bevel_weight_edge", None)
+
+
+def bmesh_new_bevel_weight_edge_layer(bm):
+    bm.edges.layers.float.new("bevel_weight_edge")
+
+    return bmesh_get_bevel_weight_edge_layer(bm)
+
+
 def object_in_view_layer(obj, context=None):
     """Check if object is in the active view layer"""
     ctx = bpy.context
@@ -241,7 +291,7 @@ def iter_scene_objects(selected=False, types: list[str] = []):
     """
     iters = bpy.data.objects
     if selected:
-        iters = bpy.context.selected_objects
+        iters = get_selected_objects()
 
     for o in iters:
         if not types or o.type in types:
@@ -352,6 +402,28 @@ def object_in_collection(obj, collection):
     return collection in obj.users_collection
 
 
+def object_count_changed() -> bool:
+    global _last_object_count
+
+    scene = bpy.context.scene
+    scene_objects_count = len(scene.objects)
+
+    changed = scene_objects_count < _last_object_count
+
+    _last_object_count = scene_objects_count
+
+    return changed
+
+
+def get_selected_objects_hash():
+    """Generate hash to detect selection changes"""
+    hash_value = 0
+    for obj in iter_scene_objects(selected=True):
+        hash_value ^= hash(obj.name)
+
+    return hash_value
+
+
 # ==============================
 # MESH SELECTION MODE
 # ==============================
@@ -398,6 +470,21 @@ def force_redraw_all():
             area.tag_redraw()
 
 
+def tag_redraw_if_visible():
+    if not bpy.context.screen:
+        return
+
+    for area in bpy.context.screen.areas:
+        if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
+            if area.type == "PROPERTIES":
+                for space in area.spaces:
+                    if hasattr(space, "context") and space.context == "DATA":
+                        area.tag_redraw()
+                        break
+            else:
+                area.tag_redraw()
+
+
 # ==============================
 # OPERATIONS
 # ==============================
@@ -410,16 +497,16 @@ def op_clear_sharp_along_axis(axis: str):
     Args:
         axis: The axis to clear sharp edges along (X, Y, or Z)
     """
-    print(f"\n=== Clear Sharp Along Axis {axis}")
+    LOG(f"\n=== Clear Sharp Along Axis {axis}")
     axis = str(axis).upper()
 
     threshold = get_addon_prefs().clear_sharp_axis_float_prop
-    print(f"[INFO] [{_mod}] Threshold: {threshold}")
+    LOG(f"[INFO] [{_mod}] Threshold: {threshold}")
 
     # Collect select objects
-    objects = [obj for obj in bpy.context.selected_objects if obj.type == "MESH"]
+    objects = [obj for obj in get_selected_objects() if obj.type == "MESH"]
 
-    print(f"[INFO] [{_mod}] Objects: {objects}")
+    LOG(f"[INFO] [{_mod}] Objects: {objects}")
 
     if not objects:
         return False
@@ -427,15 +514,15 @@ def op_clear_sharp_along_axis(axis: str):
     for obj in objects:
         # Set the active object
         bpy.context.view_layer.objects.active = obj
-        print(f"[INFO] [{_mod}] Iterating: {obj.name}")
+        LOG(f"[INFO] [{_mod}] Iterating: {obj.name}")
 
         # Check the mode
         mode = obj.mode
-        print(f"[INFO] [{_mod}] Mode: {mode}")
+        LOG(f"[INFO] [{_mod}] Mode: {mode}")
 
         # Access mesh data
         mesh = obj.data
-        print(f"[INFO] [{_mod}] Mesh: {mesh}")
+        LOG(f"[INFO] [{_mod}] Mesh: {mesh}")
 
         # Store the selection mode
         # Tuple of Booleans for each of the 3 modes
@@ -532,13 +619,15 @@ def custom_property_list_add_props(props: set | list, prop_type, selection_state
             context_error_debug(error=e)
 
 
-def property_list_update(scene, context, force_run=False):
+def property_list_update(force_run=False):
     """
     Update property list based on selected objects
 
     This function updates the custom property list panel
     when object selection changes.
     """
+
+    scene = bpy.context.scene
 
     from .context import is_writing_context_safe
 
@@ -551,7 +640,7 @@ def property_list_update(scene, context, force_run=False):
         # Skip update if panel is not visible
         return None
 
-    if bpy.context.selected_objects or force_run:
+    if get_selected_objects() or force_run:
         current_selection = {obj.name for obj in iter_scene_objects(selected=True)}
 
         if IS_DEBUG():

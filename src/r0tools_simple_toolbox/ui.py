@@ -2,6 +2,7 @@ import bpy
 
 from . import ext_update as upd
 from . import utils as u
+from .data_ops import SimpleToolbox_OT_EdgeDataToVertexColour
 from .defines import ADDON_NAME, VERSION_STR
 from .operators import *
 from .repo import draw_repo_layout
@@ -10,7 +11,7 @@ _mod = "UI"
 
 # fmt: off
 class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
-    bl_idname = 'OBJECT_PT_quick_toolbox'
+    bl_idname = 'OBJECT_PT_simple_toolbox'
     bl_label = f'{ADDON_NAME} ({VERSION_STR})'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -23,10 +24,20 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
     def _update_callback(cls, result):
         cls.has_update = result
 
+        # Trigger redraw
+        try:
+            for area in bpy.context.screen.areas:
+                if area.type == cls.bl_space_type:
+                    area.tag_redraw()
+        except Exception as e:
+            print(f"[ERROR] [{_mod}] Failed to redraw on callback:\n{e}")
+
+
     
     def draw(self, context):
         addon_props = u.get_addon_props()
         addon_prefs = u.get_addon_prefs()
+        experimental_props = u.get_addon_experimental_props()
         
         layout = self.layout
 
@@ -34,7 +45,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         categories_row.prop(addon_props, "cat_show_object_ops", text="", icon="EVENT_O")
         categories_row.prop(addon_props, "cat_show_mesh_ops", text="", icon="EVENT_M")
         categories_row.prop(addon_props, "cat_show_uv_ops", text="", icon="EVENT_U")
-        categories_row.prop(addon_props, "cat_show_custom_properties_editor", text="", icon="OUTLINER_DATA_MESH")
+        categories_row.prop(addon_props, "cat_show_custom_properties_editor", text="", icon="EVENT_C")
         categories_row.prop(addon_props, "cat_show_find_modifiers_ops", text="", icon="MODIFIER")
         categories_row.prop(addon_props, "cat_show_object_sets_editor", text="", icon="MESH_CUBE")
         categories_row.prop(addon_props, "cat_show_vertex_groups_editor", text="", icon="GROUP_VERTEX")
@@ -67,6 +78,9 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
             if addon_props.show_dev_tools:
                 row = dev_tools_box.row()
                 row.prop(addon_prefs, "debug", text="Debug", icon="EXPERIMENTAL")
+                row.prop(addon_prefs, "log_output", text="Log", icon="CONSOLE")
+                row = dev_tools_box.row()
+                row.operator(BUILTINS_OT_IconViewer.bl_idname)
                 row = dev_tools_box.row()
                 row.operator("script.reload", text="Reload All Scripts", icon="PACKAGE")
                 reload_user_defined_box = dev_tools_box.box()
@@ -74,6 +88,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 row.prop(addon_props, "reload_modules_prop")
                 row = reload_user_defined_box.row()
                 row.operator(SimpleToolbox_OT_ReloadNamedScripts.bl_idname, icon="TOOL_SETTINGS")
+                
                 if addon_prefs.experimental_features:
                     row = dev_tools_box.row()
                     row.operator("image.reload", icon="IMAGE_DATA")
@@ -185,10 +200,14 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 # >> Row
                 row = mesh_ops_box.row(align=True)
                 row_split = row.split(align=True)
-                # Nth Edges Operator
+                # Remove Nth Edges Operator
                 row_split.operator(SimpleToolbox_OT_DissolveNthEdge.bl_idname)
                 if addon_prefs.experimental_features:
                     row_split.operator(SimpleToolbox_OT_RestoreNthEdge.bl_idname)
+
+                # >> Row
+                row = mesh_ops_box.row(align=True)
+                row.operator(SimpleToolbox_OT_ResetEdgeData.bl_idname)
 
                 # >> Row
                 row = mesh_ops_box.row(align=True)
@@ -268,16 +287,68 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                     row = uv_island_checks_thresholds_box.row()
                     row.operator(SimpleToolbox_OT_UVCheckIslandThresholds.bl_idname)
 
+        if addon_prefs.experimental_features:
+            experimental_features_box = layout.box()
+            experimental_features_box.prop(addon_props, "show_experimental_features", icon="TRIA_DOWN" if addon_props.show_experimental_features else "TRIA_RIGHT", emboss=False)
+            if addon_props.show_experimental_features:
+                exp_edge_data_row = experimental_features_box.row()
+                exp_edge_data_row.prop(experimental_props, "show_edge_data_ops", icon="TRIA_DOWN" if experimental_props.show_edge_data_ops else "TRIA_RIGHT", emboss=False)
+                if experimental_props.show_edge_data_ops:
+                    row = experimental_features_box.row()
+                    row.operator(SimpleToolbox_OT_EdgeDataToVertexColour.bl_idname, icon="GROUP_VCOL")
+                    row = experimental_features_box.row()
+                    bweight_presets_box = row.box()
+                    row = bweight_presets_box.row()
+                    row.prop(addon_prefs, "edge_data_bweight_preset_grid_buttons_toggle", icon="MESH_GRID", text="")
+                    row.label(text=f"{'Bevel Weight Preset Grid' if addon_prefs.edge_data_bweight_preset_grid_buttons_toggle else 'Bevel Weight Preset List'}")
+                    u.draw_edge_bweights_presets_uilist(self.layout, context, edge_bweights_box=bweight_presets_box)
+
         # ====== Online Repository ======
         draw_repo_layout(layout, context)
 # fmt: on
+
+
+class r0Tools_PT_SimpleToolboxEdgeDataOps(bpy.types.Panel):
+    bl_idname = "OBJECT_PT_simple_toolbox_edge_data"
+    bl_label = f"Edge Data Ops ({VERSION_STR})"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Item"
+    # bl_options = {"DEFAULT_CLOSED"}
+    has_update = False
+
+    def draw(self, context):
+        addon_props = u.get_addon_props()
+        addon_prefs = u.get_addon_prefs()
+
+        layout = self.layout
+
+        if addon_prefs.experimental_features:
+            row = layout.row()
+            row.operator(SimpleToolbox_OT_EdgeDataToVertexColour.bl_idname, icon="GROUP_VCOL")
+            row = layout.row()
+            bweight_presets_box = row.box()
+            row = bweight_presets_box.row()
+            row.prop(addon_prefs, "edge_data_bweight_preset_grid_buttons_toggle", icon="MESH_GRID", text="")
+            row.label(
+                text=f"{'Bevel Weight Preset Grid' if addon_prefs.edge_data_bweight_preset_grid_buttons_toggle else 'Bevel Weight Preset List'}"
+            )
+            u.draw_edge_bweights_presets_uilist(self.layout, context, edge_bweights_box=bweight_presets_box)
+
+
+def unregister():
+    for cls in classes:
+        print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        bpy.utils.unregister_class(cls)
+
+    bpy.types.VIEW3D_PT_transform.remove(u.draw_bweights_in_transform_panel)
 
 
 # -------------------------------------------------------------------
 #   Register & Unregister
 # -------------------------------------------------------------------
 
-classes = [r0Tools_PT_SimpleToolbox]
+classes = [r0Tools_PT_SimpleToolbox, r0Tools_PT_SimpleToolboxEdgeDataOps]
 
 
 def register():
@@ -285,7 +356,8 @@ def register():
         print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
-    upd.trigger_update_check()
+    # upd.trigger_update_check()
+    upd.trigger_thread_update_check()
 
 
 def unregister():

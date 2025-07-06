@@ -42,6 +42,13 @@ class SimpleToolbox_OT_VgroupsAddPopup(bpy.types.Operator):
         for obj in u.iter_scene_objects(selected=True, types=self.accepted_object_types):
             vertex_group_add(obj, self.vertex_group_name)
 
+        vertex_groups_list_update(force=True)
+
+        set_vertex_group_highlighted_by_name(self.vertex_group_name)
+
+        if context.mode == u.OBJECT_MODES.EDIT_MESH:
+            bpy.ops.r0tools.vgroups_assign_vertices()
+
         return {"FINISHED"}
 
 
@@ -95,6 +102,8 @@ class SimpleToolbox_OT_VgroupsRemoveHighlighted(bpy.types.Operator):
                 if vgroup_name == highlighted_name:
                     vgroups.remove(vgroup)
                     total_removed += 1
+
+        u.vertex_groups_list_update(force=True)
 
         self.report({"INFO"}, f"Removed {total_removed} Vertex Groups.")
 
@@ -153,6 +162,52 @@ class SimpleToolbox_OT_RemoveUnusedVertexGroups(bpy.types.Operator):
 
         u.set_active_object(original_active)
 
+        u.vertex_groups_list_update(force=True)
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_VgroupsLockStateAll(bpy.types.Operator):
+    bl_idname = "r0tools.vgroups_lock_state_all"
+    bl_label = "Lock/Unlock All"
+    bl_description = "Lock/Unlock all vertex groups in the list"
+    bl_options = {"INTERNAL", "UNDO"}
+
+    action: bpy.props.EnumProperty(
+        name="Action",
+        description="Lock or unlock all vertex groups",
+        items=[("LOCK", "Lock All", "Lock all vertex groups"), ("UNLOCK", "Unlock All", "Unlock all vertex groups")],
+        default="UNLOCK",
+    )  # type: ignore
+
+    accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
+    accepted_object_types = [u.OBJECT_TYPES.MESH]
+
+    @classmethod
+    def poll(cls, context):
+        accepted_context = context.mode in cls.accepted_contexts
+        has_vgroups = get_vertex_groups_count() > 0
+
+        return accepted_context and has_vgroups
+
+    def invoke(self, context, event):
+        return self.execute(context)
+
+    def execute(self, context):
+        vertex_groups = get_vertex_groups()
+        vertex_group_count = get_vertex_groups_count()
+
+        if self.action == "LOCK":
+            for item in vertex_groups:
+                item.locked = True
+
+            self.report({"INFO"}, f"Locked {vertex_group_count} Vertex Groups.")
+        elif self.action == "UNLOCK":
+            for item in vertex_groups:
+                item.locked = False
+
+            self.report({"INFO"}, f"Unlocked {vertex_group_count} Vertex Groups.")
+
         return {"FINISHED"}
 
 
@@ -204,6 +259,8 @@ class SimpleToolbox_OT_VgroupsRemoveSelected(bpy.types.Operator):
                 if vgroup_name in vgroups_names_to_remove and not locked:
                     vgroups.remove(vgroup)
                     total_removed += 1
+
+        u.vertex_groups_list_update(force=True)
 
         self.report({"INFO"}, f"Removed {total_removed} Vertex Groups.")
 
@@ -261,6 +318,8 @@ class SimpleToolbox_OT_VgroupsKeepSelected(bpy.types.Operator):
                 if vgroup_name not in vgroups_names_to_remove and not locked:
                     vgroups.remove(vgroup)
                     total_removed += 1
+
+        u.vertex_groups_list_update(force=True)
 
         self.report({"INFO"}, f"Removed {total_removed} Vertex Groups.")
 
@@ -343,55 +402,63 @@ class SimpleToolbox_OT_VgroupsAssignVertices(bpy.types.Operator):
             selected_vgroups_names = [highlighted_vg_entry]
 
         for obj in u.iter_scene_objects(selected=True, types=self.accepted_object_types):
-            # Set it as active
-            u.set_active_object(obj)
+            mesh = obj.data
 
-            select_mode = u.get_selection_mode()
-            has_selection = False
+            # Add the groups if they don't exist
+            for vgroup_name in selected_vgroups_names:
+                vertex_group_add(obj, vgroup_name)
 
-            # Get the bmesh
-            bm = bmesh.from_edit_mesh(obj.data)
+            # Store vertex group indices for bmesh
+            vg_indices = []
+            for vg_name in selected_vgroups_names:
+                vg = obj.vertex_groups.get(vg_name)
+                if vg:
+                    vg_indices.append(vg.index)
+
+            if not vg_indices:
+                continue
+
+            bm = bmesh.from_edit_mesh(mesh)
             bm.verts.ensure_lookup_table()
             bm.edges.ensure_lookup_table()
             bm.faces.ensure_lookup_table()
 
+            # Collect vertices to assign based on selection mode
+            verts_to_assign = set()
+
+            select_mode = u.get_selection_mode()
+
             if select_mode == 0:  # Vertices
-                for v in bm.verts:
-                    if v.select:
-                        has_selection = True
-                        break
+                verts_to_assign = {v for v in bm.verts if v.select}
             elif select_mode == 1:  # Edges
                 for e in bm.edges:
                     if e.select:
-                        has_selection = True
-                        break
+                        verts_to_assign.update(e.verts)
             elif select_mode == 2:  # Faces
                 for f in bm.faces:
                     if f.select:
-                        has_selection = True
-                        break
-            else:
+                        verts_to_assign.update(f.verts)
+
+            if not verts_to_assign:
                 continue
 
-            # Selected vertices
-            # selected_verts_index = [v.index for v in bm.verts if v.select]
+            # Get or create a Deform layer
+            deform_layer = bm.verts.layers.deform.active
+            if deform_layer is None:
+                deform_layer = bm.verts.layers.deform.new()
 
-            if not has_selection:
-                continue
+            # Assign the vertices to groups
+            for vert in verts_to_assign:
+                for vg_index in vg_indices:
+                    try:
+                        vert[deform_layer][vg_index] = 1.0
+                    except ReferenceError as ref_error:
+                        if u.IS_DEBUG():
+                            print(f"[DEBUG] [{_mod}] AssignVertices: {e}")
+                    except Exception as e:
+                        print(f"[ERROR] [{_mod}] AssignVertices: {e}")
 
-            # Add the group(s) they don't exist
-            for vgroup_name in selected_vgroups_names:
-                vertex_group_add(obj, vgroup_name)
-
-            # Now for each selected name, select it at the object vgroup index
-            for vertex_group in iter_obj_vertex_groups(obj):
-                if vertex_group.name in selected_vgroups_names:
-                    if set_obj_active_vertex_group_index(obj, vertex_group):
-                        # Let's try to use the built-in function
-                        bpy.ops.object.vertex_group_assign()
-
-                        # Add vertices to the vertex group. Does not work in edit mode for some reason...
-                        # vertex_group.add(selected_verts_index, 1.0, "ADD")
+            bmesh.update_edit_mesh(mesh)
 
         return {"FINISHED"}
 
@@ -419,14 +486,30 @@ class SimpleToolbox_OT_VgroupsUnassignVertices(bpy.types.Operator):
             selected_vgroups_names = [highlighted_vg_entry]
 
         for obj in u.iter_scene_objects(selected=True, types=self.accepted_object_types):
-            # Set it as active
-            u.set_active_object(obj)
+            mesh = obj.data
 
-            for vertex_group in iter_obj_vertex_groups(obj):
-                if vertex_group.name in selected_vgroups_names:
-                    if set_obj_active_vertex_group_index(obj, vertex_group):
-                        # Let's try to use the built-in function
-                        bpy.ops.object.vertex_group_remove_from()
+            # Store vertex group indices for bmesh
+            vg_indices = []
+            for vg_name in selected_vgroups_names:
+                vg = obj.vertex_groups.get(vg_name)
+                if vg:
+                    vg_indices.append(vg.index)
+
+            if not vg_indices:
+                continue
+
+            bm = bmesh.from_edit_mesh(mesh)
+            bm.verts.ensure_lookup_table()
+
+            deform_layer = bm.verts.layers.deform.active
+            if deform_layer:
+                for vert in bm.verts:
+                    if vert.select:
+                        for vg_idx in vg_indices:
+                            if vg_idx in vert[deform_layer]:
+                                del vert[deform_layer][vg_idx]
+
+            bmesh.update_edit_mesh(mesh)
 
         return {"FINISHED"}
 
@@ -434,10 +517,20 @@ class SimpleToolbox_OT_VgroupsUnassignVertices(bpy.types.Operator):
 class SimpleToolbox_OT_VgroupsSelectVertices(bpy.types.Operator):
     bl_idname = "r0tools.vgroups_select_vertices"
     bl_label = "Select"
-    bl_description = "Selects the vertices assign to the selected Vertex Group(s)"
+    bl_description = "Selects the vertices assign to the selected Vertex Group(s)\n\n- SHIFT: Add to selection"
     bl_options = {"REGISTER", "UNDO"}
 
     accepted_object_types = [u.OBJECT_TYPES.MESH]
+
+    add_to_selection: BoolProperty(name="Add to selection", default=False)  # type: ignore
+
+    def invoke(self, context, event):
+        self.add_to_selection = False  # Always reset
+
+        if event.shift:
+            self.add_to_selection = True
+
+        return self.execute(context)
 
     def execute(self, context):
         # Selected vertex groups
@@ -454,14 +547,40 @@ class SimpleToolbox_OT_VgroupsSelectVertices(bpy.types.Operator):
             selected_vgroups_names = [highlighted_vg_entry]
 
         for obj in u.iter_scene_objects(selected=True, types=self.accepted_object_types):
-            # Set it as active
-            u.set_active_object(obj)
+            mesh = obj.data
 
-            for vertex_group in iter_obj_vertex_groups(obj):
-                if vertex_group.name in selected_vgroups_names:
-                    if set_obj_active_vertex_group_index(obj, vertex_group):
-                        # Let's try to use the built-in function
-                        bpy.ops.object.vertex_group_select()
+            # Store vertex group indices for bmesh
+            vg_indices = []
+            for vg_name in selected_vgroups_names:
+                vg = obj.vertex_groups.get(vg_name)
+                if vg:
+                    vg_indices.append(vg.index)
+
+            if not vg_indices:
+                continue
+
+            bm = bmesh.from_edit_mesh(mesh)
+            bm.verts.ensure_lookup_table()
+            bm.edges.ensure_lookup_table()
+            bm.faces.ensure_lookup_table()
+
+            if not self.add_to_selection:
+                u.deselect_all_bmesh(bm)
+
+            deform_layer = bm.verts.layers.deform.active
+            if deform_layer:
+                for vert in bm.verts:
+                    # We manage this with deselect_all_bmesh above
+                    # vert.select = False
+                    for vg_idx in vg_indices:
+                        if vg_idx in vert[deform_layer]:
+                            vert.select = True
+                            break
+
+            # Update selection states from vertices to edges and faces
+            bm.select_flush(True)
+
+            bmesh.update_edit_mesh(mesh)
 
         return {"FINISHED"}
 
@@ -489,14 +608,34 @@ class SimpleToolbox_OT_VgroupsDeselectVertices(bpy.types.Operator):
             selected_vgroups_names = [highlighted_vg_entry]
 
         for obj in u.iter_scene_objects(selected=True, types=self.accepted_object_types):
-            # Set it as active
-            u.set_active_object(obj)
+            mesh = obj.data
 
-            for vertex_group in iter_obj_vertex_groups(obj):
-                if vertex_group.name in selected_vgroups_names:
-                    if set_obj_active_vertex_group_index(obj, vertex_group):
-                        # Let's try to use the built-in function
-                        bpy.ops.object.vertex_group_deselect()
+            # Store vertex group indices for bmesh
+            vg_indices = []
+            for vg_name in selected_vgroups_names:
+                vg = obj.vertex_groups.get(vg_name)
+                if vg:
+                    vg_indices.append(vg.index)
+
+            if not vg_indices:
+                continue
+
+            bm = bmesh.from_edit_mesh(mesh)
+            bm.verts.ensure_lookup_table()
+
+            deform_layer = bm.verts.layers.deform.active
+            if deform_layer:
+                for vert in bm.verts:
+                    if vert.select:
+                        for vg_idx in vg_indices:
+                            if vg_idx in vert[deform_layer]:
+                                vert.select = False
+                                break
+
+            # Update selection states from vertices to edges and faces
+            bm.select_flush(False)
+
+            bmesh.update_edit_mesh(mesh)
 
         return {"FINISHED"}
 
@@ -506,6 +645,7 @@ classes = [
     SimpleToolbox_OT_VgroupsAddPopup,
     SimpleToolbox_OT_VgroupsRemoveHighlighted,
     SimpleToolbox_OT_RemoveUnusedVertexGroups,
+    SimpleToolbox_OT_VgroupsLockStateAll,
     SimpleToolbox_OT_VgroupsRemoveSelected,
     SimpleToolbox_OT_VgroupsKeepSelected,
     SimpleToolbox_OT_VgroupsSelectObjectsWithVgroups,

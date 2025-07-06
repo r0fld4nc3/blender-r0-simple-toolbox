@@ -292,6 +292,8 @@ class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
 
             object_set_count_after = object_set.count - object_set_count_before
 
+            u.timer_manager.schedule(object_sets_update_mesh_stats, delay=1, min_interval=1)
+
             self.report(
                 {"INFO"},
                 f"Added {object_set_count_after} object(s) to Set '{object_set.name}'",
@@ -332,6 +334,44 @@ class SimpleToolbox_OT_RemoveFromObjectSet(bpy.types.Operator):
                 total_removed += 1
 
             self.report({"INFO"}, f"Removed {total_removed} objects of Set '{object_set.name}'")
+
+        u.timer_manager.schedule(object_sets_update_mesh_stats, delay=1, min_interval=1)
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_RemoveFromAllObjectSets(bpy.types.Operator):
+    bl_label = "Remove From All Sets"
+    bl_idname = "r0tools.remove_from_all_object_sets"
+    bl_description = "Remove selected object(s) from all Object Sets"
+    bl_options = {"INTERNAL"}
+
+    accepted_contexts = [u.OBJECT_MODES.OBJECT]
+
+    @classmethod
+    def poll(cls, context):
+        object_sets = get_object_sets()
+
+        # Evaluate polls
+        accepted_contexts = context.mode in cls.accepted_contexts
+        object_sets_present = True if len(object_sets) > 0 else False
+        len_selected_objects = len(context.selected_objects) > 0
+
+        return accepted_contexts and len_selected_objects and object_sets_present
+
+    def execute(self, context):
+        object_sets = get_object_sets()
+
+        for obj in context.selected_objects:
+            for index, object_set in enumerate(object_sets):
+                object_sets_objects = [obj for obj in iter_objects_of_object_set_at_index(index)]
+                if obj in object_sets_objects:
+                    object_set.remove_object(obj)
+
+        self.report({"INFO"}, f"Removed selected objects from all Object Sets")
+
+        u.timer_manager.schedule(object_sets_update_mesh_stats, delay=1, min_interval=1)
+
         return {"FINISHED"}
 
 
@@ -435,7 +475,7 @@ class SimpleToolbox_OT_RandomiseObjectSetsColours(bpy.types.Operator):
     def execute(self, context):
         addon_prefs = u.get_addon_prefs()
         default_set_colour = [c for c in addon_prefs.object_sets_default_colour]
-        used_colours = {(o.set_colour for o in get_object_sets() if o.set_colour != default_set_colour)}
+        used_colours = {tuple(o.set_colour) for o in get_object_sets() if list(o.set_colour) != default_set_colour}
         active_object_set_name = get_object_set_name_at_index(get_active_object_set_index())
 
         for object_set in get_object_sets():
@@ -465,15 +505,76 @@ class SimpleToolbox_OT_RandomiseObjectSetsColours(bpy.types.Operator):
                         random.uniform(0.0, 1.0),
                         1.0,
                     )
-                    if new_colour not in used_colours and list(new_colour) != default_set_colour:
+
+                    is_similar = False
+                    for col in used_colours:
+                        if self.is_colour_similar(new_colour, col, threshold=0.15):
+                            is_similar = True
+                            break
+
+                    # Check against default colour. Stricter.
+                    if self.is_colour_similar(new_colour, tuple(default_set_colour), threshold=0.4):
+                        is_similar = True
+
+                    if not is_similar:
                         used_colours.add(new_colour)
                         object_set.set_colour = new_colour
-                        print(f"[INFO] [{_mod}] Updating colour of Object Set '{object_set_name}': {new_colour}")
+                        u.LOG(f"[INFO] [{_mod}] Updating colour of Object Set '{object_set_name}': {new_colour}")
                         break
 
         bpy.ops.r0tools.object_sets_refresh()
         self.report({"INFO"}, "Randomised Object Sets' Colours.")
         return {"FINISHED"}
+
+    def is_colour_similar(self, new_colour, colour_to_compare_to, threshold=0.1):
+        """Check if two colors are similar within a given threshold using weighted Euclidean distance.
+
+        The weighted is tailored to better match the human perception element: Red 30%, Green 59%, Blue 11%
+
+        Threshold of 0: mostly only exact matches are considered similar.
+
+        Threshold of 1.0: all colour(s) can be considered similar.
+        """
+
+        # Perception-based weights (these should sum to 1.0 for consistent scaling)
+        weight_red = 0.30
+        weight_green = 0.59
+        weight_blue = 0.11
+
+        # The maximum possible distance between two unweighted colors in RGB space is √3 ≈ 1.73
+
+        max_distance = (weight_red + weight_green + weight_blue) ** 0.5
+
+        if threshold > 1:
+            mapped_threshold = max_distance
+        elif threshold < 0:
+            mapped_threshold = 0
+        else:
+            # Under normal conditions, from 0-1.0, map according to the RGB scale
+            mapped_threshold = threshold * max_distance
+
+        r1, g1, b1 = new_colour[:3]
+        r2, g2, b2 = colour_to_compare_to[:3]
+
+        # Calculate weighted squared differences
+        r_diff_squared = weight_red * ((r1 - r2) ** 2)
+        g_diff_squared = weight_green * ((g1 - g2) ** 2)
+        b_diff_squared = weight_blue * ((b1 - b2) ** 2)
+
+        distance = (r_diff_squared + g_diff_squared + b_diff_squared) ** 0.5
+
+        is_similar = distance < mapped_threshold
+
+        if is_similar:
+            # `distance` means a difference of X%.
+            # A distance of 0.313, means that `new_colour` is only 31.3% different than `color_to_compare_to`.
+            # So they are 68.7% similar.
+            similar_pct = (1 - distance / max_distance) * 100
+            u.LOG(
+                f"[INFO] [{_mod}] Color {new_colour} is {similar_pct:.1f}% similar to {colour_to_compare_to} with distance of {distance:.3f} | ({mapped_threshold:.3f})"
+            )
+
+        return is_similar
 
 
 class SimpleToolbox_OT_RenameObjectsInObjectSet(bpy.types.Operator):
@@ -557,7 +658,7 @@ class SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections(bpy.types.Operator):
             i = get_object_sets_count()
             for object_set in reversed(get_object_sets()):
                 i -= 1
-                print(f"[INFO] [{_mod}] {i} {object_set.name}")
+                u.LOG(f"[INFO] [{_mod}] {i} {object_set.name}")
                 if object_set.separator:
                     continue
                 collection = u.collections_create_new(get_object_set_name_at_index(i))
@@ -652,7 +753,7 @@ class SimpleToolbox_OT_LinkObjectsInObjectSetsToCollections(bpy.types.Operator):
             i = get_object_sets_count()
             for object_set in reversed(get_object_sets()):
                 i -= 1
-                print(f"[INFO] [{_mod}] {i} {object_set}.name")
+                u.LOG(f"[INFO] [{_mod}] {i} {object_set}.name")
                 if object_set.separator:
                     continue
                 collection = u.collections_create_new(get_object_set_name_at_index(i))
@@ -707,6 +808,7 @@ classes = [
     SimpleToolbox_OT_RemoveObjectSet,
     SimpleToolbox_OT_AddToObjectSet,
     SimpleToolbox_OT_RemoveFromObjectSet,
+    SimpleToolbox_OT_RemoveFromAllObjectSets,
     SimpleToolbox_OT_SelectObjectSet,
     SimpleToolbox_OT_ForceRefreshObjectSets,
     SimpleToolbox_OT_RandomiseObjectSetsColours,

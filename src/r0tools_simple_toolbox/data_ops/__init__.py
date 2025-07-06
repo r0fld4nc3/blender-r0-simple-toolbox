@@ -2,32 +2,15 @@ import importlib
 import sys
 
 # Import order here is really important!
-# fmt: off
-from .constants import *  # isort: skip
-from .context import *  # isort: skip
-from .custom_transform import *  # isort: skip
-from .general import *  # isort: skip
-from ..object_sets.object_sets import *  # isort: skip
-from ..vertex_groups.vertex_groups import *  # isort: skip
-from .defer import timer_manager, deferred  # isort: skip
-from .edge_data import (  # isort: skip
-    draw_edge_bweights_presets_uilist,
-    initialize_bweight_presets,
-)
-# fmt: on
+from .operators import *  # isort: skip
 
 package = __name__
-_mod = "UTILS.__INIT__"
+_mod = "DATA OPS"
 
 # fmt: off
 # List of submodlules, keep in sync with imports
 submodules = [
-    "constants",
-    "context",
-    "custom_transform",
-    "general",
-    "defer",
-    "edge_data"
+    "operators"
 ]
 # fmt: on
 _module_objects = []
@@ -72,7 +55,7 @@ def register():
 
 def unregister():
     global _module_objects
-    print(f"[INFO] [{_mod}] Unregistering utility submodules")
+    print(f"[INFO] [{_mod}]  Unregistering utility submodules")
 
     for module in reversed(_module_objects):
         if hasattr(module, "register"):

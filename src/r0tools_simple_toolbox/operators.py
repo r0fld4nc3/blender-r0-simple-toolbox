@@ -88,10 +88,10 @@ class CustomTransformsOrientationsTracker:
                 cls._last_tracked_orientations = current_orientation_set
 
                 # Update UI
-                for area in bpy.context.screen.areas:
-                    area.tag_redraw()
+                # for area in bpy.context.screen.areas:
+                # area.tag_redraw()
         except Exception as e:
-            print(f"[ERROR] [{_mod}] Error tracking custom orientations: {e}")
+            u.LOG(f"[ERROR] [{_mod}] Error tracking custom orientations: {e}")
             u.context_error_debug(error=e)
 
     @classmethod
@@ -116,7 +116,7 @@ class CustomTransformsOrientationsTracker:
         # cls.unregister_handler()
 
         # >>>>> Moved to depsgraph.py and handled there
-        # print(f"[INFO] [{_mod}] Register depsgraph_handler_post: {cls.track_custom_orientations.__name__}")
+        # u.LOG(f"[INFO] [{_mod}] Register depsgraph_handler_post: {cls.track_custom_orientations.__name__}")
         # bpy.app.handlers.depsgraph_update_post.append(cls.track_custom_orientations)
         # <<<<<
 
@@ -131,7 +131,7 @@ class CustomTransformsOrientationsTracker:
         """
         # Remove the handler if it exists
         if cls.track_custom_orientations in bpy.app.handlers.depsgraph_update_post:
-            print(f"[INFO] [{_mod}] Unregister depsgraph_handler_post: {cls.track_custom_orientations.__name__}")
+            u.LOG(f"[INFO] [{_mod}] Unregister depsgraph_handler_post: {cls.track_custom_orientations.__name__}")
             bpy.app.handlers.depsgraph_update_post.remove(cls.track_custom_orientations)
 
 
@@ -157,7 +157,7 @@ class TRANSFORM_OT_SetCustomOrientation(bpy.types.Operator):
                 CustomTransformsOrientationsTracker.track_custom_orientations(bpy.context.scene)
                 report_msg = f"Custom Transform Orientation '{self.orientation}' not found."
                 self.report({"WARNING"}, report_msg)
-                print(f"[WARNING] [{_mod}] {report_msg}")
+                u.LOG(f"[WARNING] [{_mod}] {report_msg}")
             return {"FINISHED"}
         except Exception as err:
             report_msg = f"Could not set orientation: {err}"
@@ -165,6 +165,23 @@ class TRANSFORM_OT_SetCustomOrientation(bpy.types.Operator):
             print(f"[ERROR] [{_mod}] Could not set orientation: {err}")
             u.context_error_debug(error=err)
             return {"CANCELLED"}
+
+
+class BUILTINS_OT_IconViewer(bpy.types.Operator):
+    bl_label = "Icon Viewer"
+    bl_idname = "r0tools.icon_viewer"
+    bl_description = "Show the built-in Icon Viewer"
+    bl_options = {"REGISTER"}
+
+    def execute(self, context):
+        addon_name = "bl_ext.blender_org.icon_viewer"
+        if addon_name not in bpy.context.preferences.addons:
+            # bpy.ops.preferences.addon_enable(module=addon_name)
+            return {"FINISHED"}
+
+        bpy.ops.iv.icons_show("INVOKE_DEFAULT")
+
+        return {"FINISHED"}
 
 
 # ===================================================================
@@ -182,7 +199,7 @@ class VIEW3D_MT_CustomOrientationsPieMenu(bpy.types.Menu):
     @classmethod
     def poll(cls, context):
         if u.get_context_area() not in cls._VALID_CONTEXTS:
-            print(
+            u.LOG(
                 f"[INFO] [{_mod}] Not drawing Custom Transform Orientations Pie: '{u.get_context_area()} not in valid context areas: {cls._VALID_CONTEXTS}"
             )
             return False
@@ -195,7 +212,7 @@ class VIEW3D_MT_CustomOrientationsPieMenu(bpy.types.Menu):
         cls._invoked = True
 
     def draw(self, context):
-        print(f"[INFO] [{_mod}] Draw Custom Transform Orientations Pie Menu")
+        u.LOG(f"[INFO] [{_mod}] Draw Custom Transform Orientations Pie Menu")
         layout = self.layout
         pie = layout.menu_pie()
 
@@ -343,7 +360,7 @@ class SimpleToolbox_OT_ExperimentalOP(bpy.types.Operator):
         return loose_verts
 
     def execute(self, context):
-        print("\n------------- Experimental Operator 1 -------------")
+        u.LOG("\n------------- Experimental Operator 1 -------------")
         region, rv3d = self.get_viewport(context)
 
         # Get the actual viewport dimensions
@@ -351,7 +368,7 @@ class SimpleToolbox_OT_ExperimentalOP(bpy.types.Operator):
         viewport_height = region.height
         viewport_diagonal = math.sqrt(viewport_width**2 + viewport_height**2)
 
-        print(f"[INFO] [{_mod}] Viewport WxH: {viewport_width}x{viewport_height}")
+        u.LOG(f"[INFO] [{_mod}] Viewport WxH: {viewport_width}x{viewport_height}")
 
         orig_active = context.view_layer.objects.active
 
@@ -402,17 +419,17 @@ class SimpleToolbox_OT_ReloadNamedScripts(bpy.types.Operator):
                     except Exception as reg_err:
                         print(f"[ERROR] [{_mod}] Error re-registering {mod_name}: {reg_err}")
 
-                print(f"[INFO] [{_mod}] Reloaded {mod_name}")
+                u.LOG(f"[INFO] [{_mod}] Reloaded {mod_name}")
                 return True
             else:
-                print(f"[INFO] [{_mod}] Module {mod_name} not found in sys.modules")
+                u.LOG(f"[INFO] [{_mod}] Module {mod_name} not found in sys.modules")
                 return False
         except Exception as e:
             print(f"[ERROR] [{_mod}] Error reloading {mod_name}: {e}")
             return False
 
     def execute(self, context):
-        print("\n------------- Reload Named Scripts -------------")
+        u.LOG("\n------------- Reload Named Scripts -------------")
         modules = self.get_input_modules()
 
         if not modules:
@@ -425,15 +442,15 @@ class SimpleToolbox_OT_ReloadNamedScripts(bpy.types.Operator):
                 try:
                     success = self.reload_module(module)
                 except Exception as e:
-                    print(e)
+                    u.LOG(e)
                     success = False
                 if success:
                     successes.append(module)
                 else:
                     failures.append(module)
 
-        print(f"[INFO] [{_mod}] Reloaded: {successes}")
-        print(f"[INFO] [{_mod}] Failed: {failures}")
+        u.LOG(f"[INFO] [{_mod}] Reloaded: {successes}")
+        u.LOG(f"[INFO] [{_mod}] Failed: {failures}")
 
         reload_msg = f"Reloaded {len(successes)}. Unable to reload {len(failures)}"
 
@@ -468,7 +485,7 @@ class SimpleToolbox_OT_FixImageDataPaths(bpy.types.Operator):
         config_path = u.get_bl_config_path()
 
         if not config_path:
-            print(f"[WARNING] [{_mod}] Config path '{config_path}' is not valid.")
+            u.LOG(f"[WARNING] [{_mod}] Config path '{config_path}' is not valid.")
             return {"FINISHED"}
 
         for image in bpy.data.images:
@@ -479,17 +496,17 @@ class SimpleToolbox_OT_FixImageDataPaths(bpy.types.Operator):
             if not Path(fp).exists() and not is_relative_fp:
                 fp_split = fp.split(blender_version)
                 if len(fp_split) > 1:
-                    print(f"[INFO] [{_mod}] Fix  : {fp}")
+                    u.LOG(f"[INFO] [{_mod}] Fix  : {fp}")
                     fp_fix = config_path + fp_split[1]
                     if Path(fp_fix).exists():
                         if not self.dry_run:
                             image.filepath = fp_fix
-                            print(f"[INFO] [{_mod}] Fixed: {fp_fix}")
+                            u.LOG(f"[INFO] [{_mod}] Fixed: {fp_fix}")
                         else:
-                            print(f"[INFO] [{_mod}] [DRY] Fixed: {fp_fix}")
+                            u.LOG(f"[INFO] [{_mod}] [DRY] Fixed: {fp_fix}")
                     else:
-                        print(f"[INFO] [{_mod}] Not fixed: {fp} -> ({fp_fix})")
-                    print()
+                        u.LOG(f"[INFO] [{_mod}] Not fixed: {fp} -> ({fp_fix})")
+                    u.LOG()
 
         return {"FINISHED"}
 
@@ -507,7 +524,7 @@ class SimpleToolbox_OT_ClearCustomSplitNormalsData(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
+        return context.mode in cls.accepted_contexts and u.get_selected_objects(context)
 
     def op_clear_custom_split_normals_data(self, objects):
         """
@@ -554,7 +571,7 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return len(context.selected_objects) > 0
+        return u.get_selected_objects(context)
 
     def execute(self, context):
         addon_props = u.get_addon_props()
@@ -594,7 +611,7 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
 
         total_deletions = len(object_data_property_deletions) + len(mesh_data_property_deletions)
 
-        u.property_list_update(bpy.context.scene, context, force_run=True)
+        u.property_list_update(force_run=True)
 
         # u.show_notification(f"Deleted {total_deletions} propertie(s) across {total_objects} object(s)")
         self.report(
@@ -617,8 +634,7 @@ class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
         Sometimes certain addons or operations will populate this list with attributes you wish to remove at a later date, be it for parsing or exporting.
         """
 
-        if u.IS_DEBUG():
-            print(f"[INFO] [{_mod}] [CLEAR MESH ATTRIBUTES]")
+        u.LOG(f"[INFO] [{_mod}] [CLEAR MESH ATTRIBUTES]")
 
         initial_obj = bpy.context.active_object
 
@@ -633,7 +649,7 @@ class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
             bpy.types.FloatVectorAttributeValue,
         )
 
-        for obj in bpy.context.selected_objects:
+        for obj in u.get_selected_objects():
             if obj.type == u.OBJECT_TYPES.MESH:
                 bpy.context.view_layer.objects.active = obj
                 mesh = bpy.context.object.data
@@ -674,10 +690,7 @@ class SimpleToolbox_OT_ClearChildrenRecurse(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return (
-            any(u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]))
-            and context.mode == u.OBJECT_MODES.OBJECT
-        )
+        return u.get_selected_objects(context) and context.mode == u.OBJECT_MODES.OBJECT
 
     recurse: BoolProperty(name="Recursively clear all children", default=False)  # type: ignore
 
@@ -727,7 +740,7 @@ class SimpleToolbox_OT_ClearChildrenRecurse(bpy.types.Operator):
                 print(f"[DEBUG] [{_mod}] Iter {o.name}")
 
             for child in u.iter_obj_children(o, recursive=self.recurse):
-                # print(f"[INFO] [{_mod}] Child: {child.name}")
+                # u.LOG(f"[INFO] [{_mod}] Child: {child.name}")
                 try:
                     self.process_child_object(child)
                     total_children_cleared += 1
@@ -766,7 +779,7 @@ class SimpleToolbox_OT_RemoveUnusedMaterials(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.mode == u.OBJECT_MODES.OBJECT and len(context.selected_objects) > 0
+        return context.mode == u.OBJECT_MODES.OBJECT and u.get_selected_objects(context)
 
     def invoke(self, context, event):
         return self.execute(context)
@@ -887,7 +900,7 @@ class SimpleToolbox_OT_ToggleWireDisplay(bpy.types.Operator):
         wires = 0
         textureds = 0
         other = 0
-        objects = [obj for obj in bpy.context.selected_objects if obj and obj.type == "MESH"]
+        objects = [obj for obj in u.get_selected_objects() if obj and obj.type == "MESH"]
 
         if not objects:
             return {"FINISHED"}
@@ -946,10 +959,7 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         # Ensure at least one object is selected
-        return (
-            any(u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]))
-            and context.mode == u.OBJECT_MODES.EDIT_MESH
-        )
+        return u.get_selected_objects(context) and context.mode == u.OBJECT_MODES.EDIT_MESH
 
     def process_object(self, obj, context):
         if u.IS_DEBUG():
@@ -1083,10 +1093,7 @@ class SimpleToolbox_OT_RestoreNthEdge(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         # Ensure at least one object is selected
-        return (
-            any(u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]))
-            and context.mode == u.OBJECT_MODES.EDIT_MESH
-        )
+        return u.get_selected_objects(context) and context.mode == u.OBJECT_MODES.EDIT_MESH
 
     def process_object(self, obj, context):
         if u.IS_DEBUG():
@@ -1164,7 +1171,7 @@ class SimpleToolbox_OT_RestoreNthEdge(bpy.types.Operator):
             e.select = False
 
         if self.keep_initial_selection:
-            print(f"[INFO] [{_mod}] {initial_selection}")
+            u.LOG(f"[INFO] [{_mod}] {initial_selection}")
             for edge in initial_selection:
                 edge.select = True
 
@@ -1204,6 +1211,84 @@ class SimpleToolbox_OT_RestoreNthEdge(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_ResetEdgeData(bpy.types.Operator):
+    bl_label = "Reset Edge Data"
+    bl_idname = "r0tools.reset_edge_data"
+    bl_description = "Removes Seams, Sharps, Creases and Bevel Edge Weights from edges"
+    bl_options = {"REGISTER", "UNDO"}
+
+    reset_sharp: BoolProperty(name="Sharp", default=True)  # type: ignore
+    reset_seam: BoolProperty(name="Seam", default=True)  # type: ignore
+    reset_crease: BoolProperty(name="Crease", default=True)  # type: ignore
+    reset_bevel_weight: BoolProperty(name="Bevel Weight", default=True)  # type: ignore
+
+    def draw(self, context):
+        layout = self.layout
+
+        row = layout.row()
+        row.label(text="Pick what to affect. Changes are persistent.", icon="INFO")
+
+        row = layout.row()
+        split = row.split(align=True)
+        split.prop(self, "reset_sharp")
+        split.prop(self, "reset_seam")
+
+        row = layout.row()
+        split = row.split(align=True)
+        split.prop(self, "reset_crease")
+        split.prop(self, "reset_bevel_weight")
+
+    @classmethod
+    def poll(cls, context):
+        return u.get_selected_objects(context) and context.mode == u.OBJECT_MODES.EDIT_MESH
+
+    def invoke(self, context, event):
+        addon_prefs = u.get_addon_prefs()
+
+        self.reset_sharp = addon_prefs.edge_reset_sharp
+        self.reset_seam = addon_prefs.edge_reset_seam
+        self.reset_crease = addon_prefs.edge_reset_crease
+        self.reset_bevel_weight = addon_prefs.edge_reset_bevel_weight
+
+        # Show the redo panel
+        # return context.window_manager.invoke_props_dialog(self)
+
+        return self.execute(context)
+
+    def execute(self, context):
+        addon_prefs = u.get_addon_prefs()
+
+        # Sync operator preferences to Addon Preferences
+        addon_prefs.edge_reset_sharp = self.reset_sharp
+        addon_prefs.edge_reset_seam = self.reset_seam
+        addon_prefs.edge_reset_crease = self.reset_crease
+        addon_prefs.edge_reset_bevel_weight = self.reset_bevel_weight
+
+        for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
+            bm = bmesh.from_edit_mesh(obj.data)
+
+            bm.edges.ensure_lookup_table()
+
+            crease_layer = u.bmesh_get_crease_layer(bm)
+            edge_bevel_layer = u.bmesh_get_bevel_weight_edge_layer(bm)
+
+            for edge in bm.edges:
+                if edge.select:
+                    if self.reset_seam:
+                        edge.seam = False
+                    if self.reset_sharp:
+                        edge.smooth = True  # smooth=True means sharp=False
+                    if self.reset_crease and crease_layer:
+                        edge[crease_layer] = 0.0
+
+                    if self.reset_bevel_weight and edge_bevel_layer:
+                        edge[edge_bevel_layer] = 0.0
+
+            bmesh.update_edit_mesh(obj.data)
+
+        return {"FINISHED"}
+
+
 class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
     bl_label = "Restore Rotation"
     bl_idname = "r0tools.rotation_from_selection"
@@ -1216,10 +1301,7 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return (
-            any(u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]))
-            and context.mode == u.OBJECT_MODES.EDIT_MESH
-        )
+        return u.get_selected_objects(context) and context.mode == u.OBJECT_MODES.EDIT_MESH
 
     def invoke(self, context, event):
         self.clear_rotation_on_align = False  # Always reset
@@ -1231,7 +1313,7 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
-        print("\n------------- Restore Rotation From Selection -------------")
+        u.LOG("\n------------- Restore Rotation From Selection -------------")
         # Store original configurations
         orig_affect_only_origins = u.get_scene().tool_settings.use_transform_data_origin
         orig_affect_only_locations = u.get_scene().tool_settings.use_transform_pivot_point_align
@@ -1336,7 +1418,7 @@ class SimpleToolbox_OT_SelectEmptyObjects(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
-        print("\n------------- Select Empty Objects -------------")
+        u.LOG("\n------------- Select Empty Objects -------------")
 
         if not self.add_to_selection:
             u.deselect_all()
@@ -1348,7 +1430,7 @@ class SimpleToolbox_OT_SelectEmptyObjects(bpy.types.Operator):
             if not u.is_object_visible_in_viewport(obj):
                 continue
 
-            print(f"[INFO] [{_mod}] Processing:", obj.name)
+            u.LOG(f"[INFO] [{_mod}] Processing:", obj.name)
 
             temp_mesh = None
             temp_obj = None
@@ -1416,19 +1498,19 @@ class SimpleToolbox_OT_SelectEmptyObjects(bpy.types.Operator):
 
             # Clean up temporary objects and meshes
             if temp_obj:
-                print(f"[INFO] [{_mod}] Deleting temporary object: {temp_obj.name}")
+                u.LOG(f"[INFO] [{_mod}] Deleting temporary object: {temp_obj.name}")
                 bpy.data.objects.remove(temp_obj)
             if temp_mesh:
-                print(f"[INFO] [{_mod}] Deleting temporary mesh: {temp_mesh.name}")
+                u.LOG(f"[INFO] [{_mod}] Deleting temporary mesh: {temp_mesh.name}")
                 bpy.data.meshes.remove(temp_mesh)
 
             bm.free()
 
         # Report the results
         msg = f"Found {len(flagged)} potentially invalid objects"
-        print(f"[INFO] [{_mod}] {msg}")
+        u.LOG(f"[INFO] [{_mod}] {msg}")
         for i, flagged_obj in enumerate(flagged, start=1):
-            print(f"[INFO] [{_mod}] ({i}) {flagged_obj.name}")
+            u.LOG(f"[INFO] [{_mod}] ({i}) {flagged_obj.name}")
             u.select_object(flagged_obj, set_active=(i == 1))
 
         self.report({"INFO"}, msg)
@@ -1446,7 +1528,7 @@ class SimpleToolbox_OT_ClearAxisSharpEdgesX(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
+        return context.mode in cls.accepted_contexts and u.get_selected_objects(context)
 
     def execute(self, context):
         u.op_clear_sharp_along_axis("Y")  # Y so as to clear along the axis, not across it
@@ -1463,7 +1545,7 @@ class SimpleToolbox_OT_ClearAxisSharpEdgesY(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
+        return context.mode in cls.accepted_contexts and u.get_selected_objects(context)
 
     def execute(self, context):
         u.op_clear_sharp_along_axis("X")  # X so as to clear along the axis, not across it
@@ -1484,10 +1566,10 @@ class SimpleToolbox_OT_UVCheckIslandThresholds(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
+        return context.mode in cls.accepted_contexts and u.get_selected_objects(context)
 
     def execute(self, context):
-        print("\n------------- Check UV Islands Size Thresholds -------------")
+        u.LOG("\n------------- Check UV Islands Size Thresholds -------------")
 
         addon_props = u.get_addon_props()
 
@@ -1509,7 +1591,7 @@ class SimpleToolbox_OT_UVCheckIslandThresholds(bpy.types.Operator):
         )
 
         # Store object selection
-        original_selection = bpy.context.selected_objects
+        original_selection = u.get_selected_objects()
         # Store active object
         original_active = u.get_active_object()
         # Object, Edit Modes?
@@ -1521,11 +1603,11 @@ class SimpleToolbox_OT_UVCheckIslandThresholds(bpy.types.Operator):
         total_small_islands = 0
 
         if size_relative_threshold == 0:
-            print(f"[INFO] [{_mod}] Not using Relative Area Size factor into account.")
+            u.LOG(f"[INFO] [{_mod}] Not using Relative Area Size factor into account.")
         if size_pixel_coverage_threshold == 0:
-            print(f"[INFO] [{_mod}] Not using Pixel Area Coverage into account.")
+            u.LOG(f"[INFO] [{_mod}] Not using Pixel Area Coverage into account.")
         if size_pixel_coverage_pct_threshold == 0:
-            print(f"[INFO] [{_mod}] Not using Pixel Area Percentage factor into account.")
+            u.LOG(f"[INFO] [{_mod}] Not using Pixel Area Percentage factor into account.")
 
         # Prepare to go 1 by 1 and select only that object
         u.deselect_all()
@@ -1553,7 +1635,7 @@ class SimpleToolbox_OT_UVCheckIslandThresholds(bpy.types.Operator):
         u.set_object_mode(original_mode)
 
         report_msg = f"Selected {total_small_islands} small island(s) across {len(original_selection)} object(s)"
-        print(f"[INFO] [{_mod}] {report_msg}")
+        u.LOG(f"[INFO] [{_mod}] {report_msg}")
         self.report({"INFO"}, report_msg)
 
         return {"FINISHED"}
@@ -1569,7 +1651,7 @@ class SimpleToolbox_OT_ClearAxisSharpEdgesZ(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
+        return context.mode in cls.accepted_contexts and u.get_selected_objects(context)
 
     def execute(self, context):
         u.op_clear_sharp_along_axis("Z")  # Z: along the XY axis
@@ -1587,6 +1669,7 @@ classes = [
     VIEW3D_MT_CustomOrientationsPieMenu,
     SimpleToolbox_OT_ShowCustomOrientationsPie,
     TRANSFORM_OT_SetCustomOrientation,
+    BUILTINS_OT_IconViewer,
     
     SimpleToolbox_OT_ReloadNamedScripts,
     SimpleToolbox_OT_FixImageDataPaths,
@@ -1599,6 +1682,7 @@ classes = [
     
     SimpleToolbox_OT_DissolveNthEdge,
     SimpleToolbox_OT_RestoreNthEdge,
+    SimpleToolbox_OT_ResetEdgeData,
     SimpleToolbox_OT_RestoreRotationFromSelection,
     SimpleToolbox_OT_SelectEmptyObjects,
     SimpleToolbox_OT_ClearAxisSharpEdgesX,
@@ -1649,6 +1733,6 @@ def unregister():
         bpy.utils.unregister_class(cls)
 
     unregister_keymapping()
-    # CustomTransformsOrientationsTracker.unregister_handler()
+    CustomTransformsOrientationsTracker.unregister_handler()
 
     _BUILTIN_ORIENTATIONS_PIE.draw = _ORIGINAL_ORIENTATIONS_PIE_DRAW

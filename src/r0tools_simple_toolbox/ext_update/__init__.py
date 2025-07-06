@@ -1,1 +1,1 @@
-from .update import trigger_update_check
+from .update import trigger_thread_update_check, trigger_update_check

@@ -124,6 +124,9 @@ def cleanup_object_set_invalid_references(scene):
 
     addon_props = u.get_addon_props()
 
+    if not addon_props.cat_show_object_sets_editor or not addon_props.cat_show_object_sets_editor:
+        return False
+
     # Focus only on cleaning object sets without rebuilding scene_objects/data_objects
     for object_set in addon_props.object_sets:
         # Identify invalid objects without modifying anything yet
@@ -151,14 +154,70 @@ def cleanup_object_set_invalid_references(scene):
                 area.tag_redraw()
 
 
-def object_sets_update_mesh_stats(scene):
-    if u.IS_DEBUG():
-        print("------------- Object Sets Update Mesh Stats -------------")
+def cleanup_object_set_invalid_references_o1():
+    """Optimised cleanup using batch operations"""
+
+    scene = bpy.context.scene
 
     if not u.is_writing_context_safe(scene, check_addon_props=True):
         return None
 
     addon_props = u.get_addon_props()
+
+    if not addon_props.cat_show_object_sets_editor or not addon_props.cat_show_object_sets_editor:
+        return False
+
+    # Build set of object names for O(1) lookup
+    valid_objects = set(scene.objects.keys())
+    total_cleaned = 0
+
+    for object_set in addon_props.object_sets:
+        if object_set.separator:
+            continue
+
+        # Collect indices in one pass
+        indices_to_remove = [
+            i
+            for i, item in enumerate(object_set.objects)
+            if item.object is None or item.object.name not in valid_objects
+        ]
+
+        if not indices_to_remove:
+            continue
+
+        # Remove in reverse order
+        cleaned_up = 0
+        for i in reversed(indices_to_remove):
+            try:
+                object_set.objects.remove(i)
+                cleaned_up += 1
+            except Exception as e:
+                print(f"[ERROR] [{_mod}] Failed to remove object at index {i} of {object_set.name}: {e}")
+
+        object_set.update_count()
+        total_cleaned += len(indices_to_remove)
+
+        print(f"[INFO] [{_mod}] Cleaned up {cleaned_up} references for Object Set '{object_set.name}'")
+
+    if total_cleaned > 0:
+        for area in bpy.context.screen.areas:
+            if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
+                area.tag_redraw()
+
+
+def object_sets_update_mesh_stats():
+    if u.IS_DEBUG():
+        print("------------- Object Sets Update Mesh Stats -------------")
+
+    scene = bpy.context.scene
+
+    if not u.is_writing_context_safe(scene, check_addon_props=True):
+        return None
+
+    addon_props = u.get_addon_props()
+
+    if not addon_props.cat_show_object_sets_editor or not addon_props.cat_show_object_sets_editor:
+        return False
 
     show_verts = addon_props.object_sets_show_mesh_verts
     show_edges = addon_props.object_sets_show_mesh_edges
@@ -177,8 +236,11 @@ def object_sets_update_mesh_stats(scene):
         total_faces = 0
         total_tris = 0
 
-        for obj_item in object_set.objects:
-            obj = obj_item.object
+        # Cache mesh stats
+        mesh_stats_cache = {}
+
+        for obj_container in object_set.objects:
+            obj = obj_container.object
 
             if not u.is_object_visible_in_viewport(obj):
                 continue
@@ -189,19 +251,51 @@ def object_sets_update_mesh_stats(scene):
             # Get the evaluated version of the object with modifiers applied
             obj_eval = obj.evaluated_get(depsgraph)
 
+            # Create unique key for object's mesh state
+            # Must account for object data and modifier stack
+            mesh_key = (obj.data.name_full, tuple(mod.name for mod in obj.modifiers if mod.show_viewport))
+
+            # Check if mesh is cached
+            if mesh_key in mesh_stats_cache:
+                cached_stats = mesh_stats_cache.get(mesh_key, "")
+                if show_verts:
+                    total_verts += cached_stats["verts"]
+                if show_edges:
+                    total_edges += cached_stats["edges"]
+                if show_faces:
+                    total_faces += cached_stats["faces"]
+                if show_tris:
+                    total_tris += cached_stats["tris"]
+                continue
+
+            # Process if not cached
+
             to_mesh = None
             try:
                 to_mesh = obj_eval.to_mesh()
-                if show_verts:
-                    total_verts += len(to_mesh.vertices)
-                if show_edges:
-                    total_edges += len(to_mesh.edges)
-                if show_faces:
-                    total_faces += len(to_mesh.polygons)
+
+                stats = {
+                    "verts": len(to_mesh.vertices) if show_verts else 0,
+                    "edges": len(to_mesh.edges) if show_edges else 0,
+                    "faces": len(to_mesh.polygons) if show_faces else 0,
+                    "tris": 0,
+                }
+
                 if show_tris:
-                    for poly in to_mesh.polygons:
-                        # Number of triangles = vertices in face - 2
-                        total_tris += len(poly.vertices) - 2
+                    stats["tris"] = sum(len(poly.vertices) - 2 for poly in to_mesh.polygons)
+
+                # Cache the stats
+                mesh_stats_cache[mesh_key] = stats
+
+                # Add to totals
+                if show_verts:
+                    total_verts += stats["verts"]
+                if show_edges:
+                    total_edges += stats["edges"]
+                if show_faces:
+                    total_faces += stats["faces"]
+                if show_tris:
+                    total_tris += stats["tris"]
             except Exception as e:
                 print(f"[ERROR] [{_mod}] Error processing {obj.name}: {e}")
             finally:
@@ -218,6 +312,12 @@ def object_sets_update_mesh_stats(scene):
             object_set.faces = total_faces
         if show_tris:
             object_set.tris = total_tris
+
+    # Force UI Update to reflect changes
+    for window in bpy.context.window_manager.windows:
+        for area in window.screen.areas:
+            if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
+                area.tag_redraw()
 
 
 @bpy.app.handlers.persistent

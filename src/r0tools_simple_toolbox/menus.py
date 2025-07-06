@@ -12,6 +12,7 @@ class SimpleToolbox_MT_ObjectSetsActionsMenu(bpy.types.Menu):
             SimpleToolbox_OT_ForceRefreshObjectSets,
             SimpleToolbox_OT_LinkObjectsInObjectSetsToCollections,
             SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections,
+            SimpleToolbox_OT_RemoveFromAllObjectSets,
             SimpleToolbox_OT_RenameObjectsInObjectSet,
         )
 
@@ -20,6 +21,7 @@ class SimpleToolbox_MT_ObjectSetsActionsMenu(bpy.types.Menu):
         layout.operator(SimpleToolbox_OT_RenameObjectsInObjectSet.bl_idname, icon="OUTLINER_OB_FONT")
         layout.operator(SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections.bl_idname, icon="COLLECTION_NEW")
         layout.operator(SimpleToolbox_OT_LinkObjectsInObjectSetsToCollections.bl_idname, icon="COLLECTION_NEW")
+        layout.operator(SimpleToolbox_OT_RemoveFromAllObjectSets.bl_idname, icon="X")
 
 
 class SimpleToolbox_MT_VertexGroupsActionsMenu(bpy.types.Menu):
@@ -27,9 +29,19 @@ class SimpleToolbox_MT_VertexGroupsActionsMenu(bpy.types.Menu):
     bl_label = "Vertex Groups Actions"
 
     def draw(self, context):
-        from .vertex_groups import SimpleToolbox_OT_RemoveUnusedVertexGroups
+        from .vertex_groups import (
+            SimpleToolbox_OT_RemoveUnusedVertexGroups,
+            SimpleToolbox_OT_VgroupsLockStateAll,
+        )
 
         layout = self.layout
+        # Lock all
+        op = layout.operator(SimpleToolbox_OT_VgroupsLockStateAll.bl_idname, text="Lock All", icon="LOCKED")
+        op.action = "LOCK"
+
+        # Unlock all
+        op = layout.operator(SimpleToolbox_OT_VgroupsLockStateAll.bl_idname, text="Unlock All", icon="UNLOCKED")
+        op.action = "UNLOCK"
         layout.operator(SimpleToolbox_OT_RemoveUnusedVertexGroups.bl_idname, icon="X")
 
 

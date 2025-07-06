@@ -1,9 +1,18 @@
+import time
+
 import bpy
 
 from .. import utils as u
 from ..defines import TOOLBOX_PROPS_NAME
 
 _mod = "VERTEX_GROUPS"
+
+# ===============
+# === CACHING ===
+# ===============
+_vertex_groups_cache = {}
+_selected_objects_hash = 0
+_last_update_time = 0
 
 
 def get_vertex_groups():
@@ -87,6 +96,27 @@ def get_vertex_groups_lock_states():
     return addon_props.vertex_groups_lock_states
 
 
+def set_vertex_group_highlighted_by_name(vertex_group_name: str) -> int:
+    """
+    Set vertex group to be highlighted (same as clicked to select) in the UIList.
+
+    Returns `index` if succesful, `-1` if name was not found
+    """
+    addon_props = u.get_addon_props()
+
+    vertex_groups = get_vertex_groups()
+
+    if not vertex_groups:
+        return -1
+
+    for i, vgroup in enumerate(vertex_groups):
+        if vgroup.name == vertex_group_name:
+            addon_props.vertex_group_list_index = i
+            return i
+
+    return -1
+
+
 def iter_vertex_groups_lock_states():
     for state in get_vertex_groups_lock_states():
         yield state
@@ -153,22 +183,67 @@ def vertex_groups_list_add_groups(props: dict, selection_state: dict):
             u.context_error_debug(error=e)
 
 
-def vertex_groups_list_update(scene, context):
+def _needs_update():
+    global _selected_objects_hash, _last_update_time
+
+    current_time = time.time()
+    if current_time - _last_update_time < 0.1:
+        return False
+
+    current_hash = u.get_selected_objects_hash()
+    if current_hash != _selected_objects_hash:
+        _selected_objects_hash = current_hash
+        _last_update_time = current_time
+        return True
+
+    return False
+
+
+def vertex_groups_list_update(force: bool = False):
+    scene = bpy.context.scene
+
     if not u.is_writing_context_safe(scene, check_addon_props=True):
         return None
 
     addon_props = u.get_addon_props()
 
-    if not addon_props.vgroups_do_update:
+    # Additional write check
+    try:
+        if hasattr(addon_props.vertex_groups, "clear"):
+            _ = len(addon_props.vertex_groups)
+    except AttributeError as e:
+        if u.IS_DEBUG():
+            print(f"[DEBUG] [{_mod}] Property not accessible: {e}")
         return None
 
-    if not addon_props.show_vertex_groups:
+    if not force:
+        if not addon_props.vgroups_do_update:
+            return None
+
+        # Check if update is required
+        if not _needs_update():
+            return None
+
+    if not addon_props.cat_show_vertex_groups_editor or not addon_props.show_vertex_groups:
         # Skip update if panel is not visible
         return None
 
-    if bpy.context.selected_objects:
+    global _vertex_groups_cache
+
+    if u.get_selected_objects():
         if u.IS_DEBUG():
             print("------------- Vertex Groups List Update -------------")
+
+        # Calculate new vertex groups data
+        vertex_groups_new = {}
+        for obj in u.iter_scene_objects(selected=True):
+            for vgroup in obj.vertex_groups:
+                vgroup_name = vgroup.name
+                vertex_groups_new[vgroup_name] = vertex_groups_new.get(vgroup.name, 0) + 1
+
+        # Check if data really changed
+        if vertex_groups_new == _vertex_groups_cache:
+            return None
 
         # Store the current selection state before clearing the list
         selection_state = _vertex_groups_store_states()
@@ -181,55 +256,37 @@ def vertex_groups_list_update(scene, context):
                 print(f"[DEBUG] [{_mod}] {e}")
             return None
 
-        # Add vertex groups names to set
-        vertex_groups_names_count_usorted = {}  # Unsorted
-        for obj in u.iter_scene_objects(selected=True):
-            vertex_groups = obj.vertex_groups
-            # Object Properties
-            for vgroup in vertex_groups:
-                vgroup_name = vgroup.name
-                if vgroup_name in vertex_groups_names_count_usorted:
-                    vertex_groups_names_count_usorted[vgroup_name] += 1
-                else:
-                    vertex_groups_names_count_usorted[vgroup_name] = 1
+        # Sort and add groups (only when changed)
+        sorted_groups = dict(sorted(vertex_groups_new.items()))
+        vertex_groups_list_add_groups(sorted_groups, selection_state)
 
-        # Sort the dictionary by insertion order
-        # For that we get a sorted list of keys and then re-insert with order preservation
-        # Incurs a little overhead but could be a nice-to-have
-        _sorted_keys = sorted(vertex_groups_names_count_usorted.keys())
-        vertex_groups_names_count_sorted = {  # Sorted
-            key: vertex_groups_names_count_usorted.get(key) for key in _sorted_keys
-        }
+        # Update the cache
+        _vertex_groups_cache = vertex_groups_new
 
-        # Populate the UIList
-        vertex_groups_list_add_groups(vertex_groups_names_count_sorted, selection_state)
+        # Cleanup only when needed
+        if len(vertex_groups_new) != len(addon_props.vertex_groups):
+            vertex_groups_cleanup_lock_states()
 
-        vertex_groups_cleanup_lock_states()
-
-        # Force UI update
-        for area in bpy.context.screen.areas:
-            if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
-                area.tag_redraw()
+        # UI update
+        u.tag_redraw_if_visible()
 
     else:
-        # Store the states even if nothing selected
-        selection_state = _vertex_groups_store_states()
+        if _vertex_groups_cache:
+            # Store the states
+            selection_state = _vertex_groups_store_states()
 
-        # Clear the property list if no objects are selected
-        try:
-            addon_props.vertex_groups.clear()
-            if u.IS_DEBUG():
-                print(f"[DEBUG] [{_mod}] Cleared UIList vertex_groups")
-        except Exception as e:
-            print(f"[ERROR] [{_mod}] Error clearing vertex groups list when no selected objects: {e}")
-            u.context_error_debug(error=e)
+            # Clear the property list if no objects are selected
+            try:
+                addon_props.vertex_groups.clear()
+                _vertex_groups_cache = {}
+                if u.IS_DEBUG():
+                    print(f"[DEBUG] [{_mod}] Cleared UIList vertex_groups")
+            except Exception as e:
+                print(f"[ERROR] [{_mod}] Error clearing vertex groups list when no selected objects: {e}")
+                u.context_error_debug(error=e)
 
-        # Force UI update
-        if bpy.context.screen:
-            if hasattr(bpy.context.screen, "areas"):
-                for area in bpy.context.screen.areas:
-                    if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
-                        area.tag_redraw()
+            # UI update
+            u.tag_redraw_if_visible()
 
     return None
 
@@ -251,7 +308,7 @@ def iter_obj_vertex_groups(obj):
         yield vertex_group
 
 
-def set_obj_active_vertex_group_index(obj, vertex_group: int) -> bool:
+def set_obj_active_vertex_group(obj, vertex_group) -> bool:
     if vertex_group.index < len(obj.vertex_groups):
         obj.vertex_groups.active_index = vertex_group.index
         return True

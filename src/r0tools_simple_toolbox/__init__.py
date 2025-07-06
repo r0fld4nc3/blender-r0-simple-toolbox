@@ -1,8 +1,8 @@
 bl_info = {
-    "name": "r0Tools - Simple Toolbox.hotfix2",
+    "name": "r0Tools - Simple Toolbox",
     "author": "Artur Rosário",
-    "version": (0, 0, 30),
-    "blender": (4, 2, 0),
+    "version": (0, 0, 31),
+    "blender": (4, 2, 5),
     "location": "3D View > Tool",
     "description": "Miscellaneous Utilities",
     "warning": "",
@@ -27,6 +27,7 @@ modules = (
     ".defines",
     ".repo.operators",
     ".repo.ui",
+    ".data_ops",
 )
 
 _mod = "__INIT__"
