@@ -484,6 +484,7 @@ class R0PROP_FindModifierListItem(bpy.types.PropertyGroup):
     Represents a single item in the found objects UIList.
     """
 
+    category_name: bpy.props.StringProperty(default="")  # type: ignore
     obj: bpy.props.PointerProperty(name="Object", type=bpy.types.Object)  # type: ignore
 
 
@@ -498,17 +499,34 @@ class R0PROP_UL_FindModifierObjectsList(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         from .operators import SimpleToolbox_OT_FindModifierSelectObject
 
-        found_obj = item.obj
+        if item.category_name:
+            layout.label(text=item.category_name, icon="MODIFIER_DATA")
+        else:
+            found_obj = item.obj
 
-        if not found_obj:
-            layout.label(text="<Object Not Found>", icon="ERROR")
+            if not found_obj:
+                layout.label(text="<Object Not Found>", icon="ERROR")
+                return
 
-        row = layout.row()
+            split = layout.split(factor=0.1)
+            split.label(text="")
 
-        op = row.operator(SimpleToolbox_OT_FindModifierSelectObject.bl_idname, text="", icon="RESTRICT_SELECT_OFF")
-        op.object_name = found_obj.name
+            row = split.row()
+            op = row.operator(SimpleToolbox_OT_FindModifierSelectObject.bl_idname, text="", icon="RESTRICT_SELECT_OFF")
+            op.object_name = found_obj.name
 
-        row.prop(found_obj, "name", text="", emboss=False)
+            row.prop(found_obj, "name", text="", emboss=False)
+
+    def filter_item(self, context, data, item):
+        """
+        Filters list items. We use it to make headers unselectable.
+        """
+
+        if item.category_name:
+            # This bitflag makes the item visible but unselectable.
+            return (False, self.bitflag_filter_item)
+
+        return (True, 0)
 
 
 # ===================================================================

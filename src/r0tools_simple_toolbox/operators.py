@@ -838,56 +838,77 @@ class SimpleToolbox_OT_FindModifierSearch(bpy.types.Operator):
             print(f"[DEBUG] [{_mod}] {search_text=}")
             print(f"[DEBUG] [{_mod}] (FLAG) {self.add_to_selection=}")
 
-        if not search_terms:
-            # Clear the list if the search is empty
-            addon_find_modifier_props.objects_list.found_objects.clear()
-            self.report({"WARNING"}, "No valid search terms.")
-            return {"CANCELLED"}
+        # Use a dictionary to group objects by category.
+        # The key will be the modifier name, example: "DATA_TRANSFER".
+        # Value is a Set to handle duplicates automatically.
+        found_by_category = {}
+        mod_names_and_types = {}
 
-        view_layer_objs = bpy.context.view_layer.objects
+        if search_terms:
+            view_layer_objs = bpy.context.view_layer.objects
 
-        found_objects = set()
+            for obj in view_layer_objs:
+                if not u.object_visible(obj):
+                    continue
 
-        for obj in view_layer_objs:
-            if not u.object_visible(obj):
-                continue
+                obj_modifiers = obj.modifiers
+                for modifier in obj_modifiers:
+                    mod_name = modifier.name.lower()
+                    mod_type_lower = modifier.type.lower()
 
-            is_matched = False
-            obj_modifiers = obj.modifiers
+                    mod_type_key = modifier.name
 
-            for modifier in obj_modifiers:
-                mod_name = modifier.name.lower()
-                mod_type = modifier.type.lower()
+                    for term in search_terms:
+                        if term in mod_name or term in mod_type_lower:
+                            if u.IS_DEBUG():
+                                print(
+                                    f"[DEBUG] [{_mod}] Match: '{term}' in '{mod_name}' or '{mod_type_lower}' on object '{obj.name}'"
+                                )
 
-                for term in search_terms:
-                    if term in mod_name or term in mod_type:
-                        if u.IS_DEBUG():
-                            print(f"[DEBUG] [{_mod}] {term} in {mod_name} or {mod_type}")
+                            if mod_type_key not in found_by_category:
+                                found_by_category[mod_type_key] = set()
 
-                        is_matched = True
-                        found_objects.add(obj)
-                        break
+                            found_by_category[mod_type_key].add(obj)
+                            mod_names_and_types[modifier.name] = modifier.type
 
-                if is_matched:
-                    break
-
-        sorted_objects = sorted(list(found_objects), key=lambda o: o.name)
-
-        # Add to UIList
         if u.is_writing_context_safe(context.scene):
-            addon_find_modifier_props.objects_list.found_objects.clear()
+            found_objects_collection = addon_find_modifier_props.objects_list.found_objects
+            found_objects_collection.clear()
 
-            for obj in sorted_objects:
-                list_item = addon_find_modifier_props.objects_list.found_objects.add()
-                list_item.obj = obj
+            # Sort categories alphabetically
+            sorted_categories = sorted(found_by_category.keys())
 
-        # Select objects
+            for category in sorted_categories:
+                header_item = found_objects_collection.add()
+
+                # header_item.category_name = category.replace("_", " ").title()
+                cat_mod_type = mod_names_and_types.get(category)
+                header_item.category_name = f"{category} ({cat_mod_type})"
+
+                # Sort objects alphabetically
+                objects_in_category = sorted(list(found_by_category[category]), key=lambda o: o.name)
+                for obj in objects_in_category:
+                    list_item = found_objects_collection.add()
+                    list_item.obj = obj
+
+        all_unique_objects = set()
+        if found_by_category:
+            # The * operator unpacks the sets from the dictionary values
+            all_unique_objects = set().union(*found_by_category.values())
+
+        sorted_objects = sorted(list(all_unique_objects), key=lambda o: o.name)
+
         if not self.add_to_selection:
             u.deselect_all()
 
-            if sorted_objects:
-                for obj in sorted_objects:
-                    u.select_object(obj, add=True, set_active=True)
+        if sorted_objects:
+            for obj in sorted_objects:
+                u.select_object(obj, add=True)
+
+            u.set_active_object(sorted_objects[-1])
+
+        if not found_by_category and search_terms:
+            self.report({"INFO"}, "No objects found with matching modifiers.")
 
         return {"FINISHED"}
 
