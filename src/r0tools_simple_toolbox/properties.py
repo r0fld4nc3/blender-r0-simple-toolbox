@@ -486,6 +486,7 @@ class R0PROP_FindModifierListItem(bpy.types.PropertyGroup):
 
     category_name: bpy.props.StringProperty(default="")  # type: ignore
     obj: bpy.props.PointerProperty(name="Object", type=bpy.types.Object)  # type: ignore
+    expanded: bpy.props.BoolProperty(name="Expand/Collapse", default=True)  # type: ignore
 
 
 class R0PROP_PG_FindModifierListProperties(bpy.types.PropertyGroup):
@@ -494,39 +495,56 @@ class R0PROP_PG_FindModifierListProperties(bpy.types.PropertyGroup):
 
 
 class R0PROP_UL_FindModifierObjectsList(bpy.types.UIList):
-    """UI List populated by object's that contain the searched for modifiers"""
+    """UI List populated by objects that contain the searched for modifiers"""
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         from .operators import SimpleToolbox_OT_FindModifierSelectObject
 
+        # Category header
         if item.category_name:
-            layout.label(text=item.category_name, icon="MODIFIER_DATA")
+            row = layout.row(align=True)
+            expand_icon = "MODIFIER_DATA" if item.expanded else "TRIA_RIGHT"
+            row.prop(item, "expanded", text=item.category_name, icon=expand_icon, emboss=False)
+
+        # Object entry
         else:
             found_obj = item.obj
-
             if not found_obj:
                 layout.label(text="<Object Not Found>", icon="ERROR")
                 return
 
+            # Indent the object row
             split = layout.split(factor=0.1)
             split.label(text="")
 
             row = split.row()
             op = row.operator(SimpleToolbox_OT_FindModifierSelectObject.bl_idname, text="", icon="RESTRICT_SELECT_OFF")
             op.object_name = found_obj.name
-
             row.prop(found_obj, "name", text="", emboss=False)
 
-    def filter_item(self, context, data, item):
-        """
-        Filters list items. We use it to make headers unselectable.
-        """
+    def filter_items(self, context, data, propname):
+        """Filter items to hide objects when their category is collapsed"""
+        # Get the collection
+        items = getattr(data, propname)
 
-        if item.category_name:
-            # This bitflag makes the item visible but unselectable.
-            return (False, self.bitflag_filter_item)
+        filter_flags = []
+        filter_new_order = []
 
-        return (True, 0)
+        current_category_expanded = True
+
+        for i, item in enumerate(items):
+            if item.category_name:
+                # Always show category headers
+                filter_flags.append(self.bitflag_filter_item)
+                current_category_expanded = item.expanded
+            else:
+                # Show objects only if their category is expanded
+                if current_category_expanded:
+                    filter_flags.append(self.bitflag_filter_item)
+                else:
+                    filter_flags.append(0)  # Hide this item
+
+        return filter_flags, filter_new_order
 
 
 # ===================================================================
