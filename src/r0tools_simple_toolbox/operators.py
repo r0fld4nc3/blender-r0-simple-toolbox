@@ -826,80 +826,68 @@ class SimpleToolbox_OT_FindModifierSearch(bpy.types.Operator):
 
     def execute(self, context):
         addon_props = u.get_addon_props()
+        addon_find_modifier_props = u.get_addon_find_modifier_props()
 
         if u.IS_DEBUG():
             print("\n------------- Find Modifier(s) Search -------------")
 
         search_text = addon_props.find_modifier_search_text.lower()
-        search_text_split = [s.strip() for s in search_text.split(",")]
-
-        view_layer_objs = bpy.context.view_layer.objects
+        search_terms = [s.strip() for s in search_text.split(",") if s.strip()]
 
         if u.IS_DEBUG():
             print(f"[DEBUG] [{_mod}] {search_text=}")
             print(f"[DEBUG] [{_mod}] (FLAG) {self.add_to_selection=}")
 
-        if not self.add_to_selection:
-            active_object = None
-        else:
-            active_object = context.active_object
+        if not search_terms:
+            # Clear the list if the search is empty
+            addon_find_modifier_props.objects_list.found_objects.clear()
+            self.report({"WARNING"}, "No valid search terms.")
+            return {"CANCELLED"}
 
-        if u.IS_DEBUG():
-            print(f"[DEBUG] [{_mod}] {active_object=}")
+        view_layer_objs = bpy.context.view_layer.objects
 
-        if not self.add_to_selection:
-            u.deselect_all()
-
-        # Support for Found Objects UIList
-        found_objects = []
+        found_objects = set()
 
         for obj in view_layer_objs:
             if not u.object_visible(obj):
                 continue
 
-            is_found = False
+            is_matched = False
             obj_modifiers = obj.modifiers
 
             for modifier in obj_modifiers:
-                mod_name = modifier.name
-                mod_type = modifier.type
+                mod_name = modifier.name.lower()
+                mod_type = modifier.type.lower()
 
-                for search_term in search_text_split:
-                    if is_found:
-                        break
-                    if search_term in mod_name.lower() or search_text in mod_type.lower():
+                for term in search_terms:
+                    if term in mod_name or term in mod_type:
                         if u.IS_DEBUG():
-                            print(f"[DEBUG] [{_mod}] {search_term} in {mod_name} or {mod_type}")
+                            print(f"[DEBUG] [{_mod}] {term} in {mod_name} or {mod_type}")
 
-                        if not self.add_to_selection:
-                            if not active_object:
-                                active_object = obj
-                                u.select_object(obj, set_active=True)
-                                is_found = True
-                            else:
-                                u.select_object(obj)
-                                is_found = True
-                        else:
-                            if not active_object:
-                                active_object = obj
-                                u.select_object(obj, set_active=True)
-                                is_found = True
-                            else:
-                                u.select_object(obj)
-                                is_found = True
-
-                        if is_found:
-                            found_objects.append(obj)
-
+                        is_matched = True
+                        found_objects.add(obj)
                         break
 
+                if is_matched:
+                    break
+
+        sorted_objects = sorted(list(found_objects), key=lambda o: o.name)
+
+        # Add to UIList
         if u.is_writing_context_safe(context.scene):
-            addon_find_modifier_props = u.get_addon_find_modifier_props()
             addon_find_modifier_props.objects_list.found_objects.clear()
 
-            for obj in sorted(list(found_objects), key=lambda o: o.name):
+            for obj in sorted_objects:
                 list_item = addon_find_modifier_props.objects_list.found_objects.add()
                 list_item.obj = obj
+
+        # Select objects
+        if not self.add_to_selection:
+            u.deselect_all()
+
+            if sorted_objects:
+                for obj in sorted_objects:
+                    u.select_object(obj, add=True, set_active=True)
 
         return {"FINISHED"}
 
