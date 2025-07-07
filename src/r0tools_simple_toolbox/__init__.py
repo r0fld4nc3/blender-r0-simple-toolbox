@@ -15,6 +15,7 @@ import sys
 from typing import List, Tuple
 
 modules = (
+    ".addon_prefs",
     ".properties",
     ".operators",
     ".keymaps",
