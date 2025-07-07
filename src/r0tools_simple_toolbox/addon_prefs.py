@@ -95,6 +95,10 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
     edge_data_bweight_preset_grid_buttons_toggle: BoolProperty(name="Toggle List/Grid", description="Toggle between a list view or a grid button view", default=True)  # type: ignore
 
+    keymap_toggle_wire: StringProperty(name="Toggle Wire Display Mode Key", default="FOUR")  # type: ignore
+
+    keymap_object_sets_modal: StringProperty(name="Object Sets Modal Key", default="ONE")  # type: ignore
+
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = False
