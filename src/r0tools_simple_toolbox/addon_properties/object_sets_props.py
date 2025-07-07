@@ -15,13 +15,13 @@ from .. import utils as u
 _mod = "OBJECT SETS PROPS"
 
 
-class R0PROP_ObjectSetObjectItem(bpy.types.PropertyGroup):
+class R0PROP_PG_ObjectSetObjectItem(bpy.types.PropertyGroup):
     """Property representing a reference to an Object within an Object Set"""
 
     object: bpy.props.PointerProperty(type=bpy.types.Object)  # type: ignore
 
 
-class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
+class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
     """Property that represents an Object Set that contains a reference to a collection of objects added to the set"""
 
     def update_object_set_colour(self, dummy):
@@ -74,7 +74,7 @@ class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
     separator: bpy.props.BoolProperty(default=False)  # type: ignore
     _default_separator_name = "-" * 16
 
-    objects: bpy.props.CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
+    objects: bpy.props.CollectionProperty(type=R0PROP_PG_ObjectSetObjectItem)  # type: ignore
     count: bpy.props.IntProperty(name="Count", default=0)  # type: ignore
     set_colour: bpy.props.FloatVectorProperty(  # type: ignore
         name="Set Object Set Colour",
@@ -296,7 +296,7 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
 
 
 class r0ObjectSetsProps(bpy.types.PropertyGroup):
-    object_sets: CollectionProperty(type=R0PROP_ObjectSetEntryItem)  # type: ignore
+    object_sets: CollectionProperty(type=R0PROP_PG_ObjectSetEntryItem)  # type: ignore
     object_sets_index: IntProperty(default=0, name="Object Set")  # type: ignore
     # data_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
     # scene_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
@@ -309,7 +309,7 @@ class r0ObjectSetsProps(bpy.types.PropertyGroup):
 
 @bpy.app.handlers.persistent
 def load_legacy_object_sets(dummy):
-    """Initialize bevel weight presets with default values"""
+    """Load legacy properties into new properties"""
 
     addon_props = u.get_addon_props()
 
@@ -346,8 +346,8 @@ def load_legacy_object_sets(dummy):
 #   Register & Unregister
 # ===================================================================
 classes = [
-    R0PROP_ObjectSetObjectItem,
-    R0PROP_ObjectSetEntryItem,
+    R0PROP_PG_ObjectSetObjectItem,
+    R0PROP_PG_ObjectSetEntryItem,
     R0PROP_UL_ObjectSetsList,
     r0ObjectSetsProps,
 ]
