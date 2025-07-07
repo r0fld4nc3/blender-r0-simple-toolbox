@@ -318,13 +318,6 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
     from .addon_properties.vertex_groups_props import R0PROP_PG_VertexGroupPropertyItem
 
     object_sets: CollectionProperty(type=R0PROP_PG_ObjectSetEntryItem)  # type: ignore
-    # vertex_groups: CollectionProperty(type=R0PROP_PG_VertexGroupPropertyItem)  # type: ignore
-
-
-class r0SimpleToolboxExperimentalProps(bpy.types.PropertyGroup):
-    show_edge_data_ops: BoolProperty(
-        name="Edge Data Ops", description="Toggle visibility of experimental Edge Data Operators", default=True
-    )  # type: ignore
 
 
 class r0SimpleToolboxFindModifierProps(bpy.types.PropertyGroup):
@@ -341,7 +334,6 @@ classes = [
     R0PROP_PG_FindModifierListProperties,
     R0PROP_UL_FindModifierObjectsList,
     r0SimpleToolboxProps,
-    r0SimpleToolboxExperimentalProps,
     r0SimpleToolboxFindModifierProps,
 ]
 
@@ -360,9 +352,6 @@ def register():
 
     print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_find_modifier_props")
     bpy.types.Scene.r0fl_toolbox_find_modifier_props = PointerProperty(type=r0SimpleToolboxFindModifierProps)
-
-    print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_experimental_props")
-    bpy.types.Scene.r0fl_toolbox_experimental_props = PointerProperty(type=r0SimpleToolboxExperimentalProps)
 
     for handler in load_post_handlers:
         print(f"[INFO] [{_mod}] Register load_post_handler: {handler.__name__}")
@@ -383,6 +372,3 @@ def unregister():
 
     print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_find_modifier_props")
     del bpy.types.Scene.r0fl_toolbox_find_modifier_props
-
-    print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_experimental_props")
-    del bpy.types.Scene.r0fl_toolbox_experimental_props

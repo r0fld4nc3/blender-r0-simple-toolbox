@@ -12,6 +12,7 @@ submodules = [
     "edge_data_props",
     "object_sets_props",
     "vertex_groups_props",
+    "experimental_props",
 ]
 # fmt: on
 _module_objects = []
