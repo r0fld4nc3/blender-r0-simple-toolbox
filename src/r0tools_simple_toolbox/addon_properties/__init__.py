@@ -9,9 +9,9 @@ _mod = "ADDON PROPERTIES"
 # fmt: off
 # List of submodlules, keep in sync with imports
 submodules = [
+    "edge_data_props",
     "object_sets_props",
     "vertex_groups_props",
-    "edge_data_props",
 ]
 # fmt: on
 _module_objects = []
