@@ -12,6 +12,11 @@ def get_addon_props():
     return get_scene().r0fl_toolbox_props
 
 
+def get_addon_object_sets_props():
+    """Get the addon property group from current scene"""
+    return get_scene().r0fl_object_sets_props
+
+
 def get_addon_edge_data_props():
     """Get the addon property group from current scene"""
     return get_scene().r0fl_toolbox_edge_data_props

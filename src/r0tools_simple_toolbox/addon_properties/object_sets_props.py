@@ -1,0 +1,382 @@
+import bpy
+from bpy.props import (  # type: ignore
+    BoolProperty,
+    CollectionProperty,
+    EnumProperty,
+    FloatProperty,
+    FloatVectorProperty,
+    IntProperty,
+    PointerProperty,
+    StringProperty,
+)
+
+from .. import utils as u
+
+_mod = "OBJECT SETS PROPS"
+
+
+class R0PROP_ObjectSetObjectItem(bpy.types.PropertyGroup):
+    """Property representing a reference to an Object within an Object Set"""
+
+    object: bpy.props.PointerProperty(type=bpy.types.Object)  # type: ignore
+
+
+class R0PROP_ObjectSetEntryItem(bpy.types.PropertyGroup):
+    """Property that represents an Object Set that contains a reference to a collection of objects added to the set"""
+
+    def update_object_set_colour(self, dummy):
+        addon_prefs = u.get_addon_prefs()
+        allow_override = addon_prefs.object_sets_colour_allow_override
+
+        for item in self.objects:
+            obj = item.object
+            if obj is None:
+                continue
+
+            obj.color = self.set_colour
+            # Check in contained in set
+            containing_sets = self.check_object_in_sets(obj)
+            if not containing_sets:  # Object not in an Object Set
+                if u.IS_DEBUG():
+                    print(f"[DEBUG] [{_mod}] Object {obj.name} not present in any Object Set.")
+                obj.color = self.set_colour
+            elif containing_sets:
+                if u.IS_DEBUG():
+                    print(
+                        f"[DEBUG] [{_mod}] Object {obj.name} contained in {len(containing_sets)} Object Sets. Allow Colour Override is {allow_override}"
+                    )
+                if not allow_override:
+                    obj.color = containing_sets[0].set_colour
+                else:
+                    # Only allow colour override if flag is set.
+                    obj.color = self.set_colour
+
+    def set_object_set_colour(self, colour: list):
+        """
+        Set colour of Object Set.
+        """
+
+        # update=func passes context as an argument but we want to
+        # pass a list of floats. So in order to workaround having
+        # to create a new method to support this, let's just
+        # enfore that the type(colour) must be in accepted types
+        if type(colour) in [type(self.set_colour), list, tuple]:
+            self.set_colour = colour
+
+        for item in self.objects:
+            obj = item.object
+            if obj is None:
+                continue
+
+            obj.color = self.set_colour
+
+    name: bpy.props.StringProperty(name="Object Set Name", default="New Object Set")  # type: ignore
+    separator: bpy.props.BoolProperty(default=False)  # type: ignore
+    _default_separator_name = "-" * 16
+
+    objects: bpy.props.CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
+    count: bpy.props.IntProperty(name="Count", default=0)  # type: ignore
+    set_colour: bpy.props.FloatVectorProperty(  # type: ignore
+        name="Set Object Set Colour",
+        subtype="COLOR",
+        size=4,  # RGBA
+        min=0.0,
+        max=1.0,
+        default=(0.0, 0.0, 0.0, 1.0),
+        update=set_object_set_colour,  # This passes `Context` as an argument....
+    )
+    expanded: bpy.props.BoolProperty(default=False, name="Expand")  # type: ignore
+    verts: bpy.props.IntProperty(default=0)  # type: ignore
+    edges: bpy.props.IntProperty(default=0)  # type: ignore
+    faces: bpy.props.IntProperty(default=0)  # type: ignore
+    tris: bpy.props.IntProperty(default=0)  # type: ignore
+
+    def assign_object(self, obj):
+        if self.separator:
+            return
+
+        if not any(o.object == obj for o in self.objects):
+            new_object = self.objects.add()
+            new_object.object = obj
+
+            self.update_count()
+
+    def remove_object(self, obj):
+        addon_prefs = u.get_addon_prefs()
+        allow_override = addon_prefs.object_sets_colour_allow_override
+
+        if self.separator:
+            return
+
+        for i, o in enumerate(self.objects):
+            try:
+                if o.object is None:
+                    self.objects.remove(i)
+                    break
+
+                if o.object and o.object.as_pointer != 0 and o.object == obj or o.object.as_pointer == 0:
+                    self.objects.remove(i)
+                    break
+            except Exception as e:
+                print(f"[ERROR] [{_mod}] '{o.object}' {e}")
+
+        # Check if object still exists:
+        try:
+            valid = u.is_valid_object_global(obj)
+        except Exception as e:
+            print(f"[ERROR] [{_mod}] Is valid object global check error: {e}")
+            self.update_count()
+            return
+
+        if valid:
+            # Check if object not in other sets
+            containing_sets = self.check_object_in_sets(obj)
+            if not containing_sets:
+                obj.color = (1.0, 1.0, 1.0, 1.0)
+            else:
+                # Update the object to another set's colour
+                if allow_override:
+                    obj.color = containing_sets[-1].set_colour
+                else:
+                    obj.color = containing_sets[0].set_colour
+
+        self.update_count()
+
+    def check_object_in_sets(self, obj) -> list:
+        """
+        Checks if an object is present in more Object Sets. If so
+        return a list of references to each Object Set containing the object
+
+        :return: `list` of `Object Sets`
+        """
+        containing_sets = []
+
+        for obj_set in u.get_object_sets():
+            if obj_set.separator:
+                continue
+            for obj_item in obj_set.objects:
+                if obj_item.object == obj:
+                    if obj_set not in containing_sets:
+                        containing_sets.append(obj_set)
+
+        return containing_sets
+
+    def update_count(self):
+        if self.separator:
+            return
+
+        self.count = len(self.objects)
+        if u.IS_DEBUG():
+            print(f"[DEBUG] [{_mod}] Updated count for Set '{self.name}': {self.count}")
+
+        self.update_object_set_colour(self)
+
+
+class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
+    """UI List where each entry is an Object Set that itself contains references to Objects added to the set"""
+
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        from ..object_sets import SimpleToolbox_OT_SelectObjectSet
+
+        addon_prefs = u.get_addon_prefs()
+        addon_object_sets_props = u.get_addon_object_sets_props()
+
+        show_verts = addon_object_sets_props.object_sets_show_mesh_verts
+        show_edges = addon_object_sets_props.object_sets_show_mesh_edges
+        show_faces = addon_object_sets_props.object_sets_show_mesh_faces
+        show_tris = addon_object_sets_props.object_sets_show_mesh_tris
+
+        # Check if the item to insert is a separator
+        if item.separator:
+            # Draw separator
+            row = layout.row()
+            row.enabled = False
+            row.alignment = "CENTER"
+            row.label(text=item.name)
+            return
+
+        if self.layout_type in {"DEFAULT", "COMPACT"}:
+            main_container = layout.column(align=True)
+            row = main_container.row(align=True)
+
+            # Configure accordingly for object sets colour
+            if addon_prefs.object_sets_use_colour:
+                scale_x = 0.8  # Scales extending the right side to the right
+                scale_y = 0.8  # Scales extending the bottom down
+                row.separator(factor=0.8)  # Pushes things to the right
+                object_set_colour_row = row.row(align=True)
+                object_set_colour_row.alignment = "LEFT"
+                col = object_set_colour_row.column()
+                # col.label(text="", icon="MESH_CUBE")
+                col = object_set_colour_row.column()
+                col.ui_units_x = scale_x
+                col.separator(factor=0.3)  # Pushes things down
+                col.scale_y = scale_y
+                col.prop(item, "set_colour", text="")
+                # Right side padding. Breathing room in case other widget is on the right side
+                row.separator(factor=0.5)
+
+            # Info Row
+            info_row = row.row(align=True)
+
+            # Select Set
+            col_select_set = info_row.row(align=True)
+            """
+            OMG this is exciting. So we store a reference to the Operator
+            and then we immediately assign it a property defined in the Operator class
+            `set_index`. By doing this, we can store which set the button belongs to
+            and can select the objects of the given Object Set at a specific row/index
+            without having to first select the row!!! Amazing!
+            """
+            op = col_select_set.operator(
+                SimpleToolbox_OT_SelectObjectSet.bl_idname,
+                text="",
+                icon="RESTRICT_SELECT_OFF",
+            )
+            # Set the property before adding to layout
+            op.set_index = index
+            # Add spacing after the operation is complete
+            col_select_set.separator(factor=0.5)
+
+            # Name
+            col_name = info_row.row(align=True)
+            col_name.prop(item, "name", text="", emboss=False, icon="NONE")
+
+            # Object Count
+            col_item_count = info_row.row(align=True)
+            col_item_count.alignment = "RIGHT"
+            col_item_count.label(text=f"({item.count})", icon="NONE")
+
+            # Fill space to give room to expanded button
+            info_row.separator(factor=1.0)
+
+            # Expand/Collapse Mesh Stats
+            if any([show_verts, show_edges, show_faces, show_tris]):
+                expand_icon = "TRIA_DOWN" if item.expanded else "TRIA_LEFT"
+                info_row.prop(item, "expanded", text="", icon=expand_icon, emboss=False)
+
+                if item.expanded:
+                    # Indented row
+                    stats_row = main_container.row()
+                    stats_row.alignment = "LEFT"
+                    stats_row.scale_y = 0.9
+
+                    # Indentation
+                    split = stats_row.split(factor=0.1)
+
+                    # First part of split is the indentation
+                    split.label(text="")
+
+                    # Stats Column
+                    col_stats = split.column(align=True)
+
+                    # Vertices
+                    if show_verts:
+                        row_vert_count = col_stats.row(align=True)
+                        row_vert_count.label(text=f" {item.verts:,}", icon="VERTEXSEL")
+
+                    # Edges
+                    if show_edges:
+                        row_edge_count = col_stats.row(align=True)
+                        row_edge_count.label(text=f" {item.edges:,}", icon="EDGESEL")
+
+                    # Faces
+                    if show_faces:
+                        row_face_count = col_stats.row(align=True)
+                        row_face_count.label(text=f" {item.faces:,}", icon="FACESEL")
+
+                    # Triangles
+                    if show_tris:
+                        row_tri_count = col_stats.row(align=True)
+                        row_tri_count.label(text=f" {item.tris:,}", icon="MESH_DATA")
+
+        elif self.layout_type in {"GRID"}:
+            layout.alignment = "CENTER"
+            layout.label(text=item.name)
+
+
+class r0ObjectSetsProps(bpy.types.PropertyGroup):
+    object_sets: CollectionProperty(type=R0PROP_ObjectSetEntryItem)  # type: ignore
+    object_sets_index: IntProperty(default=0, name="Object Set")  # type: ignore
+    # data_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
+    # scene_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
+    objects_updated: BoolProperty(default=False)  # type: ignore
+    object_sets_show_mesh_verts: BoolProperty(default=False, name="Show Total Vertex Count", description="Toggle showing Object Set's total vertex count")  # type: ignore
+    object_sets_show_mesh_edges: BoolProperty(default=False, name="Show Total Edge Count", description="Toggle showing Object Set's total edge count")  # type: ignore
+    object_sets_show_mesh_faces: BoolProperty(default=False, name="Show Total Face Count", description="Toggle showing Object Set's total face count")  # type: ignore
+    object_sets_show_mesh_tris: BoolProperty(default=False, name="Show Total Triangle Count", description="Toggle showing Object Set's total triangle count")  # type: ignore
+
+
+@bpy.app.handlers.persistent
+def load_legacy_object_sets(dummy):
+    """Initialize bevel weight presets with default values"""
+
+    addon_props = u.get_addon_props()
+
+    legacy_sets = addon_props.object_sets
+
+    if legacy_sets:
+        print(f"[INFO][{_mod}] Loading legacy sets")
+
+    for legacy_set in legacy_sets:
+        new = u.get_object_sets().add()
+
+        exists = legacy_set.name in [object_set.name for object_set in u.get_object_sets()]
+        print(f"[INFO][{_mod}] Legacy name '{legacy_set.name}' duplicate: {exists}")
+
+        new.name = f"legacy_{legacy_set.name}" if exists else legacy_set.name
+        new.set_object_set_colour(legacy_set.set_colour)
+
+        legacy_objects = legacy_set.objects
+
+        for item in legacy_objects:
+            legacy_obj = item.object
+
+            new.assign_object(legacy_obj)
+
+    # Remove legacy object sets
+    i = len(legacy_sets) - 1
+    for object_set in reversed(legacy_sets):
+        print(f"[INFO][{_mod}] Deleting legacy set: {object_set.name}")
+        legacy_sets.remove(i)
+        i -= 1
+
+
+# ===================================================================
+#   Register & Unregister
+# ===================================================================
+classes = [
+    R0PROP_ObjectSetObjectItem,
+    R0PROP_ObjectSetEntryItem,
+    R0PROP_UL_ObjectSetsList,
+    r0ObjectSetsProps,
+]
+
+
+load_post_handlers = [load_legacy_object_sets]
+
+
+def register():
+    for cls in classes:
+        print(f"[INFO] [{_mod}] Register {cls.__name__}")
+        bpy.utils.register_class(cls)
+
+    print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_object_sets_props")
+    bpy.types.Scene.r0fl_object_sets_props = PointerProperty(type=r0ObjectSetsProps)
+
+    for handler in load_post_handlers:
+        print(f"[INFO] [{_mod}] Register load_post_handler: {handler.__name__}")
+        bpy.app.handlers.load_post.append(handler)
+
+
+def unregister():
+    for cls in classes:
+        print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        bpy.utils.unregister_class(cls)
+
+    for handler in load_post_handlers:
+        print(f"[INFO] [{_mod}] Unregister load_post_handler: {handler.__name__}")
+        bpy.app.handlers.load_post.remove(handler)
+
+    print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_object_sets_props")
+    del bpy.types.Scene.r0fl_object_sets_props

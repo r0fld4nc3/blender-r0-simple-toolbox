@@ -101,8 +101,8 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
             split.prop(self, "object_set_colour", text="")
 
     def add_non_conflicting_name(self) -> str:
-        addon_props = u.get_addon_props()
-        existing_names = [object_set.name for object_set in addon_props.object_sets]
+        addon_object_sets_props = u.get_addon_object_sets_props()
+        existing_names = [object_set.name for object_set in addon_object_sets_props.object_sets]
 
         if self.object_set_name not in existing_names:
             return self.object_set_name
@@ -132,19 +132,17 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
         return f"{self.object_set_name}.{suffix:03}"
 
     def execute(self, context):
-        addon_props = u.get_addon_props()
-
         if self.separator:
-            new_set = addon_props.object_sets.add()
+            new_set = u.get_object_sets().add()
             new_set.name = new_set._default_separator_name
             new_set.separator = self.separator
 
             self.report({"INFO"}, f"Added separator ot Object Sets")
         else:
-            new_set = addon_props.object_sets.add()
+            new_set = u.get_object_sets().add()
             new_set.name = self.add_non_conflicting_name()
             new_set.set_object_set_colour(self.object_set_colour)
-            set_active_object_set_index(len(addon_props.object_sets) - 1)
+            set_active_object_set_index(len(u.get_object_sets()) - 1)
 
             # Immediately add selected objects to set, for convenience
             if context.selected_objects:
@@ -168,7 +166,7 @@ class SimpleToolbox_OT_RemoveObjectSet(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.mode == u.OBJECT_MODES.OBJECT and len(u.get_addon_props().object_sets) > 0
+        return context.mode == u.OBJECT_MODES.OBJECT and len(u.get_object_sets()) > 0
 
     def execute(self, context):
         index = get_active_object_set_index()

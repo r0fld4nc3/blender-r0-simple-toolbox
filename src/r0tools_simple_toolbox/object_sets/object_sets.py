@@ -7,9 +7,9 @@ _mod = "OBJECT_SETS"
 
 
 def get_object_sets() -> list:
-    addon_props = u.get_addon_props()
+    addon_object_sets_props = u.get_addon_object_sets_props()
 
-    return addon_props.object_sets
+    return addon_object_sets_props.object_sets
 
 
 def get_object_sets_count() -> int:
@@ -17,17 +17,17 @@ def get_object_sets_count() -> int:
 
 
 def get_active_object_set_index() -> int:
-    addon_props = u.get_addon_props()
-    active_index = addon_props.object_sets_index
+    addon_object_sets_props = u.get_addon_object_sets_props()
+    active_index = addon_object_sets_props.object_sets_index
 
     return active_index
 
 
 def set_active_object_set_index(index: int):
-    addon_props = u.get_addon_props()
+    addon_object_sets_props = u.get_addon_object_sets_props()
 
     if index < get_object_sets_count():
-        addon_props.object_sets_index = index
+        addon_object_sets_props.object_sets_index = index
 
 
 def get_object_set_at_index(index: int):
@@ -122,13 +122,16 @@ def cleanup_object_set_invalid_references(scene):
     if not u.is_writing_context_safe(scene, check_addon_props=True):
         return None
 
-    addon_props = u.get_addon_props()
+    addon_object_sets_props = u.get_addon_object_sets_props()
 
-    if not addon_props.cat_show_object_sets_editor or not addon_props.cat_show_object_sets_editor:
+    if (
+        not addon_object_sets_props.cat_show_object_sets_editor
+        or not addon_object_sets_props.cat_show_object_sets_editor
+    ):
         return False
 
     # Focus only on cleaning object sets without rebuilding scene_objects/data_objects
-    for object_set in addon_props.object_sets:
+    for object_set in addon_object_sets_props.object_sets:
         # Identify invalid objects without modifying anything yet
         invalid_objects = []
         for i, object_item in enumerate(object_set.objects):
@@ -163,6 +166,7 @@ def cleanup_object_set_invalid_references_o1():
         return None
 
     addon_props = u.get_addon_props()
+    addon_object_sets_props = u.get_addon_object_sets_props()
 
     if not addon_props.cat_show_object_sets_editor or not addon_props.cat_show_object_sets_editor:
         return False
@@ -171,7 +175,7 @@ def cleanup_object_set_invalid_references_o1():
     valid_objects = set(scene.objects.keys())
     total_cleaned = 0
 
-    for object_set in addon_props.object_sets:
+    for object_set in addon_object_sets_props.object_sets:
         if object_set.separator:
             continue
 
@@ -215,14 +219,15 @@ def object_sets_update_mesh_stats():
         return None
 
     addon_props = u.get_addon_props()
+    addon_object_sets_props = u.get_addon_object_sets_props()
 
     if not addon_props.cat_show_object_sets_editor or not addon_props.cat_show_object_sets_editor:
         return False
 
-    show_verts = addon_props.object_sets_show_mesh_verts
-    show_edges = addon_props.object_sets_show_mesh_edges
-    show_faces = addon_props.object_sets_show_mesh_faces
-    show_tris = addon_props.object_sets_show_mesh_tris
+    show_verts = addon_object_sets_props.object_sets_show_mesh_verts
+    show_edges = addon_object_sets_props.object_sets_show_mesh_edges
+    show_faces = addon_object_sets_props.object_sets_show_mesh_faces
+    show_tris = addon_object_sets_props.object_sets_show_mesh_tris
 
     if not any([show_verts, show_edges, show_faces, show_tris]):
         return
@@ -230,7 +235,7 @@ def object_sets_update_mesh_stats():
     # Get the evaluated version of the object (with modifiers applied)
     depsgraph = bpy.context.evaluated_depsgraph_get()
 
-    for object_set in addon_props.object_sets:
+    for object_set in u.get_object_sets():
         total_verts = 0
         total_edges = 0
         total_faces = 0
@@ -358,7 +363,7 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     )
 
     addon_prefs = u.get_addon_prefs()
-    addon_props = u.get_addon_props()
+    addon_object_sets_props = u.get_addon_object_sets_props()
 
     _object_sets_use_colour = addon_prefs.object_sets_use_colour
 
@@ -382,13 +387,13 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     # Object Sets Visual Aids
     row = parent.row()
     # Show mesh verts
-    row.prop(addon_props, "object_sets_show_mesh_verts", text="", icon="VERTEXSEL")
+    row.prop(addon_object_sets_props, "object_sets_show_mesh_verts", text="", icon="VERTEXSEL")
     # Show mesh edges
-    row.prop(addon_props, "object_sets_show_mesh_edges", text="", icon="EDGESEL")
+    row.prop(addon_object_sets_props, "object_sets_show_mesh_edges", text="", icon="EDGESEL")
     # Show mesh faces
-    row.prop(addon_props, "object_sets_show_mesh_faces", text="", icon="FACESEL")
+    row.prop(addon_object_sets_props, "object_sets_show_mesh_faces", text="", icon="FACESEL")
     # Show mesh triangles
-    row.prop(addon_props, "object_sets_show_mesh_tris", text="", icon="MESH_DATA")
+    row.prop(addon_object_sets_props, "object_sets_show_mesh_tris", text="", icon="MESH_DATA")
 
     row = parent.row()
     split = row.split(factor=0.92)  # Affects right side button width
@@ -398,9 +403,9 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     col.template_list(
         "R0PROP_UL_ObjectSetsList",
         "object_sets",
-        addon_props,  # Collection owner
+        addon_object_sets_props,  # Collection owner
         "object_sets",  # Collection property
-        addon_props,  # Active item owner
+        addon_object_sets_props,  # Active item owner
         "object_sets_index",  # Active item property
         rows=addon_prefs.object_sets_list_rows,
     )
@@ -409,7 +414,7 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     col = split.column(align=True)
     col.operator(SimpleToolbox_OT_AddObjectSetPopup.bl_idname, text="+")
     col.operator(SimpleToolbox_OT_RemoveObjectSet.bl_idname, text="-")
-    if len(addon_props.object_sets) > 1:  # Show buttons only when applicable
+    if len(addon_object_sets_props.object_sets) > 1:  # Show buttons only when applicable
         col.separator(factor=1.0)  # Spacer
         col.operator(SimpleToolbox_OT_MoveObjectSetItem.bl_idname, icon="TRIA_UP", text="").direction = "UP"
         col.operator(SimpleToolbox_OT_MoveObjectSetItem.bl_idname, icon="TRIA_DOWN", text="").direction = "DOWN"
