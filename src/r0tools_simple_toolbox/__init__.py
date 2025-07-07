@@ -17,7 +17,6 @@ from typing import List, Tuple
 modules = (
     ".addon_prefs",
     ".addon_properties",
-    ".properties",  # temp
     ".operators",
     ".keymaps",
     ".menus",

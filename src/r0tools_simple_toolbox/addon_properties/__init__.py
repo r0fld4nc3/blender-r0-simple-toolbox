@@ -14,6 +14,7 @@ submodules = [
     "vertex_groups_props",
     "find_modifiers_props",
     "experimental_props",
+    "properties",
 ]
 # fmt: on
 _module_objects = []

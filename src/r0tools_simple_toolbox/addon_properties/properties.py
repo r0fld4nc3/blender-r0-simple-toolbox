@@ -10,7 +10,7 @@ from bpy.props import (  # type: ignore
     StringProperty,
 )
 
-from . import utils as u
+from .. import utils as u
 
 _mod = "PROPERTIES"
 
@@ -243,8 +243,8 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
     ##############
     ### LEGACY ###
     ##############
-    from .addon_properties.object_sets_props import R0PROP_PG_ObjectSetEntryItem
-    from .addon_properties.vertex_groups_props import R0PROP_PG_VertexGroupPropertyItem
+    from .object_sets_props import R0PROP_PG_ObjectSetEntryItem
+    from .vertex_groups_props import R0PROP_PG_VertexGroupPropertyItem
 
     object_sets: CollectionProperty(type=R0PROP_PG_ObjectSetEntryItem)  # type: ignore
 
