@@ -352,7 +352,7 @@ def load_legacy_object_sets(dummy):
     legacy_sets = addon_props.object_sets
 
     if legacy_sets:
-        print(f"[INFO][{_mod}] Loading legacy sets")
+        print(f"[INFO] [{_mod}] Loading legacy sets")
 
     # Collect objects
     total_objects = 0
