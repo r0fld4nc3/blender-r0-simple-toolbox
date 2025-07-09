@@ -37,6 +37,11 @@ def get_addon_find_modifier_props():
     return get_scene().r0fl_toolbox_find_modifier_props
 
 
+def get_addon_export_props():
+    """Get the addon property group from current scene"""
+    return get_scene().r0fl_toolbox_export_props
+
+
 def get_addon_prefs():
     """Get the addon preferences"""
     return bpy.context.preferences.addons[INTERNAL_NAME].preferences

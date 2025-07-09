@@ -2,20 +2,15 @@ import importlib
 import sys
 
 # Import order here is really important!
+from .operators import *  # isort: skip
 
 package = __name__
-_mod = "ADDON PROPERTIES"
+_mod = "EXPORT"
 
 # fmt: off
 # List of submodlules, keep in sync with imports
 submodules = [
-    "edge_data_props",
-    "object_sets_props",
-    "vertex_groups_props",
-    "find_modifiers_props",
-    "experimental_props",
-    "export_props",
-    "properties",
+    "operators",
 ]
 # fmt: on
 _module_objects = []

@@ -29,6 +29,7 @@ modules = (
     ".repo.operators",
     ".repo.ui",
     ".data_ops",
+    ".export_ops",
 )
 
 _mod = "__INIT__"
@@ -57,7 +58,7 @@ def import_modules() -> List[object]:
             module_objects.append(imported_module)
             print(f"[INFO] [{_mod}] Imported: {imported_module.__name__}")
         except Exception as e:
-            print(f"[INFO] [{_mod}] Error importing {module}: {str(e)}")
+            print(f"[ERROR] [{_mod}] Error importing {module}: {str(e)}")
     return module_objects
 
 
@@ -68,7 +69,7 @@ def reload_modules(module_objects: List[object]):
             importlib.reload(module)
             print(f"[INFO] [{_mod}] Reloaded: {module.__name__}")
         except Exception as e:
-            print(f"[INFO] [{_mod}] Error reloading {module.__name__}: {str(e)}")
+            print(f"[ERROR] [{_mod}] Error reloading {module.__name__}: {str(e)}")
 
 
 class AddonRegisterHelper:

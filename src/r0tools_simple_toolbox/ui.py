@@ -4,6 +4,10 @@ from . import ext_update as upd
 from . import utils as u
 from .data_ops import SimpleToolbox_OT_EdgeDataToVertexColour
 from .defines import ADDON_NAME, VERSION_STR
+from .export_ops import (
+    SimpleToolbox_OT_ExportSelectedObjects,
+    SimpleToolbox_OT_SelectPath,
+)
 from .operators import *
 from .repo import draw_repo_layout
 
@@ -39,6 +43,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         addon_prefs = u.get_addon_prefs()
         experimental_props = u.get_addon_experimental_props()
         find_modifier_props = u.get_addon_find_modifier_props()
+        export_props = u.get_addon_export_props()
         
         layout = self.layout
 
@@ -303,6 +308,23 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                     row.label(text=f"{'Bevel Weight Preset Grid' if addon_prefs.edge_data_bweight_preset_grid_buttons_toggle else 'Bevel Weight Preset List'}")
                     u.draw_edge_bweights_presets_uilist(self.layout, context, edge_bweights_box=bweight_presets_box)
 
+                # Export
+                export_selection_box = experimental_features_box.box()
+                export_selection_box.label(text="Quick Export (FBX)")
+                
+                export_selection_row = export_selection_box.row()
+                export_selection_row.prop(export_props, "mkdirs_if_not_exist")
+
+                export_selection_row = export_selection_box.row()
+                export_selection_row.prop(export_props, "export_path")
+                export_selection_row.operator(SimpleToolbox_OT_SelectPath.bl_idname, text="", icon="FILE_FOLDER")
+
+                export_selection_row = export_selection_box.row()
+                export_selection_row.prop(export_props, "export_file_name")
+
+                export_selection_row = export_selection_box.row()
+                export_selection_row.operator(SimpleToolbox_OT_ExportSelectedObjects.bl_idname, text="Export")
+
         # ====== Online Repository ======
         draw_repo_layout(layout, context)
 # fmt: on
@@ -325,29 +347,71 @@ class r0Tools_PT_SimpleToolboxEdgeDataOps(bpy.types.Panel):
         return experimental_props
 
     def draw(self, context):
-        addon_props = u.get_addon_props()
         addon_prefs = u.get_addon_prefs()
 
         layout = self.layout
 
-        if addon_prefs.experimental_features:
-            row = layout.row()
-            row.operator(SimpleToolbox_OT_EdgeDataToVertexColour.bl_idname, icon="GROUP_VCOL")
-            row = layout.row()
-            bweight_presets_box = row.box()
-            row = bweight_presets_box.row()
-            row.prop(addon_prefs, "edge_data_bweight_preset_grid_buttons_toggle", icon="MESH_GRID", text="")
-            row.label(
-                text=f"{'Bevel Weight Preset Grid' if addon_prefs.edge_data_bweight_preset_grid_buttons_toggle else 'Bevel Weight Preset List'}"
-            )
-            u.draw_edge_bweights_presets_uilist(self.layout, context, edge_bweights_box=bweight_presets_box)
+        row = layout.row()
+        row.operator(SimpleToolbox_OT_EdgeDataToVertexColour.bl_idname, icon="GROUP_VCOL")
+        row = layout.row()
+        bweight_presets_box = row.box()
+        row = bweight_presets_box.row()
+        row.prop(addon_prefs, "edge_data_bweight_preset_grid_buttons_toggle", icon="MESH_GRID", text="")
+        row.label(
+            text=f"{'Bevel Weight Preset Grid' if addon_prefs.edge_data_bweight_preset_grid_buttons_toggle else 'Bevel Weight Preset List'}"
+        )
+        u.draw_edge_bweights_presets_uilist(self.layout, context, edge_bweights_box=bweight_presets_box)
+
+
+class r0Tools_PT_SimpleToolboxQuickExportOps(bpy.types.Panel):
+    bl_idname = "OBJECT_PT_simple_toolbox_quick_export_ops"
+    bl_label = f"Quick Export Ops ({VERSION_STR})"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Item"
+    # bl_options = {"DEFAULT_CLOSED"}
+    has_update = False
+
+    @classmethod
+    def poll(cls, context):
+        addon_prefs = u.get_addon_prefs()
+        experimental_props = addon_prefs.experimental_features
+
+        return experimental_props
+
+    def draw(self, context):
+        export_props = u.get_addon_export_props()
+
+        layout = self.layout
+
+        export_selection_box = layout.box()
+        export_selection_box.label(text="Quick Export (FBX)")
+
+        export_selection_row = export_selection_box.row()
+        export_selection_row.prop(export_props, "mkdirs_if_not_exist")
+
+        export_selection_row = export_selection_box.row()
+        export_selection_row.prop(export_props, "export_path")
+        export_selection_row.operator(SimpleToolbox_OT_SelectPath.bl_idname, text="", icon="FILE_FOLDER")
+
+        export_selection_row = export_selection_box.row()
+        export_selection_row.prop(export_props, "export_file_name")
+
+        export_selection_row = export_selection_box.row()
+        export_selection_row.operator(SimpleToolbox_OT_ExportSelectedObjects.bl_idname, text="Export")
 
 
 # -------------------------------------------------------------------
 #   Register & Unregister
 # -------------------------------------------------------------------
 
-classes = [r0Tools_PT_SimpleToolbox, r0Tools_PT_SimpleToolboxEdgeDataOps]
+# fmt: off
+classes = [
+    r0Tools_PT_SimpleToolbox, 
+    r0Tools_PT_SimpleToolboxEdgeDataOps,
+    r0Tools_PT_SimpleToolboxQuickExportOps
+]
+# fmt: on
 
 
 def register():
