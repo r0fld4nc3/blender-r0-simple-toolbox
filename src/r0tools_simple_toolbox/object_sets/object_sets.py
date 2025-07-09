@@ -366,16 +366,18 @@ def load_legacy_object_sets(dummy):
     wm.progress_begin(0, total_objects)
 
     for legacy_set in legacy_sets:
-        new = u.get_object_sets().add()
+        new_set = u.get_object_sets().add()
         if legacy_set.separator:
-            new.separator = True
-            new.name = new.default_separator_name
+            new_set.separator = True
+            new_set.name = new_set.default_separator_name
             print(f"[INFO] [{_mod}] Copy legacy Separator '{legacy_set.name}'")
             continue
 
         exists = legacy_set.name in [object_set.name for object_set in u.get_object_sets()]
-        new.name = f"legacy_{legacy_set.name}" if exists else legacy_set.name
-        new.set_object_set_colour(legacy_set.set_colour)
+        new_set.name = f"legacy_{legacy_set.name}" if exists else legacy_set.name
+        new_set.set_colour = (
+            legacy_set.set_colour
+        )  # removed `set_object_set_colour` to prefer direct data to not trigger checks and updates.
 
         legacy_objects = legacy_set.objects
 
@@ -384,19 +386,22 @@ def load_legacy_object_sets(dummy):
         for item in legacy_objects:
             legacy_obj = item.object
 
-            new.assign_object(legacy_obj)
+            # new.assign_object(legacy_obj)
+            # Prefer direct data assignment to prevent checks and updates
+            new_obj = new_set.objects.add()
+            new_obj.object = legacy_obj
 
             total_processed += 1
             wm.progress_update(total_processed)
 
+        # Update count manually
+        new_set.count = len(new_set.objects)
+
     wm.progress_end()
 
     # Remove legacy object sets
-    i = len(legacy_sets) - 1
-    for object_set in reversed(legacy_sets):
-        print(f"[INFO][{_mod}] Deleting legacy set: {object_set.name}")
-        legacy_sets.remove(i)
-        i -= 1
+    print(f"[INFO] [{_mod}] Clearing legacy sets")
+    legacy_sets.clear()
 
 
 def draw_objects_sets_uilist(layout, context, object_sets_box=None):
