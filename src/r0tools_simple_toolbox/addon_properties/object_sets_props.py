@@ -72,7 +72,7 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
 
     name: bpy.props.StringProperty(name="Object Set Name", default="New Object Set")  # type: ignore
     separator: bpy.props.BoolProperty(default=False)  # type: ignore
-    _default_separator_name = "-" * 16
+    default_separator_name = "-" * 16
 
     objects: bpy.props.CollectionProperty(type=R0PROP_PG_ObjectSetObjectItem)  # type: ignore
     count: bpy.props.IntProperty(name="Count", default=0)  # type: ignore
@@ -307,41 +307,6 @@ class r0ObjectSetsProps(bpy.types.PropertyGroup):
     object_sets_show_mesh_tris: BoolProperty(default=False, name="Show Total Triangle Count", description="Toggle showing Object Set's total triangle count")  # type: ignore
 
 
-@bpy.app.handlers.persistent
-def load_legacy_object_sets(dummy):
-    """Load legacy properties into new properties"""
-
-    addon_props = u.get_addon_props()
-
-    legacy_sets = addon_props.object_sets
-
-    if legacy_sets:
-        print(f"[INFO][{_mod}] Loading legacy sets")
-
-    for legacy_set in legacy_sets:
-        new = u.get_object_sets().add()
-
-        exists = legacy_set.name in [object_set.name for object_set in u.get_object_sets()]
-        print(f"[INFO][{_mod}] Legacy name '{legacy_set.name}' duplicate: {exists}")
-
-        new.name = f"legacy_{legacy_set.name}" if exists else legacy_set.name
-        new.set_object_set_colour(legacy_set.set_colour)
-
-        legacy_objects = legacy_set.objects
-
-        for item in legacy_objects:
-            legacy_obj = item.object
-
-            new.assign_object(legacy_obj)
-
-    # Remove legacy object sets
-    i = len(legacy_sets) - 1
-    for object_set in reversed(legacy_sets):
-        print(f"[INFO][{_mod}] Deleting legacy set: {object_set.name}")
-        legacy_sets.remove(i)
-        i -= 1
-
-
 # ===================================================================
 #   Register & Unregister
 # ===================================================================
@@ -353,7 +318,7 @@ classes = [
 ]
 
 
-load_post_handlers = [load_legacy_object_sets]
+load_post_handlers = [u.load_legacy_object_sets]
 
 
 def register():

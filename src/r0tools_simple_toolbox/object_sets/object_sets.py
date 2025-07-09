@@ -343,6 +343,62 @@ def refresh_object_sets_colours(context):
         object_set.update_object_set_colour(context)
 
 
+@bpy.app.handlers.persistent
+def load_legacy_object_sets(dummy):
+    """Load legacy properties into new properties"""
+
+    addon_props = u.get_addon_props()
+
+    legacy_sets = addon_props.object_sets
+
+    if legacy_sets:
+        print(f"[INFO][{_mod}] Loading legacy sets")
+
+    # Collect objects
+    total_objects = 0
+    for legacy_set in legacy_sets:
+        total_objects += len(legacy_set.objects)
+
+    ### Progress Bar ###
+    wm = bpy.context.window_manager
+    total_objects = total_objects
+    total_processed = 0
+    wm.progress_begin(0, total_objects)
+
+    for legacy_set in legacy_sets:
+        new = u.get_object_sets().add()
+        if legacy_set.separator:
+            new.separator = True
+            new.name = new.default_separator_name
+            print(f"[INFO] [{_mod}] Legacy Separator '{legacy_set.name}'")
+            continue
+
+        exists = legacy_set.name in [object_set.name for object_set in u.get_object_sets()]
+        print(f"[INFO] [{_mod}] Legacy name '{legacy_set.name}' duplicate: {exists}")
+
+        new.name = f"legacy_{legacy_set.name}" if exists else legacy_set.name
+        new.set_object_set_colour(legacy_set.set_colour)
+
+        legacy_objects = legacy_set.objects
+
+        for item in legacy_objects:
+            legacy_obj = item.object
+
+            new.assign_object(legacy_obj)
+
+            total_processed += 1
+            wm.progress_update(total_processed)
+
+    wm.progress_end()
+
+    # Remove legacy object sets
+    i = len(legacy_sets) - 1
+    for object_set in reversed(legacy_sets):
+        print(f"[INFO][{_mod}] Deleting legacy set: {object_set.name}")
+        legacy_sets.remove(i)
+        i -= 1
+
+
 def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     """
     Draw the Objects Sets UI list
