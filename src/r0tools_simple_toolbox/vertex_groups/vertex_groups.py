@@ -324,6 +324,7 @@ def draw_vertex_groups_uilist(layout, context, vertex_groups_box=None):
         SimpleToolbox_OT_VgroupsAssignVertices,
         SimpleToolbox_OT_VgroupsDeselectVertices,
         SimpleToolbox_OT_VgroupsKeepSelected,
+        SimpleToolbox_OT_VgroupsRefresh,
         SimpleToolbox_OT_VgroupsRemoveHighlighted,
         SimpleToolbox_OT_VgroupsRemoveSelected,
         SimpleToolbox_OT_VgroupsSelectObjectsWithVgroups,
@@ -370,6 +371,9 @@ def draw_vertex_groups_uilist(layout, context, vertex_groups_box=None):
     col = split.column(align=True)
     col.operator(SimpleToolbox_OT_VgroupsAddPopup.bl_idname, text="+")
     col.operator(SimpleToolbox_OT_VgroupsRemoveHighlighted.bl_idname, text="-")
+
+    col.separator(factor=1.0)
+    col.operator(SimpleToolbox_OT_VgroupsRefresh.bl_idname, icon="FILE_REFRESH")
 
     # Vertex Groups Actions (Downward arrow dropdown menu)
     col.separator(factor=1.0)  # Spacer

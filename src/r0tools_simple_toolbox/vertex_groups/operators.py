@@ -52,6 +52,24 @@ class SimpleToolbox_OT_VgroupsAddPopup(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_VgroupsRefresh(bpy.types.Operator):
+    bl_idname = "r0tools.vgrups_refresh"
+    bl_label = "Refresh"
+    bl_description = "Refresh vertex groups"
+    bl_options = {"REGISTER", "UNDO"}
+
+    accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
+    accepted_object_types = [u.OBJECT_TYPES.MESH]
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
+
+    def execute(self, context):
+        u.vertex_groups_list_update(force=True)
+        return {"FINISHED"}
+
+
 class SimpleToolbox_OT_VgroupsRemoveHighlighted(bpy.types.Operator):
     bl_idname = "r0tools.vgrups_remove_highlighted"
     bl_label = "Remove Highlighted Vertex Group. Respects locks an dwill not override them."
@@ -643,6 +661,7 @@ class SimpleToolbox_OT_VgroupsDeselectVertices(bpy.types.Operator):
 # fmt: off
 classes = [
     SimpleToolbox_OT_VgroupsAddPopup,
+    SimpleToolbox_OT_VgroupsRefresh,
     SimpleToolbox_OT_VgroupsRemoveHighlighted,
     SimpleToolbox_OT_RemoveUnusedVertexGroups,
     SimpleToolbox_OT_VgroupsLockStateAll,
