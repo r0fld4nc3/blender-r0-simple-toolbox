@@ -370,16 +370,16 @@ def load_legacy_object_sets(dummy):
         if legacy_set.separator:
             new.separator = True
             new.name = new.default_separator_name
-            print(f"[INFO] [{_mod}] Legacy Separator '{legacy_set.name}'")
+            print(f"[INFO] [{_mod}] Copy legacy Separator '{legacy_set.name}'")
             continue
 
         exists = legacy_set.name in [object_set.name for object_set in u.get_object_sets()]
-        print(f"[INFO] [{_mod}] Legacy name '{legacy_set.name}' duplicate: {exists}")
-
         new.name = f"legacy_{legacy_set.name}" if exists else legacy_set.name
         new.set_object_set_colour(legacy_set.set_colour)
 
         legacy_objects = legacy_set.objects
+
+        print(f"[INFO] [{_mod}] Copying legacy Set '{legacy_set.name}' ({len(legacy_objects)} Objects)")
 
         for item in legacy_objects:
             legacy_obj = item.object
