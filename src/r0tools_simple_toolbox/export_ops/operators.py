@@ -48,7 +48,7 @@ class SimpleToolbox_OT_SelectPath(bpy.types.Operator):
 
 class SimpleToolbox_OT_ExportSelectedObjects(bpy.types.Operator):
     bl_label = "Export Selection"
-    bl_idname = "r0tools.remove_object_set"
+    bl_idname = "r0tools.export_selected_objects"
     bl_description = "Remove the selected Object Set entry"
     bl_options = {"REGISTER", "UNDO"}
 
