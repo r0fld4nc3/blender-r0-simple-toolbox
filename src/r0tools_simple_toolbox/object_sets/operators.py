@@ -357,7 +357,7 @@ class SimpleToolbox_OT_RemoveFromAllObjectSets(bpy.types.Operator):
     def execute(self, context):
         object_sets = get_object_sets()
 
-        for index, object_set in enumerate(object_sets):
+        for object_set in object_sets:
             object_set.remove_objects(context.selected_objects)
 
         self.report({"INFO"}, f"Removed selected objects from all Object Sets")
