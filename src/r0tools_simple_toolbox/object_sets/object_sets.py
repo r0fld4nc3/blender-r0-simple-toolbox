@@ -386,7 +386,7 @@ def load_legacy_object_sets(dummy):
         for item in legacy_objects:
             legacy_obj = item.object
 
-            # new.assign_object(legacy_obj)
+            # new.assign_objects(legacy_obj)
             # Prefer direct data assignment to prevent checks and updates
             new_obj = new_set.objects.add()
             new_obj.object = legacy_obj

@@ -75,6 +75,7 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
     default_separator_name = "-" * 16
 
     objects: bpy.props.CollectionProperty(type=R0PROP_PG_ObjectSetObjectItem)  # type: ignore
+    _object_cache = set()  # Internal set of object collision management. Helps with checking on a O(1) complexity
     count: bpy.props.IntProperty(name="Count", default=0)  # type: ignore
     set_colour: bpy.props.FloatVectorProperty(  # type: ignore
         name="Set Object Set Colour",
@@ -91,15 +92,47 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
     faces: bpy.props.IntProperty(default=0)  # type: ignore
     tris: bpy.props.IntProperty(default=0)  # type: ignore
 
-    def assign_object(self, obj):
+    def _get_or_build_cache(self):
+        """
+        Internal method to get the existing object cache (a python set) or
+        build it if it doesn't exist or appears outdated.
+
+        Using object pointers keeps references when dealing with object renaming.
+        """
+        if not hasattr(self, "_object_cache") or len(self._object_cache) != len(self.objects):
+            self._object_cache = {item.object.as_pointer() for item in self.objects if item.object}
+
+        return self._object_cache
+
+    def assign_objects(self, objects_to_add: list[bpy.types.Object]):
         if self.separator:
             return
 
-        if not any(o.object == obj for o in self.objects):
-            new_object = self.objects.add()
-            new_object.object = obj
+        cache = self._get_or_build_cache()
 
-            self.update_count()
+        ### Progress Bar ###
+        wm = bpy.context.window_manager
+        total_objects = len(objects_to_add)
+        total_processed = 0
+        wm.progress_begin(0, total_objects)
+
+        for obj in objects_to_add:
+            if not obj:
+                continue
+
+            obj_ptr = obj.as_pointer()
+
+            # if not any(o.object == obj for o in self.objects):
+            if obj_ptr not in cache:
+                new_object = self.objects.add()
+                new_object.object = obj
+                cache.add(obj_ptr)
+                total_processed += 1
+                wm.progress_update(total_processed)
+
+        self.update_count()
+
+        wm.progress_end()
 
     def remove_object(self, obj):
         addon_prefs = u.get_addon_prefs()
