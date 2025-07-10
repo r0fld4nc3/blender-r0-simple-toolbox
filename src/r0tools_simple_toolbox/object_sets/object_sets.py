@@ -388,6 +388,8 @@ def load_legacy_object_sets(dummy):
         total_objects += len(legacy_set.objects)
 
     ### Progress Bar ###
+    # TODO: Keep for now, might need to be removed later
+    # if issues with segmentation fault start popping up
     wm = bpy.context.window_manager
     total_objects = total_objects
     total_processed = 0
