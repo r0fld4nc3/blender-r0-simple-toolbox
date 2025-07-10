@@ -110,29 +110,18 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
 
         cache = self._get_or_build_cache()
 
-        ### Progress Bar ###
-        wm = bpy.context.window_manager
-        total_objects = len(objects_to_add)
-        total_processed = 0
-        wm.progress_begin(0, total_objects)
-
         for obj in objects_to_add:
             if not obj:
                 continue
 
             obj_ptr = obj.as_pointer()
 
-            # if not any(o.object == obj for o in self.objects):
             if obj_ptr not in cache:
                 new_object = self.objects.add()
                 new_object.object = obj
                 cache.add(obj_ptr)
-                total_processed += 1
-                wm.progress_update(total_processed)
 
         self.update_count()
-
-        wm.progress_end()
 
     def remove_objects(self, objects_to_remove: list[bpy.types.Object]):
         addon_prefs = u.get_addon_prefs()
@@ -169,14 +158,8 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
             return
 
         # Remove reversed
-        wm = bpy.context.window_manager
-        total_processed = 0
-        wm.progress_begin(0, len(indices_to_remove))
         for i, index in enumerate(sorted(indices_to_remove, reverse=True)):
             self.objects.remove(index)
-            total_processed += 1
-            wm.progress_update(total_processed)
-        wm.progress_end()
 
         for obj in successfully_removed_objects:
             # Check if object not in other sets
