@@ -237,11 +237,6 @@ class SimpleToolbox_OT_MoveObjectSetItem(bpy.types.Operator):
                 else:
                     to_index = active_index - 1
 
-                move_object_set_to_index(active_index, to_index)
-                set_active_object_set_index(to_index)
-                if not separator:
-                    object_set_at_index_update_count(active_index)
-                    object_set_at_index_update_count(to_index)
         elif self.direction == "DOWN":
             if active_index < len(object_sets) - 1:
                 if self.absolute:
@@ -249,11 +244,16 @@ class SimpleToolbox_OT_MoveObjectSetItem(bpy.types.Operator):
                 else:
                     to_index = active_index + 1
 
-                object_sets.move(active_index, to_index)
-                set_active_object_set_index(to_index)
-                if not separator:
-                    object_sets[active_index].update_count()
-                    object_sets[to_index].update_count()
+        move_object_set_to_index(active_index, to_index)
+        set_active_object_set_index(to_index)
+
+        # Deprecated, we don't actually need to update the count
+        # making it incredibly faster to move up and down especially
+        # when having Sets with large amounts of objects
+
+        # if not separator:
+        # object_set_at_index_update_count(active_index)
+        # object_set_at_index_update_count(to_index)
 
         return {"FINISHED"}
 
