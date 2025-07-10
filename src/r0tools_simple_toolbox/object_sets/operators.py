@@ -285,8 +285,7 @@ class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
             object_set = get_object_set_at_index(index)
             object_set_count_before = object_set.count
 
-            for obj in context.selected_objects:
-                object_set.assign_object(obj)
+            object_set.assign_objects(context.selected_objects)
 
             object_set_count_after = object_set.count - object_set_count_before
 
@@ -322,14 +321,12 @@ class SimpleToolbox_OT_RemoveFromObjectSet(bpy.types.Operator):
     def execute(self, context):
         index = get_active_object_set_index()
 
-        total_removed = 0
-
         if 0 <= index < get_object_sets_count():
             object_set = get_object_set_at_index(index)
 
-            for obj in context.selected_objects:
-                object_set.remove_object(obj)
-                total_removed += 1
+            initial_count = len(object_set.objects)
+            object_set.remove_objects(context.selected_objects)
+            total_removed = initial_count - len(object_set.objects)
 
             self.report({"INFO"}, f"Removed {total_removed} objects of Set '{object_set.name}'")
 
@@ -360,11 +357,8 @@ class SimpleToolbox_OT_RemoveFromAllObjectSets(bpy.types.Operator):
     def execute(self, context):
         object_sets = get_object_sets()
 
-        for obj in context.selected_objects:
-            for index, object_set in enumerate(object_sets):
-                object_sets_objects = [obj for obj in iter_objects_of_object_set_at_index(index)]
-                if obj in object_sets_objects:
-                    object_set.remove_object(obj)
+        for index, object_set in enumerate(object_sets):
+            object_set.remove_objects(context.selected_objects)
 
         self.report({"INFO"}, f"Removed selected objects from all Object Sets")
 

@@ -35,7 +35,7 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
 
             obj.color = self.set_colour
             # Check in contained in set
-            containing_sets = self.check_object_in_sets(obj)
+            containing_sets = u.check_object_in_sets(obj)
             if not containing_sets:  # Object not in an Object Set
                 if u.IS_DEBUG():
                     print(f"[DEBUG] [{_mod}] Object {obj.name} not present in any Object Set.")
@@ -134,36 +134,53 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
 
         wm.progress_end()
 
-    def remove_object(self, obj):
+    def remove_objects(self, objects_to_remove: list[bpy.types.Object]):
         addon_prefs = u.get_addon_prefs()
         allow_override = addon_prefs.object_sets_colour_allow_override
 
         if self.separator:
             return
 
-        for i, o in enumerate(self.objects):
-            try:
-                if o.object is None:
-                    self.objects.remove(i)
-                    break
-
-                if o.object and o.object.as_pointer != 0 and o.object == obj or o.object.as_pointer == 0:
-                    self.objects.remove(i)
-                    break
-            except Exception as e:
-                print(f"[ERROR] [{_mod}] '{o.object}' {e}")
-
-        # Check if object still exists:
-        try:
-            valid = u.is_valid_object_global(obj)
-        except Exception as e:
-            print(f"[ERROR] [{_mod}] Is valid object global check error: {e}")
-            self.update_count()
+        if not self.objects:
             return
 
-        if valid:
+        pointers_to_remove = {obj.as_pointer() for obj in objects_to_remove if obj}
+        cache = self._get_or_build_cache()
+
+        indices_to_remove = []
+        successfully_removed_objects = []
+
+        # Identify indices for removal
+        for i, item in enumerate(self.objects):
+            # Object not longer in scene
+            if not item.object:
+                indices_to_remove.append(i)
+                continue
+
+            # Mark objects targetted for removal
+            item_ptr = item.object.as_pointer()
+            if item_ptr in pointers_to_remove:
+                indices_to_remove.append(i)
+                successfully_removed_objects.append(item.object)
+                # Update cache
+                cache.discard(item_ptr)
+
+        if not indices_to_remove:
+            return
+
+        # Remove reversed
+        wm = bpy.context.window_manager
+        total_processed = 0
+        wm.progress_begin(0, len(indices_to_remove))
+        for i, index in enumerate(sorted(indices_to_remove, reverse=True)):
+            self.objects.remove(index)
+            total_processed += 1
+            wm.progress_update(total_processed)
+        wm.progress_end()
+
+        for obj in successfully_removed_objects:
             # Check if object not in other sets
-            containing_sets = self.check_object_in_sets(obj)
+            containing_sets = u.check_object_in_sets(obj)
             if not containing_sets:
                 obj.color = (1.0, 1.0, 1.0, 1.0)
             else:
@@ -174,25 +191,6 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
                     obj.color = containing_sets[0].set_colour
 
         self.update_count()
-
-    def check_object_in_sets(self, obj) -> list:
-        """
-        Checks if an object is present in more Object Sets. If so
-        return a list of references to each Object Set containing the object
-
-        :return: `list` of `Object Sets`
-        """
-        containing_sets = []
-
-        for obj_set in u.get_object_sets():
-            if obj_set.separator:
-                continue
-            for obj_item in obj_set.objects:
-                if obj_item.object == obj:
-                    if obj_set not in containing_sets:
-                        containing_sets.append(obj_set)
-
-        return containing_sets
 
     def update_count(self):
         if self.separator:

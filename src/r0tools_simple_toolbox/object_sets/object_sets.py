@@ -139,13 +139,9 @@ def cleanup_object_set_invalid_references(scene):
             if not obj or obj.name not in scene.objects:
                 invalid_objects.append(obj)
 
-        cleaned_up = 0
-        for obj in reversed(invalid_objects):
-            try:
-                object_set.remove_object(obj)
-                cleaned_up += 1
-            except Exception as e:
-                print(f"[ERROR] [{_mod}] Failed to remove object {obj}: {e}")
+        initial_count = len(object_set.objects)
+        object_set.remove_objects(sorted(invalid_objects, reverse=True))
+        cleaned_up = initial_count - len(object_set.objects)
 
         if cleaned_up:
             print(f"[INFO] [{_mod}] Cleaned up {cleaned_up} references for Object Set '{object_set.name}'")
@@ -207,6 +203,34 @@ def cleanup_object_set_invalid_references_o1():
         for area in bpy.context.screen.areas:
             if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
                 area.tag_redraw()
+
+
+def check_object_in_sets(obj) -> list:
+    """
+    Checks if an object is present in more Object Sets. If so
+    return a list of references to each Object Set containing the object
+
+    :return: `list` of `Object Sets`
+    """
+
+    if not obj:
+        return []
+
+    containing_sets = []
+    obj_ptr = obj.as_pointer()
+
+    all_objects_sets = get_object_sets()
+
+    for object_set in all_objects_sets:
+        if object_set.separator:
+            continue
+
+        cache = object_set._get_or_build_cache()
+
+        if obj_ptr in cache:
+            containing_sets.append(object_set)
+
+    return containing_sets
 
 
 def object_sets_update_mesh_stats():
