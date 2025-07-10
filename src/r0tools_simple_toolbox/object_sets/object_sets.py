@@ -373,6 +373,10 @@ def load_legacy_object_sets(dummy):
 
     addon_props = u.get_addon_props()
 
+    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+        print(f"[ERROR] [{_mod}] Context write is not safe")
+        return
+
     legacy_sets = addon_props.object_sets
 
     if legacy_sets:
@@ -426,7 +430,10 @@ def load_legacy_object_sets(dummy):
     # Remove legacy object sets
     if legacy_sets:
         print(f"[INFO] [{_mod}] Clearing legacy sets")
-        legacy_sets.clear()
+        if u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+            legacy_sets.clear()
+        else:
+            print(f"[ERROR] [{_mod}] Unable to clear legacy Object Sets")
 
 
 def draw_objects_sets_uilist(layout, context, object_sets_box=None):
