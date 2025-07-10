@@ -424,8 +424,9 @@ def load_legacy_object_sets(dummy):
     wm.progress_end()
 
     # Remove legacy object sets
-    print(f"[INFO] [{_mod}] Clearing legacy sets")
-    legacy_sets.clear()
+    if legacy_sets:
+        print(f"[INFO] [{_mod}] Clearing legacy sets")
+        legacy_sets.clear()
 
 
 def draw_objects_sets_uilist(layout, context, object_sets_box=None):
