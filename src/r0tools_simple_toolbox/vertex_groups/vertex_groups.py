@@ -200,22 +200,12 @@ def _needs_update():
 
 
 def vertex_groups_list_update(force: bool = False):
-    scene = bpy.context.scene
-
-    if not u.is_writing_context_safe(scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+        print(f"[WARNING] [{_mod}] Vertex Groups List Update: Unsafe Context.")
         return None
 
     addon_props = u.get_addon_props()
     addon_vertex_groups_props = u.get_addon_vertex_groups_props()
-
-    # Additional write check
-    try:
-        if hasattr(addon_vertex_groups_props.vertex_groups, "clear"):
-            _ = len(addon_vertex_groups_props.vertex_groups)
-    except AttributeError as e:
-        if u.IS_DEBUG():
-            print(f"[DEBUG] [{_mod}] Property not accessible: {e}")
-        return None
 
     if not force:
         if not addon_vertex_groups_props.vgroups_do_update:
