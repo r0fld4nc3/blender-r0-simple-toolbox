@@ -12,6 +12,7 @@ from ..vertex_groups.vertex_groups import *  # isort: skip
 from .defer import timer_manager, deferred  # isort: skip
 from .edge_data import (  # isort: skip
     draw_edge_bweights_presets_uilist,
+    draw_edge_data_panel_ui,
     initialize_bweight_presets,
 )
 # fmt: on

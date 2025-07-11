@@ -2,8 +2,7 @@ import bpy
 
 from . import ext_update as upd
 from . import utils as u
-from .data_ops import SimpleToolbox_OT_EdgeDataToVertexColour
-from .defines import ADDON_NAME, VERSION_STR
+from .defines import ADDON_CATEGORY, ADDON_NAME, ADDON_NAME_BARE, VERSION_STR
 from .export_ops import (
     SimpleToolbox_OT_ExportSelectedObjects,
     SimpleToolbox_OT_SelectPath,
@@ -19,7 +18,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
     bl_label = f'{ADDON_NAME} ({VERSION_STR})'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'Tool'
+    bl_category = ADDON_CATEGORY
     # bl_options = {"DEFAULT_CLOSED"}
     has_update = False
 
@@ -42,7 +41,6 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         addon_props = u.get_addon_props()
         addon_prefs = u.get_addon_prefs()
         addon_experimental_props = u.get_addon_experimental_props()
-        addon_edge_data_props = u.get_addon_edge_data_props()
         addon_find_modifier_props = u.get_addon_find_modifier_props()
         addon_export_props = u.get_addon_export_props()
         
@@ -297,23 +295,6 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
             experimental_features_box = layout.box()
             experimental_features_box.prop(addon_props, "show_experimental_features", icon="TRIA_DOWN" if addon_props.show_experimental_features else "TRIA_RIGHT", emboss=False)
             if addon_props.show_experimental_features:
-                exp_edge_data_row = experimental_features_box.row()
-                exp_edge_data_row.prop(addon_experimental_props, "show_edge_data_ops", icon="TRIA_DOWN" if addon_experimental_props.show_edge_data_ops else "TRIA_RIGHT", emboss=False)
-                if addon_experimental_props.show_edge_data_ops:
-                    row = experimental_features_box.row()
-                    row.operator(SimpleToolbox_OT_EdgeDataToVertexColour.bl_idname, icon="GROUP_VCOL")
-                    row = experimental_features_box.row()
-                    row.label(text="Convert:")
-                    row = experimental_features_box.row(align=True)
-                    row.prop(addon_edge_data_props, "bevel_weights_to_vcol", toggle=True)
-                    row.prop(addon_edge_data_props, "crease_to_vcol", toggle=True)
-                    row = experimental_features_box.row()
-                    bweight_presets_box = row.box()
-                    row = bweight_presets_box.row()
-                    row.prop(addon_prefs, "edge_data_bweight_preset_grid_buttons_toggle", icon="MESH_GRID", text="")
-                    row.label(text=f"{'Bevel Weight Preset Grid' if addon_prefs.edge_data_bweight_preset_grid_buttons_toggle else 'Bevel Weight Preset List'}")
-                    u.draw_edge_bweights_presets_uilist(self.layout, context, edge_bweights_box=bweight_presets_box)
-
                 # Export
                 export_selection_box = experimental_features_box.box()
                 export_selection_box.label(text="Quick Export (FBX)")
@@ -338,7 +319,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
 
 class r0Tools_PT_SimpleToolboxEdgeDataOps(bpy.types.Panel):
     bl_idname = "OBJECT_PT_simple_toolbox_edge_data"
-    bl_label = f"Edge Data Ops ({VERSION_STR})"
+    bl_label = f"Edge Data Ops - {ADDON_NAME_BARE}"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Item"
@@ -353,31 +334,13 @@ class r0Tools_PT_SimpleToolboxEdgeDataOps(bpy.types.Panel):
         return addon_experimental_props
 
     def draw(self, context):
-        addon_prefs = u.get_addon_prefs()
-        addon_edge_data_props = u.get_addon_edge_data_props()
-
         layout = self.layout
-
-        row = layout.row()
-        row.operator(SimpleToolbox_OT_EdgeDataToVertexColour.bl_idname, icon="GROUP_VCOL")
-        row = layout.row()
-        row.label(text="Convert:")
-        row = layout.row(align=True)
-        row.prop(addon_edge_data_props, "bevel_weights_to_vcol", toggle=True)
-        row.prop(addon_edge_data_props, "crease_to_vcol", toggle=True)
-        row = layout.row()
-        bweight_presets_box = row.box()
-        row = bweight_presets_box.row()
-        row.prop(addon_prefs, "edge_data_bweight_preset_grid_buttons_toggle", icon="MESH_GRID", text="")
-        row.label(
-            text=f"{'Bevel Weight Preset Grid' if addon_prefs.edge_data_bweight_preset_grid_buttons_toggle else 'Bevel Weight Preset List'}"
-        )
-        u.draw_edge_bweights_presets_uilist(self.layout, context, edge_bweights_box=bweight_presets_box)
+        u.draw_edge_data_panel_ui(layout, context)
 
 
 class r0Tools_PT_SimpleToolboxQuickExportOps(bpy.types.Panel):
     bl_idname = "OBJECT_PT_simple_toolbox_quick_export_ops"
-    bl_label = f"Quick Export Ops ({VERSION_STR})"
+    bl_label = f"Quick Export Ops - {ADDON_NAME_BARE}"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Item"
@@ -420,13 +383,29 @@ class r0Tools_PT_SimpleToolboxQuickExportOps(bpy.types.Panel):
 # fmt: off
 classes = [
     r0Tools_PT_SimpleToolbox, 
-    r0Tools_PT_SimpleToolboxEdgeDataOps,
-    r0Tools_PT_SimpleToolboxQuickExportOps
+    # r0Tools_PT_SimpleToolboxEdgeDataOps,
+    # r0Tools_PT_SimpleToolboxQuickExportOps
 ]
 # fmt: on
 
+# fmt: off
+panel_attributions = {
+    r0Tools_PT_SimpleToolboxEdgeDataOps: {
+        "categories": [ADDON_CATEGORY, "Item"]
+    },
+    r0Tools_PT_SimpleToolboxQuickExportOps: {
+        "categories": [ADDON_CATEGORY, "Item"]
+    }
+}
+# fmt : on
 
 def register():
+    for panel_class, values in panel_attributions.items():
+        categories = values.get("categories")
+        for cat in categories:
+            variant = u.create_panel_variant(panel_class, category=cat)
+            classes.append(variant)
+
     for cls in classes:
         print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
@@ -439,5 +418,3 @@ def unregister():
     for cls in classes:
         print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
-
-    bpy.types.VIEW3D_PT_transform.remove(u.draw_bweights_in_transform_panel)
