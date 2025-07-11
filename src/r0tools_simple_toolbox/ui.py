@@ -41,9 +41,10 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
     def draw(self, context):
         addon_props = u.get_addon_props()
         addon_prefs = u.get_addon_prefs()
-        experimental_props = u.get_addon_experimental_props()
-        find_modifier_props = u.get_addon_find_modifier_props()
-        export_props = u.get_addon_export_props()
+        addon_experimental_props = u.get_addon_experimental_props()
+        addon_edge_data_props = u.get_addon_edge_data_props()
+        addon_find_modifier_props = u.get_addon_find_modifier_props()
+        addon_export_props = u.get_addon_export_props()
         
         layout = self.layout
 
@@ -119,9 +120,9 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                     row.template_list(
                     "R0PROP_UL_FindModifierObjectsList",
                     "",
-                    find_modifier_props.objects_list,  # Collection owner
+                    addon_find_modifier_props.objects_list,  # Collection owner
                     "found_objects",  # Collection property
-                    find_modifier_props.objects_list,  # Active item owner
+                    addon_find_modifier_props.objects_list,  # Active item owner
                     "active_index",  # Active item property
                     rows=10,
                     )
@@ -297,10 +298,15 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
             experimental_features_box.prop(addon_props, "show_experimental_features", icon="TRIA_DOWN" if addon_props.show_experimental_features else "TRIA_RIGHT", emboss=False)
             if addon_props.show_experimental_features:
                 exp_edge_data_row = experimental_features_box.row()
-                exp_edge_data_row.prop(experimental_props, "show_edge_data_ops", icon="TRIA_DOWN" if experimental_props.show_edge_data_ops else "TRIA_RIGHT", emboss=False)
-                if experimental_props.show_edge_data_ops:
+                exp_edge_data_row.prop(addon_experimental_props, "show_edge_data_ops", icon="TRIA_DOWN" if addon_experimental_props.show_edge_data_ops else "TRIA_RIGHT", emboss=False)
+                if addon_experimental_props.show_edge_data_ops:
                     row = experimental_features_box.row()
                     row.operator(SimpleToolbox_OT_EdgeDataToVertexColour.bl_idname, icon="GROUP_VCOL")
+                    row = experimental_features_box.row()
+                    row.label(text="Convert:")
+                    row = experimental_features_box.row(align=True)
+                    row.prop(addon_edge_data_props, "bevel_weights_to_vcol", toggle=True)
+                    row.prop(addon_edge_data_props, "crease_to_vcol", toggle=True)
                     row = experimental_features_box.row()
                     bweight_presets_box = row.box()
                     row = bweight_presets_box.row()
@@ -313,14 +319,14 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 export_selection_box.label(text="Quick Export (FBX)")
                 
                 export_selection_row = export_selection_box.row()
-                export_selection_row.prop(export_props, "mkdirs_if_not_exist")
+                export_selection_row.prop(addon_export_props, "mkdirs_if_not_exist")
 
                 export_selection_row = export_selection_box.row()
-                export_selection_row.prop(export_props, "export_path")
+                export_selection_row.prop(addon_export_props, "export_path")
                 export_selection_row.operator(SimpleToolbox_OT_SelectPath.bl_idname, text="", icon="FILE_FOLDER")
 
                 export_selection_row = export_selection_box.row()
-                export_selection_row.prop(export_props, "export_file_name")
+                export_selection_row.prop(addon_export_props, "export_file_name")
 
                 export_selection_row = export_selection_box.row()
                 export_selection_row.operator(SimpleToolbox_OT_ExportSelectedObjects.bl_idname, text="Export")
@@ -342,17 +348,23 @@ class r0Tools_PT_SimpleToolboxEdgeDataOps(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         addon_prefs = u.get_addon_prefs()
-        experimental_props = addon_prefs.experimental_features
+        addon_experimental_props = addon_prefs.experimental_features
 
-        return experimental_props
+        return addon_experimental_props
 
     def draw(self, context):
         addon_prefs = u.get_addon_prefs()
+        addon_edge_data_props = u.get_addon_edge_data_props()
 
         layout = self.layout
 
         row = layout.row()
         row.operator(SimpleToolbox_OT_EdgeDataToVertexColour.bl_idname, icon="GROUP_VCOL")
+        row = layout.row()
+        row.label(text="Convert:")
+        row = layout.row(align=True)
+        row.prop(addon_edge_data_props, "bevel_weights_to_vcol", toggle=True)
+        row.prop(addon_edge_data_props, "crease_to_vcol", toggle=True)
         row = layout.row()
         bweight_presets_box = row.box()
         row = bweight_presets_box.row()
@@ -375,9 +387,9 @@ class r0Tools_PT_SimpleToolboxQuickExportOps(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         addon_prefs = u.get_addon_prefs()
-        experimental_props = addon_prefs.experimental_features
+        addon_experimental_props = addon_prefs.experimental_features
 
-        return experimental_props
+        return addon_experimental_props
 
     def draw(self, context):
         export_props = u.get_addon_export_props()
