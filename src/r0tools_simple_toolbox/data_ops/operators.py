@@ -388,26 +388,22 @@ class SimpleToolbox_OT_SelectColourAttributeLayer(bpy.types.Operator):
                 bm = bmesh.new()
                 bm.from_mesh(mesh)
 
-            # Get Bevel/Crease Edge Attributes
-            edge_bevel_layer = u.bmesh_get_bevel_weight_edge_layer(bm)
-            crease_layer = u.bmesh_get_crease_layer(bm)
-
             # Set Bevel layer as active
             if self.select_bevel_layer:
-                vcol_bevel_attribute_layer = mesh.color_attributes.get(bevel_layer_name)
-                if edge_bevel_layer:
+                vcol_bevel_attribute_layer = mesh.color_attributes.get(bevel_layer_name, None)
+                if vcol_bevel_attribute_layer:
                     mesh.color_attributes.active_color = vcol_bevel_attribute_layer
-                # bpy.ops.geometry.color_attribute_render_set(name="Bevel")
+                    # bpy.ops.geometry.color_attribute_render_set(name="Bevel")
 
-                self.report({"INFO"}, "Selected Bevel Colour Attribute Layer")
+                    self.report({"INFO"}, "Selected Bevel Colour Attribute Layer")
 
             # Set Crease layer as active
             elif self.select_crease_layer:
-                vcol_crease_attribute_layer = mesh.color_attributes.get(crease_layer_name)
-                if crease_layer:
+                vcol_crease_attribute_layer = mesh.color_attributes.get(crease_layer_name, None)
+                if vcol_crease_attribute_layer:
                     mesh.color_attributes.active_color = vcol_crease_attribute_layer
 
-                self.report({"INFO"}, "Selected Crease Colour Attribute Layer")
+                    self.report({"INFO"}, "Selected Crease Colour Attribute Layer")
 
         return {"FINISHED"}
 
