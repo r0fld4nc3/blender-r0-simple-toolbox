@@ -186,7 +186,7 @@ def is_writing_context_safe(scene, check_addon_props: bool = False) -> bool:
         try:
             if hasattr(addon_object_sets_props.object_sets, "clear"):
                 _ = len(addon_object_sets_props.object_sets)
-        except (AttributeError, RuntimeError) as e:
+        except Exception as e:
             LOG(f"[ERROR] [{_mod}] Object Sets Property not accessible: {e}")
 
         # Vertex Groups
@@ -195,7 +195,7 @@ def is_writing_context_safe(scene, check_addon_props: bool = False) -> bool:
                 if addon_props.cat_show_vertex_groups_editor:
                     if hasattr(addon_vertex_groups_props.vertex_groups, "clear"):
                         _ = len(addon_vertex_groups_props.vertex_groups)
-        except (AttributeError, RuntimeError) as e:
+        except Exception as e:
             LOG(f"[ERROR] [{_mod}] Vertex Groups Property not accessible: {e}")
 
     if not hasattr(bpy.context, "selected_objects"):
