@@ -383,6 +383,9 @@ class SimpleToolbox_OT_SelectColourAttributeLayer(bpy.types.Operator):
         bevel_layer_name = addon_edge_data_props.vcol_bevel_layer_name
         crease_layer_name = addon_edge_data_props.vcol_crease_layer_name
 
+        bevel_objects_applied = 0
+        crease_objects_applied = 0
+
         for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
             mesh = obj.data
 
@@ -398,16 +401,20 @@ class SimpleToolbox_OT_SelectColourAttributeLayer(bpy.types.Operator):
                 if vcol_bevel_attribute_layer:
                     mesh.color_attributes.active_color = vcol_bevel_attribute_layer
                     # bpy.ops.geometry.color_attribute_render_set(name="Bevel")
-
-                    self.report({"INFO"}, "Selected Bevel Colour Attribute Layer")
+                    bevel_objects_applied += 1
 
             # Set Crease layer as active
             elif self.select_crease_layer:
                 vcol_crease_attribute_layer = mesh.color_attributes.get(crease_layer_name, None)
                 if vcol_crease_attribute_layer:
                     mesh.color_attributes.active_color = vcol_crease_attribute_layer
+                    crease_objects_applied += 1
 
-                    self.report({"INFO"}, "Selected Crease Colour Attribute Layer")
+        if self.select_bevel_layer:
+            self.report({"INFO"}, f"Selected Bevel Colour Attribute Layer for {bevel_objects_applied} Objects")
+
+        if self.select_crease_layer:
+            self.report({"INFO"}, f"Selected Crease Colour Attribute Layer for {crease_objects_applied} Objects")
 
         return {"FINISHED"}
 
