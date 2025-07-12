@@ -161,18 +161,22 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
                         # Grayscale
                         loop[crease_vcol_layer] = (crease_value, crease_value, crease_value, 1.0)
 
+            # Get selected vcol layer
+            selected_vcol_layer = mesh.color_attributes.active_color
+
+            if selected_vcol_layer and selected_vcol_layer.name not in [bevel_vcol_layer.name, crease_vcol_layer.name]:
+                # Set Bevel layer as active
+                if self.bevel_weights_to_vcol:
+                    bpy.ops.r0tools.select_vcol_layer(select_bevel_layer=True)
+                # Set Crease layer as active
+                elif self.crease_to_vcol:
+                    bpy.ops.r0tools.select_vcol_layer(select_crease_layer=True)
+
             if obj.mode == u.OBJECT_MODES.EDIT:
                 bmesh.update_edit_mesh(mesh)
             else:
                 bm.to_mesh(mesh)
                 bm.free()
-
-            # Set Bevel layer as active
-            if self.bevel_weights_to_vcol:
-                bpy.ops.r0tools.select_vcol_layer(select_bevel_layer=True)
-            # Set Crease layer as active
-            elif self.crease_to_vcol:
-                bpy.ops.r0tools.select_vcol_layer(select_crease_layer=True)
 
             total_processed += 1
             wm.progress_update(total_processed)
