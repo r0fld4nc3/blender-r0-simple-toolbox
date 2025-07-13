@@ -291,26 +291,11 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                     row = uv_island_checks_thresholds_box.row()
                     row.operator(SimpleToolbox_OT_UVCheckIslandThresholds.bl_idname)
 
-        if addon_prefs.experimental_features:
-            experimental_features_box = layout.box()
-            experimental_features_box.prop(addon_props, "show_experimental_features", icon="TRIA_DOWN" if addon_props.show_experimental_features else "TRIA_RIGHT", emboss=False)
-            if addon_props.show_experimental_features:
-                # Export
-                export_selection_box = experimental_features_box.box()
-                export_selection_box.label(text="Quick Export (FBX)")
-                
-                export_selection_row = export_selection_box.row()
-                export_selection_row.prop(addon_export_props, "mkdirs_if_not_exist")
-
-                export_selection_row = export_selection_box.row()
-                export_selection_row.prop(addon_export_props, "export_path")
-                export_selection_row.operator(SimpleToolbox_OT_SelectPath.bl_idname, text="", icon="FILE_FOLDER")
-
-                export_selection_row = export_selection_box.row()
-                export_selection_row.prop(addon_export_props, "export_file_name")
-
-                export_selection_row = export_selection_box.row()
-                export_selection_row.operator(SimpleToolbox_OT_ExportSelectedObjects.bl_idname, text="Export")
+        # if addon_prefs.experimental_features:
+            # experimental_features_box = layout.box()
+            # experimental_features_box.prop(addon_props, "show_experimental_features", icon="TRIA_DOWN" addon_props.show_experimental_features else "TRIA_RIGHT", emboss=False)
+            # if addon_props.show_experimental_features:
+                # ...
 
         # ====== Online Repository ======
         draw_repo_layout(layout, context)
@@ -323,7 +308,7 @@ class r0Tools_PT_SimpleToolboxEdgeDataOps(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Item"
-    # bl_options = {"DEFAULT_CLOSED"}
+    bl_options = {"DEFAULT_CLOSED"}
     has_update = False
 
     @classmethod
@@ -344,7 +329,7 @@ class r0Tools_PT_SimpleToolboxQuickExportOps(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Item"
-    # bl_options = {"DEFAULT_CLOSED"}
+    bl_options = {"DEFAULT_CLOSED"}
     has_update = False
 
     @classmethod
@@ -373,7 +358,8 @@ class r0Tools_PT_SimpleToolboxQuickExportOps(bpy.types.Panel):
         export_selection_row.prop(export_props, "export_file_name")
 
         export_selection_row = export_selection_box.row()
-        export_selection_row.operator(SimpleToolbox_OT_ExportSelectedObjects.bl_idname, text="Export")
+        export_selection_row.scale_y = 2
+        export_selection_row.operator(SimpleToolbox_OT_ExportSelectedObjects.bl_idname, text="Export FBX")
 
 
 # -------------------------------------------------------------------

@@ -105,6 +105,7 @@ def draw_edge_data_panel_ui(layout, context):
     addon_edge_data_props = get_addon_edge_data_props()
 
     row = layout.row()
+    row.scale_y = 2
     row.operator(SimpleToolbox_OT_EdgeDataToVertexColour.bl_idname, icon="GROUP_VCOL")
     row = layout.row()
     row.label(text="Convert:")
