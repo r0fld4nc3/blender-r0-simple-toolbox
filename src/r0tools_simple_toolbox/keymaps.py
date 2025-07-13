@@ -12,7 +12,7 @@ KEYMAP_CONFIGS = {
     SimpleToolbox_OT_ToggleWireDisplay.bl_idname: {
         "default_key": "FOUR",
         "keymap_name": "3D View",
-        "space_type": "VIEW_3D",  # Change to "EMPTY" if using "Object Mode" keymap_name
+        "space_type": "VIEW_3D",  # Change to "EMPTY" if using "Object Mode" keymap_name ; Change to "VIEW_3D" if using "3d View" keymap_name
         "region_type": "WINDOW",
         "value": "PRESS",
         "addon_pref_prop": "keymap_toggle_wire_display_mode",
@@ -20,7 +20,7 @@ KEYMAP_CONFIGS = {
     SimpleToolbox_OT_ObjectSetsModal.bl_idname: {
         "default_key": "ONE",
         "keymap_name": "3D View",
-        "space_type": "VIEW_3D",  # Change to "EMPTY" if using "Object Mode" keymap_name
+        "space_type": "VIEW_3D",  # Change to "EMPTY" if using "Object Mode" keymap_name ; Change to "VIEW_3D" if using "3d View" keymap_name
         "region_type": "WINDOW",
         "value": "PRESS",
         "addon_pref_prop": "keymap_object_sets_modal",
