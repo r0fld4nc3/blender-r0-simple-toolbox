@@ -18,7 +18,6 @@ modules = (
     ".addon_prefs",
     ".addon_properties",
     ".operators",
-    ".keymaps",
     ".menus",
     ".ui",
     ".utils",
@@ -30,6 +29,7 @@ modules = (
     ".repo.ui",
     ".data_ops",
     ".export_ops",
+    ".keymaps",
 )
 
 _mod = "__INIT__"
