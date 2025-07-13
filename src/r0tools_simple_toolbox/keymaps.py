@@ -3,22 +3,24 @@ import rna_keymap_ui
 from bpy.props import StringProperty
 
 from . import utils as u
+from .object_sets.operators import SimpleToolbox_OT_ObjectSetsModal
+from .operators import SimpleToolbox_OT_ToggleWireDisplay
 
 _mod = "KEYMAPS"
 
 KEYMAP_CONFIGS = {
-    "r0tools.toggle_wire_display_mode": {
+    SimpleToolbox_OT_ToggleWireDisplay.bl_idname: {
         "default_key": "FOUR",
-        "keymap_name": "Object Mode",
-        "space_type": "EMPTY",
+        "keymap_name": "3D View",
+        "space_type": "VIEW_3D",  # Change to "EMPTY" if using "Object Mode" keymap_name
         "region_type": "WINDOW",
         "value": "PRESS",
-        "addon_pref_prop": "keymap_toggle_wire",
+        "addon_pref_prop": "keymap_toggle_wire_display_mode",
     },
-    "r0tools.object_sets_modal": {
+    SimpleToolbox_OT_ObjectSetsModal.bl_idname: {
         "default_key": "ONE",
-        "keymap_name": "Object Mode",
-        "space_type": "EMPTY",
+        "keymap_name": "3D View",
+        "space_type": "VIEW_3D",  # Change to "EMPTY" if using "Object Mode" keymap_name
         "region_type": "WINDOW",
         "value": "PRESS",
         "addon_pref_prop": "keymap_object_sets_modal",
@@ -115,12 +117,19 @@ class SimpleToolbox_OT_Restore_Keymap(bpy.types.Operator):
         wm = context.window_manager
         kc = wm.keyconfigs.addon  # Use addon keyconfig to restore
 
-        # Find existing keymap
+        # Get or create keymap
         km = None
         for keymap in kc.keymaps:
-            if keymap.name == cfg["keymap_name"]:
+            if (
+                keymap.name == cfg["keymap_name"]
+                and keymap.space_type == cfg["space_type"]
+                and keymap.region_type == cfg["region_type"]
+            ):
                 km = keymap
                 break
+
+        if not km:
+            km = kc.keymaps.new(name=cfg["keymap_name"], space_type=cfg["space_type"], region_type=cfg["region_type"])
 
         if km:
             # Get key from preferences or use default
@@ -150,17 +159,21 @@ def register_keymaps():
 
     for op_id, cfg in KEYMAP_CONFIGS.items():
         keymap_name = cfg["keymap_name"]
+        space_type = cfg["space_type"]
+        region_type = cfg["region_type"]
 
         # Find the existing keymap. Don't create a new one!
         km = None
         for keymap in kc.keymaps:
-            if keymap.name == keymap_name:
+            if keymap.name == keymap_name and keymap.space_type == space_type and keymap.region_type == region_type:
                 km = keymap
                 break
 
         if not km:
             print(f"[WARNING] [{_mod}] Keymap '{keymap_name}' not found")
-            continue
+            # Create new keymap if it doesn't exist
+            km = kc.keymaps.new(name=keymap_name, space_type=space_type, region_type=region_type)
+            print(f"[INFO] [{_mod}] Created new keymap '{keymap_name}'")
 
         # Check if keymap item already exists
         existing_kmi = get_hotkey_entry_item(km, op_id)
