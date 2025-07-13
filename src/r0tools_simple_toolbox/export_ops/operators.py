@@ -9,39 +9,75 @@ _mod = "EXPORT.OPERATORS"
 
 
 class SimpleToolbox_OT_SelectPath(bpy.types.Operator):
-    bl_idname = "r0tools.select_path"
-    bl_label = "Select Directory Path"
+    bl_idname = "r0tools.select_quick_export_path"
+    bl_label = "Select"
     bl_description = "Open file browser to select a directory path"
 
-    filepath: StringProperty(name="Path", description="Path to a directory", subtype="DIR_PATH")  # type: ignore
+    filepath: StringProperty(name="Path", description="Path to a directory", subtype="FILE_PATH", default="Untitled.fbx")  # type: ignore
+
+    filename_ext = ".fbx"
+
+    file_extension: StringProperty(
+        name="Extension", description="File extension to use", default=".fbx", options={"HIDDEN"}
+    )  # type: ignore
+
+    filter_glob: StringProperty(default=f"*.fbx", options={"HIDDEN"})  # type: ignore
+
+    # Properties to store the separated path and filename
+    directory: StringProperty(
+        name="Directory", description="Directory path without filename", options={"SKIP_SAVE"}
+    )  # type: ignore
+
+    def check(self, context):
+        """Called when filename changes in the file browser"""
+        change = False
+        filepath = Path(self.filepath)
+
+        if not filepath.suffix or filepath.suffix.lower() != self.file_extension.lower():
+            self.filepath = str(filepath.with_suffix(self.file_extension))
+            change = True
+
+        return change
 
     def invoke(self, context, event):
+        self.filter_glob = f"*{self.file_extension}"
+
+        self.filename_ext = self.file_extension
+
+        addon_export_props = u.get_addon_export_props()
+
+        if hasattr(addon_export_props, "export_path"):
+            self.filepath = addon_export_props.export_path
+
         # Open the file browser, configured to use the 'filepath' property to store the result
         context.window_manager.fileselect_add(self)
 
         return {"RUNNING_MODAL"}
 
     def execute(self, context):
-        export_props = u.get_addon_export_props()
+        addon_export_props = u.get_addon_export_props()
 
         filepath = Path(self.filepath)
 
-        if filepath.exists():
-            if filepath.is_file():
-                filepath = filepath.parent
-        else:
-            # Let's do .parent until filepath exists or reaches top
-            while True:
-                filepath = filepath.parent
+        # Ensure correct extension
+        if not filepath.suffix:
+            filepath = filepath.with_suffix(self.file_extension)
+        elif filepath.suffix != self.file_extension:
+            filepath = filepath.with_suffix(self.file_extension)
 
-                if filepath.exists():
-                    break
+        # Validate directory exists or find closest existing parent
+        directory_path = filepath.parent
+        if not directory_path.exists():
+            while not directory_path.exists() and directory_path != directory_path.parent:
+                directory_path = directory_path.parent
 
-            self.report({"WARNING"}, "Path differs from original")
+            if directory_path.exists():
+                self.directory = str(directory_path)
+                self.report({"WARNING"}, f"Adjusted directory to: {directory_path}")
 
-        filepath_str = str(filepath)
+        addon_export_props.export_path = str(filepath)
 
-        export_props.export_path = filepath_str
+        self.report({"INFO"}, f"Selected: {self.filepath}")
 
         return {"FINISHED"}
 
@@ -53,7 +89,6 @@ class SimpleToolbox_OT_ExportSelectedObjects(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     export_path: StringProperty(name="")  # type: ignore
-    export_name: StringProperty(name="")  # type: ignore
     mkdirs_if_not_exist: BoolProperty(name="Create sub-paths", description="If chosen path does not exist in the filesystem, create the full path including sub-directories", default=False)  # type: ignore
 
     @classmethod
@@ -61,43 +96,36 @@ class SimpleToolbox_OT_ExportSelectedObjects(bpy.types.Operator):
         return context.mode == u.OBJECT_MODES.OBJECT and len(u.get_object_sets()) > 0
 
     def execute(self, context):
-        export_props = u.get_addon_export_props()
+        addon_export_props = u.get_addon_export_props()
 
-        export_path = export_props.export_path if not self.export_path else self.export_path
-        export_name = export_props.export_file_name if not self.export_name else self.export_name
-        mkdirs = export_props.mkdirs_if_not_exist if not self.mkdirs_if_not_exist else self.mkdirs_if_not_exist
+        export_path = addon_export_props.export_path if not self.export_path else self.export_path
+        mkdirs = self.mkdirs_if_not_exist or addon_export_props.mkdirs_if_not_exist
 
         if not export_path:
             self.report({"WARNING"}, "No export path defined")
             return {"CANCELLED"}
 
-        if not export_name:
-            self.report({"WARNING"}, "No export file name defined")
-            return {"CANCELLED"}
-
         export_path = Path(export_path)
 
-        if mkdirs:
-            export_path.mkdir(parents=True, exist_ok=True)
+        # Ensure .fbx extension
+        # TODO: Remove hardcoded extension
+        if not export_path.suffix:
+            export_path = export_path.with_suffix(".fbx")
+        elif export_path.suffix.lower() != ".fbx":
+            export_path = export_path.with_suffix(".fbx")
 
-        if not export_path.exists():
-            self.report({"WARNING"}, "Export path does not exist")
-            return {"CANCELLED"}
-
-        if not export_path.is_dir():
-            self.report({"WARNING"}, "Export path is not a directory")
-            return {"CANCELLED"}
-
-        if str(export_name).lower().endswith("."):
-            export_name = f"{export_name}fbx"
-
-        if not str(export_name).lower().endswith(".fbx"):
-            export_name = f"{export_name}.fbx"
-
-        export_path_file = export_path / export_name
+        # Create path if it doesn't exist
+        directory = export_path.parent
+        if not directory.exists():
+            if mkdirs:
+                directory.mkdir(parents=True, exist_ok=True)
+                self.report({"INFO"}, f"Created directories: {directory}")
+            else:
+                self.report({"ERROR"}, f"Export directory does not exist: {directory}")
+                return {"CANCELLED"}
 
         bpy.ops.export_scene.fbx(
-            filepath=str(export_path_file),
+            filepath=str(export_path),
             check_existing=False,
             filter_glob="*.fbx",
             use_selection=True,

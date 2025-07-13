@@ -20,12 +20,7 @@ class r0SimpleToolboxExportProps(bpy.types.PropertyGroup):
 
     export_path: StringProperty(
         name="Path",
-        description="Filesystem path to export to",
-    )  # type: ignore
-
-    export_file_name: StringProperty(
-        name="File Name",
-        description="Name to set the exported file to",
+        description="Full filepath of file to be exported",
     )  # type: ignore
 
 

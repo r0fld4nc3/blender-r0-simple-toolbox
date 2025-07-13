@@ -351,13 +351,11 @@ class r0Tools_PT_SimpleToolboxQuickExportOps(bpy.types.Panel):
         export_selection_row.prop(export_props, "mkdirs_if_not_exist")
 
         export_selection_row = export_selection_box.row()
-        export_selection_row.prop(export_props, "export_path")
+        export_selection_row.prop(export_props, "export_path", text="")
         export_selection_row.operator(SimpleToolbox_OT_SelectPath.bl_idname, text="", icon="FILE_FOLDER")
 
         export_selection_row = export_selection_box.row()
-        export_selection_row.prop(export_props, "export_file_name")
-
-        export_selection_row = export_selection_box.row()
+        export_selection_row.alert = True
         export_selection_row.scale_y = 2
         export_selection_row.operator(SimpleToolbox_OT_ExportSelectedObjects.bl_idname, text="Export FBX")
 
