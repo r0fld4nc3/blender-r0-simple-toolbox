@@ -228,7 +228,9 @@ class SimpleToolbox_OT_MoveObjectSetItem(bpy.types.Operator):
     def execute(self, context):
         active_index = get_active_object_set_index()
         object_sets = get_object_sets()
-        separator = get_object_set_at_index(active_index).separator
+        # separator = get_object_set_at_index(active_index).separator
+
+        to_index = active_index
 
         if self.direction == "UP":
             if active_index > 0:
