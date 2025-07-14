@@ -15,6 +15,7 @@ from .edge_data import (  # isort: skip
     draw_edge_data_panel_ui,
     initialize_bweight_presets,
 )
+from .boxcutter import get_boxcutter_props, boxcutter_running  # isort: skip
 # fmt: on
 
 package = __name__
@@ -29,6 +30,7 @@ submodules = [
     "general",
     "defer",
     "edge_data"
+    "boxcutter",
 ]
 # fmt: on
 _module_objects = []
