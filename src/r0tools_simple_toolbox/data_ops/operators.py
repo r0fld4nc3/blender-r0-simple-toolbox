@@ -94,6 +94,9 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
             edge_bevel_layer = u.bmesh_get_bevel_weight_edge_layer(bm)
             crease_layer = u.bmesh_get_crease_layer(bm)
 
+            bevel_vcol_layer = None
+            crease_vcol_layer = None
+
             # Create or get vertex color layers in bmesh
             if self.bevel_weights_to_vcol:
                 bevel_vcol_layer = bm.loops.layers.color.get(vcol_bevel_layer_name)
@@ -164,7 +167,14 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
             # Get selected vcol layer
             selected_vcol_layer = mesh.color_attributes.active_color
 
-            if selected_vcol_layer and selected_vcol_layer.name not in [bevel_vcol_layer.name, crease_vcol_layer.name]:
+            # Valid layer names comparison list
+            comparison_names = []
+            if bevel_vcol_layer:
+                comparison_names.append(bevel_vcol_layer.name)
+            if crease_vcol_layer:
+                comparison_names.append(crease_vcol_layer.name)
+
+            if selected_vcol_layer and selected_vcol_layer.name not in comparison_names:
                 # Set Bevel layer as active
                 if self.bevel_weights_to_vcol:
                     bpy.ops.r0tools.select_vcol_layer(select_bevel_layer=True)
