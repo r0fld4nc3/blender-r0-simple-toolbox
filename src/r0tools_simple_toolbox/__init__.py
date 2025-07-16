@@ -3,7 +3,7 @@ bl_info = {
     "author": "Artur Rosário",
     "version": (0, 0, 32),
     "blender": (4, 2, 5),
-    "location": "3D View > Tool",
+    "location": "3D View > Simple Toolbox",
     "description": "Miscellaneous Utilities",
     "warning": "",
     "doc_url": "",
