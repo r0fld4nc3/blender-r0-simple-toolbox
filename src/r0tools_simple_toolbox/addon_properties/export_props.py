@@ -124,12 +124,14 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
                             is_selected = obj_set.name in selected_names
                             icon = "CHECKBOX_HLT" if is_selected else "CHECKBOX_DEHLT"
 
-                            # Use an operator to toggle selection
+                            # Toggle selection with purpose-built Operator
                             op = set_row.operator(
                                 SimpleToolbox_OT_ToggleObjectSetSelection.bl_idname, text="", icon=icon
                             )
                             op.export_set_index = index
                             op.object_set_name = obj_set.name
+
+                            set_row.separator(factor=1.0)
 
                             set_row.label(text=obj_set.name)
                 else:
