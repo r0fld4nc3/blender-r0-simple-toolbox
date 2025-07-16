@@ -3,10 +3,7 @@ import bpy
 from . import ext_update as upd
 from . import utils as u
 from .defines import ADDON_CATEGORY, ADDON_NAME, ADDON_NAME_BARE, VERSION_STR
-from .export_ops import (
-    SimpleToolbox_OT_ExportSelectedObjects,
-    SimpleToolbox_OT_SelectPath,
-)
+from .export_ops import SimpleToolbox_OT_ExportObjects, SimpleToolbox_OT_SelectPath
 from .operators import *
 from .repo import draw_repo_layout
 
