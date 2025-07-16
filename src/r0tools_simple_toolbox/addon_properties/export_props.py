@@ -66,8 +66,9 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
         )
 
         if self.layout_type in {"DEFAULT", "COMPACT"}:
-            # Use column for vertical stacking instead of box()
-            col = layout.column(align=True)
+            # Use column for vertical stacking
+            box = layout.box()
+            col = box.column(align=True)
 
             # First row
             header_row = col.row(align=True)
@@ -76,6 +77,8 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
             header_row.prop(
                 item, "use_object_sets", text="", icon="MESH_CUBE" if item.use_object_sets else "RESTRICT_SELECT_OFF"
             )
+
+            header_row.separator(factor=1)
 
             if item.export_set_name:
                 header_row.prop(item, "export_set_name", text="", emboss=False)
@@ -101,6 +104,7 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
                     object_sets_row.prop(
                         item,
                         "object_sets_expanded",
+                        text="",
                         icon="TRIA_DOWN" if item.object_sets_expanded else "TRIA_RIGHT",
                         emboss=False,
                     )
@@ -137,6 +141,8 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
 
             # Export button (in a sub-row)
             export_sub_row = path_row.row(align=True)
+            export_sub_row.scale_x = 1.2
+            export_sub_row.alert = True
 
             # Button state based on context selection
             if item.use_object_sets:
@@ -160,8 +166,8 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
             op = path_row.operator(SimpleToolbox_OT_SelectPath.bl_idname, text="", icon="FILE_FOLDER")
             op.index = index
 
-            # Separator between items
-            col.separator(factor=0.5)
+            # Add spacing between items
+            col.separator(factor=4.0)
 
         elif self.layout_type in {"GRID"}:
             layout.alignment = "CENTER"
