@@ -4,6 +4,7 @@ import bpy
 from bpy.props import BoolProperty, FloatVectorProperty, IntProperty, StringProperty
 
 from .. import utils as u
+from .export_ops import *
 
 _mod = "EXPORT.OPERATORS"
 
@@ -23,9 +24,13 @@ class SimpleToolbox_OT_SelectPath(bpy.types.Operator):
 
     filter_glob: StringProperty(default=f"*.fbx", options={"HIDDEN"})  # type: ignore
 
-    # Properties to store the separated path and filename
     directory: StringProperty(
         name="Directory", description="Directory path without filename", options={"SKIP_SAVE"}
+    )  # type: ignore
+
+    # Where to apply the data
+    index: IntProperty(
+        name="Export Set Index", description="Index of the export set to update", default=0, options={"HIDDEN"}
     )  # type: ignore
 
     def check(self, context):
@@ -41,13 +46,15 @@ class SimpleToolbox_OT_SelectPath(bpy.types.Operator):
 
     def invoke(self, context, event):
         self.filter_glob = f"*{self.file_extension}"
-
         self.filename_ext = self.file_extension
 
         addon_export_props = u.get_addon_export_props()
 
-        if hasattr(addon_export_props, "export_path"):
-            self.filepath = addon_export_props.export_path
+        # Get the current export set path if it exists
+        if 0 <= self.index < len(addon_export_props.export_sets):
+            current_path = addon_export_props.export_sets[self.index].export_path
+            if current_path:
+                self.filepath = current_path
 
         # Open the file browser, configured to use the 'filepath' property to store the result
         context.window_manager.fileselect_add(self)
@@ -56,6 +63,11 @@ class SimpleToolbox_OT_SelectPath(bpy.types.Operator):
 
     def execute(self, context):
         addon_export_props = u.get_addon_export_props()
+
+        # Index valid?
+        if not (0 <= self.index < len(addon_export_props.export_sets)):
+            self.report({"ERROR"}, "Invalid export set index")
+            return {"CANCELLED"}
 
         filepath = Path(self.filepath)
 
@@ -75,9 +87,71 @@ class SimpleToolbox_OT_SelectPath(bpy.types.Operator):
                 self.directory = str(directory_path)
                 self.report({"WARNING"}, f"Adjusted directory to: {directory_path}")
 
-        addon_export_props.export_path = str(filepath)
+        addon_export_props.export_sets[self.index].export_path = str(filepath)
 
-        self.report({"INFO"}, f"Selected: {self.filepath}")
+        self.report(
+            {"INFO"}, f"Set export path for '{addon_export_props.export_sets[self.index].export_set_name}': {filepath}"
+        )
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_AddExportSet(bpy.types.Operator):
+    bl_label = "Add"
+    bl_idname = "r0tools.export_sets_add"
+    bl_description = "Add a new Export Set entry"
+    bl_options = {"REGISTER"}
+
+    def execute(self, context):
+        addon_export_props = u.get_addon_export_props()
+
+        new_set = get_export_sets().add()
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_RemoveExportSet(bpy.types.Operator):
+    bl_label = "Remove"
+    bl_idname = "r0tools.export_sets_remove"
+    bl_description = "Removes an Export Set entry"
+    bl_options = {"REGISTER"}
+
+    def execute(self, context):
+        index = get_active_export_set_index()
+
+        if 0 <= index < get_export_sets_count():
+            remove_export_set_at_index(index)
+            set_active_export_set_index(max(0, index - 1))
+            self.report({"INFO"}, f"Removed Export Set: {index}")
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_RenameExportSet(bpy.types.Operator):
+    bl_label = "Rename"
+    bl_idname = "r0tools.rename_export_set"
+    bl_description = "Rename the selected Export Set entry"
+
+    new_name: StringProperty(name="New Object Set Name", default="")  # type: ignore
+
+    def invoke(self, context, event):
+        index = get_active_export_set_index()
+
+        if 0 <= index < get_export_sets_count():
+            export_set = get_export_set_at_index(index)
+            self.new_name = export_set.name
+
+        return context.window_manager.invoke_props_dialog(self)
+
+    def execute(self, context):
+        index = get_active_export_set_index()
+
+        if 0 <= index < get_export_sets_count():
+            export_set = get_export_set_at_index(index)
+            old_name = export_set.name
+            success = set_export_set_name(export_set, self.new_name)
+            if success:
+                self.report({"INFO"}, f"Renamed '{old_name}' to '{self.new_name}'")
 
         return {"FINISHED"}
 
@@ -85,8 +159,8 @@ class SimpleToolbox_OT_SelectPath(bpy.types.Operator):
 class SimpleToolbox_OT_ExportSelectedObjects(bpy.types.Operator):
     bl_label = "Export Selection"
     bl_idname = "r0tools.export_selected_objects"
-    bl_description = "Remove the selected Object Set entry"
-    bl_options = {"REGISTER", "UNDO"}
+    bl_description = "Export Selection"
+    bl_options = {"REGISTER"}
 
     export_path: StringProperty(name="")  # type: ignore
     mkdirs_if_not_exist: BoolProperty(name="Create sub-paths", description="If chosen path does not exist in the filesystem, create the full path including sub-directories", default=False)  # type: ignore
@@ -179,6 +253,9 @@ class SimpleToolbox_OT_ExportSelectedObjects(bpy.types.Operator):
 # fmt: off
 classes = [
     SimpleToolbox_OT_SelectPath,
+    SimpleToolbox_OT_AddExportSet,
+    SimpleToolbox_OT_RemoveExportSet,
+    SimpleToolbox_OT_RenameExportSet,
     SimpleToolbox_OT_ExportSelectedObjects,
 ]
 # fmt: on
