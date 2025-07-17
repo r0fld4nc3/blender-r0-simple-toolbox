@@ -66,6 +66,9 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
         )
 
         left_padding_factor = 0.03
+        path_row_height_scale = 1.2
+        entry_separation_factor = 2.0
+        export_button_width_scale = 1.5
 
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             # Use column for vertical stacking
@@ -89,7 +92,7 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
 
             # Second row
             path_row = col.row(align=True)
-            path_row.scale_y = 1.2
+            path_row.scale_y = path_row_height_scale
 
             split = path_row.split(factor=left_padding_factor)
             split.label(text="")
@@ -98,7 +101,7 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
 
             # Export button (in a sub-row) so we can have red button
             export_sub_row = right_row.row(align=True)
-            export_sub_row.scale_x = 1.5
+            export_sub_row.scale_x = export_button_width_scale
             export_sub_row.alert = True
 
             export_op = export_sub_row.operator(SimpleToolbox_OT_ExportObjects.bl_idname, text="", icon="EXPORT")
@@ -153,7 +156,7 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
                     if item.object_sets_expanded:
                         # Box for object sets with same indentation
                         box_row = col.row()
-                        box_split = box_row.split(factor=0.05)  # Same indent as above
+                        box_split = box_row.split(factor=left_padding_factor)
                         box_split.label(text="")
 
                         object_sets_box = box_split.box()
@@ -172,7 +175,7 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
 
                             # Toggle selection with purpose-built Operator
                             op = set_row.operator(
-                                SimpleToolbox_OT_ToggleObjectSetSelection.bl_idname, text="", icon=icon
+                                SimpleToolbox_OT_ToggleObjectSetSelection.bl_idname, text="", icon=icon, emboss=False
                             )
                             op.export_set_index = index
                             op.object_set_name = obj_set.name
@@ -183,7 +186,7 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
                 else:
                     # Also indent the "No Object Sets" message
                     no_sets_row = col.row()
-                    split = no_sets_row.split(factor=0.05)
+                    split = no_sets_row.split(factor=left_padding_factor)
                     split.label(text="")
                     split.label(text="No Object Sets available", icon="INFO")
 
@@ -195,7 +198,7 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
                 export_sub_row.enabled = len(u.get_selected_objects()) > 0 and bool(item.export_path)
 
             # Add spacing between items
-            col.separator(factor=4.0)
+            col.separator(factor=entry_separation_factor)
 
         elif self.layout_type in {"GRID"}:
             layout.alignment = "CENTER"
