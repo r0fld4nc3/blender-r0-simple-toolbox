@@ -108,7 +108,16 @@ def draw_quick_export_sets_uilist(layout, context):
         print(f"[WARNING] [{_mod}] Export Sets Draw UIList: Unsafe Context.")
         return None
 
+    addon_prefs = u.get_addon_prefs()
     addon_export_props = u.get_addon_export_props()
+
+    # Export Sets Row Number Slider
+    row = layout.row()
+    split = row.split(factor=0.35)
+    col = split.column()
+    col.prop(addon_prefs, "export_sets_list_rows", text="Rows:")
+    col = split.column()
+    col.separator()
 
     row = layout.row()
     split = row.split(factor=0.92)  # Affects right side button width
@@ -124,8 +133,7 @@ def draw_quick_export_sets_uilist(layout, context):
         "export_sets",
         addon_export_props,
         "active_index",
-        rows=3,
-        maxrows=6,
+        rows=addon_prefs.export_sets_list_rows,
     )
 
     # Right side - Buttons

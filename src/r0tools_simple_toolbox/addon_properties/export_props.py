@@ -73,18 +73,22 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
             # First row
             header_row = col.row(align=True)
 
+            split_header_row = header_row.split(factor=0.1)  # Adjust factor to control spacing
+
+            # Left Side
             # Use Object Sets
-            header_row.prop(
+            left = split_header_row.row()
+            left.prop(
                 item, "use_object_sets", text="", icon="MESH_CUBE" if item.use_object_sets else "RESTRICT_SELECT_OFF"
             )
 
-            header_row.separator(factor=1)
-
+            # Right Side
+            right = split_header_row.row()
             if item.export_set_name:
-                header_row.prop(item, "export_set_name", text="", emboss=False)
+                right.prop(item, "export_set_name", text="", emboss=False)
             else:
                 # Show placeholder text when name is empty
-                header_row.prop(
+                right.prop(
                     item,
                     "export_set_name",
                     text="",
@@ -105,7 +109,7 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
                         item,
                         "object_sets_expanded",
                         text="",
-                        icon="TRIA_DOWN" if item.object_sets_expanded else "TRIA_RIGHT",
+                        icon="RADIOBUT_ON" if item.object_sets_expanded else "RADIOBUT_OFF",
                         emboss=False,
                     )
 

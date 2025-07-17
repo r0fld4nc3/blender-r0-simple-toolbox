@@ -99,6 +99,11 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
     keymap_object_sets_modal: StringProperty(name="Object Sets Modal Key", default="ONE")  # type: ignore
 
+    ###################
+    ### EXPORT SETS ###
+    ###################
+    export_sets_list_rows: IntProperty(name="Export Sets List Rows", default=6, min=1)  # type: ignore
+
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = False
