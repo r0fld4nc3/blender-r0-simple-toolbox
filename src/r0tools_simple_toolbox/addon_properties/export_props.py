@@ -108,7 +108,7 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
                     object_sets_row.prop(
                         item,
                         "object_sets_expanded",
-                        text="",
+                        text="Choose Object Sets",
                         icon="RADIOBUT_ON" if item.object_sets_expanded else "RADIOBUT_OFF",
                         emboss=False,
                     )
