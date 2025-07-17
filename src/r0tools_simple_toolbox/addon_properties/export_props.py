@@ -41,8 +41,8 @@ class r0SimpleToolbox_PG_ExportEntryItem(bpy.types.PropertyGroup):
     )  # type: ignore
 
     object_sets_expanded: BoolProperty(
-        name="Object Sets",
-        description="",
+        name="Toggle Object Sets List",
+        description="Toggles a list to check which Object Sets to use for export",
         default=False,
     )  # type: ignore
 
