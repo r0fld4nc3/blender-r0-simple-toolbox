@@ -18,17 +18,16 @@ def handler_depsgraph_post_update(scene, depsgraph):
             u.LOG(f"[INFO] [{_mod}] Avoided an addon write lock.")
             return None
 
-        if u.object_count_changed():
-            if not boxcutter_running:
-                u.timer_manager.schedule(u.cleanup_object_set_invalid_references_o1, delay=0, min_interval=0.1)
-
         if not boxcutter_running:
+            if u.object_count_changed():
+                # u.timer_manager.schedule(u.cleanup_object_set_invalid_references_o1, delay=0, min_interval=0.1)
+                u.cleanup_object_set_invalid_references_o1()
+
             u.timer_manager.schedule(u.object_sets_update_mesh_stats, delay=0.5, min_interval=1)
 
-        if not boxcutter_running:
-            u.timer_manager.schedule(u.vertex_groups_list_update, delay=0, min_interval=0.05)
+            # u.timer_manager.schedule(u.vertex_groups_list_update, delay=0, min_interval=0.05)
+            u.vertex_groups_list_update()
 
-        if not boxcutter_running:
             u.property_list_update()
 
     if not boxcutter_running:
