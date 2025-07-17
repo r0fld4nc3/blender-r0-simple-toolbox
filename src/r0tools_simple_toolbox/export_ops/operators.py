@@ -113,7 +113,7 @@ class SimpleToolbox_OT_AddExportSet(bpy.types.Operator):
 class SimpleToolbox_OT_RemoveExportSet(bpy.types.Operator):
     bl_label = "Remove"
     bl_idname = "r0tools.export_sets_remove"
-    bl_description = "Removes an Export Set entry"
+    bl_description = "Remove selected Export Set entry"
     bl_options = {"REGISTER"}
 
     def execute(self, context):

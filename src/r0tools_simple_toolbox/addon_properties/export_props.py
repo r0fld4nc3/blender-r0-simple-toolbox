@@ -65,38 +65,64 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
             SimpleToolbox_OT_ToggleObjectSetSelection,
         )
 
+        left_padding_factor = 0.03
+
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             # Use column for vertical stacking
-            box = layout.box()
-            col = box.column(align=True)
+            # box = layout.box()
+            col = layout.column(align=True)
 
             # First row
             header_row = col.row(align=True)
-
-            split_header_row = header_row.split(factor=0.1)  # Adjust factor to control spacing
-
-            # Left Side
-            # Use Object Sets
-            left = split_header_row.row()
-            left.prop(
-                item, "use_object_sets", text="", icon="MESH_CUBE" if item.use_object_sets else "RESTRICT_SELECT_OFF"
-            )
-
-            # Right Side
-            right = split_header_row.row()
             if item.export_set_name:
-                right.prop(item, "export_set_name", text="", emboss=False)
+                header_row.prop(item, "export_set_name", text="", icon="PINNED", emboss=False)
             else:
                 # Show placeholder text when name is empty
-                right.prop(
+                header_row.prop(
                     item,
                     "export_set_name",
                     text="",
+                    icon="PINNED",
                     emboss=False,
                     placeholder=f"Export Set {index + 1}",
                 )
 
+            # Second row
+            path_row = col.row(align=True)
+            path_row.scale_y = 1.2
+
+            split = path_row.split(factor=left_padding_factor)
+            split.label(text="")
+
+            right_row = split.row(align=True)
+
+            # Export button (in a sub-row) so we can have red button
+            export_sub_row = right_row.row(align=True)
+            export_sub_row.scale_x = 1.5
+            export_sub_row.alert = True
+
+            export_op = export_sub_row.operator(SimpleToolbox_OT_ExportObjects.bl_idname, text="", icon="EXPORT")
+            export_op.export_path = item.export_path
+            export_op.mkdirs_if_not_exist = data.mkdirs_if_not_exist
+
+            if item.use_object_sets:
+                selected_object_sets = item.get_selected_object_sets()
+                export_op.object_set_names = ", ".join(selected_object_sets)
+            else:
+                export_op.object_set_names = ""
+
+            # Path and Select
+            right_row.prop(item, "export_path", text="")
+            op = right_row.operator(SimpleToolbox_OT_SelectPath.bl_idname, text="", icon="FILE_FOLDER")
+            op.index = index
+
+            # Use Object Sets button
+            right_row.prop(
+                item, "use_object_sets", text="", icon="MESH_CUBE" if item.use_object_sets else "RESTRICT_SELECT_OFF"
+            )
+
             # Object Sets Row
+            object_sets_row = layout.row()
             if item.use_object_sets:
                 available_sets = u.get_object_sets()
 
@@ -105,16 +131,32 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
 
                     object_sets_row = col.row()
 
-                    object_sets_row.prop(
+                    # Create Left Spacer to following indentation
+                    split = object_sets_row.split(factor=left_padding_factor)
+                    split.label(text="")  # Empty left margin
+
+                    # Sub-row left align contents
+                    right_side = split.row(align=True)
+                    right_side.alignment = "LEFT"
+
+                    right_side.prop(
                         item,
                         "object_sets_expanded",
                         text="Choose Object Sets",
-                        icon="RADIOBUT_ON" if item.object_sets_expanded else "RADIOBUT_OFF",
+                        icon="TRIA_DOWN" if item.object_sets_expanded else "TRIA_RIGHT",
                         emboss=False,
                     )
 
+                    # Empty space to push contents to left
+                    right_side.label(text="")
+
                     if item.object_sets_expanded:
-                        object_sets_box = col.box()
+                        # Box for object sets with same indentation
+                        box_row = col.row()
+                        box_split = box_row.split(factor=0.05)  # Same indent as above
+                        box_split.label(text="")
+
+                        object_sets_box = box_split.box()
                         object_sets_col = object_sets_box.column(align=True)
 
                         # Draw each available object set
@@ -139,16 +181,11 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
 
                             set_row.label(text=obj_set.name)
                 else:
-                    col.label(text="No Object Sets available", icon="INFO")
-
-            # Second row
-            path_row = col.row(align=True)
-            path_row.scale_y = 1.2
-
-            # Export button (in a sub-row)
-            export_sub_row = path_row.row(align=True)
-            export_sub_row.scale_x = 1.2
-            export_sub_row.alert = True
+                    # Also indent the "No Object Sets" message
+                    no_sets_row = col.row()
+                    split = no_sets_row.split(factor=0.05)
+                    split.label(text="")
+                    split.label(text="No Object Sets available", icon="INFO")
 
             # Button state based on context selection
             if item.use_object_sets:
@@ -156,21 +193,6 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
                 export_sub_row.enabled = bool(selected_sets) and bool(item.export_path)
             else:
                 export_sub_row.enabled = len(u.get_selected_objects()) > 0 and bool(item.export_path)
-
-            export_op = export_sub_row.operator(SimpleToolbox_OT_ExportObjects.bl_idname, text="", icon="EXPORT")
-            export_op.export_path = item.export_path
-            export_op.mkdirs_if_not_exist = data.mkdirs_if_not_exist
-
-            if item.use_object_sets:
-                selected_object_sets = item.get_selected_object_sets()
-                export_op.object_set_names = ", ".join(selected_object_sets)
-            else:
-                export_op.object_set_names = ""
-
-            # Path and Select
-            path_row.prop(item, "export_path", text="")
-            op = path_row.operator(SimpleToolbox_OT_SelectPath.bl_idname, text="", icon="FILE_FOLDER")
-            op.index = index
 
             # Add spacing between items
             col.separator(factor=4.0)
