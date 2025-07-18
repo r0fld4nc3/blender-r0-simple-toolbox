@@ -15,6 +15,293 @@ from .. import utils as u
 _mod = "EXPORT PROPS"
 
 
+class r0SimpleToolbox_PG_FBXExportSettings(bpy.types.PropertyGroup):
+    """FBX Export Settings that can be applied globally or per export entry"""
+
+    check_existing: BoolProperty(
+        name="Check Existing", description="Check for existing files before exporting", default=False
+    )  # type: ignore
+
+    filter_glob: StringProperty(name="Filter Glob", description="File filter pattern", default="*.fbx")  # type: ignore
+
+    use_selection: BoolProperty(
+        name="Selected Objects Only", description="Export selected objects only", default=True
+    )  # type: ignore
+
+    use_visible: BoolProperty(
+        name="Visible Objects Only", description="Export visible objects only", default=False
+    )  # type: ignore
+
+    use_active_collection: BoolProperty(
+        name="Active Collection", description="Export only objects from the active collection", default=False
+    )  # type: ignore
+
+    collection: StringProperty(
+        name="Collection", description="Name of collection to export", default=""
+    )  # type: ignore
+
+    global_scale: FloatProperty(
+        name="Scale",
+        description="Scale factor for all objects",
+        default=1.0,
+        min=0.001,
+        max=1000.0,
+        soft_min=0.01,
+        soft_max=100.0,
+    )  # type: ignore
+
+    apply_unit_scale: BoolProperty(
+        name="Apply Unit Scale", description="Apply unit scale from scene settings", default=True
+    )  # type: ignore
+
+    apply_scale_options: EnumProperty(
+        name="Apply Scalings",
+        description="How to apply custom and unit scale into FBX scale properties",
+        items=[
+            ("FBX_SCALE_NONE", "All Local", "Apply custom scaling and units scaling to each object transformation"),
+            (
+                "FBX_SCALE_UNITS",
+                "FBX Units Scale",
+                "Apply custom scaling to each object transformation, and units scaling to FBX scale",
+            ),
+            (
+                "FBX_SCALE_CUSTOM",
+                "FBX Custom Scale",
+                "Apply custom scaling to FBX scale, and units scaling to each object transformation",
+            ),
+            ("FBX_SCALE_ALL", "FBX All", "Apply custom scaling and units scaling to FBX scale"),
+        ],
+        default="FBX_SCALE_NONE",
+    )  # type: ignore
+
+    use_space_transform: BoolProperty(
+        name="Use Space Transform", description="Apply global space transform to exported data", default=True
+    )  # type: ignore
+
+    bake_space_transform: BoolProperty(
+        name="Apply Transform", description="Bake space transform into object data", default=False
+    )  # type: ignore
+
+    # Object Types - using individual bools for easier UI
+    export_armature: BoolProperty(name="Armature", description="Export armatures", default=True)  # type: ignore
+
+    export_mesh: BoolProperty(name="Mesh", description="Export meshes", default=True)  # type: ignore
+
+    export_other: BoolProperty(
+        name="Other", description="Export other object types (empties, cameras, lights, etc.)", default=True
+    )  # type: ignore
+
+    use_mesh_modifiers: BoolProperty(
+        name="Apply Modifiers", description="Apply modifiers to mesh objects", default=True
+    )  # type: ignore
+
+    use_mesh_modifiers_render: BoolProperty(
+        name="Use Modifiers Render Setting", description="Use render settings when applying modifiers", default=False
+    )  # type: ignore
+
+    mesh_smooth_type: EnumProperty(
+        name="Smoothing",
+        description="Export smoothing information",
+        items=[
+            ("OFF", "Normals Only", "Export only normals"),
+            ("FACE", "Face", "Export face smoothing"),
+            ("EDGE", "Edge", "Export edge smoothing"),
+        ],
+        default="EDGE",
+    )  # type: ignore
+
+    colors_type: EnumProperty(
+        name="Vertex Colors",
+        description="Export vertex color attributes",
+        items=[
+            ("NONE", "None", "Do not export color attributes"),
+            ("LINEAR", "Linear", "Export colors in linear color space"),
+            ("SRGB", "sRGB", "Export colors in sRGB color space"),
+        ],
+        default="LINEAR",
+    )  # type: ignore
+
+    prioritize_active_color: BoolProperty(
+        name="Prioritize Active Color", description="Make sure active color will be exported first", default=True
+    )  # type: ignore
+
+    use_subsurf: BoolProperty(
+        name="Export Subdivision Surface",
+        description="Export subdivision surface (uses last Catmull-Clark subdivision modifier)",
+        default=False,
+    )  # type: ignore
+
+    use_mesh_edges: BoolProperty(name="Loose Edges", description="Export loose edges", default=False)  # type: ignore
+
+    use_tspace: BoolProperty(
+        name="Tangent Space", description="Add binormal and tangent vectors", default=False
+    )  # type: ignore
+
+    use_triangles: BoolProperty(
+        name="Triangulate Faces", description="Convert all faces to triangles", default=False
+    )  # type: ignore
+
+    use_custom_props: BoolProperty(
+        name="Custom Properties", description="Export custom properties", default=False
+    )  # type: ignore
+
+    # Armature settings
+    add_leaf_bones: BoolProperty(
+        name="Add Leaf Bones", description="Add dummy leaf bones", default=False
+    )  # type: ignore
+
+    primary_bone_axis: EnumProperty(
+        name="Primary Bone Axis",
+        description="Primary bone axis",
+        items=[
+            ("X", "X Axis", ""),
+            ("Y", "Y Axis", ""),
+            ("Z", "Z Axis", ""),
+            ("-X", "-X Axis", ""),
+            ("-Y", "-Y Axis", ""),
+            ("-Z", "-Z Axis", ""),
+        ],
+        default="Y",
+    )  # type: ignore
+
+    secondary_bone_axis: EnumProperty(
+        name="Secondary Bone Axis",
+        description="Secondary bone axis",
+        items=[
+            ("X", "X Axis", ""),
+            ("Y", "Y Axis", ""),
+            ("Z", "Z Axis", ""),
+            ("-X", "-X Axis", ""),
+            ("-Y", "-Y Axis", ""),
+            ("-Z", "-Z Axis", ""),
+        ],
+        default="X",
+    )  # type: ignore
+
+    use_armature_deform_only: BoolProperty(
+        name="Only Deform Bones", description="Only export deform bones", default=False
+    )  # type: ignore
+
+    armature_nodetype: EnumProperty(
+        name="Armature FBXNode Type",
+        description="FBX node type for armatures",
+        items=[
+            ("NULL", "Null", ""),
+            ("ROOT", "Root", ""),
+            ("LIMBNODE", "LimbNode", ""),
+        ],
+        default="NULL",
+    )  # type: ignore
+
+    # Animation settings
+    bake_anim: BoolProperty(name="Baked Animation", description="Export baked animation", default=False)  # type: ignore
+
+    bake_anim_use_all_bones: BoolProperty(
+        name="Key All Bones", description="Force export of all bones", default=True
+    )  # type: ignore
+
+    bake_anim_use_nla_strips: BoolProperty(
+        name="NLA Strips", description="Export NLA strips", default=True
+    )  # type: ignore
+
+    bake_anim_use_all_actions: BoolProperty(
+        name="All Actions", description="Export all actions", default=True
+    )  # type: ignore
+
+    bake_anim_force_startend_keying: BoolProperty(
+        name="Force Start/End Keying", description="Always add a keyframe at start and end", default=True
+    )  # type: ignore
+
+    bake_anim_step: FloatProperty(
+        name="Sampling Rate", description="Sampling rate for animated values", default=1.0, min=0.01, max=100.0
+    )  # type: ignore
+
+    bake_anim_simplify_factor: FloatProperty(
+        name="Simplify", description="Simplification factor for animation curves", default=1.0, min=0.0, max=100.0
+    )  # type: ignore
+
+    # Path and embed
+    path_mode: EnumProperty(
+        name="Path Mode",
+        description="Method used to reference external data",
+        items=[
+            ("AUTO", "Auto", "Use relative paths where possible"),
+            ("ABSOLUTE", "Absolute", "Always use absolute paths"),
+            ("RELATIVE", "Relative", "Always use relative paths"),
+            ("MATCH", "Match", "Match absolute/relative setting with input path"),
+            ("STRIP", "Strip", "Strip path, use only filename"),
+            ("COPY", "Copy", "Copy files to export directory"),
+        ],
+        default="AUTO",
+    )  # type: ignore
+
+    embed_textures: BoolProperty(
+        name="Embed Textures", description="Embed textures in the FBX file", default=False
+    )  # type: ignore
+
+    batch_mode: EnumProperty(
+        name="Batch Mode",
+        description="Export multiple objects as separate files",
+        items=[
+            ("OFF", "Off", "Export all objects to one file"),
+            ("SCENE", "Scene", "Export each scene to a separate file"),
+            ("COLLECTION", "Collection", "Export each collection to a separate file"),
+            ("SCENE_COLLECTION", "Scene Collections", "Export each scene collection to a separate file"),
+            (
+                "ACTIVE_SCENE_COLLECTION",
+                "Active Scene Collections",
+                "Export active scene collections to separate files",
+            ),
+        ],
+        default="OFF",
+    )  # type: ignore
+
+    use_batch_own_dir: BoolProperty(
+        name="Batch Own Dir", description="Create a directory for each exported file", default=True
+    )  # type: ignore
+
+    use_metadata: BoolProperty(name="Use Metadata", description="Export metadata", default=True)  # type: ignore
+
+    axis_forward: EnumProperty(
+        name="Forward",
+        description="Forward axis",
+        items=[
+            ("X", "X Forward", ""),
+            ("Y", "Y Forward", ""),
+            ("Z", "Z Forward", ""),
+            ("-X", "-X Forward", ""),
+            ("-Y", "-Y Forward", ""),
+            ("-Z", "-Z Forward", ""),
+        ],
+        default="-Z",
+    )  # type: ignore
+
+    axis_up: EnumProperty(
+        name="Up",
+        description="Up axis",
+        items=[
+            ("X", "X Up", ""),
+            ("Y", "Y Up", ""),
+            ("Z", "Z Up", ""),
+            ("-X", "-X Up", ""),
+            ("-Y", "-Y Up", ""),
+            ("-Z", "-Z Up", ""),
+        ],
+        default="Y",
+    )  # type: ignore
+
+    def get_object_types_set(self):
+        """Return a set of object types based on boolean properties"""
+        types = set()
+        if self.export_armature:
+            types.add("ARMATURE")
+        if self.export_mesh:
+            types.add("MESH")
+        if self.export_other:
+            types.add("OTHER")
+        return types
+
+
 class r0SimpleToolbox_PG_ObjectSetName(bpy.types.PropertyGroup):
     """Single object set name entry. Name of Object Set to use for export"""
 
@@ -49,6 +336,12 @@ class r0SimpleToolbox_PG_ExportEntryItem(bpy.types.PropertyGroup):
     export_path: StringProperty(
         name="Path", default="", description="Full filepath of file to be exported"
     )  # type: ignore | subtype="FILE_PATH" to add a built-in button to select path
+
+    export_settings_fbx: PointerProperty(type=r0SimpleToolbox_PG_FBXExportSettings, name="FBX Export Settings", description="FBX Settings for this entry")  # type: ignore
+
+    use_custom_settings: BoolProperty(
+        name="Use Custom Settings", description="Override global export settings for this entry", default=False
+    )  # type: ignore
 
     def get_selected_object_sets(self):
         """Return a list of selected object set names"""
@@ -217,16 +510,19 @@ class r0SimpleToolbox_PG_ExportProps(bpy.types.PropertyGroup):
 
     use_list_view: BoolProperty(name="List View Toggle", description="Toggle between List view and Row view", default=False)  # type: ignore
 
+    show_edit_global_fbx_export_settings: BoolProperty(name="Edit Global Settings (FBX)", description="Edit export options applied globally across Export Sets", default=False)  # type: ignore
+
 
 # ===================================================================
 #   Register & Unregister
 # ===================================================================
 # fmt: off
 classes = [
+    r0SimpleToolbox_PG_FBXExportSettings,
     r0SimpleToolbox_PG_ObjectSetName,
     r0SimpleToolbox_PG_ExportEntryItem,
     R0PROP_UL_ExportSetsList,
-    r0SimpleToolbox_PG_ExportProps
+    r0SimpleToolbox_PG_ExportProps,
 ]
 # fmt: on
 
