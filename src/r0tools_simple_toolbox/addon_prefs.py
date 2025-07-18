@@ -102,7 +102,10 @@ class AddonPreferences(bpy.types.AddonPreferences):
     ###################
     ### EXPORT SETS ###
     ###################
+    from .addon_properties.export_props import r0SimpleToolbox_PG_FBXExportSettings
+
     export_sets_list_rows: IntProperty(name="Export Sets List Rows", default=6, min=1)  # type: ignore
+    export_settings_global_fbx: PointerProperty(type=r0SimpleToolbox_PG_FBXExportSettings, name="FBX Export Settings", description="Global FBX Exporter Settings")  # type: ignore
 
     def draw(self, context):
         layout = self.layout

@@ -155,6 +155,7 @@ def draw_quick_export_sets_entries(layout, context):
         print(f"[WARNING] [{_mod}] Export Sets Draw UIList: Unsafe Context.")
         return None
 
+    addon_prefs = u.get_addon_prefs()
     addon_export_props = u.get_addon_export_props()
 
     button_row_scale_x_factor = 0.15
@@ -164,6 +165,21 @@ def draw_quick_export_sets_entries(layout, context):
     item_spacing_factor = 1.5
 
     export_sets = get_export_sets()
+
+    # Global Settings Section
+    global_settings_row = layout.row()
+    global_settings_row.prop(
+        addon_export_props,
+        "show_edit_global_fbx_export_settings",
+        text="",
+        icon="PREFERENCES",
+    )
+
+    if addon_export_props.show_edit_global_fbx_export_settings:
+        draw_fbx_export_settings(global_settings_row, addon_prefs.export_settings_global_fbx, is_global=True)
+
+    # Separator between global settings and export entries
+    layout.separator(factor=2.0)
 
     # Create main row
     main_row = layout.row(align=False)
@@ -196,6 +212,9 @@ def draw_quick_export_sets_entries(layout, context):
                 emboss=True,
                 placeholder=f"Export Set {index + 1}",
             )
+
+        # Settings toggle button
+        header_row.prop(export_item, "use_custom_settings", text="", icon="PREFERENCES")
 
         remove_export_set_op = header_row.operator(
             SimpleToolbox_OT_RemoveExportSet.bl_idname, emboss=False, text="", icon="X"
@@ -298,3 +317,134 @@ def draw_quick_export_sets_entries(layout, context):
         # Items spacing
         left_col.row()
         left_col.separator(factor=item_spacing_factor)
+
+
+def draw_fbx_export_settings(layout, settings, is_global=False):
+    """Draw FBX export settings UI"""
+
+    col = layout.column()
+
+    # Main Settings
+    box = col.box()
+    box.label(text="Main", icon="SETTINGS")
+
+    row = box.row()
+    row.prop(settings, "use_selection")
+    row.prop(settings, "use_visible")
+
+    row = box.row()
+    row.prop(settings, "use_active_collection")
+    if settings.use_active_collection:
+        row.prop(settings, "collection", text="")
+
+    # Transform
+    box = col.box()
+    box.label(text="Transform", icon="ORIENTATION_GLOBAL")
+
+    row = box.row()
+    row.label(text="Scale")
+    row.prop(settings, "global_scale")
+    row = box.row()
+    row.prop(settings, "apply_scale_options", text="Apply Scalings")
+
+    row = box.row()
+    col = row.column()
+    col.prop(settings, "axis_forward")
+    col.prop(settings, "axis_up")
+
+    row = box.row()
+    col = row.column()
+    col.prop(settings, "apply_unit_scale")
+    col.prop(settings, "use_space_transform")
+    # row.prop(settings, "bake_space_transform")
+
+    # Geometry
+    box = col.box()
+    box.label(text="Geometry", icon="MESH_DATA")
+
+    row = box.row(align=True)
+    row.label(text="Object Types:")
+    type_col = row.column(align=True)
+    for export_type in (
+        ("export_empty", "Empty"),
+        ("export_camera", "Camera"),
+        ("export_light", "Light"),
+        ("export_armature", "Armature"),
+        ("export_mesh", "Mesh"),
+        ("export_other", "Other"),
+    ):
+        type_col.prop(settings, export_type[0], text=export_type[1], toggle=True)
+
+    row = box.row()
+    row.prop(settings, "mesh_smooth_type", text="Smoothing")
+
+    row = box.row()
+    row.prop(settings, "use_mesh_modifiers")
+    if settings.use_mesh_modifiers:
+        row.prop(settings, "use_mesh_modifiers_render", text="Render")
+
+    row = box.row()
+    row.prop(settings, "colors_type", text="Colors")
+    if settings.colors_type != "NONE":
+        row.label(text="")
+        row.prop(settings, "prioritize_active_color")
+
+    row = box.row()
+    row.prop(settings, "use_subsurf")
+    row.prop(settings, "use_mesh_edges")
+
+    row = box.row()
+    row.prop(settings, "use_tspace")
+    row.prop(settings, "use_triangles")
+    row.prop(settings, "use_custom_props")
+
+    # Armature
+    box = col.box()
+    box.label(text="Armature", icon="ARMATURE_DATA")
+
+    row = box.row()
+    row.prop(settings, "primary_bone_axis", text="Primary")
+    row.prop(settings, "secondary_bone_axis", text="Secondary")
+
+    row = box.row()
+    row.prop(settings, "armature_nodetype", text="Armature Type")
+
+    row = box.row()
+    row.prop(settings, "use_armature_deform_only")
+    row.prop(settings, "add_leaf_bones")
+
+    # Animation
+    box = col.box()
+    box.label(text="Animation", icon="ANIM")
+
+    row = box.row()
+    row.prop(settings, "bake_anim")
+
+    if settings.bake_anim:
+        row = box.row()
+        row.prop(settings, "bake_anim_use_all_bones")
+        row.prop(settings, "bake_anim_use_nla_strips")
+
+        row = box.row()
+        row.prop(settings, "bake_anim_use_all_actions")
+        row.prop(settings, "bake_anim_force_startend_keying")
+
+        row = box.row()
+        row.prop(settings, "bake_anim_step")
+        row.prop(settings, "bake_anim_simplify_factor")
+
+    # File Settings
+    box = col.box()
+    box.label(text="File", icon="FILE")
+
+    row = box.row()
+    row.prop(settings, "path_mode", text="")
+    row.prop(settings, "embed_textures")
+
+    row = box.row()
+    row.prop(settings, "batch_mode", text="")
+    if settings.batch_mode != "OFF":
+        row.prop(settings, "use_batch_own_dir")
+
+    row = box.row()
+    row.prop(settings, "use_metadata")

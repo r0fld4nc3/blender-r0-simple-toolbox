@@ -18,31 +18,48 @@ _mod = "EXPORT PROPS"
 class r0SimpleToolbox_PG_FBXExportSettings(bpy.types.PropertyGroup):
     """FBX Export Settings that can be applied globally or per export entry"""
 
-    check_existing: BoolProperty(
-        name="Check Existing", description="Check for existing files before exporting", default=False
-    )  # type: ignore
-
-    filter_glob: StringProperty(name="Filter Glob", description="File filter pattern", default="*.fbx")  # type: ignore
-
+    # Include section
     use_selection: BoolProperty(
-        name="Selected Objects Only", description="Export selected objects only", default=True
+        name="Selected Objects", description="Export selected and visible objects only", default=True
     )  # type: ignore
 
     use_visible: BoolProperty(
-        name="Visible Objects Only", description="Export visible objects only", default=False
+        name="Visible Objects", description="Export visible objects only", default=False
     )  # type: ignore
 
     use_active_collection: BoolProperty(
-        name="Active Collection", description="Export only objects from the active collection", default=False
+        name="Active Collection",
+        description="Export only objects from the active collection (and its children)",
+        default=False,
     )  # type: ignore
 
     collection: StringProperty(
-        name="Collection", description="Name of collection to export", default=""
+        name="Source Collection", description="Export only objects from this collection (and its children)", default=""
     )  # type: ignore
 
+    # Object Types - all types from API
+    export_empty: BoolProperty(name="Empty", description="Export empty objects", default=False)  # type: ignore
+
+    export_camera: BoolProperty(name="Camera", description="Export camera objects", default=False)  # type: ignore
+
+    export_light: BoolProperty(name="Light", description="Export light objects", default=False)  # type: ignore
+
+    export_armature: BoolProperty(
+        name="Armature", description="Export armatures (WARNING: not supported in dupli/group instances)", default=True
+    )  # type: ignore
+
+    export_mesh: BoolProperty(name="Mesh", description="Export mesh objects", default=True)  # type: ignore
+
+    export_other: BoolProperty(
+        name="Other",
+        description="Export other geometry types, like curve, metaball, etc. (converted to meshes)",
+        default=True,
+    )  # type: ignore
+
+    # Transform
     global_scale: FloatProperty(
         name="Scale",
-        description="Scale factor for all objects",
+        description="Scale all data (Some importers do not support scaled armatures!)",
         default=1.0,
         min=0.001,
         max=1000.0,
@@ -50,15 +67,15 @@ class r0SimpleToolbox_PG_FBXExportSettings(bpy.types.PropertyGroup):
         soft_max=100.0,
     )  # type: ignore
 
-    apply_unit_scale: BoolProperty(
-        name="Apply Unit Scale", description="Apply unit scale from scene settings", default=True
-    )  # type: ignore
-
     apply_scale_options: EnumProperty(
         name="Apply Scalings",
         description="How to apply custom and unit scale into FBX scale properties",
         items=[
-            ("FBX_SCALE_NONE", "All Local", "Apply custom scaling and units scaling to each object transformation"),
+            (
+                "FBX_SCALE_NONE",
+                "All Local",
+                "Apply custom scaling and units scaling to each object transformation, FBX scale remains at 1.0",
+            ),
             (
                 "FBX_SCALE_UNITS",
                 "FBX Units Scale",
@@ -74,12 +91,44 @@ class r0SimpleToolbox_PG_FBXExportSettings(bpy.types.PropertyGroup):
         default="FBX_SCALE_NONE",
     )  # type: ignore
 
-    use_space_transform: BoolProperty(
-        name="Use Space Transform", description="Apply global space transform to exported data", default=True
+    axis_forward: EnumProperty(
+        name="Forward",
+        description="Forward axis",
+        items=[
+            ("X", "X Forward", ""),
+            ("Y", "Y Forward", ""),
+            ("Z", "Z Forward", ""),
+            ("-X", "-X Forward", ""),
+            ("-Y", "-Y Forward", ""),
+            ("-Z", "-Z Forward", ""),
+        ],
+        default="-Z",
     )  # type: ignore
 
+    axis_up: EnumProperty(
+        name="Up",
+        description="Up axis",
+        items=[
+            ("X", "X Up", ""),
+            ("Y", "Y Up", ""),
+            ("Z", "Z Up", ""),
+            ("-X", "-X Up", ""),
+            ("-Y", "-Y Up", ""),
+            ("-Z", "-Z Up", ""),
+        ],
+        default="Y",
+    )  # type: ignore
+
+    apply_unit_scale: BoolProperty(
+        name="Apply Unit", description="Take into account current Blender units settings", default=True
+    )  # type: ignore
+
+    use_space_transform: BoolProperty(name="Use Space Transform", description="", default=True)  # type: ignore
+
     bake_space_transform: BoolProperty(
-        name="Apply Transform", description="Bake space transform into object data", default=False
+        name="!EXPERIMENTAL! Apply Transform",
+        description="Bake space transform into object data (WARNING: experimental option, use at own risk, known issues with armatures/animations)",
+        default=False,
     )  # type: ignore
 
     # Object Types - using individual bools for easier UI
@@ -194,6 +243,10 @@ class r0SimpleToolbox_PG_FBXExportSettings(bpy.types.PropertyGroup):
     )  # type: ignore
 
     # Animation settings
+    export_animation: BoolProperty(
+        name="Animation", description="Export keyframe animation", default=False
+    )  # type: ignore
+
     bake_anim: BoolProperty(name="Baked Animation", description="Export baked animation", default=False)  # type: ignore
 
     bake_anim_use_all_bones: BoolProperty(
@@ -293,6 +346,12 @@ class r0SimpleToolbox_PG_FBXExportSettings(bpy.types.PropertyGroup):
     def get_object_types_set(self):
         """Return a set of object types based on boolean properties"""
         types = set()
+        if self.export_empty:
+            types.add("EMPTY")
+        if self.export_camera:
+            types.add("CAMERA")
+        if self.export_light:
+            types.add("LIGHT")
         if self.export_armature:
             types.add("ARMATURE")
         if self.export_mesh:
@@ -336,6 +395,10 @@ class r0SimpleToolbox_PG_ExportEntryItem(bpy.types.PropertyGroup):
     export_path: StringProperty(
         name="Path", default="", description="Full filepath of file to be exported"
     )  # type: ignore | subtype="FILE_PATH" to add a built-in button to select path
+
+    settings_expanded: BoolProperty(
+        name="Toggle FBX Settings", description="Show/hide FBX export settings for this entry", default=False
+    )  # type: ignore
 
     export_settings_fbx: PointerProperty(type=r0SimpleToolbox_PG_FBXExportSettings, name="FBX Export Settings", description="FBX Settings for this entry")  # type: ignore
 
