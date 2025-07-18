@@ -194,8 +194,8 @@ def cleanup_object_set_invalid_references_o1():
     addon_props = u.get_addon_props()
     addon_object_sets_props = u.get_addon_object_sets_props()
 
-    if not addon_props.cat_show_object_sets_editor or not addon_props.cat_show_object_sets_editor:
-        return False
+    if not addon_props.cat_show_object_sets_editor or not addon_props.show_object_sets:
+        return
 
     # Build set of object names for O(1) lookup
     valid_objects = set(scene.objects.keys())
@@ -275,13 +275,13 @@ def object_sets_update_mesh_stats():
 
     if not u.is_writing_context_safe(scene, check_addon_props=True):
         print(f"[WARNING] [{_mod}] Object Sets Update Mesh Stats: Unsafe Context.")
-        return None
+        return
 
     addon_props = u.get_addon_props()
     addon_object_sets_props = u.get_addon_object_sets_props()
 
-    if not addon_props.cat_show_object_sets_editor or not addon_props.cat_show_object_sets_editor:
-        return False
+    if not addon_props.cat_show_object_sets_editor or not addon_props.show_object_sets:
+        return
 
     show_verts = addon_object_sets_props.object_sets_show_mesh_verts
     show_edges = addon_object_sets_props.object_sets_show_mesh_edges
