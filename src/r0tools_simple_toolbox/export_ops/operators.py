@@ -116,8 +116,13 @@ class SimpleToolbox_OT_RemoveExportSet(bpy.types.Operator):
     bl_description = "Remove selected Export Set entry"
     bl_options = {"REGISTER"}
 
+    index: IntProperty(name="Index", description="Index of export set to remove", default=-1)  # type: ignore
+
     def execute(self, context):
-        index = get_active_export_set_index()
+        addon_export_props = u.get_addon_export_props()
+        use_list_view = addon_export_props.use_list_view
+
+        index = get_active_export_set_index() if use_list_view else self.index
 
         if 0 <= index < get_export_sets_count():
             remove_export_set_at_index(index)

@@ -78,14 +78,13 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
             # First row
             header_row = col.row(align=True)
             if item.export_set_name:
-                header_row.prop(item, "export_set_name", text="", icon="PINNED", emboss=False)
+                header_row.prop(item, "export_set_name", text="", emboss=False)
             else:
                 # Show placeholder text when name is empty
                 header_row.prop(
                     item,
                     "export_set_name",
                     text="",
-                    icon="PINNED",
                     emboss=False,
                     placeholder=f"Export Set {index + 1}",
                 )
@@ -215,6 +214,8 @@ class r0SimpleToolbox_PG_ExportProps(bpy.types.PropertyGroup):
     active_index: IntProperty(
         name="Export Sets Index", description="Index of the active export set", default=0
     )  # type: ignore
+
+    use_list_view: BoolProperty(name="List View Toggle", description="Toggle between List view and Row view", default=False)  # type: ignore
 
 
 # ===================================================================

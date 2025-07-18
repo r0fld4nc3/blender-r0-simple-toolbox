@@ -347,7 +347,13 @@ class r0Tools_PT_SimpleToolboxQuickExportOps(bpy.types.Panel):
         export_selection_row = export_selection_box.row()
         export_selection_row.prop(export_props, "mkdirs_if_not_exist")
 
-        u.draw_quick_export_sets_uilist(export_selection_box, context)
+        pan = export_selection_box.row()
+        pan.prop(export_props, "use_list_view")
+
+        if export_props.use_list_view:
+            u.draw_quick_export_sets_uilist(export_selection_box, context)
+        else:
+            u.draw_quick_export_sets_entries(export_selection_box, context)
 
 
 # -------------------------------------------------------------------

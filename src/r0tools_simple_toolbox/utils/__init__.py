@@ -1,8 +1,6 @@
 import importlib
 import sys
 
-from ..export_ops.export_ops import draw_quick_export_sets_uilist
-
 # Import order here is really important!
 # fmt: off
 from .constants import *  # isort: skip
@@ -18,6 +16,7 @@ from .edge_data import (  # isort: skip
     initialize_bweight_presets,
 )
 from .boxcutter import get_boxcutter_props, boxcutter_running  # isort: skip
+from ..export_ops.export_ops import draw_quick_export_sets_uilist, draw_quick_export_sets_entries  # isort: skip
 # fmt: on
 
 package = __name__

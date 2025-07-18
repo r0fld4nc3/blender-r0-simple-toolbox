@@ -140,3 +140,161 @@ def draw_quick_export_sets_uilist(layout, context):
     col = split.column(align=True)
     col.operator(SimpleToolbox_OT_AddExportSet.bl_idname, text="+")
     col.operator(SimpleToolbox_OT_RemoveExportSet.bl_idname, text="-")
+
+
+def draw_quick_export_sets_entries(layout, context):
+    from .operators import (
+        SimpleToolbox_OT_AddExportSet,
+        SimpleToolbox_OT_ExportObjects,
+        SimpleToolbox_OT_RemoveExportSet,
+        SimpleToolbox_OT_SelectPath,
+        SimpleToolbox_OT_ToggleObjectSetSelection,
+    )
+
+    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+        print(f"[WARNING] [{_mod}] Export Sets Draw UIList: Unsafe Context.")
+        return None
+
+    addon_export_props = u.get_addon_export_props()
+
+    button_row_scale_x_factor = 0.15
+    button_row_scale_y_factor = 1.2
+    path_row_height_scale = 1.2
+    export_button_width_scale = 1.5
+    item_spacing_factor = 1.5
+
+    export_sets = get_export_sets()
+
+    # Create main row
+    main_row = layout.row(align=False)
+
+    # Left column for entries
+    left_col = main_row.column(align=True)
+
+    # Right column for buttons
+    right_col = main_row.column(align=True)
+    right_col.scale_x = button_row_scale_x_factor
+    right_col.scale_y = button_row_scale_y_factor
+
+    # Add
+    button_col = right_col.column(align=True)
+    button_col.operator(SimpleToolbox_OT_AddExportSet.bl_idname, text="+")
+
+    for index, export_item in enumerate(export_sets):
+        # Left Col
+        entry_box = left_col.box()
+        header_row = entry_box.row()
+
+        if export_item.export_set_name:
+            header_row.prop(export_item, "export_set_name", text="", emboss=True)
+        else:
+            # Show placeholder text when name is empty
+            header_row.prop(
+                export_item,
+                "export_set_name",
+                text="",
+                emboss=True,
+                placeholder=f"Export Set {index + 1}",
+            )
+
+        remove_export_set_op = header_row.operator(
+            SimpleToolbox_OT_RemoveExportSet.bl_idname, emboss=False, text="", icon="X"
+        )
+        remove_export_set_op.index = index
+
+        ################
+        ### PATH ROW ###
+        ################
+
+        path_row = entry_box.row(align=True)
+        path_row.scale_y = path_row_height_scale
+
+        path_content = path_row.row(align=True)
+
+        # Export button (in a sub-row) so we can have red button
+        export_sub_row = path_content.row(align=True)
+        export_sub_row.scale_x = export_button_width_scale
+        export_sub_row.alert = True
+
+        export_op = export_sub_row.operator(SimpleToolbox_OT_ExportObjects.bl_idname, text="", icon="EXPORT")
+        export_op.export_path = export_item.export_path
+        export_op.mkdirs_if_not_exist = addon_export_props.mkdirs_if_not_exist
+
+        if export_item.use_object_sets:
+            selected_object_sets = export_item.get_selected_object_sets()
+            export_op.object_set_names = ", ".join(selected_object_sets)
+        else:
+            export_op.object_set_names = ""
+
+        # Path and Select
+        path_content.prop(export_item, "export_path", text="")
+        op = path_content.operator(SimpleToolbox_OT_SelectPath.bl_idname, text="", icon="FILE_FOLDER")
+        op.index = index
+
+        # Use Object Sets button
+        path_content.prop(
+            export_item,
+            "use_object_sets",
+            text="",
+            icon="MESH_CUBE" if export_item.use_object_sets else "RESTRICT_SELECT_OFF",
+        )
+
+        # Object Sets Row
+        if export_item.use_object_sets:
+            available_sets = u.get_object_sets()
+
+            if available_sets:
+                selected_names = {obj_set.name for obj_set in export_item.object_sets_names if obj_set.is_selected}
+
+                object_sets_row = entry_box.row()
+                object_sets_row.alignment = "LEFT"
+
+                object_sets_row.prop(
+                    export_item,
+                    "object_sets_expanded",
+                    text="Choose Object Sets",
+                    icon="TRIA_DOWN" if export_item.object_sets_expanded else "TRIA_RIGHT",
+                    emboss=False,
+                )
+
+                if export_item.object_sets_expanded:
+                    # Box for object sets
+                    box_row = entry_box.row()
+                    object_sets_box = box_row.box()
+                    object_sets_col = object_sets_box.column(align=True)
+
+                    # Draw each available object set
+                    for obj_set in available_sets:
+                        if obj_set.separator:
+                            continue
+
+                        set_row = object_sets_col.row(align=True)
+
+                        # Check if this set is in our collection and selected
+                        is_selected = obj_set.name in selected_names
+                        icon = "CHECKBOX_HLT" if is_selected else "CHECKBOX_DEHLT"
+
+                        # Toggle selection with purpose-built Operator
+                        op = set_row.operator(
+                            SimpleToolbox_OT_ToggleObjectSetSelection.bl_idname, text="", icon=icon, emboss=False
+                        )
+                        op.export_set_index = index
+                        op.object_set_name = obj_set.name
+
+                        set_row.separator(factor=1.0)
+
+                        set_row.label(text=obj_set.name)
+            else:
+                no_sets_row = entry_box.row()
+                no_sets_row.label(text="No Object Sets available", icon="INFO")
+
+        # Button state based on context selection
+        if export_item.use_object_sets:
+            selected_sets = export_item.get_selected_object_sets()
+            export_sub_row.enabled = bool(selected_sets) and bool(export_item.export_path)
+        else:
+            export_sub_row.enabled = len(u.get_selected_objects()) > 0 and bool(export_item.export_path)
+
+        # Items spacing
+        left_col.row()
+        left_col.separator(factor=item_spacing_factor)
