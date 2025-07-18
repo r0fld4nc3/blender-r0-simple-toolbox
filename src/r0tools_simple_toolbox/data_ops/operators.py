@@ -174,19 +174,27 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
             if crease_vcol_layer:
                 comparison_names.append(crease_vcol_layer.name)
 
-            if selected_vcol_layer and selected_vcol_layer.name not in comparison_names:
+            if obj.mode == u.OBJECT_MODES.EDIT:
+                bmesh.update_edit_mesh(mesh)
+            else:
+                bm.to_mesh(mesh)
+                bm.free()
+
+            if selected_vcol_layer:
+                if selected_vcol_layer.name not in comparison_names:
+                    # Set Bevel layer as active
+                    if self.bevel_weights_to_vcol:
+                        bpy.ops.r0tools.select_vcol_layer(select_bevel_layer=True)
+                    # Set Crease layer as active
+                    elif self.crease_to_vcol:
+                        bpy.ops.r0tools.select_vcol_layer(select_crease_layer=True)
+            else:
                 # Set Bevel layer as active
                 if self.bevel_weights_to_vcol:
                     bpy.ops.r0tools.select_vcol_layer(select_bevel_layer=True)
                 # Set Crease layer as active
                 elif self.crease_to_vcol:
                     bpy.ops.r0tools.select_vcol_layer(select_crease_layer=True)
-
-            if obj.mode == u.OBJECT_MODES.EDIT:
-                bmesh.update_edit_mesh(mesh)
-            else:
-                bm.to_mesh(mesh)
-                bm.free()
 
             total_processed += 1
             wm.progress_update(total_processed)
