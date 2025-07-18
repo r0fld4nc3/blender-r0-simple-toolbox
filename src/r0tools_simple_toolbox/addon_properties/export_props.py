@@ -159,7 +159,7 @@ class r0SimpleToolbox_PG_FBXExportSettings(bpy.types.PropertyGroup):
         default="EDGE",
     )  # type: ignore
 
-    colors_type: EnumProperty(
+    vertex_colours_type: EnumProperty(
         name="Vertex Colors",
         description="Export vertex color attributes",
         items=[

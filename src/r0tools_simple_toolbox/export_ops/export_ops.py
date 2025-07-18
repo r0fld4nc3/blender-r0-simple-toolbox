@@ -111,6 +111,18 @@ def draw_quick_export_sets_uilist(layout, context):
     addon_prefs = u.get_addon_prefs()
     addon_export_props = u.get_addon_export_props()
 
+    # Global Settings Section
+    global_settings_row = layout.row()
+    global_settings_row.prop(
+        addon_export_props,
+        "show_edit_global_fbx_export_settings",
+        text="",
+        icon="PREFERENCES",
+    )
+
+    if addon_export_props.show_edit_global_fbx_export_settings:
+        draw_fbx_export_settings(global_settings_row, addon_prefs.export_settings_global_fbx, is_global=True)
+
     # Export Sets Row Number Slider
     row = layout.row()
     split = row.split(factor=0.35)
@@ -322,49 +334,38 @@ def draw_quick_export_sets_entries(layout, context):
 def draw_fbx_export_settings(layout, settings, is_global=False):
     """Draw FBX export settings UI"""
 
-    col = layout.column()
+    split_factor = 0.5
 
-    # Main Settings
-    box = col.box()
-    box.label(text="Main", icon="SETTINGS")
+    main_col = layout.column()
 
-    row = box.row()
-    row.prop(settings, "use_selection")
-    row.prop(settings, "use_visible")
+    # Include
+    box = main_col.box()
+    box.label(text="Include")
 
     row = box.row()
-    row.prop(settings, "use_active_collection")
+    col = row.column()
+
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="Limit to")
+    prop_row.prop(settings, "use_selection")
+
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="")  # Spacer
+    prop_row.prop(settings, "use_visible")
+
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="")  # Spacer
+    prop_row.prop(settings, "use_active_collection")
     if settings.use_active_collection:
-        row.prop(settings, "collection", text="")
+        prop_row.prop(settings, "collection", text="")
 
-    # Transform
-    box = col.box()
-    box.label(text="Transform", icon="ORIENTATION_GLOBAL")
-
-    row = box.row()
-    row.label(text="Scale")
-    row.prop(settings, "global_scale")
-    row = box.row()
-    row.prop(settings, "apply_scale_options", text="Apply Scalings")
-
-    row = box.row()
-    col = row.column()
-    col.prop(settings, "axis_forward")
-    col.prop(settings, "axis_up")
-
-    row = box.row()
-    col = row.column()
-    col.prop(settings, "apply_unit_scale")
-    col.prop(settings, "use_space_transform")
-    # row.prop(settings, "bake_space_transform")
-
-    # Geometry
-    box = col.box()
-    box.label(text="Geometry", icon="MESH_DATA")
-
-    row = box.row(align=True)
-    row.label(text="Object Types:")
-    type_col = row.column(align=True)
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="Object Types:")
+    prop_col = prop_row.column(align=True)
     for export_type in (
         ("export_empty", "Empty"),
         ("export_camera", "Camera"),
@@ -373,78 +374,188 @@ def draw_fbx_export_settings(layout, settings, is_global=False):
         ("export_mesh", "Mesh"),
         ("export_other", "Other"),
     ):
-        type_col.prop(settings, export_type[0], text=export_type[1], toggle=True)
+        prop_col.prop(settings, export_type[0], text=export_type[1], toggle=True)
+
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="")  # Spacer
+    prop_row.prop(settings, "use_custom_props")
+
+    # Transform
+    box = main_col.box()
+    box.label(text="Transform", icon="ORIENTATION_GLOBAL")
+
+    row = box.row(align=True)
+    col = row.column()
+
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="Scale")
+    prop_row.prop(settings, "global_scale", text="")
+
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="Apply Scalings")
+    prop_row.prop(settings, "apply_scale_options", text="")
+
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="Forward")
+    prop_row.prop(settings, "axis_forward", text="")
+
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="Up")
+    prop_row.prop(settings, "axis_up", text="")
+
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="")  # Spacer
+    prop_row.prop(settings, "apply_unit_scale")
+
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="")  # Spacer
+    prop_row.prop(settings, "use_space_transform")
+    # row.prop(settings, "bake_space_transform")
+
+    # Geometry
+    box = main_col.box()
+    box.label(text="Geometry", icon="MESH_DATA")
 
     row = box.row()
-    row.prop(settings, "mesh_smooth_type", text="Smoothing")
+    col = row.column()
 
-    row = box.row()
-    row.prop(settings, "use_mesh_modifiers")
-    if settings.use_mesh_modifiers:
-        row.prop(settings, "use_mesh_modifiers_render", text="Render")
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="Smoothing")
+    prop_row.prop(settings, "mesh_smooth_type", text="")
 
-    row = box.row()
-    row.prop(settings, "colors_type", text="Colors")
-    if settings.colors_type != "NONE":
-        row.label(text="")
-        row.prop(settings, "prioritize_active_color")
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="")  # Spacer
+    prop_row.prop(settings, "use_subsurf")
 
-    row = box.row()
-    row.prop(settings, "use_subsurf")
-    row.prop(settings, "use_mesh_edges")
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="")  # Spacer
+    prop_row.prop(settings, "use_mesh_modifiers")
 
-    row = box.row()
-    row.prop(settings, "use_tspace")
-    row.prop(settings, "use_triangles")
-    row.prop(settings, "use_custom_props")
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="")  # Spacer
+    prop_row.prop(settings, "use_mesh_edges")
+
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="")  # Spacer
+    prop_row.prop(settings, "use_triangles")
+
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="")  # Spacer
+    prop_row.prop(settings, "use_tspace")
+
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="Vertex Colours")
+    prop_row.prop(settings, "vertex_colours_type", text="")
+    if settings.vertex_colours_type != "NONE":
+        prop_row = col.row()
+        prop_row.label(text="")  # Spacer
+        prop_row.prop(settings, "prioritize_active_color")
 
     # Armature
-    box = col.box()
+    box = main_col.box()
     box.label(text="Armature", icon="ARMATURE_DATA")
 
     row = box.row()
-    row.prop(settings, "primary_bone_axis", text="Primary")
-    row.prop(settings, "secondary_bone_axis", text="Secondary")
+    col = row.column()
 
-    row = box.row()
-    row.prop(settings, "armature_nodetype", text="Armature Type")
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="Primary Bone Axis")
+    prop_row.prop(settings, "primary_bone_axis", text="")
 
-    row = box.row()
-    row.prop(settings, "use_armature_deform_only")
-    row.prop(settings, "add_leaf_bones")
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="Secondary Bone Axis")
+    prop_row.prop(settings, "secondary_bone_axis", text="")
+
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="Armature Type")
+    prop_row.prop(settings, "armature_nodetype", text="")
+
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="")  # Spacer
+    prop_row.prop(settings, "use_armature_deform_only")
+
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="")  # Spacer
+    prop_row.prop(settings, "add_leaf_bones")
 
     # Animation
-    box = col.box()
-    box.label(text="Animation", icon="ANIM")
+    box = main_col.box()
+    # box.label(text="Animation", icon="ANIM")
+    row = box.row()
+    row.prop(settings, "bake_anim", text="")
+    row.label(text="Animation", icon="ANIM")
 
     row = box.row()
-    row.prop(settings, "bake_anim")
+    col = row.column()
 
     if settings.bake_anim:
-        row = box.row()
-        row.prop(settings, "bake_anim_use_all_bones")
-        row.prop(settings, "bake_anim_use_nla_strips")
+        prop_row = col.split(factor=split_factor)
+        prop_row.alignment = "RIGHT"
+        prop_row.label(text="")  # Spacer
+        prop_row.prop(settings, "bake_anim_use_all_bones")
 
-        row = box.row()
-        row.prop(settings, "bake_anim_use_all_actions")
-        row.prop(settings, "bake_anim_force_startend_keying")
+        prop_row = col.split(factor=split_factor)
+        prop_row.alignment = "RIGHT"
+        prop_row.label(text="")  # Spacer
+        prop_row.prop(settings, "bake_anim_use_nla_strips")
 
-        row = box.row()
-        row.prop(settings, "bake_anim_step")
-        row.prop(settings, "bake_anim_simplify_factor")
+        prop_row = col.split(factor=split_factor)
+        prop_row.alignment = "RIGHT"
+        prop_row.label(text="")  # Spacer
+        prop_row.prop(settings, "bake_anim_use_all_actions")
+
+        prop_row = col.split(factor=split_factor)
+        prop_row.alignment = "RIGHT"
+        prop_row.label(text="")  # Spacer
+        prop_row.prop(settings, "bake_anim_force_startend_keying")
+
+        prop_row = col.split(factor=split_factor)
+        prop_row.alignment = "RIGHT"
+        prop_row.label(text="")  # Spacer
+        prop_row.prop(settings, "bake_anim_step")
+
+        prop_row = col.split(factor=split_factor)
+        prop_row.alignment = "RIGHT"
+        prop_row.label(text="")  # Spacer
+        prop_row.prop(settings, "bake_anim_simplify_factor")
 
     # File Settings
-    box = col.box()
+    box = main_col.box()
     box.label(text="File", icon="FILE")
 
     row = box.row()
-    row.prop(settings, "path_mode", text="")
-    row.prop(settings, "embed_textures")
+    col = row.column()
 
-    row = box.row()
-    row.prop(settings, "batch_mode", text="")
-    if settings.batch_mode != "OFF":
-        row.prop(settings, "use_batch_own_dir")
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="Path Mode")
+    prop_row.prop(settings, "path_mode", text="")
 
-    row = box.row()
-    row.prop(settings, "use_metadata")
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="Embed Textures")
+    prop_row.prop(settings, "embed_textures", text="")
+
+    prop_row = col.split(factor=split_factor)
+    prop_row.alignment = "RIGHT"
+    prop_row.label(text="Use Metadata")
+    prop_row.prop(settings, "use_metadata", text="")
