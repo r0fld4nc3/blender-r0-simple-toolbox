@@ -250,6 +250,7 @@ def draw_quick_export_sets_entries(layout, context):
         export_op = export_sub_row.operator(SimpleToolbox_OT_ExportObjects.bl_idname, text="", icon="EXPORT")
         export_op.export_path = export_item.export_path
         export_op.mkdirs_if_not_exist = addon_export_props.mkdirs_if_not_exist
+        export_op.export_entry_index = index
 
         if export_item.use_object_sets:
             selected_object_sets = export_item.get_selected_object_sets()
@@ -459,8 +460,8 @@ def draw_fbx_export_settings(layout, settings, is_global=False):
     prop_row = col.split(factor=split_factor)
     prop_row.alignment = "RIGHT"
     prop_row.label(text="Vertex Colours")
-    prop_row.prop(settings, "vertex_colours_type", text="")
-    if settings.vertex_colours_type != "NONE":
+    prop_row.prop(settings, "colors_type", text="")
+    if settings.colors_type != "NONE":
         prop_row = col.row()
         prop_row.label(text="")  # Spacer
         prop_row.prop(settings, "prioritize_active_color")

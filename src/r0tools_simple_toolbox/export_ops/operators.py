@@ -207,11 +207,21 @@ class SimpleToolbox_OT_ExportObjects(bpy.types.Operator):
         name="Object Set Names", description="Comma-separated list of object set names to export", default=""
     )  # type: ignore
 
+    # Add index to identify which export entry
+    export_entry_index: IntProperty(
+        name="Export Entry Index", description="Index of the export entry being used", default=-1
+    )  # type: ignore
+
     @classmethod
     def poll(cls, context):
         return context.mode == u.OBJECT_MODES.OBJECT
 
     def execute(self, context):
+        # Get the export settings
+        addon_prefs = u.get_addon_prefs()
+
+        settings = addon_prefs.export_settings_global_fbx
+
         # Store current selection to restore later
         original_selection = u.get_selected_objects()
         original_active = u.get_active_object()
@@ -281,45 +291,46 @@ class SimpleToolbox_OT_ExportObjects(bpy.types.Operator):
                 filepath=str(export_path),
                 check_existing=False,
                 filter_glob="*.fbx",
-                use_selection=True,
-                use_visible=False,
-                use_active_collection=False,
-                collection="",
-                global_scale=1.0,
-                apply_unit_scale=True,
-                apply_scale_options="FBX_SCALE_NONE",
-                use_space_transform=True,
-                bake_space_transform=False,
-                object_types={"ARMATURE", "MESH", "OTHER"},
-                use_mesh_modifiers=True,
-                use_mesh_modifiers_render=False,
-                mesh_smooth_type="EDGE",
-                colors_type="LINEAR",
-                prioritize_active_color=True,
-                use_subsurf=False,
-                use_mesh_edges=False,
-                use_tspace=False,
-                use_triangles=False,
-                use_custom_props=False,
-                add_leaf_bones=False,
-                primary_bone_axis="Y",
-                secondary_bone_axis="X",
-                use_armature_deform_only=False,
-                armature_nodetype="NULL",
-                bake_anim=False,
-                bake_anim_use_all_bones=True,
-                bake_anim_use_nla_strips=True,
-                bake_anim_use_all_actions=True,
-                bake_anim_force_startend_keying=True,
-                bake_anim_step=1.0,
-                bake_anim_simplify_factor=1.0,
-                path_mode="AUTO",
-                embed_textures=False,
-                batch_mode="OFF",
-                use_batch_own_dir=True,
-                use_metadata=True,
-                axis_forward="-Z",
-                axis_up="Y",
+                use_selection=settings.use_selection,
+                use_visible=settings.use_visible,
+                use_active_collection=settings.use_active_collection,
+                collection=settings.collection,
+                global_scale=settings.global_scale,
+                apply_unit_scale=settings.apply_unit_scale,
+                apply_scale_options=settings.apply_scale_options,
+                use_space_transform=settings.use_space_transform,
+                bake_space_transform=settings.bake_space_transform,
+                object_types=settings.get_object_types_set(),
+                use_mesh_modifiers=settings.use_mesh_modifiers,
+                use_mesh_modifiers_render=settings.use_mesh_modifiers_render,
+                mesh_smooth_type=settings.mesh_smooth_type,
+                colors_type=settings.colors_type,
+                prioritize_active_color=settings.prioritize_active_color,
+                use_subsurf=settings.use_subsurf,
+                use_mesh_edges=settings.use_mesh_edges,
+                use_tspace=settings.use_tspace,
+                use_triangles=settings.use_triangles,
+                use_custom_props=settings.use_custom_props,
+                add_leaf_bones=settings.add_leaf_bones,
+                primary_bone_axis=settings.primary_bone_axis,
+                secondary_bone_axis=settings.secondary_bone_axis,
+                use_armature_deform_only=settings.use_armature_deform_only,
+                armature_nodetype=settings.armature_nodetype,
+                # Use main toggle to handle properties
+                bake_anim=settings.export_animation and settings.bake_anim,
+                bake_anim_use_all_bones=settings.bake_anim_use_all_bones and settings.bake_anim,
+                bake_anim_use_nla_strips=settings.bake_anim_use_nla_strips and settings.bake_anim,
+                bake_anim_use_all_actions=settings.bake_anim_use_all_actions and settings.bake_anim,
+                bake_anim_force_startend_keying=settings.bake_anim_force_startend_keying and settings.bake_anim,
+                bake_anim_step=settings.bake_anim_step,
+                bake_anim_simplify_factor=settings.bake_anim_simplify_factor,
+                path_mode=settings.path_mode,
+                embed_textures=settings.embed_textures,
+                batch_mode=settings.batch_mode,
+                use_batch_own_dir=settings.use_batch_own_dir,
+                use_metadata=settings.use_metadata,
+                axis_forward=settings.axis_forward,
+                axis_up=settings.axis_up,
             )
 
             self.report({"INFO"}, f"Exported to: {export_path}")

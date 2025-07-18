@@ -91,34 +91,6 @@ class r0SimpleToolbox_PG_FBXExportSettings(bpy.types.PropertyGroup):
         default="FBX_SCALE_NONE",
     )  # type: ignore
 
-    axis_forward: EnumProperty(
-        name="Forward",
-        description="Forward axis",
-        items=[
-            ("X", "X Forward", ""),
-            ("Y", "Y Forward", ""),
-            ("Z", "Z Forward", ""),
-            ("-X", "-X Forward", ""),
-            ("-Y", "-Y Forward", ""),
-            ("-Z", "-Z Forward", ""),
-        ],
-        default="-Z",
-    )  # type: ignore
-
-    axis_up: EnumProperty(
-        name="Up",
-        description="Up axis",
-        items=[
-            ("X", "X Up", ""),
-            ("Y", "Y Up", ""),
-            ("Z", "Z Up", ""),
-            ("-X", "-X Up", ""),
-            ("-Y", "-Y Up", ""),
-            ("-Z", "-Z Up", ""),
-        ],
-        default="Y",
-    )  # type: ignore
-
     apply_unit_scale: BoolProperty(
         name="Apply Unit", description="Take into account current Blender units settings", default=True
     )  # type: ignore
@@ -129,15 +101,6 @@ class r0SimpleToolbox_PG_FBXExportSettings(bpy.types.PropertyGroup):
         name="!EXPERIMENTAL! Apply Transform",
         description="Bake space transform into object data (WARNING: experimental option, use at own risk, known issues with armatures/animations)",
         default=False,
-    )  # type: ignore
-
-    # Object Types - using individual bools for easier UI
-    export_armature: BoolProperty(name="Armature", description="Export armatures", default=True)  # type: ignore
-
-    export_mesh: BoolProperty(name="Mesh", description="Export meshes", default=True)  # type: ignore
-
-    export_other: BoolProperty(
-        name="Other", description="Export other object types (empties, cameras, lights, etc.)", default=True
     )  # type: ignore
 
     use_mesh_modifiers: BoolProperty(
@@ -159,7 +122,7 @@ class r0SimpleToolbox_PG_FBXExportSettings(bpy.types.PropertyGroup):
         default="EDGE",
     )  # type: ignore
 
-    vertex_colours_type: EnumProperty(
+    colors_type: EnumProperty(
         name="Vertex Colors",
         description="Export vertex color attributes",
         items=[
