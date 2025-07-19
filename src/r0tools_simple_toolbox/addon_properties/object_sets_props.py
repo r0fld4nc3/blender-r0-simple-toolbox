@@ -349,9 +349,6 @@ def register():
 
 
 def unregister():
-    print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_object_sets_props")
-    del bpy.types.Scene.r0fl_object_sets_props
-
     for cls in classes:
         print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
@@ -359,3 +356,6 @@ def unregister():
     for handler in load_post_handlers:
         print(f"[INFO] [{_mod}] Unregister load_post_handler: {handler.__name__}")
         bpy.app.handlers.load_post.remove(handler)
+
+    print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_object_sets_props")
+    del bpy.types.Scene.r0fl_object_sets_props

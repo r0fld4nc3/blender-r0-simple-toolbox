@@ -566,8 +566,8 @@ def register():
 
 
 def unregister():
-    print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_export_props")
-    del bpy.types.Scene.r0fl_toolbox_export_props
-
     for cls in classes:
         print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+
+    print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_export_props")
+    del bpy.types.Scene.r0fl_toolbox_export_props
