@@ -94,9 +94,8 @@ class AddonRegisterHelper:
 
     def register(self):
         """Register all modules"""
-        # print("\n-------------------------------------------------------------")
+        print("\n-------------------------------------------------------------")
         print(f"Begin Addon Registration - r0fld4nc3 Simple Toolbox")
-        # print("-------------------------------------------------------------")
 
         for module in self.modules:
             if hasattr(module, "register"):
@@ -111,9 +110,8 @@ class AddonRegisterHelper:
 
     def unregister(self):
         """Unregister all modules in reverse order"""
-        # print("\n-------------------------------------------------------------")
+        print("\n-------------------------------------------------------------")
         print(f"Begin Addon Unregistration - r0fld4nc3 Simple Toolbox")
-        # print("-------------------------------------------------------------")
 
         for module in reversed(self.modules):
             if hasattr(module, "unregister"):
@@ -123,6 +121,8 @@ class AddonRegisterHelper:
                     module.unregister()
                 except Exception as e:
                     print(f"[ERROR] [{_mod}] Error unregistering module {module.__name__}: {str(e)}")
+
+        print("-------------------------------------------------------------\n")
 
 
 # Create global instance
