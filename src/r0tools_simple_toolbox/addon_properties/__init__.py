@@ -15,7 +15,6 @@ submodules = [
     "vertex_groups_props",
     "find_modifiers_props",
     "experimental_props",
-    "export_props",
     "properties",
 ]
 # fmt: on

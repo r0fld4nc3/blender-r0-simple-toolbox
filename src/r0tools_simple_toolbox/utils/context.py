@@ -37,11 +37,6 @@ def get_addon_find_modifier_props():
     return get_scene().r0fl_toolbox_find_modifier_props
 
 
-def get_addon_export_props():
-    """Get the addon property group from current scene"""
-    return get_scene().r0fl_toolbox_export_props
-
-
 def get_addon_prefs():
     """Get the addon preferences"""
     return bpy.context.preferences.addons[INTERNAL_NAME].preferences
@@ -173,7 +168,6 @@ def is_writing_context_safe(scene, check_addon_props: bool = False) -> bool:
         addon_edge_data_props = get_addon_edge_data_props()
         addon_experimental_props = get_addon_experimental_props()
         addon_find_modifier_props = get_addon_find_modifier_props()
-        addon_export_props = get_addon_export_props()
 
         if not addon_props or addon_props is None:
             if addon_prefs is not None and hasattr(addon_prefs, "lock_states_avoided"):

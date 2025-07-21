@@ -3,10 +3,6 @@ import bpy
 from . import ext_update as upd
 from . import utils as u
 from .defines import ADDON_CATEGORY, ADDON_NAME, ADDON_NAME_BARE, DEBUG, VERSION_STR
-from .export_ops import (
-    SimpleToolbox_OT_ExportSelectedObjects,
-    SimpleToolbox_OT_SelectPath,
-)
 from .operators import *
 from .repo import draw_repo_layout
 
@@ -42,7 +38,6 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         addon_prefs = u.get_addon_prefs()
         addon_experimental_props = u.get_addon_experimental_props()
         addon_find_modifier_props = u.get_addon_find_modifier_props()
-        addon_export_props = u.get_addon_export_props()
         
         layout = self.layout
 
@@ -323,43 +318,6 @@ class r0Tools_PT_SimpleToolboxEdgeDataOps(bpy.types.Panel):
         u.draw_edge_data_panel_ui(layout, context)
 
 
-class r0Tools_PT_SimpleToolboxQuickExportOps(bpy.types.Panel):
-    bl_idname = "OBJECT_PT_simple_toolbox_quick_export_ops"
-    bl_label = f"Quick Export Ops - {ADDON_NAME_BARE}"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "Item"
-    bl_options = {"DEFAULT_CLOSED"}
-    has_update = False
-
-    @classmethod
-    def poll(cls, context):
-        addon_prefs = u.get_addon_prefs()
-        addon_experimental_props = addon_prefs.experimental_features
-
-        return addon_experimental_props
-
-    def draw(self, context):
-        export_props = u.get_addon_export_props()
-
-        layout = self.layout
-
-        export_selection_box = layout.box()
-        export_selection_box.label(text="Quick Export (FBX)")
-
-        export_selection_row = export_selection_box.row()
-        export_selection_row.prop(export_props, "mkdirs_if_not_exist")
-
-        export_selection_row = export_selection_box.row()
-        export_selection_row.prop(export_props, "export_path", text="")
-        export_selection_row.operator(SimpleToolbox_OT_SelectPath.bl_idname, text="", icon="FILE_FOLDER")
-
-        export_selection_row = export_selection_box.row()
-        export_selection_row.alert = True
-        export_selection_row.scale_y = 2
-        export_selection_row.operator(SimpleToolbox_OT_ExportSelectedObjects.bl_idname, text="Export FBX")
-
-
 # -------------------------------------------------------------------
 #   Register & Unregister
 # -------------------------------------------------------------------
@@ -368,16 +326,12 @@ class r0Tools_PT_SimpleToolboxQuickExportOps(bpy.types.Panel):
 classes = [
     r0Tools_PT_SimpleToolbox, 
     # r0Tools_PT_SimpleToolboxEdgeDataOps,
-    # r0Tools_PT_SimpleToolboxQuickExportOps
 ]
 # fmt: on
 
 # fmt: off
 panel_attributions = {
     r0Tools_PT_SimpleToolboxEdgeDataOps: {
-        "categories": [ADDON_CATEGORY, "Item"]
-    },
-    r0Tools_PT_SimpleToolboxQuickExportOps: {
         "categories": [ADDON_CATEGORY, "Item"]
     }
 }
