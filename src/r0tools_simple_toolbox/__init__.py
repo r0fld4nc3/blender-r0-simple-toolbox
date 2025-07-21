@@ -1,7 +1,7 @@
 bl_info = {
     "name": "r0Tools - Simple Toolbox.export-sets",
     "author": "Artur Rosário",
-    "version": (0, 0, 32),
+    "version": (0, 0, 33),
     "blender": (4, 2, 5),
     "location": "3D View > Simple Toolbox",
     "description": "Miscellaneous Utilities",
