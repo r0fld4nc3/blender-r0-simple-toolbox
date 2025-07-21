@@ -332,6 +332,12 @@ class R0PROP_UL_ObjectSetsViewList(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         row = layout.row()
         row.prop(item, "checked", text="")
+
+        col_colour = row.column()
+        col_colour.scale_x = 0.3
+        col_colour.prop(item, "set_colour", text="")
+        col_colour.enabled = False
+
         row.label(text=item.name)
 
 

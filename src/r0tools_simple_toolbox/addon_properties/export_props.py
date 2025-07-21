@@ -452,8 +452,6 @@ class r0SimpleToolbox_PG_ExportProps(bpy.types.PropertyGroup):
         name="Export Sets Index", description="Index of the active export set", default=0
     )  # type: ignore
 
-    use_list_view: BoolProperty(name="List View Toggle", description="Toggle between List view and Row view", default=True)  # type: ignore
-
     show_edit_global_fbx_export_settings: BoolProperty(name="Edit Global Settings (FBX)", description="Edit export options applied globally across Export Sets", default=False)  # type: ignore
 
 

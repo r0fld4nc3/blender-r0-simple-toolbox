@@ -345,13 +345,9 @@ class r0Tools_PT_SimpleToolboxQuickExportOps(bpy.types.Panel):
         export_selection_box.label(text="Quick Export (FBX)")
 
         row = export_selection_box.row()
-        row.prop(export_props, "use_list_view", text="List View", toggle=True)
         row.prop(export_props, "mkdirs_if_not_exist", toggle=True)
 
-        if export_props.use_list_view:
-            u.draw_quick_export_sets_uilist(export_selection_box, context)
-        else:
-            u.draw_quick_export_sets_entries(export_selection_box, context)
+        u.draw_quick_export_sets_uilist(export_selection_box, context)
 
 
 # -------------------------------------------------------------------

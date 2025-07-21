@@ -119,11 +119,14 @@ class SimpleToolbox_OT_RemoveExportSet(bpy.types.Operator):
 
     index: IntProperty(name="Index", description="Index of export set to remove", default=-1)  # type: ignore
 
-    def execute(self, context):
-        addon_export_props = u.get_addon_export_props()
-        use_list_view = addon_export_props.use_list_view
+    @classmethod
+    def poll(cls, context):
+        accepted_contexts = context.mode in [u.OBJECT_MODES.OBJECT]
+        has_sets = get_export_sets()
+        return accepted_contexts and has_sets
 
-        index = get_active_export_set_index() if use_list_view else self.index
+    def execute(self, context):
+        index = get_active_export_set_index()
 
         if 0 <= index < get_export_sets_count():
             remove_export_set_at_index(index)
