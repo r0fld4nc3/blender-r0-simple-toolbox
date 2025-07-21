@@ -330,9 +330,27 @@ class R0PROP_UL_ObjectSetsViewList(bpy.types.UIList):
         return flt_flags, flt_neworder
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
-        row = layout.row()
-        row.prop(item, "checked", text="")
+        from ..export_ops.operators import SimpleToolbox_OT_ToggleObjectSetSelection
 
+        export_item = u.get_export_set_at_index(u.get_active_export_set_index())
+
+        if not export_item:
+            return
+
+        # Check if this Object Set is selected for the current Export Set
+        is_selected = any(
+            obj_set.name == item.name and obj_set.is_selected for obj_set in export_item.object_sets_names
+        )
+
+        row = layout.row()
+
+        # Operator to toggle selection instead of direct property
+        icon = "CHECKBOX_HLT" if is_selected else "CHECKBOX_DEHLT"
+        op = row.operator(SimpleToolbox_OT_ToggleObjectSetSelection.bl_idname, text="", icon=icon, emboss=False)
+        op.export_set_index = u.get_active_export_set_index()
+        op.object_set_name = item.name
+
+        # Colour indicator
         col_colour = row.column()
         col_colour.scale_x = 0.3
         col_colour.prop(item, "set_colour", text="")

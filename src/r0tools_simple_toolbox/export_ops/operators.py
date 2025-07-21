@@ -217,7 +217,9 @@ class SimpleToolbox_OT_ExportObjects(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.mode == u.OBJECT_MODES.OBJECT
+        accepted_contexts = context.mode in [u.OBJECT_MODES.OBJECT]
+        has_sets = get_export_sets()
+        return accepted_contexts and has_sets
 
     def execute(self, context):
         # Get the export settings
@@ -357,6 +359,59 @@ class SimpleToolbox_OT_ExportObjects(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_BatchExportObjects(bpy.types.Operator):
+    bl_label = "Batch Export"
+    bl_idname = "r0tools.batch_export_object_sets"
+    bl_description = "Batch export sets that have been marked as such"
+    bl_options = {"REGISTER"}
+
+    mkdirs_if_not_exist: BoolProperty(name="Create sub-paths", description="If chosen path does not exist in the filesystem, create the full path including sub-directories", default=False)  # type: ignore
+
+    object_set_names: StringProperty(
+        name="Object Set Names", description="Comma-separated list of object set names to export", default=""
+    )  # type: ignore
+
+    # Add index to identify which export entry
+    export_entry_index: IntProperty(
+        name="Export Entry Index", description="Index of the export entry being used", default=-1
+    )  # type: ignore
+
+    @classmethod
+    def poll(cls, context):
+        accepted_contexts = context.mode in [u.OBJECT_MODES.OBJECT]
+        has_sets = get_export_sets()
+        return accepted_contexts and has_sets
+
+    def execute(self, context):
+        addon_export_props = u.get_addon_export_props()
+        export_sets = u.get_export_sets()
+
+        batch = [(idx, export_set) for idx, export_set in enumerate(export_sets) if export_set.consider_batch_export]
+
+        exported = set()
+
+        for batch_item in batch:
+            index = batch_item[0]
+            export_set = batch_item[1]
+
+            object_set_names = ",".join(export_set.get_selected_object_sets())
+
+            try:
+                bpy.ops.r0tools.quick_export_objects(
+                    mkdirs_if_not_exist=addon_export_props.mkdirs_if_not_exist,
+                    object_set_names=object_set_names,
+                    export_entry_index=index,
+                )
+                exported.add(export_set.export_set_name)
+            except Exception as e:
+                print(f"[ERROR] [{_mod}]: {e}")
+                self.report({"ERROR"}, f"Unable to export '{export_set.name}': {e})")
+
+        self.report({"INFO"}, f"Successfully exported {len(exported)} sets: {', '.join(exported)}")
+
+        return {"FINISHED"}
+
+
 # ===================================================================
 #   Register & Unregister
 # ===================================================================
@@ -369,6 +424,7 @@ classes = [
     SimpleToolbox_OT_RenameExportSet,
     SimpleToolbox_OT_ToggleObjectSetSelection,
     SimpleToolbox_OT_ExportObjects,
+    SimpleToolbox_OT_BatchExportObjects,
 ]
 # fmt: on
 

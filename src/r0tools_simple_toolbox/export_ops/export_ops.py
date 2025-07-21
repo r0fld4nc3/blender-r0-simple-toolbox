@@ -91,16 +91,11 @@ def set_export_set_name_at_index(index, new_name) -> bool:
 
 
 def draw_quick_export_sets_uilist(layout, context):
-    """
-    Draw the Quick Export Sets UI list
-
-    Args:
-        layout: The layout to draw in
-        context: The current context
-    """
+    """Draw the Quick Export Sets UI list"""
 
     from .operators import (
         SimpleToolbox_OT_AddExportSet,
+        SimpleToolbox_OT_BatchExportObjects,
         SimpleToolbox_OT_RemoveExportSet,
         SimpleToolbox_OT_SelectPath,
     )
@@ -126,7 +121,7 @@ def draw_quick_export_sets_uilist(layout, context):
     global_settings_btn_row.scale_y = path_row_height_scale
 
     if addon_export_props.show_edit_global_fbx_export_settings:
-        draw_fbx_export_settings(layout, addon_prefs.export_settings_global_fbx, is_global=True)
+        draw_fbx_export_settings(layout, addon_prefs.export_settings_global_fbx)
 
     # Export Sets Row Number Slider
     row = layout.row(align=True)
@@ -151,6 +146,9 @@ def draw_quick_export_sets_uilist(layout, context):
         "active_index",
         rows=addon_prefs.export_sets_list_rows,
     )
+
+    batch_export_row = col.row()
+    batch_export_row.operator(SimpleToolbox_OT_BatchExportObjects.bl_idname, icon="EXPORT")
 
     # Right side - Buttons
     col = split.column(align=True)
@@ -180,46 +178,49 @@ def draw_quick_export_sets_uilist(layout, context):
         icon="MESH_CUBE" if export_item.use_object_sets else "RESTRICT_SELECT_OFF",
     )
 
-    options_panel, options_panel_layout = layout.panel_prop(
-        export_item,  # The data object
-        "is_options_expanded",  # The property name that stores state
-    )
-    options_panel.label(text="Options")
+    show_panel_conditions = any([export_item.use_custom_fbx_settings, export_item.use_object_sets])
 
-    if options_panel_layout:
-        if export_item.use_custom_fbx_settings:
-            custom_fbx_settings_panel, custom_fbx_settings_panel_layout_body = options_panel_layout.panel_prop(
-                export_item, "is_settings_fbx_expanded"
-            )
-            custom_fbx_settings_panel.label(text="FBX Settings Override")
+    if show_panel_conditions:
+        options_panel, options_panel_layout = layout.panel_prop(
+            export_item,  # The data object
+            "is_options_expanded",  # The property name that stores state
+        )
+        options_panel.label(text="Options")
 
-            if custom_fbx_settings_panel_layout_body:
-                settings_row = custom_fbx_settings_panel_layout_body.row()
-                draw_fbx_export_settings(settings_row, export_item.export_settings_fbx)
+        if options_panel_layout:
+            if export_item.use_custom_fbx_settings:
+                custom_fbx_settings_panel, custom_fbx_settings_panel_layout_body = options_panel_layout.panel_prop(
+                    export_item, "is_settings_fbx_expanded"
+                )
+                custom_fbx_settings_panel.label(text="FBX Settings Override")
 
-        # Object Sets Row
-        if export_item.use_object_sets:
-            object_sets_panel, object_sets_panel_layout = options_panel_layout.panel_prop(
-                export_item, "object_sets_expanded"
-            )
-            object_sets_panel.label(text="Object Sets")
+                if custom_fbx_settings_panel_layout_body:
+                    settings_row = custom_fbx_settings_panel_layout_body.row()
+                    draw_fbx_export_settings(settings_row, export_item.export_settings_fbx)
 
-            if object_sets_panel_layout:
-                available_sets = u.get_object_sets()
+            # Object Sets Row
+            if export_item.use_object_sets:
+                object_sets_panel, object_sets_panel_layout = options_panel_layout.panel_prop(
+                    export_item, "object_sets_expanded"
+                )
+                object_sets_panel.label(text="Object Sets")
 
-                if available_sets:
-                    object_sets_panel_layout.template_list(
-                        "R0PROP_UL_ObjectSetsViewList",
-                        "",
-                        addon_object_sets_props,
-                        "object_sets",
-                        addon_object_sets_props,
-                        "object_sets_index",
-                        rows=addon_prefs.object_sets_list_rows,
-                    )
-                else:
-                    no_sets_row = object_sets_panel_layout.row()
-                    no_sets_row.label(text="No Object Sets available", icon="INFO")
+                if object_sets_panel_layout:
+                    available_sets = u.get_object_sets()
+
+                    if available_sets:
+                        object_sets_panel_layout.template_list(
+                            "R0PROP_UL_ObjectSetsViewList",
+                            "",
+                            addon_object_sets_props,
+                            "object_sets",
+                            addon_object_sets_props,
+                            "object_sets_index",
+                            rows=len([obj_set for obj_set in available_sets if not obj_set.separator]),
+                        )
+                    else:
+                        no_sets_row = object_sets_panel_layout.row()
+                        no_sets_row.label(text="No Object Sets available", icon="INFO")
 
 
 def draw_fbx_export_settings(layout, settings):

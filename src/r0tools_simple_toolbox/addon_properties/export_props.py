@@ -390,6 +390,8 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         from ..export_ops import SimpleToolbox_OT_ExportObjects
 
+        uses_custom_export_settings = item.use_custom_fbx_settings
+
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             col = layout.column(align=True)
 
@@ -426,6 +428,12 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
                     placeholder=f"Export Set {index + 1}",
                 )
 
+            # Uses custom FBX settings
+            if uses_custom_export_settings:
+                header_row.label(text="", icon="PREFERENCES")
+                # Small separator
+                header_row.separator(factor=1)
+
             # Consider for batch export
             header_row.prop(item, "consider_batch_export", text="")
 
@@ -442,7 +450,7 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
 
 
 class r0SimpleToolbox_PG_ExportProps(bpy.types.PropertyGroup):
-    mkdirs_if_not_exist: BoolProperty(name="Create sub-paths", description="If chosen path does not exist in the filesystem, create the full path including sub-directories", default=False)  # type: ignore
+    mkdirs_if_not_exist: BoolProperty(name="Create sub-paths", description="If chosen path does not exist in the filesystem, create the full path including sub-directories", default=True)  # type: ignore
 
     export_sets: CollectionProperty(
         type=r0SimpleToolbox_PG_ExportEntryItem, name="Export Sets", description=""
