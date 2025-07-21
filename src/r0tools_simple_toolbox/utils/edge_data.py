@@ -6,7 +6,7 @@ _most_used_indices = sorted(list({1, 2, 4, 6, 9, 14, 19}))
 _precise_indices = sorted(list({i for i in range(0, 20, 1)} - set(_most_used_indices)))
 
 
-def draw_edge_bweights_presets_uilist(layout, context, edge_bweights_box=None):
+def draw_edge_bweights_presets_operators(layout, context):
     """
     Draw the Edge Bevel Weights Presets UI list
     """
@@ -20,25 +20,23 @@ def draw_edge_bweights_presets_uilist(layout, context, edge_bweights_box=None):
     addon_prefs = get_addon_prefs()
     addon_edge_data_props = get_addon_edge_data_props()
 
-    grid_view = addon_prefs.edge_data_bweight_preset_grid_buttons_toggle
+    alt_view = addon_prefs.edge_data_bweight_presets_alt_view
 
-    # Edge Bevel Weights Presets parent layout
-    if edge_bweights_box:
-        parent = edge_bweights_box
-    elif layout:
-        parent = layout
-    else:
-        LOG(f"[ERROR] No valid layout to use:\n{layout=}\n{edge_bweights_box=}")
-        return False
+    bweight_presets_box = layout.box()
+    row = bweight_presets_box.row()
+    row.prop(addon_prefs, "edge_data_bweight_presets_alt_view", icon="MESH_GRID", text="")
+    row.label(
+        text=f"{'Bevel Weight Presets' if not addon_prefs.edge_data_bweight_presets_alt_view else 'Bevel Weight Presets Alternative'}"
+    )
 
     # Where to apply to
-    row = parent.row(align=True)
+    row = bweight_presets_box.row(align=True)
     row.prop(addon_edge_data_props, "apply_as_bevel_weights", toggle=True)
-    # row = parent.row()
+    # row = layout.row()
     row.prop(addon_edge_data_props, "apply_as_creases", toggle=True)
 
     # Layer to select
-    row = parent.row(align=True)
+    row = bweight_presets_box.row(align=True)
     op = row.operator(SimpleToolbox_OT_SelectColourAttributeLayer.bl_idname, text="Select Bevel Layer")
     op.select_bevel_layer = True
     op.select_crease_layer = False
@@ -46,23 +44,12 @@ def draw_edge_bweights_presets_uilist(layout, context, edge_bweights_box=None):
     op.select_bevel_layer = False
     op.select_crease_layer = True
 
-    row = parent.row()
+    row = bweight_presets_box.row()
 
-    if not grid_view:
-        # Left Section - List
-        row.template_list(
-            "R0PROP_UL_EdgeBWeightsList",
-            "edge_bweights_presets",
-            addon_edge_data_props.edge_bweights_presets,  # Collection owner
-            "presets",  # Collection property
-            addon_edge_data_props.edge_bweights_presets,  # Active item owner
-            "active_index",  # Active item property
-            rows=10,
-        )
-    else:
-        values = addon_edge_data_props.edge_bweights_presets.presets
+    values = addon_edge_data_props.edge_bweights_presets.presets
 
-        row = parent.row()
+    if not alt_view:
+        row = bweight_presets_box.row()
         split = row.split(factor=0.45)
 
         # === Left Column: Most Used ===
@@ -98,6 +85,35 @@ def draw_edge_bweights_presets_uilist(layout, context, edge_bweights_box=None):
                 value = f"{preset.value*100:.2f}".split(".")[0] + "%"
                 op = row.operator(SimpleToolbox_OT_ApplyBWeightPreset.bl_idname, text=value)
                 op.value = preset.value
+    else:
+        # Grid flow with 2 columns
+        grid_flow = bweight_presets_box.grid_flow(
+            row_major=False, columns=2, even_columns=True, even_rows=False, align=True
+        )
+
+        for preset in values:
+            value_text = f"{preset.value*100:.2f}".split(".")[0] + "%"
+            op = grid_flow.operator(SimpleToolbox_OT_ApplyBWeightPreset.bl_idname, text=value_text)
+            op.value = preset.value
+
+
+def draw_edge_data_panel_ui(layout, context):
+    from ..data_ops import SimpleToolbox_OT_EdgeDataToVertexColour
+    from . import LOG, get_addon_edge_data_props, get_addon_prefs, get_addon_props
+
+    addon_edge_data_props = get_addon_edge_data_props()
+
+    row = layout.row()
+    row.scale_y = 2
+    row.operator(SimpleToolbox_OT_EdgeDataToVertexColour.bl_idname, icon="GROUP_VCOL")
+    row = layout.row()
+    row.label(text="Convert:")
+    row = layout.row(align=True)
+    row.prop(addon_edge_data_props, "bevel_weights_to_vcol", toggle=True)
+    row.prop(addon_edge_data_props, "crease_to_vcol", toggle=True)
+    row = layout.row()
+
+    draw_edge_bweights_presets_operators(layout, context)
 
 
 @bpy.app.handlers.persistent

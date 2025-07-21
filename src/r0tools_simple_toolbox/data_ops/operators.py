@@ -12,6 +12,7 @@ from bpy.props import (
 )
 
 from .. import utils as u
+from ..defines import DEBUG
 
 _mod = "DATA_OPS.OPERATORS"
 
@@ -94,6 +95,9 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
             edge_bevel_layer = u.bmesh_get_bevel_weight_edge_layer(bm)
             crease_layer = u.bmesh_get_crease_layer(bm)
 
+            bevel_vcol_layer = None
+            crease_vcol_layer = None
+
             # Create or get vertex color layers in bmesh
             if self.bevel_weights_to_vcol:
                 bevel_vcol_layer = bm.loops.layers.color.get(vcol_bevel_layer_name)
@@ -161,18 +165,37 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
                         # Grayscale
                         loop[crease_vcol_layer] = (crease_value, crease_value, crease_value, 1.0)
 
+            # Get selected vcol layer
+            selected_vcol_layer = mesh.color_attributes.active_color
+
+            # Valid layer names comparison list
+            comparison_names = []
+            if bevel_vcol_layer:
+                comparison_names.append(bevel_vcol_layer.name)
+            if crease_vcol_layer:
+                comparison_names.append(crease_vcol_layer.name)
+
             if obj.mode == u.OBJECT_MODES.EDIT:
                 bmesh.update_edit_mesh(mesh)
             else:
                 bm.to_mesh(mesh)
                 bm.free()
 
-            # Set Bevel layer as active
-            if self.bevel_weights_to_vcol:
-                bpy.ops.r0tools.select_vcol_layer(select_bevel_layer=True)
-            # Set Crease layer as active
-            elif self.crease_to_vcol:
-                bpy.ops.r0tools.select_vcol_layer(select_crease_layer=True)
+            if selected_vcol_layer:
+                if selected_vcol_layer.name not in comparison_names:
+                    # Set Bevel layer as active
+                    if self.bevel_weights_to_vcol:
+                        bpy.ops.r0tools.select_vcol_layer(select_bevel_layer=True)
+                    # Set Crease layer as active
+                    elif self.crease_to_vcol:
+                        bpy.ops.r0tools.select_vcol_layer(select_crease_layer=True)
+            else:
+                # Set Bevel layer as active
+                if self.bevel_weights_to_vcol:
+                    bpy.ops.r0tools.select_vcol_layer(select_bevel_layer=True)
+                # Set Crease layer as active
+                elif self.crease_to_vcol:
+                    bpy.ops.r0tools.select_vcol_layer(select_crease_layer=True)
 
             total_processed += 1
             wm.progress_update(total_processed)
@@ -301,7 +324,7 @@ class SimpleToolbox_OT_ApplyBWeightPreset(bpy.types.Operator):
             value = self.value
         elif self.preset_index >= 0:
             # Ensure index is not out of bounds
-            presets = addon_edge_data_props.edge_bweight_presets.presets
+            presets = addon_edge_data_props.edge_bweights_presets.presets
             if self.preset_index < len(presets):
                 value = presets[self.preset_index].value
             else:
@@ -379,6 +402,9 @@ class SimpleToolbox_OT_SelectColourAttributeLayer(bpy.types.Operator):
         bevel_layer_name = addon_edge_data_props.vcol_bevel_layer_name
         crease_layer_name = addon_edge_data_props.vcol_crease_layer_name
 
+        bevel_objects_applied = 0
+        crease_objects_applied = 0
+
         for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
             mesh = obj.data
 
@@ -388,26 +414,26 @@ class SimpleToolbox_OT_SelectColourAttributeLayer(bpy.types.Operator):
                 bm = bmesh.new()
                 bm.from_mesh(mesh)
 
-            # Get Bevel/Crease Edge Attributes
-            edge_bevel_layer = u.bmesh_get_bevel_weight_edge_layer(bm)
-            crease_layer = u.bmesh_get_crease_layer(bm)
-
             # Set Bevel layer as active
             if self.select_bevel_layer:
-                vcol_bevel_attribute_layer = mesh.color_attributes.get(bevel_layer_name)
-                if edge_bevel_layer:
+                vcol_bevel_attribute_layer = mesh.color_attributes.get(bevel_layer_name, None)
+                if vcol_bevel_attribute_layer:
                     mesh.color_attributes.active_color = vcol_bevel_attribute_layer
-                # bpy.ops.geometry.color_attribute_render_set(name="Bevel")
-
-                self.report({"INFO"}, "Selected Bevel Colour Attribute Layer")
+                    # bpy.ops.geometry.color_attribute_render_set(name="Bevel")
+                    bevel_objects_applied += 1
 
             # Set Crease layer as active
             elif self.select_crease_layer:
-                vcol_crease_attribute_layer = mesh.color_attributes.get(crease_layer_name)
-                if crease_layer:
+                vcol_crease_attribute_layer = mesh.color_attributes.get(crease_layer_name, None)
+                if vcol_crease_attribute_layer:
                     mesh.color_attributes.active_color = vcol_crease_attribute_layer
+                    crease_objects_applied += 1
 
-                self.report({"INFO"}, "Selected Crease Colour Attribute Layer")
+        if self.select_bevel_layer:
+            self.report({"INFO"}, f"Selected Bevel Colour Attribute Layer for {bevel_objects_applied} Objects")
+
+        if self.select_crease_layer:
+            self.report({"INFO"}, f"Selected Crease Colour Attribute Layer for {crease_objects_applied} Objects")
 
         return {"FINISHED"}
 
@@ -424,11 +450,13 @@ classes = [
 
 def register():
     for cls in classes:
-        print(f"[INFO] [{_mod}] Register {cls.__name__}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
 
 def unregister():
     for cls in classes:
-        print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

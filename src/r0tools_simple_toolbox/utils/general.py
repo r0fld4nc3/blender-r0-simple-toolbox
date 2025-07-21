@@ -726,6 +726,45 @@ def property_list_update(force_run=False):
     return None
 
 
+def create_panel_variant(panel_class, space_type: str = None, region_type: str = None, category: str = None):
+    if space_type:
+        identifier = space_type.replace(" ", "_").lower()
+    elif region_type:
+        identifier = region_type.replace(" ", "_").lower()
+    elif category:
+        identifier = category.replace(" ", "_").lower()
+    else:
+        identifier = "bare"
+
+    # Create new class
+    class_name = f"{panel_class.__name__}_{identifier}"
+
+    # Get original bl_idname without modifications
+    original_idname = getattr(panel_class, "_original_bl_idname", panel_class.bl_idname)
+
+    # Create class attributes
+    attrs = {
+        "bl_idname": f"{original_idname}_{identifier}",
+        "bl_label": panel_class.bl_label,
+        "bl_space_type": space_type or panel_class.bl_space_type,
+        "bl_region_type": region_type or panel_class.bl_region_type,
+        "bl_category": category or getattr(panel_class, "bl_category", "Misc"),
+        "_original_bl_idname": original_idname,  # Store original for reference
+        "draw": panel_class.draw,  # Copy draw method
+    }
+
+    # Copy any other methods or attributes
+    for attr_name in dir(panel_class):
+        if not attr_name.startswith("bl_") and not attr_name.startswith("_"):
+            attr = getattr(panel_class, attr_name)
+            if callable(attr) and attr_name not in {"draw"}:
+                attrs[attr_name] = attr
+
+    new_class = type(class_name, (bpy.types.Panel,), attrs)
+
+    return new_class
+
+
 def context_error_debug(error: str = None, extra_prints: list = []):
     """Print debug information about the current context and error"""
     if not IS_DEBUG():

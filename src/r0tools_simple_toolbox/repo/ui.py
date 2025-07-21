@@ -33,8 +33,8 @@ def draw_repo_layout(layout, context):
         row = repo_box.row()
         split = row.split(factor=0.5)
         # Homepage and Releases
-        split.operator(SimpleToolbox_OT_OpenRepositoryUrl.bl_idname, icon="URL")
-        split.operator(SimpleToolbox_OT_OpenReleasesPage.bl_idname, icon="URL")
+        split.operator(SimpleToolbox_OT_OpenRepositoryUrl.bl_idname, icon="HOME")
+        split.operator(SimpleToolbox_OT_OpenReleasesPage.bl_idname, icon="OUTLINER_COLLECTION")
         # Check Update Button
         row = repo_box.row()
         row.operator(SimpleToolbox_OT_CheckUpdate.bl_idname, icon="FILE_REFRESH")
@@ -46,8 +46,8 @@ def draw_repo_layout(layout, context):
         row = issues_box.row()
         # Report Bug & Feature
         split = row.split(factor=0.5)
-        split.operator(SimpleToolbox_OT_OpenCreateIssueBug.bl_idname, icon="URL")
-        split.operator(SimpleToolbox_OT_OpenCreateIssueFeature.bl_idname, icon="URL")
+        split.operator(SimpleToolbox_OT_OpenCreateIssueBug.bl_idname, icon="LIBRARY_DATA_BROKEN")
+        split.operator(SimpleToolbox_OT_OpenCreateIssueFeature.bl_idname, icon="IMPORT")
         # Open Issues Page
         row = issues_box.row()
         row.operator(SimpleToolbox_OT_OpenRepositoryIssuePage.bl_idname, icon="URL")

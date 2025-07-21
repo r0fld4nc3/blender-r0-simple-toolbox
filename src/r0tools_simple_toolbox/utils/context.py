@@ -12,6 +12,16 @@ def get_addon_props():
     return get_scene().r0fl_toolbox_props
 
 
+def get_addon_object_sets_props():
+    """Get the addon property group from current scene"""
+    return get_scene().r0fl_object_sets_props
+
+
+def get_addon_vertex_groups_props():
+    """Get the addon property group from current scene"""
+    return get_scene().r0fl_vertex_groups_props
+
+
 def get_addon_edge_data_props():
     """Get the addon property group from current scene"""
     return get_scene().r0fl_toolbox_edge_data_props
@@ -20,6 +30,11 @@ def get_addon_edge_data_props():
 def get_addon_experimental_props():
     """Get the addon property group from current scene"""
     return get_scene().r0fl_toolbox_experimental_props
+
+
+def get_addon_find_modifier_props():
+    """Get the addon property group from current scene"""
+    return get_scene().r0fl_toolbox_find_modifier_props
 
 
 def get_addon_prefs():
@@ -146,6 +161,13 @@ def is_writing_context_safe(scene, check_addon_props: bool = False) -> bool:
 
     if check_addon_props:
         addon_props = get_addon_props()
+        addon_object_sets_props = get_addon_object_sets_props()
+        addon_vertex_groups_props = get_addon_vertex_groups_props()
+
+        # TODO: Implement
+        addon_edge_data_props = get_addon_edge_data_props()
+        addon_experimental_props = get_addon_experimental_props()
+        addon_find_modifier_props = get_addon_find_modifier_props()
 
         if not addon_props or addon_props is None:
             if addon_prefs is not None and hasattr(addon_prefs, "lock_states_avoided"):
@@ -154,14 +176,21 @@ def is_writing_context_safe(scene, check_addon_props: bool = False) -> bool:
             return False
 
         # Test writing capabilities
+        # Object Sets
+        try:
+            if hasattr(addon_object_sets_props.object_sets, "clear"):
+                _ = len(addon_object_sets_props.object_sets)
+        except Exception as e:
+            LOG(f"[ERROR] [{_mod}] Object Sets Property not accessible: {e}")
+
         # Vertex Groups
         try:
             if hasattr(addon_props, "cat_show_vertex_groups_editor"):
                 if addon_props.cat_show_vertex_groups_editor:
-                    if hasattr(addon_props.vertex_groups, "clear"):
-                        _ = len(addon_props.vertex_groups)
-        except (AttributeError, RuntimeError) as e:
-            LOG(f"[ERROR] [{_mod}] Property not accessible: {e}")
+                    if hasattr(addon_vertex_groups_props.vertex_groups, "clear"):
+                        _ = len(addon_vertex_groups_props.vertex_groups)
+        except Exception as e:
+            LOG(f"[ERROR] [{_mod}] Vertex Groups Property not accessible: {e}")
 
     if not hasattr(bpy.context, "selected_objects"):
         if addon_prefs is not None and hasattr(addon_prefs, "lock_states_avoided"):

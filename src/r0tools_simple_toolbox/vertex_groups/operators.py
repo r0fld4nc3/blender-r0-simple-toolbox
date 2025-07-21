@@ -3,6 +3,7 @@ import bpy
 from bpy.props import BoolProperty, FloatVectorProperty, IntProperty, StringProperty
 
 from .. import utils as u
+from ..defines import DEBUG
 from .vertex_groups import *
 
 _mod = "VERTEX_GROUPS.OPERATORS"
@@ -49,6 +50,24 @@ class SimpleToolbox_OT_VgroupsAddPopup(bpy.types.Operator):
         if context.mode == u.OBJECT_MODES.EDIT_MESH:
             bpy.ops.r0tools.vgroups_assign_vertices()
 
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_VgroupsRefresh(bpy.types.Operator):
+    bl_idname = "r0tools.vgrups_refresh"
+    bl_label = "Refresh"
+    bl_description = "Refresh vertex groups"
+    bl_options = {"REGISTER", "UNDO"}
+
+    accepted_contexts = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.EDIT_MESH]
+    accepted_object_types = [u.OBJECT_TYPES.MESH]
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode in cls.accepted_contexts and len(context.selected_objects) > 0
+
+    def execute(self, context):
+        u.vertex_groups_list_update(force=True)
         return {"FINISHED"}
 
 
@@ -643,6 +662,7 @@ class SimpleToolbox_OT_VgroupsDeselectVertices(bpy.types.Operator):
 # fmt: off
 classes = [
     SimpleToolbox_OT_VgroupsAddPopup,
+    SimpleToolbox_OT_VgroupsRefresh,
     SimpleToolbox_OT_VgroupsRemoveHighlighted,
     SimpleToolbox_OT_RemoveUnusedVertexGroups,
     SimpleToolbox_OT_VgroupsLockStateAll,
@@ -659,11 +679,13 @@ classes = [
 
 def register():
     for cls in classes:
-        print(f"[INFO] [{_mod}] Register {cls.__name__}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
 
 def unregister():
     for cls in classes:
-        print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

@@ -8,7 +8,7 @@ import bpy
 from bpy.props import BoolProperty, FloatVectorProperty, IntProperty, StringProperty
 
 from . import utils as u
-from .defines import INTERNAL_NAME
+from .defines import DEBUG, INTERNAL_NAME
 from .uv_ops import select_small_uv_islands
 
 _mod = "OPERATORS"
@@ -826,66 +826,181 @@ class SimpleToolbox_OT_FindModifierSearch(bpy.types.Operator):
 
     def execute(self, context):
         addon_props = u.get_addon_props()
+        addon_find_modifier_props = u.get_addon_find_modifier_props()
 
         if u.IS_DEBUG():
             print("\n------------- Find Modifier(s) Search -------------")
 
         search_text = addon_props.find_modifier_search_text.lower()
-        search_text_split = [s.strip() for s in search_text.split(",")]
-
-        view_layer_objs = bpy.context.view_layer.objects
+        search_terms = [s.strip() for s in search_text.split(",") if s.strip()]
 
         if u.IS_DEBUG():
             print(f"[DEBUG] [{_mod}] {search_text=}")
             print(f"[DEBUG] [{_mod}] (FLAG) {self.add_to_selection=}")
 
-        if not self.add_to_selection:
-            active_object = None
-        else:
-            active_object = context.active_object
+        # Use a dictionary to group objects by category.
+        # The key will be the modifier name, example: "DATA_TRANSFER".
+        # Value is a Set to handle duplicates automatically.
+        found_by_category = {}
+        mod_names_and_types = {}
 
-        if u.IS_DEBUG():
-            print(f"[DEBUG] [{_mod}] {active_object=}")
+        if search_terms:
+            view_layer_objs = bpy.context.view_layer.objects
+
+            for obj in view_layer_objs:
+                if not u.object_visible(obj):
+                    continue
+
+                obj_modifiers = obj.modifiers
+                for modifier in obj_modifiers:
+                    mod_name = modifier.name.lower()
+                    mod_type_lower = modifier.type.lower()
+
+                    mod_type_key = modifier.name
+
+                    for term in search_terms:
+                        if term in mod_name or term in mod_type_lower:
+                            if u.IS_DEBUG():
+                                print(
+                                    f"[DEBUG] [{_mod}] Match: '{term}' in '{mod_name}' or '{mod_type_lower}' on object '{obj.name}'"
+                                )
+
+                            if mod_type_key not in found_by_category:
+                                found_by_category[mod_type_key] = set()
+
+                            found_by_category[mod_type_key].add(obj)
+                            mod_names_and_types[modifier.name] = modifier.type
+
+        if u.is_writing_context_safe(context.scene):
+            found_objects_collection = addon_find_modifier_props.objects_list.found_objects
+            found_objects_collection.clear()
+
+            # Sort categories alphabetically
+            sorted_categories = sorted(found_by_category.keys())
+
+            for category in sorted_categories:
+                header_item = found_objects_collection.add()
+
+                # header_item.category_name = category.replace("_", " ").title()
+                cat_mod_type = mod_names_and_types.get(category)
+                header_item.category_name = f"{category} ({cat_mod_type})"
+
+                # Sort objects alphabetically
+                objects_in_category = sorted(list(found_by_category[category]), key=lambda o: o.name)
+                for obj in objects_in_category:
+                    list_item = found_objects_collection.add()
+                    list_item.obj = obj
+
+        all_unique_objects = set()
+        if found_by_category:
+            # The * operator unpacks the sets from the dictionary values
+            all_unique_objects = set().union(*found_by_category.values())
+
+        sorted_objects = sorted(list(all_unique_objects), key=lambda o: o.name)
 
         if not self.add_to_selection:
             u.deselect_all()
 
-        for obj in view_layer_objs:
-            if not u.object_visible(obj):
-                continue
+        if sorted_objects:
+            for obj in sorted_objects:
+                u.select_object(obj, add=True)
 
-            is_found = False
-            obj_modifiers = obj.modifiers
+            u.set_active_object(sorted_objects[-1])
 
-            for modifier in obj_modifiers:
-                mod_name = modifier.name
-                mod_type = modifier.type
+        if not found_by_category and search_terms:
+            self.report({"INFO"}, "No objects found with matching modifiers.")
 
-                for search_term in search_text_split:
-                    if is_found:
-                        break
-                    if search_term in mod_name.lower() or search_text in mod_type.lower():
-                        if u.IS_DEBUG():
-                            print(f"[DEBUG] [{_mod}] {search_term} in {mod_name} or {mod_type}")
+        return {"FINISHED"}
 
-                        if not self.add_to_selection:
-                            if not active_object:
-                                active_object = obj
-                                u.select_object(obj, set_active=True)
-                                is_found = True
-                            else:
-                                u.select_object(obj)
-                                is_found = True
-                        else:
-                            if not active_object:
-                                active_object = obj
-                                u.select_object(obj, set_active=True)
-                                is_found = True
-                            else:
-                                u.select_object(obj)
-                                is_found = True
 
-                        break
+class SimpleToolbox_OT_FindModifierSelectObject(bpy.types.Operator):
+    bl_idname = "r0tools.find_modifier_select_object"
+    bl_label = "Select Object"
+    bl_description = "Select this object and make it active.\n\n- SHIFT: Add to selection"
+    bl_options = {"REGISTER", "UNDO"}
+
+    # This property will receive the object name from the UIList button.
+    object_name: bpy.props.StringProperty(default="")  # type: ignore
+    add_to_selection: bpy.props.BoolProperty(default=False)  # type: ignore
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == u.OBJECT_MODES.OBJECT
+
+    def invoke(self, context, event):
+        self.add_to_selection = False  # Always reset
+
+        if event.shift:
+            self.add_to_selection = True
+
+        return self.execute(context)
+
+    def execute(self, context):
+        """
+        if self.select_all:
+            return self.execute_select_all(context)
+        else:
+            return self.execute_select_single(context)
+        """
+
+        return self.execute_select_single(context)
+
+    def execute_select_all(self, context):
+        """Unused"""
+        addon_find_modifier_props = u.get_addon_find_modifier_props()
+        found_items = addon_find_modifier_props.objects_list.found_objects
+
+        if not found_items:
+            self.report({"WARNING"}, "No objects in the list to select.")
+            return {"CANCELLED"}
+
+        if not self.add_to_selection:
+            u.deselect_all()
+
+        objects_to_select = []
+        for item in found_items:
+            if item.obj:
+                objects_to_select.append(item.obj)
+
+        if not objects_to_select:
+            return {"CANCELLED"}
+
+        for obj in objects_to_select:
+            obj.select_set(True)
+
+        context.view_layer.objects.active = objects_to_select[0]
+
+        return {"FINISHED"}
+
+    def execute_select_single(self, context):
+        if not self.object_name:
+            self.report({"WARNING"}, "No object name provided.")
+            return {"CANCELLED"}
+
+        target_obj = bpy.data.objects.get(self.object_name)
+        if not target_obj:
+            self.report({"WARNING"}, f"Object '{self.object_name}' not found.")
+            return {"CANCELLED"}
+
+        if self.add_to_selection:
+            u.select_object(target_obj, add=True, set_active=True)
+        else:
+            u.deselect_all()
+            u.select_object(target_obj, add=False, set_active=True)
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_FindModifierClearList(bpy.types.Operator):
+    bl_idname = "r0tools.find_modifier_clear_list"
+    bl_label = "Clear List"
+    bl_description = "Clears the found objects list"
+    bl_options = {"REGISTER"}
+
+    def execute(self, context):
+        if u.is_writing_context_safe(context.scene):
+            addon_find_modifier_props = u.get_addon_find_modifier_props()
+            addon_find_modifier_props.objects_list.found_objects.clear()
 
         return {"FINISHED"}
 
@@ -1677,7 +1792,11 @@ classes = [
     SimpleToolbox_OT_ClearCustomProperties,
     SimpleToolbox_OT_ClearMeshAttributes,
     SimpleToolbox_OT_ClearChildrenRecurse,
+    
     SimpleToolbox_OT_FindModifierSearch,
+    SimpleToolbox_OT_FindModifierSelectObject,
+    SimpleToolbox_OT_FindModifierClearList,
+    
     SimpleToolbox_OT_RemoveUnusedMaterials,
     
     SimpleToolbox_OT_DissolveNthEdge,
@@ -1704,7 +1823,8 @@ def register_keymapping():
     keymap_item = keymap.keymap_items.new(
         SimpleToolbox_OT_ShowCustomOrientationsPie.bl_idname, type="NONE", value="PRESS"
     )
-    print(f"[INFO] [{_mod}] Added keymap item: {(keymap, keymap_item)}")
+    if DEBUG:
+        print(f"[INFO] [{_mod}] Added keymap item: {(keymap, keymap_item)}")
     addon_keymaps.append((keymap, keymap_item))
 
 
@@ -1716,7 +1836,8 @@ def unregister_keymapping():
 
 def register():
     for cls in classes:
-        print(f"[INFO] [{_mod}] Register {cls.__name__}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
     CustomTransformsOrientationsTracker.register_handler()
@@ -1724,15 +1845,16 @@ def register():
     # Register modified draw method for Orientations Pie
     _BUILTIN_ORIENTATIONS_PIE.draw = modified_orientations_pie_draw
 
-    register_keymapping()
+    # register_keymapping()
 
 
 def unregister():
     for cls in classes:
-        print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
 
-    unregister_keymapping()
+    # unregister_keymapping()
     CustomTransformsOrientationsTracker.unregister_handler()
 
     _BUILTIN_ORIENTATIONS_PIE.draw = _ORIGINAL_ORIENTATIONS_PIE_DRAW

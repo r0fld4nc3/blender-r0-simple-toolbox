@@ -2,8 +2,7 @@ import bpy
 
 from . import ext_update as upd
 from . import utils as u
-from .data_ops import SimpleToolbox_OT_EdgeDataToVertexColour
-from .defines import ADDON_NAME, VERSION_STR
+from .defines import ADDON_CATEGORY, ADDON_NAME, ADDON_NAME_BARE, DEBUG, VERSION_STR
 from .operators import *
 from .repo import draw_repo_layout
 
@@ -15,7 +14,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
     bl_label = f'{ADDON_NAME} ({VERSION_STR})'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'Tool'
+    bl_category = ADDON_CATEGORY
     # bl_options = {"DEFAULT_CLOSED"}
     has_update = False
 
@@ -37,7 +36,8 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
     def draw(self, context):
         addon_props = u.get_addon_props()
         addon_prefs = u.get_addon_prefs()
-        experimental_props = u.get_addon_experimental_props()
+        addon_experimental_props = u.get_addon_experimental_props()
+        addon_find_modifier_props = u.get_addon_find_modifier_props()
         
         layout = self.layout
 
@@ -95,18 +95,31 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                     row = dev_tools_box.row()
                     row.operator(SimpleToolbox_OT_FixImageDataPaths.bl_idname, icon="IMAGE_DATA")
 
-        # ====== Find Modifiers on Objects ======
-        if cat_show_find_modifiers_ops and not cat_show_object_ops:
+        # ====== Find Modifiers ======
+        if cat_show_find_modifiers_ops:
             find_modifiers_box = layout.box()
             row = find_modifiers_box.row()
             row.prop(addon_props, "show_find_modifier_search", icon="TRIA_DOWN" if addon_props.show_find_modifier_search else "TRIA_RIGHT", emboss=False)
             if addon_props.show_find_modifier_search:
                 row = find_modifiers_box.row()
-                row.label(text="Name or Type:")
+                row.label(text="Name or Type (comma-separated):")
                 row = find_modifiers_box.row()
                 row.prop(addon_props, "find_modifier_search_text", icon="SORTALPHA", text="")
                 row.operator(SimpleToolbox_OT_FindModifierSearch.bl_idname, icon="VIEWZOOM", text="")
-        
+
+                if addon_prefs.experimental_features:
+                    # Found objects UIList
+                    row = find_modifiers_box.row()
+                    row.template_list(
+                    "R0PROP_UL_FindModifierObjectsList",
+                    "",
+                    addon_find_modifier_props.objects_list,  # Collection owner
+                    "found_objects",  # Collection property
+                    addon_find_modifier_props.objects_list,  # Active item owner
+                    "active_index",  # Active item property
+                    rows=10,
+                    )
+            
         # ====== Object Ops ======
         if cat_show_object_ops:
             object_ops_box = layout.box()
@@ -131,20 +144,6 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 row_split = row.split(align=True)
                 # Remove unused Materials
                 row_split.operator(SimpleToolbox_OT_RemoveUnusedMaterials.bl_idname)
-
-                # ====== Find Modifiers on Objects ======
-                # Kept here as it can be group into object ops, if possible.
-                # Kept above as well in case the Object Ops is not visible
-                if cat_show_find_modifiers_ops and cat_show_object_ops:
-                    find_modifiers_box = object_ops_box.box()
-                    row = find_modifiers_box.row()
-                    row.prop(addon_props, "show_find_modifier_search", icon="TRIA_DOWN" if addon_props.show_find_modifier_search else "TRIA_RIGHT", emboss=False)
-                    if addon_props.show_find_modifier_search:
-                        row = find_modifiers_box.row()
-                        row.label(text="Name or Type:")
-                        row = find_modifiers_box.row()
-                        row.prop(addon_props, "find_modifier_search_text", icon="SORTALPHA", text="")
-                        row.operator(SimpleToolbox_OT_FindModifierSearch.bl_idname, icon="VIEWZOOM", text="")
 
                 # ====== Custom Properties UI List ======
                 # Kept here as it can be group into object ops, if possible.
@@ -287,21 +286,11 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                     row = uv_island_checks_thresholds_box.row()
                     row.operator(SimpleToolbox_OT_UVCheckIslandThresholds.bl_idname)
 
-        if addon_prefs.experimental_features:
-            experimental_features_box = layout.box()
-            experimental_features_box.prop(addon_props, "show_experimental_features", icon="TRIA_DOWN" if addon_props.show_experimental_features else "TRIA_RIGHT", emboss=False)
-            if addon_props.show_experimental_features:
-                exp_edge_data_row = experimental_features_box.row()
-                exp_edge_data_row.prop(experimental_props, "show_edge_data_ops", icon="TRIA_DOWN" if experimental_props.show_edge_data_ops else "TRIA_RIGHT", emboss=False)
-                if experimental_props.show_edge_data_ops:
-                    row = experimental_features_box.row()
-                    row.operator(SimpleToolbox_OT_EdgeDataToVertexColour.bl_idname, icon="GROUP_VCOL")
-                    row = experimental_features_box.row()
-                    bweight_presets_box = row.box()
-                    row = bweight_presets_box.row()
-                    row.prop(addon_prefs, "edge_data_bweight_preset_grid_buttons_toggle", icon="MESH_GRID", text="")
-                    row.label(text=f"{'Bevel Weight Preset Grid' if addon_prefs.edge_data_bweight_preset_grid_buttons_toggle else 'Bevel Weight Preset List'}")
-                    u.draw_edge_bweights_presets_uilist(self.layout, context, edge_bweights_box=bweight_presets_box)
+        # if addon_prefs.experimental_features:
+            # experimental_features_box = layout.box()
+            # experimental_features_box.prop(addon_props, "show_experimental_features", icon="TRIA_DOWN" addon_props.show_experimental_features else "TRIA_RIGHT", emboss=False)
+            # if addon_props.show_experimental_features:
+                # ...
 
         # ====== Online Repository ======
         draw_repo_layout(layout, context)
@@ -310,50 +299,54 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
 
 class r0Tools_PT_SimpleToolboxEdgeDataOps(bpy.types.Panel):
     bl_idname = "OBJECT_PT_simple_toolbox_edge_data"
-    bl_label = f"Edge Data Ops ({VERSION_STR})"
+    bl_label = f"Edge Data Ops - {ADDON_NAME_BARE}"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Item"
-    # bl_options = {"DEFAULT_CLOSED"}
+    bl_options = {"DEFAULT_CLOSED"}
     has_update = False
 
-    def draw(self, context):
-        addon_props = u.get_addon_props()
+    @classmethod
+    def poll(cls, context):
         addon_prefs = u.get_addon_prefs()
+        addon_experimental_props = addon_prefs.experimental_features
 
+        return addon_experimental_props
+
+    def draw(self, context):
         layout = self.layout
-
-        if addon_prefs.experimental_features:
-            row = layout.row()
-            row.operator(SimpleToolbox_OT_EdgeDataToVertexColour.bl_idname, icon="GROUP_VCOL")
-            row = layout.row()
-            bweight_presets_box = row.box()
-            row = bweight_presets_box.row()
-            row.prop(addon_prefs, "edge_data_bweight_preset_grid_buttons_toggle", icon="MESH_GRID", text="")
-            row.label(
-                text=f"{'Bevel Weight Preset Grid' if addon_prefs.edge_data_bweight_preset_grid_buttons_toggle else 'Bevel Weight Preset List'}"
-            )
-            u.draw_edge_bweights_presets_uilist(self.layout, context, edge_bweights_box=bweight_presets_box)
-
-
-def unregister():
-    for cls in classes:
-        print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
-        bpy.utils.unregister_class(cls)
-
-    bpy.types.VIEW3D_PT_transform.remove(u.draw_bweights_in_transform_panel)
+        u.draw_edge_data_panel_ui(layout, context)
 
 
 # -------------------------------------------------------------------
 #   Register & Unregister
 # -------------------------------------------------------------------
 
-classes = [r0Tools_PT_SimpleToolbox, r0Tools_PT_SimpleToolboxEdgeDataOps]
+# fmt: off
+classes = [
+    r0Tools_PT_SimpleToolbox, 
+    # r0Tools_PT_SimpleToolboxEdgeDataOps,
+]
+# fmt: on
 
+# fmt: off
+panel_attributions = {
+    r0Tools_PT_SimpleToolboxEdgeDataOps: {
+        "categories": [ADDON_CATEGORY, "Item"]
+    }
+}
+# fmt : on
 
 def register():
+    for panel_class, values in panel_attributions.items():
+        categories = values.get("categories")
+        for cat in categories:
+            variant = u.create_panel_variant(panel_class, category=cat)
+            classes.append(variant)
+
     for cls in classes:
-        print(f"[INFO] [{_mod}] Register {cls.__name__}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
     # upd.trigger_update_check()
@@ -362,5 +355,6 @@ def register():
 
 def unregister():
     for cls in classes:
-        print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

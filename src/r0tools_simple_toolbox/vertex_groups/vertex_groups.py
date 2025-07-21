@@ -16,12 +16,12 @@ _last_update_time = 0
 
 
 def get_vertex_groups():
-    addon_props = u.get_addon_props()
+    addon_vertex_groups_props = u.get_addon_vertex_groups_props()
 
-    if not addon_props:
+    if not addon_vertex_groups_props:
         return None
 
-    return addon_props.vertex_groups
+    return addon_vertex_groups_props.vertex_groups
 
 
 def get_vertex_groups_count() -> int:
@@ -47,12 +47,20 @@ def get_selected_vgroups() -> list:
 
 
 def set_vertex_group_locked(vertex_group):
+    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+        print(f"[WARNING] [{_mod}] Vertex Groups Set Locked: Unsafe Context.")
+        return None
+
     vertex_group.locked = True
 
     return True
 
 
 def set_vertex_group_unlocked(vertex_group):
+    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+        print(f"[WARNING] [{_mod}] Vertex Groups Set Unlocked: Unsafe Context.")
+        return None
+
     vertex_group.locked = False
 
     return False
@@ -68,32 +76,36 @@ def get_selected_vgroups_names() -> list:
 
 
 def get_active_vertex_group_index() -> int:
-    addon_props = u.get_addon_props()
+    addon_vertex_groups_props = u.get_addon_vertex_groups_props()
 
-    if not addon_props:
+    if not addon_vertex_groups_props:
         return -1
 
-    active_index = addon_props.vertex_group_list_index
+    active_index = addon_vertex_groups_props.vertex_group_list_index
 
     return active_index
 
 
 def set_vertex_groups_depsgraph_do_update(do_update=True):
-    addon_props = u.get_addon_props()
+    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+        print(f"[WARNING] [{_mod}] Set Vertex Groups Depsgraph Do Update: Unsafe Context.")
+        return None
 
-    if not addon_props:
+    addon_vertex_groups_props = u.get_addon_vertex_groups_props()
+
+    if not addon_vertex_groups_props:
         return False
 
-    addon_props.vgroups_do_update = do_update
+    addon_vertex_groups_props.vgroups_do_update = do_update
 
 
 def get_vertex_groups_lock_states():
-    addon_props = u.get_addon_props()
+    addon_vertex_groups_props = u.get_addon_vertex_groups_props()
 
-    if not addon_props:
+    if not addon_vertex_groups_props:
         return None
 
-    return addon_props.vertex_groups_lock_states
+    return addon_vertex_groups_props.vertex_groups_lock_states
 
 
 def set_vertex_group_highlighted_by_name(vertex_group_name: str) -> int:
@@ -102,7 +114,11 @@ def set_vertex_group_highlighted_by_name(vertex_group_name: str) -> int:
 
     Returns `index` if succesful, `-1` if name was not found
     """
-    addon_props = u.get_addon_props()
+    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+        print(f"[WARNING] [{_mod}] Set Vertex Groups Highlighted By Name: Unsafe Context.")
+        return None
+
+    addon_vertex_groups_props = u.get_addon_vertex_groups_props()
 
     vertex_groups = get_vertex_groups()
 
@@ -111,26 +127,38 @@ def set_vertex_group_highlighted_by_name(vertex_group_name: str) -> int:
 
     for i, vgroup in enumerate(vertex_groups):
         if vgroup.name == vertex_group_name:
-            addon_props.vertex_group_list_index = i
+            addon_vertex_groups_props.vertex_group_list_index = i
             return i
 
     return -1
 
 
 def iter_vertex_groups_lock_states():
+    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+        print(f"[WARNING] [{_mod}] Vertex Groups Iter Lock States: Unsafe Context.")
+        return None
+
     for state in get_vertex_groups_lock_states():
         yield state
 
 
 def vertex_groups_lock_states_remove_at_index(index: int):
+    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+        print(f"[WARNING] [{_mod}] Vertex Groups Lock States Remove At Index: Unsafe Context.")
+        return None
+
     states = get_vertex_groups_lock_states()
     states.remove(index)
 
 
 def vertex_groups_cleanup_lock_states():
-    addon_props = u.get_addon_props()
+    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+        print(f"[WARNING] [{_mod}] Vertex Groups Cleanup Lock States: Unsafe Context.")
+        return None
 
-    if not addon_props:
+    addon_vertex_groups_props = u.get_addon_vertex_groups_props()
+
+    if not addon_vertex_groups_props:
         return None
 
     vertex_groups_names_sorted = sorted([vgroup.name for vgroup in get_vertex_groups()])
@@ -147,24 +175,32 @@ def vertex_groups_cleanup_lock_states():
 
 
 def _vertex_groups_store_states() -> dict:
-    addon_props = u.get_addon_props()
+    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+        print(f"[WARNING] [{_mod}] Vertex Groups Store States: Unsafe Context.")
+        return None
+
+    addon_vertex_groups_props = u.get_addon_vertex_groups_props()
 
     # Store the current selection state of Vertex Groups List
     selection_state = {}
 
-    for item in addon_props.vertex_groups:
+    for item in addon_vertex_groups_props.vertex_groups:
         selection_state[item.name] = {"selected": item.selected, "locked": item.locked}
 
     return selection_state
 
 
 def vertex_groups_list_add_groups(props: dict, selection_state: dict):
-    addon_props = u.get_addon_props()
+    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+        print(f"[WARNING] [{_mod}] Vertex Groups List Add Groups: Unsafe Context.")
+        return None
+
+    addon_vertex_groups_props = u.get_addon_vertex_groups_props()
 
     # Populate the UIList
     for prop_name, count in props.items():
         try:
-            item = addon_props.vertex_groups.add()
+            item = addon_vertex_groups_props.vertex_groups.add()
             item.name = prop_name
             item.count = count
 
@@ -200,24 +236,15 @@ def _needs_update():
 
 
 def vertex_groups_list_update(force: bool = False):
-    scene = bpy.context.scene
-
-    if not u.is_writing_context_safe(scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+        print(f"[WARNING] [{_mod}] Vertex Groups List Update: Unsafe Context.")
         return None
 
     addon_props = u.get_addon_props()
-
-    # Additional write check
-    try:
-        if hasattr(addon_props.vertex_groups, "clear"):
-            _ = len(addon_props.vertex_groups)
-    except AttributeError as e:
-        if u.IS_DEBUG():
-            print(f"[DEBUG] [{_mod}] Property not accessible: {e}")
-        return None
+    addon_vertex_groups_props = u.get_addon_vertex_groups_props()
 
     if not force:
-        if not addon_props.vgroups_do_update:
+        if not addon_vertex_groups_props.vgroups_do_update:
             return None
 
         # Check if update is required
@@ -249,7 +276,7 @@ def vertex_groups_list_update(force: bool = False):
         selection_state = _vertex_groups_store_states()
 
         try:
-            addon_props.vertex_groups.clear()
+            addon_vertex_groups_props.vertex_groups.clear()
         except Exception as e:
             print(f"[WARNING] [{_mod}] Property 'vertex_groups' is not writable for '.clear()'. Skipping.")
             if u.IS_DEBUG():
@@ -264,7 +291,7 @@ def vertex_groups_list_update(force: bool = False):
         _vertex_groups_cache = vertex_groups_new
 
         # Cleanup only when needed
-        if len(vertex_groups_new) != len(addon_props.vertex_groups):
+        if len(vertex_groups_new) != len(addon_vertex_groups_props.vertex_groups):
             vertex_groups_cleanup_lock_states()
 
         # UI update
@@ -277,7 +304,7 @@ def vertex_groups_list_update(force: bool = False):
 
             # Clear the property list if no objects are selected
             try:
-                addon_props.vertex_groups.clear()
+                addon_vertex_groups_props.vertex_groups.clear()
                 _vertex_groups_cache = {}
                 if u.IS_DEBUG():
                     print(f"[DEBUG] [{_mod}] Cleared UIList vertex_groups")
@@ -323,6 +350,7 @@ def draw_vertex_groups_uilist(layout, context, vertex_groups_box=None):
         SimpleToolbox_OT_VgroupsAssignVertices,
         SimpleToolbox_OT_VgroupsDeselectVertices,
         SimpleToolbox_OT_VgroupsKeepSelected,
+        SimpleToolbox_OT_VgroupsRefresh,
         SimpleToolbox_OT_VgroupsRemoveHighlighted,
         SimpleToolbox_OT_VgroupsRemoveSelected,
         SimpleToolbox_OT_VgroupsSelectObjectsWithVgroups,
@@ -331,7 +359,7 @@ def draw_vertex_groups_uilist(layout, context, vertex_groups_box=None):
     )
 
     addon_prefs = u.get_addon_prefs()
-    addon_props = u.get_addon_props()
+    addon_vertex_groups_props = u.get_addon_vertex_groups_props()
 
     # Object Sets Editor parent layout
     if vertex_groups_box:
@@ -358,9 +386,9 @@ def draw_vertex_groups_uilist(layout, context, vertex_groups_box=None):
     col.template_list(
         "R0PROP_UL_VertexGroupsList",
         "vertex_groups",
-        addon_props,
+        addon_vertex_groups_props,
         "vertex_groups",
-        addon_props,
+        addon_vertex_groups_props,
         "vertex_group_list_index",
         rows=addon_prefs.vertex_groups_list_rows,
     )
@@ -369,6 +397,9 @@ def draw_vertex_groups_uilist(layout, context, vertex_groups_box=None):
     col = split.column(align=True)
     col.operator(SimpleToolbox_OT_VgroupsAddPopup.bl_idname, text="+")
     col.operator(SimpleToolbox_OT_VgroupsRemoveHighlighted.bl_idname, text="-")
+
+    col.separator(factor=1.0)
+    col.operator(SimpleToolbox_OT_VgroupsRefresh.bl_idname, icon="FILE_REFRESH")
 
     # Vertex Groups Actions (Downward arrow dropdown menu)
     col.separator(factor=1.0)  # Spacer

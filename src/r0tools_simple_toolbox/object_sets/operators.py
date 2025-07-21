@@ -4,6 +4,7 @@ import bpy
 from bpy.props import BoolProperty, FloatVectorProperty, IntProperty, StringProperty
 
 from .. import utils as u
+from ..defines import DEBUG
 from .object_sets import *
 
 _mod = "OBJECT_SETS.OPERATORS"
@@ -101,8 +102,8 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
             split.prop(self, "object_set_colour", text="")
 
     def add_non_conflicting_name(self) -> str:
-        addon_props = u.get_addon_props()
-        existing_names = [object_set.name for object_set in addon_props.object_sets]
+        addon_object_sets_props = u.get_addon_object_sets_props()
+        existing_names = [object_set.name for object_set in addon_object_sets_props.object_sets]
 
         if self.object_set_name not in existing_names:
             return self.object_set_name
@@ -132,19 +133,17 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
         return f"{self.object_set_name}.{suffix:03}"
 
     def execute(self, context):
-        addon_props = u.get_addon_props()
-
         if self.separator:
-            new_set = addon_props.object_sets.add()
-            new_set.name = new_set._default_separator_name
+            new_set = u.get_object_sets().add()
+            new_set.name = new_set.default_separator_name
             new_set.separator = self.separator
 
             self.report({"INFO"}, f"Added separator ot Object Sets")
         else:
-            new_set = addon_props.object_sets.add()
+            new_set = u.get_object_sets().add()
             new_set.name = self.add_non_conflicting_name()
             new_set.set_object_set_colour(self.object_set_colour)
-            set_active_object_set_index(len(addon_props.object_sets) - 1)
+            set_active_object_set_index(len(u.get_object_sets()) - 1)
 
             # Immediately add selected objects to set, for convenience
             if context.selected_objects:
@@ -168,7 +167,7 @@ class SimpleToolbox_OT_RemoveObjectSet(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.mode == u.OBJECT_MODES.OBJECT and len(u.get_addon_props().object_sets) > 0
+        return context.mode == u.OBJECT_MODES.OBJECT and len(u.get_object_sets()) > 0
 
     def execute(self, context):
         index = get_active_object_set_index()
@@ -230,7 +229,9 @@ class SimpleToolbox_OT_MoveObjectSetItem(bpy.types.Operator):
     def execute(self, context):
         active_index = get_active_object_set_index()
         object_sets = get_object_sets()
-        separator = get_object_set_at_index(active_index).separator
+        # separator = get_object_set_at_index(active_index).separator
+
+        to_index = active_index
 
         if self.direction == "UP":
             if active_index > 0:
@@ -239,11 +240,6 @@ class SimpleToolbox_OT_MoveObjectSetItem(bpy.types.Operator):
                 else:
                     to_index = active_index - 1
 
-                move_object_set_to_index(active_index, to_index)
-                set_active_object_set_index(to_index)
-                if not separator:
-                    object_set_at_index_update_count(active_index)
-                    object_set_at_index_update_count(to_index)
         elif self.direction == "DOWN":
             if active_index < len(object_sets) - 1:
                 if self.absolute:
@@ -251,11 +247,16 @@ class SimpleToolbox_OT_MoveObjectSetItem(bpy.types.Operator):
                 else:
                     to_index = active_index + 1
 
-                object_sets.move(active_index, to_index)
-                set_active_object_set_index(to_index)
-                if not separator:
-                    object_sets[active_index].update_count()
-                    object_sets[to_index].update_count()
+        move_object_set_to_index(active_index, to_index)
+        set_active_object_set_index(to_index)
+
+        # Deprecated, we don't actually need to update the count
+        # making it incredibly faster to move up and down especially
+        # when having Sets with large amounts of objects
+
+        # if not separator:
+        # object_set_at_index_update_count(active_index)
+        # object_set_at_index_update_count(to_index)
 
         return {"FINISHED"}
 
@@ -287,8 +288,7 @@ class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
             object_set = get_object_set_at_index(index)
             object_set_count_before = object_set.count
 
-            for obj in context.selected_objects:
-                object_set.assign_object(obj)
+            object_set.assign_objects(context.selected_objects)
 
             object_set_count_after = object_set.count - object_set_count_before
 
@@ -324,14 +324,12 @@ class SimpleToolbox_OT_RemoveFromObjectSet(bpy.types.Operator):
     def execute(self, context):
         index = get_active_object_set_index()
 
-        total_removed = 0
-
         if 0 <= index < get_object_sets_count():
             object_set = get_object_set_at_index(index)
 
-            for obj in context.selected_objects:
-                object_set.remove_object(obj)
-                total_removed += 1
+            initial_count = len(object_set.objects)
+            object_set.remove_objects(context.selected_objects)
+            total_removed = initial_count - len(object_set.objects)
 
             self.report({"INFO"}, f"Removed {total_removed} objects of Set '{object_set.name}'")
 
@@ -362,11 +360,8 @@ class SimpleToolbox_OT_RemoveFromAllObjectSets(bpy.types.Operator):
     def execute(self, context):
         object_sets = get_object_sets()
 
-        for obj in context.selected_objects:
-            for index, object_set in enumerate(object_sets):
-                object_sets_objects = [obj for obj in iter_objects_of_object_set_at_index(index)]
-                if obj in object_sets_objects:
-                    object_set.remove_object(obj)
+        for object_set in object_sets:
+            object_set.remove_objects(context.selected_objects)
 
         self.report({"INFO"}, f"Removed selected objects from all Object Sets")
 
@@ -825,7 +820,8 @@ def object_sets_modal_menu_func(self, context):
 
 def register():
     for cls in classes:
-        print(f"[INFO] [{_mod}] Register {cls.__name__}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
     # Register Objects Sets Modal Operator in Viewport > View
@@ -837,7 +833,8 @@ def register():
 
 def unregister():
     for cls in classes:
-        print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
 
     # Unregister Objects Sets Modal Operator in Viewport > View
