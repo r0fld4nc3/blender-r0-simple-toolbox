@@ -86,6 +86,7 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
         default=(0.0, 0.0, 0.0, 1.0),
         update=set_object_set_colour,  # This passes `Context` as an argument....
     )
+    checked: bpy.props.BoolProperty(default=False, name="Checked")  # type: ignore
     expanded: bpy.props.BoolProperty(default=False, name="Expand")  # type: ignore
     verts: bpy.props.IntProperty(default=0)  # type: ignore
     edges: bpy.props.IntProperty(default=0)  # type: ignore
@@ -309,6 +310,14 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
             layout.label(text=item.name)
 
 
+class R0PROP_UL_ObjectSetsViewList(bpy.types.UIList):
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        if not item.separator:
+            row = layout.row()
+            row.prop(item, "checked", text="")
+            row.label(text=item.name)
+
+
 class r0ObjectSetsProps(bpy.types.PropertyGroup):
     object_sets: CollectionProperty(type=R0PROP_PG_ObjectSetEntryItem)  # type: ignore
     object_sets_index: IntProperty(default=0, name="Object Set")  # type: ignore
@@ -328,6 +337,7 @@ classes = [
     R0PROP_PG_ObjectSetObjectItem,
     R0PROP_PG_ObjectSetEntryItem,
     R0PROP_UL_ObjectSetsList,
+    R0PROP_UL_ObjectSetsViewList,
     r0ObjectSetsProps,
 ]
 

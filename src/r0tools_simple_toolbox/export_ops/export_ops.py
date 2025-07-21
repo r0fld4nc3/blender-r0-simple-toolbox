@@ -102,29 +102,35 @@ def draw_quick_export_sets_uilist(layout, context):
     from .operators import (
         SimpleToolbox_OT_AddExportSet,
         SimpleToolbox_OT_RemoveExportSet,
+        SimpleToolbox_OT_SelectPath,
+        SimpleToolbox_OT_ToggleObjectSetSelection,
     )
 
     if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
         print(f"[WARNING] [{_mod}] Export Sets Draw UIList: Unsafe Context.")
         return None
 
+    path_row_height_scale = 1.2
+
     addon_prefs = u.get_addon_prefs()
     addon_export_props = u.get_addon_export_props()
+    addon_object_sets_props = u.get_addon_object_sets_props()
 
-    # Global Settings Section
-    global_settings_row = layout.row()
-    global_settings_row.prop(
+    # Global Settings Button
+    global_settings_btn_row = layout.row()
+    global_settings_btn_row.prop(
         addon_export_props,
         "show_edit_global_fbx_export_settings",
-        text="",
+        text="Global Settings",
         icon="PREFERENCES",
     )
+    global_settings_btn_row.scale_y = path_row_height_scale
 
     if addon_export_props.show_edit_global_fbx_export_settings:
-        draw_fbx_export_settings(global_settings_row, addon_prefs.export_settings_global_fbx, is_global=True)
+        draw_fbx_export_settings(layout, addon_prefs.export_settings_global_fbx, is_global=True)
 
     # Export Sets Row Number Slider
-    row = layout.row()
+    row = layout.row(align=True)
     split = row.split(factor=0.35)
     col = split.column()
     col.prop(addon_prefs, "export_sets_list_rows", text="Rows:")
@@ -137,7 +143,6 @@ def draw_quick_export_sets_uilist(layout, context):
     # Left Section - List
     col = split.column()
 
-    # Draw the UIList
     col.template_list(
         "R0PROP_UL_ExportSetsList",
         "",
@@ -152,6 +157,72 @@ def draw_quick_export_sets_uilist(layout, context):
     col = split.column(align=True)
     col.operator(SimpleToolbox_OT_AddExportSet.bl_idname, text="+")
     col.operator(SimpleToolbox_OT_RemoveExportSet.bl_idname, text="-")
+
+    # Selected Export Set Options
+    active_index = get_active_export_set_index()
+    export_item = get_export_set_at_index(active_index)
+
+    if not export_item:
+        return
+
+    main_panel, layout_body = layout.panel_prop(
+        export_item,  # The data object
+        "is_options_expanded",  # The property name that stores state
+    )
+    main_panel.label(text="Options")
+
+    if layout_body:
+        indent_split = layout_body.split(factor=0.05)
+        indent_split.column()  # Spacer
+
+        content_col = indent_split.column()
+
+        path_row = content_col.row(align=True)
+        path_row.prop(export_item, "export_path", text="")
+        op = path_row.operator(SimpleToolbox_OT_SelectPath.bl_idname, text="", icon="FILE_FOLDER")
+        op.index = active_index
+
+        # Settings toggle button
+        path_row.prop(export_item, "use_custom_fbx_settings", text="", icon="PREFERENCES")
+
+        # Use Object Sets button
+        path_row.prop(
+            export_item,
+            "use_object_sets",
+            text="",
+            icon="MESH_CUBE" if export_item.use_object_sets else "RESTRICT_SELECT_OFF",
+        )
+
+        if export_item.use_custom_fbx_settings:
+            custom_fbx_settings_panel, custom_fbx_settings_panel_layout_body = layout_body.panel_prop(
+                export_item, "is_settings_fbx_expanded"
+            )
+            custom_fbx_settings_panel.label(text="FBX Settings Override")
+
+            if custom_fbx_settings_panel_layout_body:
+                settings_row = custom_fbx_settings_panel_layout_body.row()
+                draw_fbx_export_settings(settings_row, export_item.export_settings_fbx)
+
+        # Object Sets Row
+        if export_item.use_object_sets:
+            object_sets_panel, object_sets_panel_layout = layout_body.panel_prop(export_item, "object_sets_expanded")
+            object_sets_panel.label(text="Pick Object Sets")
+
+            available_sets = u.get_object_sets()
+
+            if available_sets:
+                object_sets_panel_layout.template_list(
+                    "R0PROP_UL_ObjectSetsViewList",
+                    "",
+                    addon_object_sets_props,
+                    "object_sets",
+                    addon_object_sets_props,
+                    "object_sets_index",
+                    rows=addon_prefs.object_sets_list_rows,
+                )
+            else:
+                no_sets_row = content_col.row()
+                no_sets_row.label(text="No Object Sets available", icon="INFO")
 
 
 def draw_quick_export_sets_entries(layout, context):
@@ -207,7 +278,7 @@ def draw_quick_export_sets_entries(layout, context):
             )
 
         # Settings toggle button
-        header_row.prop(export_item, "use_custom_settings", text="", icon="PREFERENCES")
+        header_row.prop(export_item, "use_custom_fbx_settings", text="", icon="PREFERENCES")
 
         remove_export_set_op = header_row.operator(
             SimpleToolbox_OT_RemoveExportSet.bl_idname, emboss=False, text="", icon="X"
@@ -229,7 +300,7 @@ def draw_quick_export_sets_entries(layout, context):
         export_sub_row.alert = True
 
         export_op = export_sub_row.operator(SimpleToolbox_OT_ExportObjects.bl_idname, text="", icon="EXPORT")
-        export_op.export_path = export_item.export_path
+        # export_op.export_path = export_item.export_path
         export_op.mkdirs_if_not_exist = addon_export_props.mkdirs_if_not_exist
         export_op.export_entry_index = index
 
@@ -251,6 +322,25 @@ def draw_quick_export_sets_entries(layout, context):
             text="",
             icon="MESH_CUBE" if export_item.use_object_sets else "RESTRICT_SELECT_OFF",
         )
+
+        # Use custom FBX override settings
+        if export_item.use_custom_fbx_settings:
+            is_expanded = export_item.is_settings_fbx_expanded
+            icon = "TRIA_DOWN" if is_expanded else "TRIA_RIGHT"
+
+            fbx_settings_override_row = entry_box.row()
+            fbx_settings_override_row.alignment = "LEFT"
+            op = fbx_settings_override_row.prop(
+                export_item,
+                "is_settings_fbx_expanded",
+                text="FBX Settings Override",
+                icon=icon,
+                emboss=False,
+            )
+
+            if is_expanded:
+                settings_row = entry_box.row()
+                draw_fbx_export_settings(settings_row, export_item.export_settings_fbx)
 
         # Object Sets Row
         if export_item.use_object_sets:

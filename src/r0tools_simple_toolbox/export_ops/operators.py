@@ -200,7 +200,6 @@ class SimpleToolbox_OT_ExportObjects(bpy.types.Operator):
     bl_description = "Export Selection"
     bl_options = {"REGISTER"}
 
-    export_path: StringProperty(name="")  # type: ignore
     mkdirs_if_not_exist: BoolProperty(name="Create sub-paths", description="If chosen path does not exist in the filesystem, create the full path including sub-directories", default=False)  # type: ignore
 
     object_set_names: StringProperty(
@@ -221,6 +220,13 @@ class SimpleToolbox_OT_ExportObjects(bpy.types.Operator):
         addon_prefs = u.get_addon_prefs()
 
         settings = addon_prefs.export_settings_global_fbx
+
+        export_item = get_export_set_at_index(self.export_entry_index)
+        print(export_item)
+        if export_item:
+            print(export_item.export_set_name)
+            if export_item.use_custom_fbx_settings:
+                settings = export_item.export_settings_fbx
 
         # Store current selection to restore later
         original_selection = u.get_selected_objects()
@@ -264,7 +270,7 @@ class SimpleToolbox_OT_ExportObjects(bpy.types.Operator):
                     u.select_object(obj, add=True, set_active=True)
 
             # Export path handling
-            export_path = self.export_path
+            export_path = export_item.export_path
             if not export_path:
                 self.report({"WARNING"}, "No export path defined")
                 return {"CANCELLED"}
