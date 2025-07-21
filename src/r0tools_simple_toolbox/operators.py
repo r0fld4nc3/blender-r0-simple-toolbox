@@ -8,7 +8,7 @@ import bpy
 from bpy.props import BoolProperty, FloatVectorProperty, IntProperty, StringProperty
 
 from . import utils as u
-from .defines import INTERNAL_NAME
+from .defines import DEBUG, INTERNAL_NAME
 from .uv_ops import select_small_uv_islands
 
 _mod = "OPERATORS"
@@ -1823,7 +1823,8 @@ def register_keymapping():
     keymap_item = keymap.keymap_items.new(
         SimpleToolbox_OT_ShowCustomOrientationsPie.bl_idname, type="NONE", value="PRESS"
     )
-    print(f"[INFO] [{_mod}] Added keymap item: {(keymap, keymap_item)}")
+    if DEBUG:
+        print(f"[INFO] [{_mod}] Added keymap item: {(keymap, keymap_item)}")
     addon_keymaps.append((keymap, keymap_item))
 
 
@@ -1835,7 +1836,8 @@ def unregister_keymapping():
 
 def register():
     for cls in classes:
-        print(f"[INFO] [{_mod}] Register {cls.__name__}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
     CustomTransformsOrientationsTracker.register_handler()
@@ -1848,7 +1850,8 @@ def register():
 
 def unregister():
     for cls in classes:
-        print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
 
     # unregister_keymapping()

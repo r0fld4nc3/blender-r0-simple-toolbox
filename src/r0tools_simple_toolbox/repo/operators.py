@@ -1,6 +1,6 @@
 import bpy
 
-from ..defines import INTERNAL_NAME
+from ..defines import DEBUG, INTERNAL_NAME
 from . import ISSUES_BUG_ADD, ISSUES_FEATURE_ADD, ISSUES_PAGE, RELEASES_PAGE, REPOSITORY
 
 _mod = "REPO.OPERATORS"
@@ -120,11 +120,13 @@ classes = [
 
 def register():
     for cls in classes:
-        print(f"[INFO] [{_mod}] Register {cls.__name__}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
 
 def unregister():
     for cls in classes:
-        print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

@@ -2,7 +2,7 @@ import bpy
 
 from . import ext_update as upd
 from . import utils as u
-from .defines import ADDON_CATEGORY, ADDON_NAME, ADDON_NAME_BARE, VERSION_STR
+from .defines import ADDON_CATEGORY, ADDON_NAME, ADDON_NAME_BARE, DEBUG, VERSION_STR
 from .export_ops import SimpleToolbox_OT_ExportObjects, SimpleToolbox_OT_SelectPath
 from .operators import *
 from .repo import draw_repo_layout
@@ -385,7 +385,8 @@ def register():
             classes.append(variant)
 
     for cls in classes:
-        print(f"[INFO] [{_mod}] Register {cls.__name__}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
     # upd.trigger_update_check()
@@ -394,5 +395,6 @@ def register():
 
 def unregister():
     for cls in classes:
-        print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
