@@ -311,11 +311,27 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
 
 
 class R0PROP_UL_ObjectSetsViewList(bpy.types.UIList):
+    def filter_items(self, context, data, propname):
+        """Filter out separator items"""
+
+        items = getattr(data, propname)
+
+        # Filter flags. Default all items to hidden
+        flt_flags = [0] * len(items)
+
+        flt_neworder = list(range(len(items)))
+
+        # Filter
+        for idx, item in enumerate(items):
+            if not item.separator:
+                flt_flags[idx] = self.bitflag_filter_item
+
+        return flt_flags, flt_neworder
+
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
-        if not item.separator:
-            row = layout.row()
-            row.prop(item, "checked", text="")
-            row.label(text=item.name)
+        row = layout.row()
+        row.prop(item, "checked", text="")
+        row.label(text=item.name)
 
 
 class r0ObjectSetsProps(bpy.types.PropertyGroup):

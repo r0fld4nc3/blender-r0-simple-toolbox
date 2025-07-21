@@ -409,6 +409,9 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
             else:
                 export_op.object_set_names = ""
 
+            # Small separator
+            header_row.separator()
+
             # Export Set Title
             if item.export_set_name:
                 header_row.prop(item, "export_set_name", text="", emboss=False)
