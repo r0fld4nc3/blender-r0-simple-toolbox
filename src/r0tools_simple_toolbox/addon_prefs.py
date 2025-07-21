@@ -165,20 +165,18 @@ classes = [
 
 def register():
     for cls in classes:
-        print(f"[INFO] [{_mod}] Register {cls.__name__}")
+        # print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
     addon_prefs = u.get_addon_prefs()
     global DEBUG
     if addon_prefs.debug:
         DEBUG = True
-        print(f"[INFO] [{_mod}] Set Addon Debug to True")
     else:
         DEBUG = False
-        print(f"[INFO] [{_mod}] Set Addon Debug to False")
 
 
 def unregister():
     for cls in classes:
-        print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        # print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

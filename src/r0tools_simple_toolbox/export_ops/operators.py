@@ -4,6 +4,7 @@ import bpy
 from bpy.props import BoolProperty, FloatVectorProperty, IntProperty, StringProperty
 
 from .. import utils as u
+from ..defines import DEBUG
 
 _mod = "EXPORT.OPERATORS"
 
@@ -186,11 +187,13 @@ classes = [
 
 def register():
     for cls in classes:
-        print(f"[INFO] [{_mod}] Register {cls.__name__}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
 
 def unregister():
     for cls in classes:
-        print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

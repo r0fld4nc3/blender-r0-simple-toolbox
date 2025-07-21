@@ -11,6 +11,7 @@ from bpy.props import (  # type: ignore
 )
 
 from .. import utils as u
+from ..defines import DEBUG
 
 _mod = "PROPERTIES"
 
@@ -264,26 +265,32 @@ load_post_handlers = []
 
 def register():
     for cls in classes:
-        print(f"[INFO] [{_mod}] Register {cls.__name__}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
-    print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_props")
+    if DEBUG:
+        print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_props")
     # Registering to Scene also has the side effect of saving properties on a per scene/file basis, which is nice!
     bpy.types.Scene.r0fl_toolbox_props = PointerProperty(type=r0SimpleToolboxProps)
 
     for handler in load_post_handlers:
-        print(f"[INFO] [{_mod}] Register load_post_handler: {handler.__name__}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Register load_post_handler: {handler.__name__}")
         bpy.app.handlers.load_post.append(handler)
 
 
 def unregister():
     for cls in classes:
-        print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
 
     for handler in load_post_handlers:
-        print(f"[INFO] [{_mod}] Unregister load_post_handler: {handler.__name__}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Unregister load_post_handler: {handler.__name__}")
         bpy.app.handlers.load_post.remove(handler)
 
-    print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_props")
+    if DEBUG:
+        print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_props")
     del bpy.types.Scene.r0fl_toolbox_props

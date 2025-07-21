@@ -8,7 +8,7 @@ package = __name__
 _mod = "EXPORT"
 
 # fmt: off
-# List of submodlules, keep in sync with imports
+# List of submodules, keep in sync with imports
 submodules = [
     "operators",
 ]

@@ -3,6 +3,8 @@ import bpy
 from . import utils as u
 from .operators import CustomTransformsOrientationsTracker
 
+from .defines import DEBUG  # isort: skip
+
 _mod = "DEPSGRAPH"
 
 
@@ -43,21 +45,25 @@ load_post_handlers = [u.refresh_object_sets_colours]
 
 def register():
     for handler in depsgraph_handlers:
-        print(f"[INFO] [{_mod}] Registering {handler}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Registering {handler}")
         if handler not in bpy.app.handlers.depsgraph_update_post:
             bpy.app.handlers.depsgraph_update_post.append(handler)
 
     for handler in load_post_handlers:
-        print(f"[INFO] [{_mod}] Register load_post_handler: {handler.__name__}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Register load_post_handler: {handler.__name__}")
         bpy.app.handlers.load_post.append(handler)
 
 
 def unregister():
     for handler in depsgraph_handlers:
-        print(f"[INFO] [{_mod}] Unregister {handler}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Unregister {handler}")
         if handler in bpy.app.handlers.depsgraph_update_post:
             bpy.app.handlers.depsgraph_update_post.remove(handler)
 
     for handler in load_post_handlers:
-        print(f"[INFO] [{_mod}] Unregister load_post_handler: {handler.__name__}")
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Unregister load_post_handler: {handler.__name__}")
         bpy.app.handlers.load_post.remove(handler)
