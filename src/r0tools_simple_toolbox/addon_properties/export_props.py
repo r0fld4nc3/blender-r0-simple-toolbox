@@ -480,7 +480,8 @@ def register():
             print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
-    print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_export_props")
+    if DEBUG:
+        print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_export_props")
     bpy.types.Scene.r0fl_toolbox_export_props = PointerProperty(type=r0SimpleToolbox_PG_ExportProps)
 
 
