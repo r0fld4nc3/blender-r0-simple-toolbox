@@ -6,7 +6,7 @@ _most_used_indices = sorted(list({1, 2, 4, 6, 9, 14, 19}))
 _precise_indices = sorted(list({i for i in range(0, 20, 1)} - set(_most_used_indices)))
 
 
-def draw_edge_bweights_presets_uilist(layout, context):
+def draw_edge_bweights_presets_operators(layout, context):
     """
     Draw the Edge Bevel Weights Presets UI list
     """
@@ -20,13 +20,13 @@ def draw_edge_bweights_presets_uilist(layout, context):
     addon_prefs = get_addon_prefs()
     addon_edge_data_props = get_addon_edge_data_props()
 
-    grid_view = addon_prefs.edge_data_bweight_preset_grid_buttons_toggle
+    alt_view = addon_prefs.edge_data_bweight_presets_alt_view
 
     bweight_presets_box = layout.box()
     row = bweight_presets_box.row()
-    row.prop(addon_prefs, "edge_data_bweight_preset_grid_buttons_toggle", icon="MESH_GRID", text="")
+    row.prop(addon_prefs, "edge_data_bweight_presets_alt_view", icon="MESH_GRID", text="")
     row.label(
-        text=f"{'Bevel Weight Preset Grid' if addon_prefs.edge_data_bweight_preset_grid_buttons_toggle else 'Bevel Weight Preset List'}"
+        text=f"{'Bevel Weight Presets' if not addon_prefs.edge_data_bweight_presets_alt_view else 'Bevel Weight Presets Alternative'}"
     )
 
     # Where to apply to
@@ -46,20 +46,9 @@ def draw_edge_bweights_presets_uilist(layout, context):
 
     row = bweight_presets_box.row()
 
-    if not grid_view:
-        # Left Section - List
-        row.template_list(
-            "R0PROP_UL_EdgeBWeightsList",
-            "",
-            addon_edge_data_props.edge_bweights_presets,  # Collection owner
-            "presets",  # Collection property
-            addon_edge_data_props.edge_bweights_presets,  # Active item owner
-            "active_index",  # Active item property
-            rows=10,
-        )
-    else:
-        values = addon_edge_data_props.edge_bweights_presets.presets
+    values = addon_edge_data_props.edge_bweights_presets.presets
 
+    if not alt_view:
         row = bweight_presets_box.row()
         split = row.split(factor=0.45)
 
@@ -96,6 +85,16 @@ def draw_edge_bweights_presets_uilist(layout, context):
                 value = f"{preset.value*100:.2f}".split(".")[0] + "%"
                 op = row.operator(SimpleToolbox_OT_ApplyBWeightPreset.bl_idname, text=value)
                 op.value = preset.value
+    else:
+        # Grid flow with 2 columns
+        grid_flow = bweight_presets_box.grid_flow(
+            row_major=False, columns=2, even_columns=True, even_rows=False, align=True
+        )
+
+        for preset in values:
+            value_text = f"{preset.value*100:.2f}".split(".")[0] + "%"
+            op = grid_flow.operator(SimpleToolbox_OT_ApplyBWeightPreset.bl_idname, text=value_text)
+            op.value = preset.value
 
 
 def draw_edge_data_panel_ui(layout, context):
@@ -114,7 +113,7 @@ def draw_edge_data_panel_ui(layout, context):
     row.prop(addon_edge_data_props, "crease_to_vcol", toggle=True)
     row = layout.row()
 
-    draw_edge_bweights_presets_uilist(layout, context)
+    draw_edge_bweights_presets_operators(layout, context)
 
 
 @bpy.app.handlers.persistent
