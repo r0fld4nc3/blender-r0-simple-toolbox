@@ -305,8 +305,8 @@ class r0Tools_PT_SimpleToolboxEdgeDataOps(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Item"
-    bl_options = {"DEFAULT_CLOSED"}
-    has_update = False
+    bl_options = {"DEFAULT_CLOSED", "INSTANCED"}
+    bl_order = 60
 
     @classmethod
     def poll(cls, context):
@@ -326,8 +326,8 @@ class r0Tools_PT_SimpleToolboxQuickExportOps(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Item"
-    bl_options = {"DEFAULT_CLOSED"}
-    has_update = False
+    bl_options = {"DEFAULT_CLOSED", "INSTANCED"}
+    bl_order = 60
 
     @classmethod
     def poll(cls, context):
@@ -344,11 +344,9 @@ class r0Tools_PT_SimpleToolboxQuickExportOps(bpy.types.Panel):
         export_selection_box = layout.box()
         export_selection_box.label(text="Quick Export (FBX)")
 
-        export_selection_row = export_selection_box.row()
-        export_selection_row.prop(export_props, "mkdirs_if_not_exist")
-
-        pan = export_selection_box.row()
-        pan.prop(export_props, "use_list_view")
+        row = export_selection_box.row()
+        row.prop(export_props, "use_list_view", text="List View", toggle=True)
+        row.prop(export_props, "mkdirs_if_not_exist", toggle=True)
 
         if export_props.use_list_view:
             u.draw_quick_export_sets_uilist(export_selection_box, context)

@@ -170,47 +170,28 @@ def draw_quick_export_sets_entries(layout, context):
     addon_prefs = u.get_addon_prefs()
     addon_export_props = u.get_addon_export_props()
 
-    button_row_scale_x_factor = 0.15
-    button_row_scale_y_factor = 1.2
     path_row_height_scale = 1.2
     export_button_width_scale = 1.5
-    item_spacing_factor = 1.5
 
     export_sets = get_export_sets()
 
-    # Global Settings Section
-    global_settings_row = layout.row()
-    global_settings_row.prop(
+    # Global Settings Button
+    global_settings_btn_row = layout.row()
+    global_settings_btn_row.prop(
         addon_export_props,
         "show_edit_global_fbx_export_settings",
-        text="",
+        text="Global Settings",
         icon="PREFERENCES",
     )
+    global_settings_btn_row.scale_y = path_row_height_scale
 
+    # Global Settings Section
+    global_settings_row = layout.row()
     if addon_export_props.show_edit_global_fbx_export_settings:
         draw_fbx_export_settings(global_settings_row, addon_prefs.export_settings_global_fbx, is_global=True)
 
-    # Separator between global settings and export entries
-    layout.separator(factor=2.0)
-
-    # Create main row
-    main_row = layout.row(align=False)
-
-    # Left column for entries
-    left_col = main_row.column(align=True)
-
-    # Right column for buttons
-    right_col = main_row.column(align=True)
-    right_col.scale_x = button_row_scale_x_factor
-    right_col.scale_y = button_row_scale_y_factor
-
-    # Add
-    button_col = right_col.column(align=True)
-    button_col.operator(SimpleToolbox_OT_AddExportSet.bl_idname, text="+")
-
     for index, export_item in enumerate(export_sets):
-        # Left Col
-        entry_box = left_col.box()
+        entry_box = layout.box()
         header_row = entry_box.row()
 
         if export_item.export_set_name:
@@ -327,9 +308,8 @@ def draw_quick_export_sets_entries(layout, context):
         else:
             export_sub_row.enabled = len(u.get_selected_objects()) > 0 and bool(export_item.export_path)
 
-        # Items spacing
-        left_col.row()
-        left_col.separator(factor=item_spacing_factor)
+    # Add
+    layout.operator(SimpleToolbox_OT_AddExportSet.bl_idname, text="Add New", icon="ADD")
 
 
 def draw_fbx_export_settings(layout, settings, is_global=False):
