@@ -1813,27 +1813,6 @@ classes = [
 # fmt: on
 
 
-addon_keymaps = []
-
-
-def register_keymapping():
-    wm = bpy.context.window_manager
-
-    keymap = wm.keyconfigs.addon.keymaps.new(name="3D View", space_type="VIEW_3D")
-    keymap_item = keymap.keymap_items.new(
-        SimpleToolbox_OT_ShowCustomOrientationsPie.bl_idname, type="NONE", value="PRESS"
-    )
-    if DEBUG:
-        print(f"[INFO] [{_mod}] Added keymap item: {(keymap, keymap_item)}")
-    addon_keymaps.append((keymap, keymap_item))
-
-
-def unregister_keymapping():
-    for km, kmi in addon_keymaps:
-        km.keymap_items.remove(kmi)
-    addon_keymaps.clear()
-
-
 def register():
     for cls in classes:
         if DEBUG:
@@ -1842,10 +1821,7 @@ def register():
 
     CustomTransformsOrientationsTracker.register_handler()
 
-    # Register modified draw method for Orientations Pie
     _BUILTIN_ORIENTATIONS_PIE.draw = modified_orientations_pie_draw
-
-    # register_keymapping()
 
 
 def unregister():
@@ -1854,7 +1830,6 @@ def unregister():
             print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
 
-    # unregister_keymapping()
     CustomTransformsOrientationsTracker.unregister_handler()
 
     _BUILTIN_ORIENTATIONS_PIE.draw = _ORIGINAL_ORIENTATIONS_PIE_DRAW
