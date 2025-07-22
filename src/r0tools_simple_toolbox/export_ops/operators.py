@@ -26,7 +26,7 @@ class SimpleToolbox_OT_SelectPath(bpy.types.Operator):
     filter_glob: StringProperty(default=f"*.fbx", options={"HIDDEN"})  # type: ignore
 
     directory: StringProperty(
-        name="Directory", description="Directory path without filename", options={"SKIP_SAVE"}
+        name="Directory", description="Directory path without filename", subtype="DIR_PATH", options={"SKIP_SAVE"}
     )  # type: ignore
 
     # Where to apply the data
@@ -101,12 +101,14 @@ class SimpleToolbox_OT_AddExportSet(bpy.types.Operator):
     bl_label = "Add"
     bl_idname = "r0tools.export_sets_add"
     bl_description = "Add a new Export Set entry"
-    bl_options = {"REGISTER"}
+    bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
         addon_export_props = u.get_addon_export_props()
 
         new_set = get_export_sets().add()
+
+        set_active_export_set_index(get_export_sets_count() - 1)
 
         return {"FINISHED"}
 
@@ -115,7 +117,7 @@ class SimpleToolbox_OT_RemoveExportSet(bpy.types.Operator):
     bl_label = "Remove"
     bl_idname = "r0tools.export_sets_remove"
     bl_description = "Remove selected Export Set entry"
-    bl_options = {"REGISTER"}
+    bl_options = {"REGISTER", "UNDO"}
 
     index: IntProperty(name="Index", description="Index of export set to remove", default=-1)  # type: ignore
 
@@ -228,15 +230,15 @@ class SimpleToolbox_OT_ExportObjects(bpy.types.Operator):
         settings = addon_prefs.export_settings_global_fbx
 
         export_item = get_export_set_at_index(self.export_entry_index)
-        print(export_item)
         if export_item:
-            print(export_item.export_set_name)
             if export_item.use_custom_fbx_settings:
                 settings = export_item.export_settings_fbx
 
         # Store current selection to restore later
         original_selection = u.get_selected_objects()
         original_active = u.get_active_object()
+
+        states_modified = []
 
         try:
             # Clear current selection
@@ -255,11 +257,16 @@ class SimpleToolbox_OT_ExportObjects(bpy.types.Operator):
                     if obj_set.name in object_set_names_list:
                         # Get objects from this object set
                         for obj_ref in obj_set.objects:
-                            obj = bpy.data.objects[obj_ref.object.name]
-                            objects_to_export.add(obj)
+                            obj = obj_ref.object
+                            if obj and obj.name in bpy.data.objects:
+                                objects_to_export.add(obj)
 
                 # Select all objects to export
                 for obj in objects_to_export:
+                    # Unhide if necessary and track changes
+                    modified = u.unhide_object_and_collections(obj)
+                    states_modified.extend(modified)
+
                     u.select_object(obj, add=True, set_active=True)
 
                 if not objects_to_export:
@@ -348,6 +355,7 @@ class SimpleToolbox_OT_ExportObjects(bpy.types.Operator):
             self.report({"INFO"}, f"Exported to: {export_path}")
 
         finally:
+            pass
             # Restore original selection
             u.deselect_all()
 
@@ -355,6 +363,9 @@ class SimpleToolbox_OT_ExportObjects(bpy.types.Operator):
                 u.select_object(obj, add=True)
 
             u.set_active_object(original_active)
+
+            # Restore original visibility state
+            u.restore_visibility_state(states_modified)
 
         return {"FINISHED"}
 
