@@ -2,7 +2,14 @@ import bpy
 
 from . import ext_update as upd
 from . import utils as u
-from .defines import ADDON_CATEGORY, ADDON_NAME, ADDON_NAME_BARE, DEBUG, VERSION_STR
+from .defines import (
+    ADDON_BRANCH,
+    ADDON_CATEGORY,
+    ADDON_NAME,
+    ADDON_NAME_BARE,
+    DEBUG,
+    VERSION_STR,
+)
 from .export_ops import SimpleToolbox_OT_ExportObjects, SimpleToolbox_OT_SelectPath
 from .operators import *
 from .repo import draw_repo_layout
@@ -12,7 +19,7 @@ _mod = "UI"
 # fmt: off
 class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
     bl_idname = 'OBJECT_PT_simple_toolbox'
-    bl_label = f'{ADDON_NAME_BARE} ({VERSION_STR})'
+    bl_label = f'{ADDON_NAME_BARE}.{ADDON_BRANCH} ({VERSION_STR})'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = ADDON_CATEGORY
@@ -301,7 +308,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
 
 class r0Tools_PT_SimpleToolboxEdgeDataOps(bpy.types.Panel):
     bl_idname = "OBJECT_PT_simple_toolbox_edge_data"
-    bl_label = f"Edge Data Ops - {ADDON_NAME_BARE}"
+    bl_label = f"Edge Data Ops - {ADDON_NAME_BARE}.{ADDON_BRANCH}"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Item"
@@ -322,7 +329,7 @@ class r0Tools_PT_SimpleToolboxEdgeDataOps(bpy.types.Panel):
 
 class r0Tools_PT_SimpleToolboxQuickExportOps(bpy.types.Panel):
     bl_idname = "OBJECT_PT_simple_toolbox_quick_export_ops"
-    bl_label = f"Quick Export Ops - {ADDON_NAME_BARE}"
+    bl_label = f"Quick Export Ops - {ADDON_NAME_BARE}.{ADDON_BRANCH}"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Item"
@@ -382,6 +389,13 @@ def register():
 
     # upd.trigger_update_check()
     upd.trigger_thread_update_check()
+
+
+def unregister():
+    for cls in classes:
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        bpy.utils.unregister_class(cls)
 
 
 def unregister():

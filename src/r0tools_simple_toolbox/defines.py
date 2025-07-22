@@ -32,6 +32,7 @@ VERSION_STR        = _version_str(VERSION)
 BASE_NAME          = "r0tools_simple_toolbox"
 ADDON_NAME         = bl_info.get("name")
 ADDON_NAME_BARE    = "SimpleToolbox"
+ADDON_BRANCH       = "quick-export"
 ADDON_CATEGORY     = "Simple Toolbox"
 INTERNAL_NAME      = _set_addon_internal_name(BASE_NAME)
 REPO_NAME          = "r0Tools Extensions"
