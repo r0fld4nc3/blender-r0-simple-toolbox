@@ -17,9 +17,11 @@ from .repo import draw_repo_layout
 _mod = "UI"
 
 # fmt: off
+idname_extra = '.' + ADDON_BRANCH if ADDON_BRANCH else ''
+
 class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
     bl_idname = 'OBJECT_PT_simple_toolbox'
-    bl_label = f'{ADDON_NAME_BARE}.{ADDON_BRANCH} ({VERSION_STR})'
+    bl_label = f'{ADDON_NAME_BARE}{idname_extra} ({VERSION_STR})'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = ADDON_CATEGORY
@@ -308,7 +310,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
 
 class r0Tools_PT_SimpleToolboxEdgeDataOps(bpy.types.Panel):
     bl_idname = "OBJECT_PT_simple_toolbox_edge_data"
-    bl_label = f"Edge Data Ops - {ADDON_NAME_BARE}.{ADDON_BRANCH}"
+    bl_label = f"Edge Data - {ADDON_NAME_BARE}{idname_extra}"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Item"
@@ -329,7 +331,7 @@ class r0Tools_PT_SimpleToolboxEdgeDataOps(bpy.types.Panel):
 
 class r0Tools_PT_SimpleToolboxQuickExportOps(bpy.types.Panel):
     bl_idname = "OBJECT_PT_simple_toolbox_quick_export_ops"
-    bl_label = f"Quick Export Ops - {ADDON_NAME_BARE}.{ADDON_BRANCH}"
+    bl_label = f"Quick Export - {ADDON_NAME_BARE}{idname_extra}"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Item"
