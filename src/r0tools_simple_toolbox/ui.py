@@ -45,7 +45,6 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
     def draw(self, context):
         addon_props = u.get_addon_props()
         addon_prefs = u.get_addon_prefs()
-        addon_experimental_props = u.get_addon_experimental_props()
         addon_find_modifier_props = u.get_addon_find_modifier_props()
         
         layout = self.layout
