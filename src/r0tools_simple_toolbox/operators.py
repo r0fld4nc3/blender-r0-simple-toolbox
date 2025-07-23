@@ -1813,6 +1813,27 @@ classes = [
 # fmt: on
 
 
+addon_keymaps = []
+
+
+def register_keymapping():
+    wm = bpy.context.window_manager
+
+    keymap = wm.keyconfigs.addon.keymaps.new(name="3D View", space_type="VIEW_3D")
+    keymap_item = keymap.keymap_items.new(
+        SimpleToolbox_OT_ShowCustomOrientationsPie.bl_idname, type="NONE", value="PRESS"
+    )
+    if DEBUG:
+        print(f"[INFO] [{_mod}] Added keymap item: {(keymap, keymap_item)}")
+    addon_keymaps.append((keymap, keymap_item))
+
+
+def unregister_keymapping():
+    for km, kmi in addon_keymaps:
+        km.keymap_items.remove(kmi)
+    addon_keymaps.clear()
+
+
 def register():
     for cls in classes:
         if DEBUG:

@@ -10,7 +10,6 @@ from .defines import (
     DEBUG,
     VERSION_STR,
 )
-from .export_ops import SimpleToolbox_OT_ExportObjects, SimpleToolbox_OT_SelectPath
 from .operators import *
 from .repo import draw_repo_layout
 
@@ -48,7 +47,6 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         addon_prefs = u.get_addon_prefs()
         addon_experimental_props = u.get_addon_experimental_props()
         addon_find_modifier_props = u.get_addon_find_modifier_props()
-        addon_export_props = u.get_addon_export_props()
         
         layout = self.layout
 
@@ -391,13 +389,6 @@ def register():
 
     # upd.trigger_update_check()
     upd.trigger_thread_update_check()
-
-
-def unregister():
-    for cls in classes:
-        if DEBUG:
-            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
-        bpy.utils.unregister_class(cls)
 
 
 def unregister():

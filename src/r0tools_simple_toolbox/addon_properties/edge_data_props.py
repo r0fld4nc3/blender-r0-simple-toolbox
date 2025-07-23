@@ -34,38 +34,6 @@ class R0PROP_PG_EdgeBWeightsPresets(bpy.types.PropertyGroup):
     active_index: IntProperty(default=0, description="Active Index")  # type: ignore
 
 
-class R0PROP_UL_EdgeBWeightsList(bpy.types.UIList):
-    """UI List for bevel weight presets"""
-
-    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
-        from ..data_ops import SimpleToolbox_OT_ApplyBWeightPreset
-
-        # Info Row
-        item_row = layout.row(align=True)
-
-        # Apply Preset Button
-        col_apply = item_row.row(align=True)
-        """
-        Store a reference to the Operator and assign it the preset_index property
-        so we can apply the specific preset value at this row/index
-        without having to first select the row!
-        """
-        op = col_apply.operator(SimpleToolbox_OT_ApplyBWeightPreset.bl_idname, text="", icon="PLUS")
-        # Set the property before adding to layout
-        op.preset_index = index
-        op.value = item.value
-        # Add spacing after the operation is complete
-        col_apply.separator(factor=0.5)
-
-        # Preset Value
-        item_value = f"{item.value*100:.2f}".split(".")[0] + "%"
-        col_value = item_row.row(align=True)
-        col_value.label(text=item_value, icon="NONE")
-
-        # Fill space
-        item_row.separator(factor=1.0)
-
-
 class r0SimpleToolboxEdgeDataProps(bpy.types.PropertyGroup):
     vcol_bevel_layer_name: StringProperty(default="BevelToVcol")  # type: ignore
     vcol_crease_layer_name: StringProperty(default="CreaseToVcol")  # type: ignore
@@ -86,7 +54,6 @@ class r0SimpleToolboxEdgeDataProps(bpy.types.PropertyGroup):
 classes = [
     R0PROP_BWeightPresetItem,
     R0PROP_PG_EdgeBWeightsPresets,
-    R0PROP_UL_EdgeBWeightsList,
     r0SimpleToolboxEdgeDataProps,
 ]
 
