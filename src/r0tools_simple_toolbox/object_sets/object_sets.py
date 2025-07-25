@@ -194,7 +194,7 @@ def cleanup_object_set_invalid_references_o1():
     addon_props = u.get_addon_props()
     addon_object_sets_props = u.get_addon_object_sets_props()
 
-    if not addon_props.cat_show_object_sets_editor or not addon_props.show_object_sets:
+    if not addon_props.cat_show_object_sets_editor:
         return
 
     # Build set of object names for O(1) lookup
@@ -280,7 +280,7 @@ def object_sets_update_mesh_stats():
     addon_props = u.get_addon_props()
     addon_object_sets_props = u.get_addon_object_sets_props()
 
-    if not addon_props.cat_show_object_sets_editor or not addon_props.show_object_sets:
+    if not addon_props.cat_show_object_sets_editor:
         return
 
     show_verts = addon_object_sets_props.object_sets_show_mesh_verts
@@ -479,7 +479,7 @@ def load_legacy_object_sets(dummy):
             print(f"[ERROR] [{_mod}] Unable to clear legacy Object Sets")
 
 
-def draw_objects_sets_uilist(layout, context, object_sets_box=None):
+def draw_objects_sets_uilist(layout, context):
     """
     Draw the Objects Sets UI list
 
@@ -508,17 +508,8 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
 
     _object_sets_use_colour = addon_prefs.object_sets_use_colour
 
-    # Object Sets Editor parent layout
-    if object_sets_box:
-        parent = object_sets_box
-    elif layout:
-        parent = layout
-    else:
-        print(f"[ERROR] [{_mod}] No valid layout to use:\n{layout=}\n{object_sets_box=}")
-        return False
-
     # Object Sets Row Number Slider
-    row = parent.row()
+    row = layout.row()
     split = row.split(factor=0.35)
     col = split.column()
     col.prop(addon_prefs, "object_sets_list_rows", text="Rows:")
@@ -526,7 +517,7 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     col.separator()
 
     # Object Sets Visual Aids
-    row = parent.row()
+    row = layout.row()
     # Show mesh verts
     row.prop(addon_object_sets_props, "object_sets_show_mesh_verts", text="", icon="VERTEXSEL")
     # Show mesh edges
@@ -536,7 +527,7 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     # Show mesh triangles
     row.prop(addon_object_sets_props, "object_sets_show_mesh_tris", text="", icon="MESH_DATA")
 
-    row = parent.row()
+    row = layout.row()
     split = row.split(factor=0.92)  # Affects right side button width
 
     # Left Section - List
@@ -576,12 +567,7 @@ def draw_objects_sets_uilist(layout, context, object_sets_box=None):
     col.separator(factor=1.0)  # Spacer
     col.menu(SimpleToolbox_MT_ObjectSetsActionsMenu.bl_idname, text="")
 
-    # Bottom
-    if object_sets_box:
-        parent = object_sets_box
-    else:
-        parent = layout
-    row = parent.row(align=True)
+    row = layout.row(align=True)
 
     # Add/Remove Object Set Buttons
     split = row.split()  # Was factor=0.65

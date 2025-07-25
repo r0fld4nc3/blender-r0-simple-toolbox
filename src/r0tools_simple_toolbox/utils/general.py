@@ -749,7 +749,7 @@ def property_list_update(force_run=False):
 
     addon_props = get_addon_props()
 
-    if not addon_props.show_custom_property_list_prop and not force_run:
+    if not addon_props.cat_show_custom_properties_editor and not force_run:
         # Skip update if panel is not visible
         return None
 

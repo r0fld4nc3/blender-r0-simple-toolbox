@@ -87,31 +87,11 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
         default=False,
     )
 
-    show_object_ops: BoolProperty(  # type: ignore
-        name="Object Ops",
-        description="Show or hide the Object operators section",
-        default=True,
-    )
-
-    show_mesh_ops: BoolProperty(  # type: ignore
-        name="Mesh Ops",
-        description="Show or hide the Mesh operators section",
-        default=True,
-    )
-
-    show_uv_ops: BoolProperty(  # type: ignore
-        name="UV Ops",
-        description="Show or hide the UV operators section",
-        default=False,
-    )
-
     show_experimental_features: BoolProperty(  # type: ignore
         name="Experimental",
         description="Show or hide the Experimental operators section",
         default=False,
     )
-
-    show_uv_island_area_thresholds: BoolProperty(name="UV Island Area Thresholds", default=False)  # type: ignore
 
     uvisland_sizecheck_arearelative: FloatProperty(  # type: ignore
         name="Relative Area Size",
@@ -178,34 +158,12 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
         description="Highlight meshes smaller than this screen size percentage",
     )
 
-    show_custom_property_list_prop: BoolProperty(  # type: ignore
-        name="Custom Properties",
-        description="List Custom Properties",
-        default=False,
-    )
-
     custom_property_list: CollectionProperty(type=R0PROP_PG_CustomPropertyItem)  # type: ignore
     custom_property_list_index: IntProperty(default=0)  # type: ignore
     last_object_selection: StringProperty(  # type: ignore
         name="Last Object Selection",
         description="Comma-separated names of last selected objects",
         default="",
-    )
-
-    show_object_sets: BoolProperty(  # type: ignore
-        name="Object Sets",
-        description="Manage different object selections via an Object Set editor",
-        default=False,
-    )
-
-    show_vertex_groups: BoolProperty(  # type: ignore
-        name="Vertex Groups", description="Manage Vertex Groups of selected objects", default=False
-    )
-
-    show_find_modifier_search: BoolProperty(  # type: ignore
-        name="Find Modifier(s)",
-        description="Show Find Object with Modifiers Controls",
-        default=False,
     )
 
     find_modifier_search_text: StringProperty(  # type: ignore

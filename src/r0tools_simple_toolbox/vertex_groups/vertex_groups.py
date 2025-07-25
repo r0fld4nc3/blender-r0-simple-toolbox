@@ -251,7 +251,7 @@ def vertex_groups_list_update(force: bool = False):
         if not _needs_update():
             return None
 
-    if not addon_props.cat_show_vertex_groups_editor or not addon_props.show_vertex_groups:
+    if not addon_props.cat_show_vertex_groups_editor:
         # Skip update if panel is not visible
         return None
 
@@ -343,7 +343,7 @@ def set_obj_active_vertex_group(obj, vertex_group) -> bool:
     return False
 
 
-def draw_vertex_groups_uilist(layout, context, vertex_groups_box=None):
+def draw_vertex_groups_uilist(layout, context):
     from ..menus import SimpleToolbox_MT_VertexGroupsActionsMenu
     from .operators import (
         SimpleToolbox_OT_VgroupsAddPopup,
@@ -361,24 +361,15 @@ def draw_vertex_groups_uilist(layout, context, vertex_groups_box=None):
     addon_prefs = u.get_addon_prefs()
     addon_vertex_groups_props = u.get_addon_vertex_groups_props()
 
-    # Object Sets Editor parent layout
-    if vertex_groups_box:
-        parent = vertex_groups_box
-    elif layout:
-        parent = layout
-    else:
-        print(f"[ERROR] [{_mod}] No valid layout to use:\n{layout=}\n{vertex_groups_box=}")
-        return False
-
     # Vertex Groups Row Number Slider
-    row = parent.row()
+    row = layout.row()
     split = row.split(factor=0.35)
     col = split.column()
     col.prop(addon_prefs, "vertex_groups_list_rows", text="Rows:")
     col = split.column()
     col.separator()
 
-    row = parent.row()
+    row = layout.row()
     split = row.split(factor=0.92)
 
     # Left Section - List
@@ -412,7 +403,7 @@ def draw_vertex_groups_uilist(layout, context, vertex_groups_box=None):
         and len(context.selected_objects) > 0
         and u.get_vertex_groups_count() > 0
     ):
-        col = parent.column()
+        col = layout.column()
         split = col.split(factor=0.5)
         # Assign/Unassign
         row = split.row(align=True)
@@ -423,19 +414,19 @@ def draw_vertex_groups_uilist(layout, context, vertex_groups_box=None):
         row.operator(SimpleToolbox_OT_VgroupsSelectVertices.bl_idname)
         row.operator(SimpleToolbox_OT_VgroupsDeselectVertices.bl_idname)
 
-        row = parent.row()
+        row = layout.row()
         row.prop(bpy.context.scene.tool_settings, "vertex_group_weight")
 
         # Separator
-        row = parent.row()
+        row = layout.row()
         row.separator(factor=1.0)
 
     # Remove Selected Vgroups
-    row = parent.row(align=True)
+    row = layout.row(align=True)
     row.operator(SimpleToolbox_OT_VgroupsRemoveSelected.bl_idname)
     row.operator(SimpleToolbox_OT_VgroupsKeepSelected.bl_idname)
 
-    row = parent.row(align=True)
+    row = layout.row(align=True)
     row.operator(SimpleToolbox_OT_VgroupsSelectObjectsWithVgroups.bl_idname)
 
     # MESH_MT_vertex_group_context_menu

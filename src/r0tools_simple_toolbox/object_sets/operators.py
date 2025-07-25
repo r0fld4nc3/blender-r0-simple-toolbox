@@ -39,7 +39,7 @@ class SimpleToolbox_OT_ObjectSetsModal(bpy.types.Operator):
         return {"RUNNING_MODAL"}
 
     def draw(self, context):
-        u.draw_objects_sets_uilist(self.layout, context, object_sets_box=self.layout)
+        u.draw_objects_sets_uilist(self.layout, context)
 
 
 class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
