@@ -27,10 +27,9 @@ class r0Tools_PT_SimpleToolboxQuickExportOps(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
 
-        export_selection_box = layout.box()
-        export_selection_box.label(text="Quick Export (FBX)")
+        layout.label(text="Quick Export (FBX)")
 
-        u.draw_quick_export_sets_uilist(export_selection_box, context)
+        u.draw_quick_export_sets_uilist(layout, context)
 
 
 classes = []
