@@ -2,32 +2,22 @@ import bpy
 
 from . import ext_update as upd
 from . import utils as u
-from .defines import (
-    ADDON_BRANCH,
-    ADDON_CATEGORY,
-    ADDON_NAME,
-    ADDON_NAME_BARE,
-    DEBUG,
-    VERSION_STR,
-)
+from .defines import ADDON_CATEGORY, ADDON_NAME_BARE, DEBUG, IDNAME_EXTRA, VERSION_STR
 from .operators import *
 from .repo import draw_repo_layout
 
 _mod = "UI"
 
-# fmt: off
-idname_extra = '.' + ADDON_BRANCH if ADDON_BRANCH else ''
 
 class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
-    bl_idname = 'OBJECT_PT_simple_toolbox'
-    bl_label = f'{ADDON_NAME_BARE}{idname_extra} ({VERSION_STR})'
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
+    bl_idname = "OBJECT_PT_simple_toolbox"
+    bl_label = f"{ADDON_NAME_BARE}.{IDNAME_EXTRA} ({VERSION_STR})"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
     bl_category = ADDON_CATEGORY
     # bl_options = {"DEFAULT_CLOSED"}
     has_update = False
 
-    
     @classmethod
     def _update_callback(cls, result):
         cls.has_update = result
@@ -40,13 +30,11 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         except Exception as e:
             print(f"[ERROR] [{_mod}] Failed to redraw on callback:\n{e}")
 
-
-    
     def draw(self, context):
         addon_props = u.get_addon_props()
         addon_prefs = u.get_addon_prefs()
         addon_find_modifier_props = u.get_addon_find_modifier_props()
-        
+
         layout = self.layout
 
         categories_row = layout.row()
@@ -71,18 +59,26 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
 
         if self.has_update:
             from .repo import SimpleToolbox_OT_TakeMeToUpdate
+
             update_box = layout.box()
             update_row = update_box.row(align=True)
             update_row.label(text="", icon="FUND")
             update_row.label(text="UPDATE AVAILABLE", icon="FILE_REFRESH")
             update_row.label(text="", icon="FUND")
             update_row = update_box.row(align=True)
-            update_row.operator(SimpleToolbox_OT_TakeMeToUpdate.bl_idname, text="Take me there!", icon="INDIRECT_ONLY_ON")
+            update_row.operator(
+                SimpleToolbox_OT_TakeMeToUpdate.bl_idname, text="Take me there!", icon="INDIRECT_ONLY_ON"
+            )
 
         # ====== Dev Tools ======
         if addon_prefs.dev_tools:
             dev_tools_box = layout.box()
-            dev_tools_box.prop(addon_props, "show_dev_tools", icon="TRIA_DOWN" if addon_props.show_dev_tools else "TRIA_RIGHT", emboss=False)
+            dev_tools_box.prop(
+                addon_props,
+                "show_dev_tools",
+                icon="TRIA_DOWN" if addon_props.show_dev_tools else "TRIA_RIGHT",
+                emboss=False,
+            )
             if addon_props.show_dev_tools:
                 row = dev_tools_box.row()
                 row.prop(addon_prefs, "debug", text="Debug", icon="EXPERIMENTAL")
@@ -96,7 +92,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 row.prop(addon_props, "reload_modules_prop")
                 row = reload_user_defined_box.row()
                 row.operator(SimpleToolbox_OT_ReloadNamedScripts.bl_idname, icon="TOOL_SETTINGS")
-                
+
                 if addon_prefs.experimental_features:
                     row = dev_tools_box.row()
                     row.operator("image.reload", icon="IMAGE_DATA")
@@ -107,7 +103,12 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         if cat_show_find_modifiers_ops:
             find_modifiers_box = layout.box()
             row = find_modifiers_box.row()
-            row.prop(addon_props, "show_find_modifier_search", icon="TRIA_DOWN" if addon_props.show_find_modifier_search else "TRIA_RIGHT", emboss=False)
+            row.prop(
+                addon_props,
+                "show_find_modifier_search",
+                icon="TRIA_DOWN" if addon_props.show_find_modifier_search else "TRIA_RIGHT",
+                emboss=False,
+            )
             if addon_props.show_find_modifier_search:
                 row = find_modifiers_box.row()
                 row.label(text="Name or Type (comma-separated):")
@@ -119,19 +120,24 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                     # Found objects UIList
                     row = find_modifiers_box.row()
                     row.template_list(
-                    "R0PROP_UL_FindModifierObjectsList",
-                    "",
-                    addon_find_modifier_props.objects_list,  # Collection owner
-                    "found_objects",  # Collection property
-                    addon_find_modifier_props.objects_list,  # Active item owner
-                    "active_index",  # Active item property
-                    rows=10,
+                        "R0PROP_UL_FindModifierObjectsList",
+                        "",
+                        addon_find_modifier_props.objects_list,  # Collection owner
+                        "found_objects",  # Collection property
+                        addon_find_modifier_props.objects_list,  # Active item owner
+                        "active_index",  # Active item property
+                        rows=10,
                     )
-            
+
         # ====== Object Ops ======
         if cat_show_object_ops:
             object_ops_box = layout.box()
-            object_ops_box.prop(addon_props, "show_object_ops", icon="TRIA_DOWN" if addon_props.show_object_ops else "TRIA_RIGHT", emboss=False)
+            object_ops_box.prop(
+                addon_props,
+                "show_object_ops",
+                icon="TRIA_DOWN" if addon_props.show_object_ops else "TRIA_RIGHT",
+                emboss=False,
+            )
             if addon_props.show_object_ops:
                 # >> Row
                 row = object_ops_box.row(align=True)
@@ -140,7 +146,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 row_split.operator(SimpleToolbox_OT_ClearCustomSplitNormalsData.bl_idname)
                 # Clear Objects Children
                 row_split.operator(SimpleToolbox_OT_ClearChildrenRecurse.bl_idname)
-                
+
                 # >> Row
                 row = object_ops_box.row(align=True)
                 row_split = row.split(align=True)
@@ -159,50 +165,67 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 if cat_show_custom_properties_editor and cat_show_object_ops:
                     custom_properties_box = object_ops_box.box()
                     row = custom_properties_box.row()
-                    row.prop(addon_props, "show_custom_property_list_prop", icon="TRIA_DOWN" if addon_props.show_custom_property_list_prop else "TRIA_RIGHT", emboss=False)
+                    row.prop(
+                        addon_props,
+                        "show_custom_property_list_prop",
+                        icon="TRIA_DOWN" if addon_props.show_custom_property_list_prop else "TRIA_RIGHT",
+                        emboss=False,
+                    )
                     if addon_props.show_custom_property_list_prop:
                         # Row Number Slider
                         row = custom_properties_box.row()
                         split = row.split(factor=0.35)
                         split.prop(addon_prefs, "custom_properties_list_rows", text="Rows:")
-                        
+
                         row = custom_properties_box.row()
                         row.template_list(
                             "R0PROP_UL_CustomPropertiesList",
                             "custom_property_list",
-                            u.get_addon_props(),           # Collection owner
-                            "custom_property_list",        # Collection property
-                            u.get_addon_props(),           # Active item owner
+                            u.get_addon_props(),  # Collection owner
+                            "custom_property_list",  # Collection property
+                            u.get_addon_props(),  # Active item owner
                             "custom_property_list_index",  # Active item property
-                            rows=addon_prefs.custom_properties_list_rows
+                            rows=addon_prefs.custom_properties_list_rows,
                         )
                         # Clear Custom Properties
                         row = custom_properties_box.row()
                         row.operator(SimpleToolbox_OT_ClearCustomProperties.bl_idname)
 
-
         # ====== Object Sets Editor ======
         if cat_show_object_sets_editor:
             object_sets_box = layout.box()
             row = object_sets_box.row()
-            row.prop(addon_props, "show_object_sets", icon="TRIA_DOWN" if addon_props.show_object_sets else "TRIA_RIGHT", emboss=False)
+            row.prop(
+                addon_props,
+                "show_object_sets",
+                icon="TRIA_DOWN" if addon_props.show_object_sets else "TRIA_RIGHT",
+                emboss=False,
+            )
             if addon_props.show_object_sets:
                 u.draw_objects_sets_uilist(self.layout, context, object_sets_box=object_sets_box)
-
 
         # ====== Vertex Groups UI List ======
         if cat_show_vertex_groups_editor:
             vertex_groups_box = layout.box()
             row = vertex_groups_box.row()
-            row.prop(addon_props, "show_vertex_groups", icon="TRIA_DOWN" if addon_props.show_vertex_groups else "TRIA_RIGHT", emboss=False)
+            row.prop(
+                addon_props,
+                "show_vertex_groups",
+                icon="TRIA_DOWN" if addon_props.show_vertex_groups else "TRIA_RIGHT",
+                emboss=False,
+            )
             if addon_props.show_vertex_groups:
                 u.draw_vertex_groups_uilist(self.layout, context, vertex_groups_box=vertex_groups_box)
 
-        
         # ====== Mesh Ops ======
         if cat_show_mesh_ops:
             mesh_ops_box = layout.box()
-            mesh_ops_box.prop(addon_props, "show_mesh_ops", icon="TRIA_DOWN" if addon_props.show_mesh_ops else "TRIA_RIGHT", emboss=False)
+            mesh_ops_box.prop(
+                addon_props,
+                "show_mesh_ops",
+                icon="TRIA_DOWN" if addon_props.show_mesh_ops else "TRIA_RIGHT",
+                emboss=False,
+            )
             if addon_props.show_mesh_ops:
                 # >> Row
                 row = mesh_ops_box.row(align=True)
@@ -221,11 +244,16 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 row_split = row.split(align=True)
                 # Restore rotation from Selection
                 row_split.operator(SimpleToolbox_OT_RestoreRotationFromSelection.bl_idname)
-                
+
                 # Clear Sharp Edges on Axis
                 clear_sharp_edges_box = mesh_ops_box.box()
                 row = clear_sharp_edges_box.row(align=True)
-                clear_sharp_edges_box.prop(addon_props, "show_clear_sharps_on_axis", icon="TRIA_DOWN" if addon_props.show_clear_sharps_on_axis else "TRIA_RIGHT", emboss=False)
+                clear_sharp_edges_box.prop(
+                    addon_props,
+                    "show_clear_sharps_on_axis",
+                    icon="TRIA_DOWN" if addon_props.show_clear_sharps_on_axis else "TRIA_RIGHT",
+                    emboss=False,
+                )
                 if addon_props.show_clear_sharps_on_axis:
                     row = clear_sharp_edges_box.row(align=True)
                     row.prop(addon_prefs, "clear_sharp_axis_float_prop", text="Threshold")
@@ -239,31 +267,38 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         if cat_show_custom_properties_editor and not cat_show_object_ops:
             custom_properties_box = layout.box()
             row = custom_properties_box.row()
-            row.prop(addon_props, "show_custom_property_list_prop", icon="TRIA_DOWN" if addon_props.show_custom_property_list_prop else "TRIA_RIGHT", emboss=False)
+            row.prop(
+                addon_props,
+                "show_custom_property_list_prop",
+                icon="TRIA_DOWN" if addon_props.show_custom_property_list_prop else "TRIA_RIGHT",
+                emboss=False,
+            )
             if addon_props.show_custom_property_list_prop:
                 # Row Number Slider
                 row = custom_properties_box.row()
                 split = row.split(factor=0.35)
                 split.prop(addon_prefs, "custom_properties_list_rows", text="Rows:")
-                
+
                 row = custom_properties_box.row()
                 row.template_list(
                     "R0PROP_UL_CustomPropertiesList",
                     "custom_property_list",
-                    u.get_addon_props(),           # Collection owner
-                    "custom_property_list",        # Collection property
-                    u.get_addon_props(),           # Active item owner
+                    u.get_addon_props(),  # Collection owner
+                    "custom_property_list",  # Collection property
+                    u.get_addon_props(),  # Active item owner
                     "custom_property_list_index",  # Active item property
-                    rows=addon_prefs.custom_properties_list_rows
+                    rows=addon_prefs.custom_properties_list_rows,
                 )
                 # Clear Custom Properties
                 row = custom_properties_box.row()
                 row.operator(SimpleToolbox_OT_ClearCustomProperties.bl_idname)
-        
+
         # ====== UV Ops ======
         if cat_show_uv_ops:
             uv_ops_box = layout.box()
-            uv_ops_box.prop(addon_props, "show_uv_ops", icon="TRIA_DOWN" if addon_props.show_uv_ops else "TRIA_RIGHT", emboss=False)
+            uv_ops_box.prop(
+                addon_props, "show_uv_ops", icon="TRIA_DOWN" if addon_props.show_uv_ops else "TRIA_RIGHT", emboss=False
+            )
             if addon_props.show_uv_ops:
                 # UV Map Target Resolution
                 uv_map_resolution_box = uv_ops_box.box()
@@ -276,7 +311,12 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
 
                 # UV Island Thresholds
                 uv_island_checks_thresholds_box = uv_ops_box.box()
-                uv_island_checks_thresholds_box.prop(addon_props, "show_uv_island_area_thresholds", icon="TRIA_DOWN" if addon_props.show_uv_island_area_thresholds else "TRIA_RIGHT", emboss=False)
+                uv_island_checks_thresholds_box.prop(
+                    addon_props,
+                    "show_uv_island_area_thresholds",
+                    icon="TRIA_DOWN" if addon_props.show_uv_island_area_thresholds else "TRIA_RIGHT",
+                    emboss=False,
+                )
                 if addon_props.show_uv_island_area_thresholds:
                     values_row = uv_island_checks_thresholds_box.row()
                     split = values_row.split(factor=0.9)
@@ -285,70 +325,23 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                     # col_sliders.prop(addon_props, "uvisland_sizecheck_arearelative", text="Factor:")
                     col_sliders.prop(addon_props, "uvisland_sizecheck_area_pixelcoverage", text="Pixel Area (px²):")
                     col_sliders.prop(addon_props, "uvisland_sizecheck_area_pixelpercentage", text="Pixel Area %:")
-                    
+
                     col_locks = split.column(align=True)
                     # col_locks.prop(addon_props, "use_uvisland_sizecheck_arearelative", text="")
                     col_locks.prop(addon_props, "use_uvisland_sizecheck_area_pixelcoverage", text="")
                     col_locks.prop(addon_props, "use_uvisland_sizecheck_area_pixelpercentage", text="")
-                    
+
                     row = uv_island_checks_thresholds_box.row()
                     row.operator(SimpleToolbox_OT_UVCheckIslandThresholds.bl_idname)
 
         # if addon_prefs.experimental_features:
-            # experimental_features_box = layout.box()
-            # experimental_features_box.prop(addon_props, "show_experimental_features", icon="TRIA_DOWN" addon_props.show_experimental_features else "TRIA_RIGHT", emboss=False)
-            # if addon_props.show_experimental_features:
-                # ...
+        # experimental_features_box = layout.box()
+        # experimental_features_box.prop(addon_props, "show_experimental_features", icon="TRIA_DOWN" addon_props.show_experimental_features else "TRIA_RIGHT", emboss=False)
+        # if addon_props.show_experimental_features:
+        # ...
 
         # ====== Online Repository ======
         draw_repo_layout(layout, context)
-# fmt: on
-
-
-class r0Tools_PT_SimpleToolboxEdgeDataOps(bpy.types.Panel):
-    bl_idname = "OBJECT_PT_simple_toolbox_edge_data"
-    bl_label = f"Edge Data - {ADDON_NAME_BARE}{idname_extra}"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "Item"
-    bl_options = {"DEFAULT_CLOSED", "INSTANCED"}
-    bl_order = 60
-
-    @classmethod
-    def poll(cls, context):
-        addon_prefs = u.get_addon_prefs()
-        addon_experimental_props = addon_prefs.experimental_features
-
-        return addon_experimental_props
-
-    def draw(self, context):
-        layout = self.layout
-        u.draw_edge_data_panel_ui(layout, context)
-
-
-class r0Tools_PT_SimpleToolboxQuickExportOps(bpy.types.Panel):
-    bl_idname = "OBJECT_PT_simple_toolbox_quick_export_ops"
-    bl_label = f"Quick Export - {ADDON_NAME_BARE}{idname_extra}"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "Item"
-    bl_options = {"DEFAULT_CLOSED", "INSTANCED"}
-    bl_order = 60
-
-    @classmethod
-    def poll(cls, context):
-        addon_prefs = u.get_addon_prefs()
-        addon_experimental_props = addon_prefs.experimental_features
-
-        return addon_experimental_props
-
-    def draw(self, context):
-        layout = self.layout
-
-        export_selection_box = layout.box()
-        export_selection_box.label(text="Quick Export (FBX)")
-
-        u.draw_quick_export_sets_uilist(export_selection_box, context)
 
 
 # -------------------------------------------------------------------
@@ -358,29 +351,11 @@ class r0Tools_PT_SimpleToolboxQuickExportOps(bpy.types.Panel):
 # fmt: off
 classes = [
     r0Tools_PT_SimpleToolbox, 
-    # r0Tools_PT_SimpleToolboxEdgeDataOps,
-    # r0Tools_PT_SimpleToolboxQuickExportOps
 ]
 # fmt: on
 
-# fmt: off
-panel_attributions = {
-    r0Tools_PT_SimpleToolboxEdgeDataOps: {
-        "categories": [ADDON_CATEGORY, "Item"]
-    },
-    r0Tools_PT_SimpleToolboxQuickExportOps: {
-        "categories": [ADDON_CATEGORY, "Item"]
-    }
-}
-# fmt : on
 
 def register():
-    for panel_class, values in panel_attributions.items():
-        categories = values.get("categories")
-        for cat in categories:
-            variant = u.create_panel_variant(panel_class, category=cat)
-            classes.append(variant)
-
     for cls in classes:
         if DEBUG:
             print(f"[INFO] [{_mod}] Register {cls.__name__}")
