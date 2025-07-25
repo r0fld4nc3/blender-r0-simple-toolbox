@@ -74,7 +74,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
         size=4,  # RGBA
         min=0.0,
         max=1.0,
-        default=(0.0, 0.0, 0.0, 1.0),
+        default=(1.0, 1.0, 1.0, 1.0),
     )  # type: ignore
 
     object_sets_modal_width: IntProperty(name="Object Sets Modal Width", default=300, min=0, max=400)  # type: ignore
