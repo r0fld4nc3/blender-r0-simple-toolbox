@@ -17,13 +17,22 @@ class SimpleToolbox_OT_ObjectSetsModal(bpy.types.Operator):
     bl_label = "Object Sets Modal"
 
     def invoke(self, context, event):
+        addon_object_sets_props = u.get_addon_object_sets_props()
+        addon_object_sets_props.object_sets_modal = True
         object_sets_modal_prefs_width = u.get_addon_prefs().object_sets_modal_width
         return context.window_manager.invoke_props_dialog(self, width=object_sets_modal_prefs_width)
 
     def execute(self, context):
+        addon_object_sets_props = u.get_addon_object_sets_props()
+        addon_object_sets_props.object_sets_modal = False
         return {"FINISHED"}
 
+    def cancel(self, context):
+        addon_object_sets_props = u.get_addon_object_sets_props()
+        addon_object_sets_props.object_sets_modal = False
+
     def modal(self, context, event):
+
         if event.type == "MOUSEMOVE":  # Ignore mouse movement events
             return {"PASS_THROUGH"}
 

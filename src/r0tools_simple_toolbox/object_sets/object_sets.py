@@ -280,8 +280,15 @@ def object_sets_update_mesh_stats():
     addon_props = u.get_addon_props()
     addon_object_sets_props = u.get_addon_object_sets_props()
 
-    if not addon_props.cat_show_object_sets_editor:
+    if not addon_object_sets_props.experimental_features:
         return
+
+    if not addon_object_sets_props.object_sets_modal:
+        if not addon_props.cat_show_object_sets_editor:
+            return
+
+    # TODO: Implement some sort of cache system to determine if
+    # it really is necessary to recalculate object set's stats
 
     show_verts = addon_object_sets_props.object_sets_show_mesh_verts
     show_edges = addon_object_sets_props.object_sets_show_mesh_edges
@@ -508,6 +515,10 @@ def draw_objects_sets_uilist(layout, context):
 
     _object_sets_use_colour = addon_prefs.object_sets_use_colour
 
+    # Experimental Features Checkbox
+    row = layout.row()
+    row.prop(addon_object_sets_props, "experimental_features")
+
     # Object Sets Row Number Slider
     row = layout.row()
     split = row.split(factor=0.35)
@@ -516,16 +527,17 @@ def draw_objects_sets_uilist(layout, context):
     col = split.column()
     col.separator()
 
-    # Object Sets Visual Aids
-    row = layout.row()
-    # Show mesh verts
-    row.prop(addon_object_sets_props, "object_sets_show_mesh_verts", text="", icon="VERTEXSEL")
-    # Show mesh edges
-    row.prop(addon_object_sets_props, "object_sets_show_mesh_edges", text="", icon="EDGESEL")
-    # Show mesh faces
-    row.prop(addon_object_sets_props, "object_sets_show_mesh_faces", text="", icon="FACESEL")
-    # Show mesh triangles
-    row.prop(addon_object_sets_props, "object_sets_show_mesh_tris", text="", icon="MESH_DATA")
+    if addon_object_sets_props.experimental_features:
+        # Object Sets Visual Aids
+        row = layout.row()
+        # Show mesh verts
+        row.prop(addon_object_sets_props, "object_sets_show_mesh_verts", text="", icon="VERTEXSEL")
+        # Show mesh edges
+        row.prop(addon_object_sets_props, "object_sets_show_mesh_edges", text="", icon="EDGESEL")
+        # Show mesh faces
+        row.prop(addon_object_sets_props, "object_sets_show_mesh_faces", text="", icon="FACESEL")
+        # Show mesh triangles
+        row.prop(addon_object_sets_props, "object_sets_show_mesh_tris", text="", icon="MESH_DATA")
 
     row = layout.row()
     split = row.split(factor=0.92)  # Affects right side button width

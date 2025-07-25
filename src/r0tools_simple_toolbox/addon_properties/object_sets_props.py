@@ -360,6 +360,11 @@ class R0PROP_UL_ObjectSetsViewList(bpy.types.UIList):
 
 
 class r0ObjectSetsProps(bpy.types.PropertyGroup):
+    experimental_features: BoolProperty(
+        name="Experimental Features",
+        description="Enable experimental features",
+        default=False,
+    )  # type: ignore
     object_sets: CollectionProperty(type=R0PROP_PG_ObjectSetEntryItem)  # type: ignore
     object_sets_index: IntProperty(default=0, name="Object Set")  # type: ignore
     # data_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
@@ -369,6 +374,9 @@ class r0ObjectSetsProps(bpy.types.PropertyGroup):
     object_sets_show_mesh_edges: BoolProperty(default=False, name="Show Total Edge Count", description="Toggle showing Object Set's total edge count")  # type: ignore
     object_sets_show_mesh_faces: BoolProperty(default=False, name="Show Total Face Count", description="Toggle showing Object Set's total face count")  # type: ignore
     object_sets_show_mesh_tris: BoolProperty(default=False, name="Show Total Triangle Count", description="Toggle showing Object Set's total triangle count")  # type: ignore
+    object_sets_modal: BoolProperty(
+        name="Show Object Sets Modal", description="Show Object Sets Modal Panel", default=False
+    )  # type: ignore
 
 
 # ===================================================================
