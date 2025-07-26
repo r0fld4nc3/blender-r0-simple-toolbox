@@ -450,6 +450,8 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
 
 
 class r0SimpleToolbox_PG_ExportProps(bpy.types.PropertyGroup):
+    export_sets_list_rows: IntProperty(name="Export Sets List Rows", default=6, min=1)  # type: ignore
+
     mkdirs_if_not_exist: BoolProperty(name="Create sub-paths", description="If chosen path does not exist in the filesystem, create the full path including sub-directories", default=True)  # type: ignore
 
     export_sets: CollectionProperty(

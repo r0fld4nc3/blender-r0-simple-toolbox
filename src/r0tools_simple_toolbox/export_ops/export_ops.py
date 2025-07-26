@@ -127,7 +127,7 @@ def draw_quick_export_sets_uilist(layout, context):
     row = layout.row()
     col_left = row.column()
     col_left.alignment = "LEFT"
-    col_left.prop(addon_prefs, "export_sets_list_rows", text="Rows:")
+    col_left.prop(addon_export_props, "export_sets_list_rows", text="Rows:")
     col_right = row.column()
     col_right.separator()
 
@@ -143,7 +143,7 @@ def draw_quick_export_sets_uilist(layout, context):
         "export_sets",
         addon_export_props,
         "active_index",
-        rows=addon_prefs.export_sets_list_rows,
+        rows=addon_export_props.export_sets_list_rows,
     )
 
     batch_export_row = col_left.row()
