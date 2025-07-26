@@ -81,12 +81,6 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
 
     # =======================================================================
 
-    show_dev_tools: BoolProperty(  # type: ignore
-        name="Dev Tools",
-        description="Show or hide the development options section",
-        default=False,
-    )
-
     show_experimental_features: BoolProperty(  # type: ignore
         name="Experimental",
         description="Show or hide the Experimental operators section",

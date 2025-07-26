@@ -72,31 +72,28 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
 
         # ====== Dev Tools ======
         if addon_prefs.dev_tools:
-            dev_tools_box = layout.box()
-            dev_tools_box.prop(
-                addon_props,
-                "show_dev_tools",
-                icon="TRIA_DOWN" if addon_props.show_dev_tools else "TRIA_RIGHT",
-                emboss=False,
-            )
-            if addon_props.show_dev_tools:
-                row = dev_tools_box.row()
+            dev_tools_header, dev_tools_panel = layout.panel("simpletoolbox_pt_dev_tools", default_closed=True)
+            if dev_tools_header:
+                dev_tools_header.label(text="Dev Tools")
+
+            if dev_tools_panel:
+                row = dev_tools_panel.row()
                 row.prop(addon_prefs, "debug", text="Debug", icon="EXPERIMENTAL")
                 row.prop(addon_prefs, "log_output", text="Log", icon="CONSOLE")
-                row = dev_tools_box.row()
+                row = dev_tools_panel.row()
                 row.operator(BUILTINS_OT_IconViewer.bl_idname)
-                row = dev_tools_box.row()
+                row = dev_tools_panel.row()
                 row.operator("script.reload", text="Reload All Scripts", icon="PACKAGE")
-                reload_user_defined_box = dev_tools_box.box()
+                reload_user_defined_box = dev_tools_panel.box()
                 row = reload_user_defined_box.row()
                 row.prop(addon_props, "reload_modules_prop")
                 row = reload_user_defined_box.row()
                 row.operator(SimpleToolbox_OT_ReloadNamedScripts.bl_idname, icon="TOOL_SETTINGS")
 
                 if addon_prefs.experimental_features:
-                    row = dev_tools_box.row()
+                    row = dev_tools_panel.row()
                     row.operator("image.reload", icon="IMAGE_DATA")
-                    row = dev_tools_box.row()
+                    row = dev_tools_panel.row()
                     row.operator(SimpleToolbox_OT_FixImageDataPaths.bl_idname, icon="IMAGE_DATA")
 
         # ====== Object Ops ======
