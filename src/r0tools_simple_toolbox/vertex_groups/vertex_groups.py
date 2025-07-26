@@ -390,7 +390,7 @@ def draw_vertex_groups_uilist(layout, context):
     col.operator(SimpleToolbox_OT_VgroupsRemoveHighlighted.bl_idname, text="-")
 
     col.separator(factor=1.0)
-    col.operator(SimpleToolbox_OT_VgroupsRefresh.bl_idname, icon="FILE_REFRESH")
+    col.operator(SimpleToolbox_OT_VgroupsRefresh.bl_idname, icon="FILE_REFRESH", text="")
 
     # Vertex Groups Actions (Downward arrow dropdown menu)
     col.separator(factor=1.0)  # Spacer
