@@ -521,11 +521,11 @@ def draw_objects_sets_uilist(layout, context):
 
     # Object Sets Row Number Slider
     row = layout.row()
-    split = row.split(factor=0.35)
-    col = split.column()
-    col.prop(addon_prefs, "object_sets_list_rows", text="Rows:")
-    col = split.column()
-    col.separator()
+    col_left = row.column()
+    col_left.alignment = "LEFT"
+    col_left.prop(addon_prefs, "object_sets_list_rows", text="Rows:")
+    col_right = row.column()
+    col_right.separator()
 
     if addon_object_sets_props.experimental_features:
         # Object Sets Visual Aids
@@ -540,11 +540,10 @@ def draw_objects_sets_uilist(layout, context):
         row.prop(addon_object_sets_props, "object_sets_show_mesh_tris", text="", icon="MESH_DATA")
 
     row = layout.row()
-    split = row.split(factor=0.92)  # Affects right side button width
 
     # Left Section - List
-    col = split.column()
-    col.template_list(
+    col_left = row.column()
+    col_left.template_list(
         "R0PROP_UL_ObjectSetsList",
         "object_sets",
         addon_object_sets_props,  # Collection owner
@@ -555,29 +554,31 @@ def draw_objects_sets_uilist(layout, context):
     )
 
     # Right side - Buttons
-    col = split.column(align=True)
-    col.operator(SimpleToolbox_OT_AddObjectSetPopup.bl_idname, text="+")
-    col.operator(SimpleToolbox_OT_RemoveObjectSet.bl_idname, text="-")
+    col_right = row.column(align=True)
+    col_right.alignment = "RIGHT"
+    col_right.scale_x = addon_prefs.OPERATOR_COLUMN_SIZE_X
+    col_right.operator(SimpleToolbox_OT_AddObjectSetPopup.bl_idname, text="+")
+    col_right.operator(SimpleToolbox_OT_RemoveObjectSet.bl_idname, text="-")
     if len(addon_object_sets_props.object_sets) > 1:  # Show buttons only when applicable
-        col.separator(factor=1.0)  # Spacer
-        col.operator(SimpleToolbox_OT_MoveObjectSetItem.bl_idname, icon="TRIA_UP", text="").direction = "UP"
-        col.operator(SimpleToolbox_OT_MoveObjectSetItem.bl_idname, icon="TRIA_DOWN", text="").direction = "DOWN"
+        col_right.separator(factor=1.0)  # Spacer
+        col_right.operator(SimpleToolbox_OT_MoveObjectSetItem.bl_idname, icon="TRIA_UP", text="").direction = "UP"
+        col_right.operator(SimpleToolbox_OT_MoveObjectSetItem.bl_idname, icon="TRIA_DOWN", text="").direction = "DOWN"
 
     # Object Sets Use Colour
-    col.separator(factor=1.0)  # Spacer
+    col_right.separator(factor=1.0)  # Spacer
     if _object_sets_use_colour:
-        col.prop(addon_prefs, "object_sets_use_colour", text="", icon="RESTRICT_COLOR_ON")
+        col_right.prop(addon_prefs, "object_sets_use_colour", text="", icon="RESTRICT_COLOR_ON")
     else:
-        col.prop(addon_prefs, "object_sets_use_colour", text="", icon="RESTRICT_COLOR_OFF")
+        col_right.prop(addon_prefs, "object_sets_use_colour", text="", icon="RESTRICT_COLOR_OFF")
 
     # Conditionally, only show the randomise object set colour button if we're using colours for object sets
     if _object_sets_use_colour:
-        col.separator(factor=1.0)  # Spacer
-        col.operator(SimpleToolbox_OT_RandomiseObjectSetsColours.bl_idname, text="", icon="NODE_MATERIAL")
+        col_right.separator(factor=1.0)  # Spacer
+        col_right.operator(SimpleToolbox_OT_RandomiseObjectSetsColours.bl_idname, text="", icon="NODE_MATERIAL")
 
     # Object Sets Actions (Downward arrow dropdown menu)
-    col.separator(factor=1.0)  # Spacer
-    col.menu(SimpleToolbox_MT_ObjectSetsActionsMenu.bl_idname, text="")
+    col_right.separator(factor=1.0)  # Spacer
+    col_right.menu(SimpleToolbox_MT_ObjectSetsActionsMenu.bl_idname, text="")
 
     row = layout.row(align=True)
 

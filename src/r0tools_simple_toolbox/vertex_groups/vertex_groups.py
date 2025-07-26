@@ -363,18 +363,17 @@ def draw_vertex_groups_uilist(layout, context):
 
     # Vertex Groups Row Number Slider
     row = layout.row()
-    split = row.split(factor=0.35)
-    col = split.column()
-    col.prop(addon_prefs, "vertex_groups_list_rows", text="Rows:")
-    col = split.column()
-    col.separator()
+    col_left = row.column()
+    col_left.alignment = "LEFT"
+    col_left.prop(addon_prefs, "vertex_groups_list_rows", text="Rows:")
+    col_right = row.column()
+    col_right.separator()
 
     row = layout.row()
-    split = row.split(factor=0.92)
 
     # Left Section - List
-    col = split.column()
-    col.template_list(
+    col_left = row.column()
+    col_left.template_list(
         "R0PROP_UL_VertexGroupsList",
         "vertex_groups",
         addon_vertex_groups_props,
@@ -385,16 +384,18 @@ def draw_vertex_groups_uilist(layout, context):
     )
 
     # Right Side - Buttons
-    col = split.column(align=True)
-    col.operator(SimpleToolbox_OT_VgroupsAddPopup.bl_idname, text="+")
-    col.operator(SimpleToolbox_OT_VgroupsRemoveHighlighted.bl_idname, text="-")
+    col_right = row.column(align=True)
+    col_right.alignment = "RIGHT"
+    col_right.scale_x = addon_prefs.OPERATOR_COLUMN_SIZE_X
+    col_right.operator(SimpleToolbox_OT_VgroupsAddPopup.bl_idname, text="+")
+    col_right.operator(SimpleToolbox_OT_VgroupsRemoveHighlighted.bl_idname, text="-")
 
-    col.separator(factor=1.0)
-    col.operator(SimpleToolbox_OT_VgroupsRefresh.bl_idname, icon="FILE_REFRESH", text="")
+    col_right.separator(factor=1.0)
+    col_right.operator(SimpleToolbox_OT_VgroupsRefresh.bl_idname, icon="FILE_REFRESH", text="")
 
     # Vertex Groups Actions (Downward arrow dropdown menu)
-    col.separator(factor=1.0)  # Spacer
-    col.menu(SimpleToolbox_MT_VertexGroupsActionsMenu.bl_idname, text="")
+    col_right.separator(factor=1.0)  # Spacer
+    col_right.menu(SimpleToolbox_MT_VertexGroupsActionsMenu.bl_idname, text="")
 
     # Bottom
     # Assign/Unassign Vertices

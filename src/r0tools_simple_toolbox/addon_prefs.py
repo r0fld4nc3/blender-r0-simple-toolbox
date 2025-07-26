@@ -56,6 +56,11 @@ class AddonPreferences(bpy.types.AddonPreferences):
         update=lambda self, context: u.save_preferences(),
     )  # type: ignore
 
+    OPERATOR_COLUMN_SIZE_X = 0.7
+
+    ###################
+    ### OBJECT SETS ###
+    ###################
     object_sets_use_colour: BoolProperty(
         name="Object Sets Use Colour",
         description="Objects Sets are assigned a colour. Each object within the set is also assigned the colour of the Object Set it is contained in.\nTo view the objects with their assigned colour, change the Viewport Shading either to 'Wire Shading > Object' and/or 'Color > Object'.\nWhen an object is contained in multiple Object Sets, depending on the setting that allows the override, it will display in either the colour of the first Object Set it is found in, or the last",
@@ -83,10 +88,13 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
     custom_properties_list_rows: IntProperty(name="Custom Properties List Rows", default=6, min=1)  # type: ignore
 
+    #####################
+    ### VERTEX GROUPS ###
+    #####################
     vertex_groups_list_rows: IntProperty(name="Vertex Groups List Rows", default=8, min=1)  # type: ignore
 
     #######################
-    ### Edge Data Reset ###
+    ### EDGE DATA RESET ###
     #######################
     edge_reset_sharp: BoolProperty(name="Reset Edge Sharpness", description="Set whether to always reset this component", default=True)  # type: ignore
     edge_reset_seam: BoolProperty(name="Reset Edge Seam", description="Set whether to always reset this component", default=True)  # type: ignore
