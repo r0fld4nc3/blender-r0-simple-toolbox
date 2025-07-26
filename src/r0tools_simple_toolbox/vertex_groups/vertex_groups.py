@@ -365,7 +365,7 @@ def draw_vertex_groups_uilist(layout, context):
     row = layout.row()
     col_left = row.column()
     col_left.alignment = "LEFT"
-    col_left.prop(addon_prefs, "vertex_groups_list_rows", text="Rows:")
+    col_left.prop(addon_vertex_groups_props, "vertex_groups_list_rows", text="Rows:")
     col_right = row.column()
     col_right.separator()
 
@@ -380,7 +380,7 @@ def draw_vertex_groups_uilist(layout, context):
         "vertex_groups",
         addon_vertex_groups_props,
         "vertex_group_list_index",
-        rows=addon_prefs.vertex_groups_list_rows,
+        rows=addon_vertex_groups_props.vertex_groups_list_rows,
     )
 
     # Right Side - Buttons

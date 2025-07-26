@@ -19,7 +19,7 @@ class SimpleToolbox_OT_ObjectSetsModal(bpy.types.Operator):
     def invoke(self, context, event):
         addon_object_sets_props = u.get_addon_object_sets_props()
         addon_object_sets_props.object_sets_modal = True
-        object_sets_modal_prefs_width = u.get_addon_prefs().object_sets_modal_width
+        object_sets_modal_prefs_width = u.get_addon_object_sets_props().object_sets_modal_width
         return context.window_manager.invoke_props_dialog(self, width=object_sets_modal_prefs_width)
 
     def execute(self, context):
@@ -90,6 +90,7 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
 
     def draw(self, context):
         addon_prefs = u.get_addon_prefs()
+        addon_object_sets_props = u.get_addon_object_sets_props()
 
         label_add_new = "Create a New Object Set"
         if self.separator:
@@ -107,7 +108,7 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
         row = layout.row()
         split = row.split(factor=0.9)
         split.prop(self, "object_set_name")
-        if addon_prefs.object_sets_use_colour:
+        if addon_object_sets_props.object_sets_use_colour:
             split.prop(self, "object_set_colour", text="")
 
     def add_non_conflicting_name(self) -> str:
@@ -443,8 +444,9 @@ class SimpleToolbox_OT_ForceRefreshObjectSets(bpy.types.Operator):
 
     def execute(self, context):
         addon_prefs = u.get_addon_prefs()
+        addon_object_sets_props = u.get_addon_object_sets_props()
 
-        if addon_prefs.object_sets_use_colour:
+        if addon_object_sets_props.object_sets_use_colour:
             u.refresh_object_sets_colours(context)
 
             self.report({"INFO"}, f"Refreshed Object Sets' colours")

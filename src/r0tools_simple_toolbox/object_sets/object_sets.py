@@ -402,11 +402,11 @@ def refresh_object_sets_colours(context):
     if u.IS_DEBUG():
         print(f"[DEBUG] [{_mod}] Force Refreshing Object Sets' Colours")
 
-    addon_prefs = u.get_addon_prefs()
+    addon_object_sets_props = u.get_addon_object_sets_props()
 
     object_sets = get_object_sets()
 
-    if not addon_prefs.object_sets_use_colour:
+    if not addon_object_sets_props.object_sets_use_colour:
         return
 
     for object_set in object_sets:
@@ -513,7 +513,7 @@ def draw_objects_sets_uilist(layout, context):
     addon_prefs = u.get_addon_prefs()
     addon_object_sets_props = u.get_addon_object_sets_props()
 
-    _object_sets_use_colour = addon_prefs.object_sets_use_colour
+    _object_sets_use_colour = addon_object_sets_props.object_sets_use_colour
 
     # Experimental Features Checkbox
     row = layout.row()
@@ -523,7 +523,7 @@ def draw_objects_sets_uilist(layout, context):
     row = layout.row()
     col_left = row.column()
     col_left.alignment = "LEFT"
-    col_left.prop(addon_prefs, "object_sets_list_rows", text="Rows:")
+    col_left.prop(addon_object_sets_props, "object_sets_list_rows", text="Rows:")
     col_right = row.column()
     col_right.separator()
 
@@ -550,7 +550,7 @@ def draw_objects_sets_uilist(layout, context):
         "object_sets",  # Collection property
         addon_object_sets_props,  # Active item owner
         "object_sets_index",  # Active item property
-        rows=addon_prefs.object_sets_list_rows,
+        rows=addon_object_sets_props.object_sets_list_rows,
     )
 
     # Right side - Buttons
@@ -567,9 +567,9 @@ def draw_objects_sets_uilist(layout, context):
     # Object Sets Use Colour
     col_right.separator(factor=1.0)  # Spacer
     if _object_sets_use_colour:
-        col_right.prop(addon_prefs, "object_sets_use_colour", text="", icon="RESTRICT_COLOR_ON")
+        col_right.prop(addon_object_sets_props, "object_sets_use_colour", text="", icon="RESTRICT_COLOR_ON")
     else:
-        col_right.prop(addon_prefs, "object_sets_use_colour", text="", icon="RESTRICT_COLOR_OFF")
+        col_right.prop(addon_object_sets_props, "object_sets_use_colour", text="", icon="RESTRICT_COLOR_OFF")
 
     # Conditionally, only show the randomise object set colour button if we're using colours for object sets
     if _object_sets_use_colour:
