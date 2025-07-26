@@ -124,20 +124,19 @@ def draw_quick_export_sets_uilist(layout, context):
         draw_fbx_export_settings(layout, addon_prefs.export_settings_global_fbx)
 
     # Export Sets Row Number Slider
-    row = layout.row(align=True)
-    split = row.split(factor=0.35)
-    col = split.column()
-    col.prop(addon_prefs, "export_sets_list_rows", text="Rows:")
-    col = split.column()
-    col.separator()
+    row = layout.row()
+    col_left = row.column()
+    col_left.alignment = "LEFT"
+    col_left.prop(addon_prefs, "export_sets_list_rows", text="Rows:")
+    col_right = row.column()
+    col_right.separator()
 
     row = layout.row()
-    split = row.split(factor=0.92)  # Affects right side button width
 
     # Left Section - List
-    col = split.column()
+    col_left = row.column()
 
-    col.template_list(
+    col_left.template_list(
         "R0PROP_UL_ExportSetsList",
         "",
         addon_export_props,
@@ -147,13 +146,15 @@ def draw_quick_export_sets_uilist(layout, context):
         rows=addon_prefs.export_sets_list_rows,
     )
 
-    batch_export_row = col.row()
+    batch_export_row = col_left.row()
     batch_export_row.operator(SimpleToolbox_OT_BatchExportObjects.bl_idname, icon="EXPORT")
 
     # Right side - Buttons
-    col = split.column(align=True)
-    col.operator(SimpleToolbox_OT_AddExportSet.bl_idname, text="+")
-    col.operator(SimpleToolbox_OT_RemoveExportSet.bl_idname, text="-")
+    col_right = row.column(align=True)
+    col_right.alignment = "RIGHT"
+    col_right.scale_x = addon_prefs.OPERATOR_COLUMN_SIZE_X
+    col_right.operator(SimpleToolbox_OT_AddExportSet.bl_idname, text="+")
+    col_right.operator(SimpleToolbox_OT_RemoveExportSet.bl_idname, text="-")
 
     # Selected Export Set Options
     active_index = get_active_export_set_index()
