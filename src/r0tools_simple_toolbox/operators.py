@@ -1842,10 +1842,7 @@ def register():
 
     CustomTransformsOrientationsTracker.register_handler()
 
-    # Register modified draw method for Orientations Pie
     _BUILTIN_ORIENTATIONS_PIE.draw = modified_orientations_pie_draw
-
-    # register_keymapping()
 
 
 def unregister():
@@ -1854,7 +1851,6 @@ def unregister():
             print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
 
-    # unregister_keymapping()
     CustomTransformsOrientationsTracker.unregister_handler()
 
     _BUILTIN_ORIENTATIONS_PIE.draw = _ORIGINAL_ORIENTATIONS_PIE_DRAW

@@ -2,37 +2,17 @@ import importlib
 import sys
 
 # Import order here is really important!
-# fmt: off
-from .constants import *  # isort: skip
-from .context import *  # isort: skip
-from .custom_transform import *  # isort: skip
-from .general import *  # isort: skip
-from ..object_sets.object_sets import *  # isort: skip
-from ..vertex_groups.vertex_groups import *  # isort: skip
-from .defer import timer_manager, deferred  # isort: skip
-from .edge_data import (  # isort: skip
-    draw_edge_bweights_presets_operators,
-    draw_edge_data_panel_ui,
-    initialize_bweight_presets,
-)
-from .boxcutter import get_boxcutter_props, boxcutter_running  # isort: skip
-from ..export_ops.export_ops import * # isort: skip
-from ..defines import DEBUG # isort: skip
-# fmt: on
+from .operators import *  # isort: skip
+from ..defines import DEBUG  # isort: skip
 
 package = __name__
-_mod = "UTILS.__INIT__"
+_mod = "EXPORT"
 
 # fmt: off
 # List of submodules, keep in sync with imports
 submodules = [
-    "constants",
-    "context",
-    "custom_transform",
-    "general",
-    "defer",
-    "edge_data",
-    "boxcutter",
+    "operators",
+    "ui",
 ]
 # fmt: on
 _module_objects = []

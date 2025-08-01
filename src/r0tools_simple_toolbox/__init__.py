@@ -17,11 +17,10 @@ from typing import List, Tuple
 from .defines import DEBUG  # isort: skip
 
 modules = (
-    ".addon_prefs",
     ".addon_properties",
+    ".addon_prefs",
     ".operators",
     ".menus",
-    ".ui",
     ".utils",
     ".object_sets",
     ".vertex_groups",
@@ -31,6 +30,7 @@ modules = (
     ".repo.ui",
     ".data_ops",
     ".keymaps",
+    ".ui",
 )
 
 _mod = "__INIT__"

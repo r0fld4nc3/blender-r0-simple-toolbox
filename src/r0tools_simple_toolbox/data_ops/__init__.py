@@ -10,7 +10,8 @@ _mod = "DATA OPS"
 # fmt: off
 # List of submodules, keep in sync with imports
 submodules = [
-    "operators"
+    "operators",
+    "ui",
 ]
 # fmt: on
 _module_objects = []

@@ -26,8 +26,9 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
     """Property that represents an Object Set that contains a reference to a collection of objects added to the set"""
 
     def update_object_set_colour(self, dummy):
-        addon_prefs = u.get_addon_prefs()
-        allow_override = addon_prefs.object_sets_colour_allow_override
+        addon_object_sets_props = u.get_addon_object_sets_props()
+
+        allow_override = addon_object_sets_props.object_sets_colour_allow_override
 
         for item in self.objects:
             obj = item.object
@@ -60,7 +61,7 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
         # update=func passes context as an argument but we want to
         # pass a list of floats. So in order to workaround having
         # to create a new method to support this, let's just
-        # enfore that the type(colour) must be in accepted types
+        # enforce that the type(colour) must be in accepted types
         if type(colour) in [type(self.set_colour), list, tuple]:
             self.set_colour = colour
 
@@ -87,6 +88,7 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
         default=(0.0, 0.0, 0.0, 1.0),
         update=set_object_set_colour,  # This passes `Context` as an argument....
     )
+    checked: bpy.props.BoolProperty(default=False, name="Checked")  # type: ignore
     expanded: bpy.props.BoolProperty(default=False, name="Expand")  # type: ignore
     verts: bpy.props.IntProperty(default=0)  # type: ignore
     edges: bpy.props.IntProperty(default=0)  # type: ignore
@@ -125,8 +127,9 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
         self.update_count()
 
     def remove_objects(self, objects_to_remove: list[bpy.types.Object]):
-        addon_prefs = u.get_addon_prefs()
-        allow_override = addon_prefs.object_sets_colour_allow_override
+        addon_object_sets_props = u.get_addon_object_sets_props()
+
+        allow_override = addon_object_sets_props.object_sets_colour_allow_override
 
         if self.separator:
             return
@@ -215,7 +218,7 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
             row = main_container.row(align=True)
 
             # Configure accordingly for object sets colour
-            if addon_prefs.object_sets_use_colour:
+            if addon_object_sets_props.object_sets_use_colour:
                 scale_x = 0.8  # Scales extending the right side to the right
                 scale_y = 0.8  # Scales extending the bottom down
                 row.separator(factor=0.8)  # Pushes things to the right
@@ -236,13 +239,6 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
 
             # Select Set
             col_select_set = info_row.row(align=True)
-            """
-            OMG this is exciting. So we store a reference to the Operator
-            and then we immediately assign it a property defined in the Operator class
-            `set_index`. By doing this, we can store which set the button belongs to
-            and can select the objects of the given Object Set at a specific row/index
-            without having to first select the row!!! Amazing!
-            """
             op = col_select_set.operator(
                 SimpleToolbox_OT_SelectObjectSet.bl_idname,
                 text="",
@@ -310,7 +306,60 @@ class R0PROP_UL_ObjectSetsList(bpy.types.UIList):
             layout.label(text=item.name)
 
 
+class R0PROP_UL_ObjectSetsViewList(bpy.types.UIList):
+    def filter_items(self, context, data, propname):
+        """Filter out separator items"""
+
+        items = getattr(data, propname)
+
+        # Filter flags. Default all items to hidden
+        flt_flags = [0] * len(items)
+
+        flt_neworder = list(range(len(items)))
+
+        # Filter
+        for idx, item in enumerate(items):
+            if not item.separator:
+                flt_flags[idx] = self.bitflag_filter_item
+
+        return flt_flags, flt_neworder
+
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        from ..export_ops.operators import SimpleToolbox_OT_ToggleObjectSetSelection
+
+        export_item = u.get_export_set_at_index(u.get_active_export_set_index())
+
+        if not export_item:
+            return
+
+        # Check if this Object Set is selected for the current Export Set
+        is_selected = any(
+            obj_set.name == item.name and obj_set.is_selected for obj_set in export_item.object_sets_names
+        )
+
+        row = layout.row()
+
+        # Operator to toggle selection instead of direct property
+        icon = "CHECKBOX_HLT" if is_selected else "CHECKBOX_DEHLT"
+        op = row.operator(SimpleToolbox_OT_ToggleObjectSetSelection.bl_idname, text="", icon=icon, emboss=False)
+        op.export_set_index = u.get_active_export_set_index()
+        op.object_set_name = item.name
+
+        # Colour indicator
+        col_colour = row.column()
+        col_colour.scale_x = 0.3
+        col_colour.prop(item, "set_colour", text="")
+        col_colour.enabled = False
+
+        row.label(text=item.name)
+
+
 class r0ObjectSetsProps(bpy.types.PropertyGroup):
+    experimental_features: BoolProperty(
+        name="Experimental Features",
+        description="Enable experimental features",
+        default=False,
+    )  # type: ignore
     object_sets: CollectionProperty(type=R0PROP_PG_ObjectSetEntryItem)  # type: ignore
     object_sets_index: IntProperty(default=0, name="Object Set")  # type: ignore
     # data_objects: CollectionProperty(type=R0PROP_ObjectSetObjectItem)  # type: ignore
@@ -320,6 +369,25 @@ class r0ObjectSetsProps(bpy.types.PropertyGroup):
     object_sets_show_mesh_edges: BoolProperty(default=False, name="Show Total Edge Count", description="Toggle showing Object Set's total edge count")  # type: ignore
     object_sets_show_mesh_faces: BoolProperty(default=False, name="Show Total Face Count", description="Toggle showing Object Set's total face count")  # type: ignore
     object_sets_show_mesh_tris: BoolProperty(default=False, name="Show Total Triangle Count", description="Toggle showing Object Set's total triangle count")  # type: ignore
+    object_sets_modal: BoolProperty(
+        name="Show Object Sets Modal", description="Show Object Sets Modal Panel", default=False
+    )  # type: ignore
+
+    object_sets_use_colour: BoolProperty(
+        name="Object Sets Use Colour",
+        description="Objects Sets are assigned a colour. Each object within the set is also assigned the colour of the Object Set it is contained in.\nTo view the objects with their assigned colour, change the Viewport Shading either to 'Wire Shading > Object' and/or 'Color > Object'.\nWhen an object is contained in multiple Object Sets, depending on the setting that allows the override, it will display in either the colour of the first Object Set it is found in, or the last",
+        default=True,
+    )  # type: ignore
+
+    object_sets_colour_allow_override: BoolProperty(
+        name="Allow Colour Override",
+        description="Allow colour override for objects that area already present in Object Sets and are added or modified in other sets. When disallowed, the object will (hopefully) only retain the colour of the first Object Set is contained in.\nWhen allowed, the object will change colours freely depending on the last modified set, given the object is contained within.",
+        default=False,
+    )  # type: ignore
+
+    object_sets_modal_width: IntProperty(name="Object Sets Modal Width", default=300, min=0, max=400)  # type: ignore
+
+    object_sets_list_rows: IntProperty(name="Object Sets List Rows", default=8, min=1)  # type: ignore
 
 
 # ===================================================================
@@ -329,6 +397,7 @@ classes = [
     R0PROP_PG_ObjectSetObjectItem,
     R0PROP_PG_ObjectSetEntryItem,
     R0PROP_UL_ObjectSetsList,
+    R0PROP_UL_ObjectSetsViewList,
     r0ObjectSetsProps,
 ]
 

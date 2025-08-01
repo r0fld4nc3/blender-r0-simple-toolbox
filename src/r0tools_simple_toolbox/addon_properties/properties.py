@@ -80,38 +80,40 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
     )  # type: ignore
 
     # =======================================================================
+    # Category panels
+    panelvis_dev_tools: BoolProperty(
+        name="Dev Tools", description="Toggle visibility state for panel", default=False
+    )  # type: ignore
 
-    show_dev_tools: BoolProperty(  # type: ignore
-        name="Dev Tools",
-        description="Show or hide the development options section",
-        default=False,
-    )
+    panelvis_object_ops: BoolProperty(
+        name="Object Ops", description="Toggle visibility state for panel", default=False
+    )  # type: ignore
+    panelvis_mesh_ops: BoolProperty(
+        name="Mesh Ops", description="Toggle visibility state for panel", default=False
+    )  # type: ignore
+    panelvis_uv_ops: BoolProperty(
+        name="UV Ops", description="Toggle visibility state for panel", default=False
+    )  # type: ignore
+    panelvis_find_modifier_ops: BoolProperty(
+        name="Find Modifier", description="Toggle visibility state for panel", default=False
+    )  # type: ignore
+    panelvis_object_sets_ops: BoolProperty(
+        name="Object Sets", description="Toggle visibility state for panel", default=False
+    )  # type: ignore
+    panelvis_vertex_groups_ops: BoolProperty(
+        name="Vertex Groups", description="Toggle visibility state for panel", default=False
+    )  # type: ignore
+    panelvis_custom_properties_ops: BoolProperty(
+        name="Custom Properties", description="Toggle visibility state for panel", default=False
+    )  # type: ignore
 
-    show_object_ops: BoolProperty(  # type: ignore
-        name="Object Ops",
-        description="Show or hide the Object operators section",
-        default=True,
-    )
-
-    show_mesh_ops: BoolProperty(  # type: ignore
-        name="Mesh Ops",
-        description="Show or hide the Mesh operators section",
-        default=True,
-    )
-
-    show_uv_ops: BoolProperty(  # type: ignore
-        name="UV Ops",
-        description="Show or hide the UV operators section",
-        default=False,
-    )
+    # =======================================================================
 
     show_experimental_features: BoolProperty(  # type: ignore
         name="Experimental",
         description="Show or hide the Experimental operators section",
         default=False,
     )
-
-    show_uv_island_area_thresholds: BoolProperty(name="UV Island Area Thresholds", default=False)  # type: ignore
 
     uvisland_sizecheck_arearelative: FloatProperty(  # type: ignore
         name="Relative Area Size",
@@ -178,34 +180,12 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
         description="Highlight meshes smaller than this screen size percentage",
     )
 
-    show_custom_property_list_prop: BoolProperty(  # type: ignore
-        name="Custom Properties",
-        description="List Custom Properties",
-        default=False,
-    )
-
     custom_property_list: CollectionProperty(type=R0PROP_PG_CustomPropertyItem)  # type: ignore
     custom_property_list_index: IntProperty(default=0)  # type: ignore
     last_object_selection: StringProperty(  # type: ignore
         name="Last Object Selection",
         description="Comma-separated names of last selected objects",
         default="",
-    )
-
-    show_object_sets: BoolProperty(  # type: ignore
-        name="Object Sets",
-        description="Manage different object selections via an Object Set editor",
-        default=False,
-    )
-
-    show_vertex_groups: BoolProperty(  # type: ignore
-        name="Vertex Groups", description="Manage Vertex Groups of selected objects", default=False
-    )
-
-    show_find_modifier_search: BoolProperty(  # type: ignore
-        name="Find Modifier(s)",
-        description="Show Find Object with Modifiers Controls",
-        default=False,
     )
 
     find_modifier_search_text: StringProperty(  # type: ignore

@@ -22,10 +22,10 @@ def handler_depsgraph_post_update(scene, depsgraph):
 
         if not boxcutter_running:
             if u.object_count_changed():
-                # u.timer_manager.schedule(u.cleanup_object_set_invalid_references_o1, delay=0, min_interval=0.1)
-                u.cleanup_object_set_invalid_references_o1()
+                # u.timer_manager.schedule(u.cleanup_object_set_invalid_references, delay=0, min_interval=0.1)
+                u.cleanup_object_set_invalid_references()
 
-            u.object_sets_update_mesh_stats()
+            # u.object_sets_update_mesh_stats(depsgraph)
 
             # u.timer_manager.schedule(u.vertex_groups_list_update, delay=0, min_interval=0.05)
             u.vertex_groups_list_update()

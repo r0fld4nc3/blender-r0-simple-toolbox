@@ -479,6 +479,8 @@ class SimpleToolbox_OT_VgroupsAssignVertices(bpy.types.Operator):
 
             bmesh.update_edit_mesh(mesh)
 
+            vertex_groups_list_update(force=True)
+
         return {"FINISHED"}
 
 
@@ -529,6 +531,8 @@ class SimpleToolbox_OT_VgroupsUnassignVertices(bpy.types.Operator):
                                 del vert[deform_layer][vg_idx]
 
             bmesh.update_edit_mesh(mesh)
+
+            vertex_groups_list_update(force=True)
 
         return {"FINISHED"}
 

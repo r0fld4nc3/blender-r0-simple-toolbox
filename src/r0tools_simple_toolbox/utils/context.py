@@ -3,6 +3,7 @@ from pathlib import Path
 import bpy
 
 from ..defines import INTERNAL_NAME, TOOLBOX_PROPS_NAME
+from .boxcutter import boxcutter_running
 
 _mod = "UTILS.CONTEXT"
 
@@ -105,6 +106,21 @@ def get_depsgraph_is_updated_transform() -> bool:
     return False
 
 
+def is_viewport_local() -> bool:
+    area = next(a for a in bpy.context.screen.areas if a.type == "VIEW_3D")
+    space = area.spaces.active
+    if space.local_view:
+        return True
+
+    return False
+
+
+def toggle_viewport_local_mode():
+    area = next(a for a in bpy.context.screen.areas if a.type == "VIEW_3D")
+    with bpy.context.temp_override(area=area):
+        bpy.ops.view3d.localview(frame_selected=False)
+
+
 def get_uvmap_size_x():
     """Get selected UV Map Size in X"""
     addon_props = get_addon_props()
@@ -140,6 +156,11 @@ def is_writing_context_safe(scene, check_addon_props: bool = False) -> bool:
         return False
     """
 
+    # Check for boxcutter running
+    if boxcutter_running():
+        LOG(f"[MONITOR] [{_mod}] Boxcutting running. Skipping.")
+        return False
+
     # Check if rendering or baking is active
     if scene.render.use_lock_interface:
         LOG(f"[MONITOR] [{_mod}] Interface is locked (rendering/baking). Skipping.")
@@ -165,9 +186,11 @@ def is_writing_context_safe(scene, check_addon_props: bool = False) -> bool:
         addon_vertex_groups_props = get_addon_vertex_groups_props()
 
         # TODO: Implement
-        addon_edge_data_props = get_addon_edge_data_props()
-        addon_experimental_props = get_addon_experimental_props()
-        addon_find_modifier_props = get_addon_find_modifier_props()
+        # Comment out calls, speculative performance increase
+        # addon_edge_data_props = get_addon_edge_data_props()
+        # addon_experimental_props = get_addon_experimental_props()
+        # addon_find_modifier_props = get_addon_find_modifier_props()
+        # addon_export_props = get_addon_export_props()
 
         if not addon_props or addon_props is None:
             if addon_prefs is not None and hasattr(addon_prefs, "lock_states_avoided"):
@@ -177,13 +200,16 @@ def is_writing_context_safe(scene, check_addon_props: bool = False) -> bool:
 
         # Test writing capabilities
         # Object Sets
+        """
         try:
             if hasattr(addon_object_sets_props.object_sets, "clear"):
                 _ = len(addon_object_sets_props.object_sets)
         except Exception as e:
             LOG(f"[ERROR] [{_mod}] Object Sets Property not accessible: {e}")
+        """
 
         # Vertex Groups
+        """
         try:
             if hasattr(addon_props, "cat_show_vertex_groups_editor"):
                 if addon_props.cat_show_vertex_groups_editor:
@@ -191,12 +217,7 @@ def is_writing_context_safe(scene, check_addon_props: bool = False) -> bool:
                         _ = len(addon_vertex_groups_props.vertex_groups)
         except Exception as e:
             LOG(f"[ERROR] [{_mod}] Vertex Groups Property not accessible: {e}")
-
-    if not hasattr(bpy.context, "selected_objects"):
-        if addon_prefs is not None and hasattr(addon_prefs, "lock_states_avoided"):
-            addon_prefs.lock_states_avoided += 1
-            LOG(f"[INFO] [{_mod}] Context has no attribute 'selected_objects'. Skipping.")
-        return False
+        """
 
     return True
 
