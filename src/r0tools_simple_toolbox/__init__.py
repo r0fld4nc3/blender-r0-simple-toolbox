@@ -29,6 +29,7 @@ modules = (
     ".repo.operators",
     ".repo.ui",
     ".data_ops",
+    ".export_ops",
     ".keymaps",
     ".ui",
 )
