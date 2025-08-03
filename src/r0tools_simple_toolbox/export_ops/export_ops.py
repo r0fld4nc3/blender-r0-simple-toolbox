@@ -32,7 +32,7 @@ def get_export_set_at_index(index: int):
 
 
 def remove_export_set_at_index(index: int):
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Export Ops Remove Export Set At Index: Unsafe Context.")
         return None
 
@@ -43,7 +43,7 @@ def remove_export_set_at_index(index: int):
 
 
 def set_active_export_set_index(index: int):
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Export Ops Set Active Export Set Index: Unsafe Context.")
         return None
 
@@ -63,7 +63,7 @@ def get_export_set_name_at_index(index: int) -> str:
 
 
 def set_export_set_name(export_set, new_name) -> bool:
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Export Ops Set Export Set Name: Unsafe Context.")
         return None
 
@@ -77,7 +77,7 @@ def set_export_set_name(export_set, new_name) -> bool:
 
 
 def set_export_set_name_at_index(index, new_name) -> bool:
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Export Ops Set Export Set Name At Index: Unsafe Context.")
         return None
 
@@ -100,7 +100,7 @@ def draw_quick_export_sets_uilist(layout, context):
         SimpleToolbox_OT_SelectPath,
     )
 
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Export Sets Draw UIList: Unsafe Context.")
         return None
 

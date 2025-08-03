@@ -26,7 +26,7 @@ def get_active_object_set_index() -> int:
 
 
 def set_active_object_set_index(index: int):
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Object Sets Set Active Object Set Index: Unsafe Context.")
         return None
 
@@ -46,7 +46,7 @@ def get_object_set_at_index(index: int):
 
 
 def remove_object_set_at_index(index: int):
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Object Sets Remove Object Set At Index: Unsafe Context.")
         return None
 
@@ -66,7 +66,7 @@ def get_object_set_name_at_index(index: int) -> str:
 
 
 def set_object_set_name(object_set, new_name) -> bool:
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Object Sets Set Object Set Name: Unsafe Context.")
         return None
 
@@ -80,7 +80,7 @@ def set_object_set_name(object_set, new_name) -> bool:
 
 
 def set_object_set_name_at_index(index, new_name) -> bool:
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Object Sets Set Object Set Name At Index: Unsafe Context.")
         return None
 
@@ -94,7 +94,7 @@ def set_object_set_name_at_index(index, new_name) -> bool:
 
 
 def object_set_at_index_update_count(index: int) -> bool:
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Object Sets At Index Update Count: Unsafe Context.")
         return None
 
@@ -117,7 +117,7 @@ def get_object_set_objects_at_index(index: int):
 
 
 def iter_objects_of_object_set_at_index(index: int):
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Object Sets Iter Objects of Object Set At Index: Unsafe Context.")
         return None
 
@@ -131,7 +131,7 @@ def iter_objects_of_object_set_at_index(index: int):
 
 
 def move_object_set_to_index(from_index, to_index):
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Object Sets Move To Index: Unsafe Context.")
         return None
 
@@ -145,7 +145,7 @@ def cleanup_object_set_invalid_references():
 
     scene = bpy.context.scene
 
-    if not u.is_writing_context_safe(scene, check_addon_props=True):
+    if not u.is_writing_context_safe(scene):
         print(f"[WARNING] [{_mod}] Object Sets Cleanup Invalid References O1: Unsafe Context.")
         return None
 
@@ -201,7 +201,7 @@ def check_object_in_sets(obj) -> list:
     :return: `list` of `Object Sets`
     """
 
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Object Sets Check Object In Sets: Unsafe Context.")
         return None
 
@@ -237,7 +237,7 @@ def object_sets_update_mesh_stats(depsgraph=None):
 
     scene = bpy.context.scene
 
-    if not u.is_writing_context_safe(scene, check_addon_props=True):
+    if not u.is_writing_context_safe(scene):
         print(f"[WARNING] [{_mod}] Object Sets Update Mesh Stats: Unsafe Context.")
         return
 
@@ -394,7 +394,7 @@ def _calculate_mesh_stats(show_verts, show_edges, show_faces, show_tris):
 def refresh_object_sets_colours(context):
     """Refresh colors for all object sets"""
 
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Object Sets Refresh Object Sets Colours: Unsafe Context.")
         return None
 
@@ -420,7 +420,7 @@ def load_legacy_object_sets(dummy):
 
     addon_props = u.get_addon_props()
 
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[ERROR] [{_mod}] Context write is not safe")
         return
 
@@ -479,7 +479,7 @@ def load_legacy_object_sets(dummy):
     # Remove legacy object sets
     if legacy_sets:
         u.LOG(f"[INFO] [{_mod}] Clearing legacy sets")
-        if u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+        if u.is_writing_context_safe(bpy.context.scene):
             legacy_sets.clear()
         else:
             print(f"[ERROR] [{_mod}] Unable to clear legacy Object Sets")
@@ -495,7 +495,7 @@ def draw_objects_sets_uilist(layout, context):
         object_sets_box: Optional box to draw within
     """
 
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Object Sets Draw Object Sets UIList: Unsafe Context.")
         return None
 

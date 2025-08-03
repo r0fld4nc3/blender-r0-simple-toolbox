@@ -138,12 +138,12 @@ def get_uvmap_size_y():
     return int(addon_props.uv_size_y)
 
 
-def is_writing_context_safe(scene, check_addon_props: bool = False) -> bool:
+def is_writing_context_safe(scene) -> bool:
     """
     Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock
     """
 
-    from .general import IS_DEBUG, LOG
+    from .general import LOG
 
     addon_prefs = get_addon_prefs()
 
@@ -152,14 +152,6 @@ def is_writing_context_safe(scene, check_addon_props: bool = False) -> bool:
             addon_prefs.lock_states_avoided += 1
             LOG(f"[INFO] [{_mod}] Scene does not have proper attribute(s). Skipping.")
         return False
-
-    # Maybe we can skip this one?
-    """
-    # Check if we're in a modal operation
-    if bpy.context.mode != "OBJECT" and hasattr(bpy.context, "active_operator"):
-        LOG(f"[MONITOR] [{_mod}] Currently in modal operation. Skipping.")
-        return False
-    """
 
     # Check for boxcutter running
     if boxcutter_running():
@@ -184,45 +176,6 @@ def is_writing_context_safe(scene, check_addon_props: bool = False) -> bool:
         if "bake" in op_idname.lower():
             LOG(f"[MONITOR] [{_mod}] Bake operator active: {op_idname}. Skipping.")
             return False
-
-    if check_addon_props:
-        addon_props = get_addon_props()
-        addon_object_sets_props = get_addon_object_sets_props()
-        addon_vertex_groups_props = get_addon_vertex_groups_props()
-
-        # TODO: Implement
-        # Comment out calls, speculative performance increase
-        # addon_edge_data_props = get_addon_edge_data_props()
-        # addon_experimental_props = get_addon_experimental_props()
-        # addon_find_modifier_props = get_addon_find_modifier_props()
-        # addon_export_props = get_addon_export_props()
-
-        if not addon_props or addon_props is None:
-            if addon_prefs is not None and hasattr(addon_prefs, "lock_states_avoided"):
-                addon_prefs.lock_states_avoided += 1
-                LOG(f"[INFO] [{_mod}] Invalid Addon Properties: {addon_props}. Skipping.")
-            return False
-
-        # Test writing capabilities
-        # Object Sets
-        """
-        try:
-            if hasattr(addon_object_sets_props.object_sets, "clear"):
-                _ = len(addon_object_sets_props.object_sets)
-        except Exception as e:
-            LOG(f"[ERROR] [{_mod}] Object Sets Property not accessible: {e}")
-        """
-
-        # Vertex Groups
-        """
-        try:
-            if hasattr(addon_props, "cat_show_vertex_groups_editor"):
-                if addon_props.cat_show_vertex_groups_editor:
-                    if hasattr(addon_vertex_groups_props.vertex_groups, "clear"):
-                        _ = len(addon_vertex_groups_props.vertex_groups)
-        except Exception as e:
-            LOG(f"[ERROR] [{_mod}] Vertex Groups Property not accessible: {e}")
-        """
 
     return True
 

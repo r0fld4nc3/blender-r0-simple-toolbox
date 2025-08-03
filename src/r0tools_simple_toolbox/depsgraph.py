@@ -16,7 +16,7 @@ def handler_depsgraph_post_update(scene, depsgraph):
 
     # Check specifically for object changes
     if depsgraph.id_type_updated(u.DEPSGRAPH_ID_TYPES.OBJECT):
-        if not u.is_writing_context_safe(scene, check_addon_props=True):
+        if not u.is_writing_context_safe(scene):
             u.LOG(f"[INFO] [{_mod}] Avoided an addon write lock.")
             return None
 

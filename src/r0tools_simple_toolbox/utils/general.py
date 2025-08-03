@@ -744,7 +744,7 @@ def property_list_update(force_run=False):
 
     from .context import is_writing_context_safe
 
-    if not is_writing_context_safe(scene, check_addon_props=True):
+    if not is_writing_context_safe(scene):
         return None
 
     addon_props = get_addon_props()
