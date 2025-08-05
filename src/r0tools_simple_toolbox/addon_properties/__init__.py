@@ -2,7 +2,7 @@ import importlib
 import sys
 
 # Import order here is really important!
-from ..defines import DEBUG
+from ..defines import DEBUG  # isort: skip
 
 package = __name__
 _mod = "ADDON PROPERTIES"
