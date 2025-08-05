@@ -33,7 +33,7 @@ classes = []
 # fmt: off
 panel_attributions = {
     r0Tools_PT_SimpleToolboxVertexGroups: {
-        "categories": [ADDON_CATEGORY]
+        "categories": [ADDON_CATEGORY, "Item"]
     }
 }
 # fmt : on
