@@ -16,6 +16,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
     bl_region_type = "UI"
     bl_category = ADDON_CATEGORY
     # bl_options = {"DEFAULT_CLOSED"}
+    bl_order = 0
     has_update = False
 
     @classmethod
@@ -63,7 +64,6 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         cat_show_mesh_ops = addon_props.cat_show_mesh_ops
         cat_show_uv_ops = addon_props.cat_show_uv_ops
         cat_show_find_modifiers_ops = addon_props.cat_show_find_modifiers_ops
-        cat_show_object_sets_editor = addon_props.cat_show_object_sets_editor
         cat_show_vertex_groups_editor = addon_props.cat_show_vertex_groups_editor
         cat_show_custom_properties_editor = addon_props.cat_show_custom_properties_editor
 
@@ -285,16 +285,6 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                         "active_index",  # Active item property
                         rows=10,
                     )
-
-        # ====== Object Sets Editor ======
-        if cat_show_object_sets_editor:
-            object_sets_header, object_sets_panel = layout.panel_prop(addon_props, panelvis_object_sets_ops)
-            if object_sets_header:
-                object_sets_header.label(text="Object Sets")
-
-            if object_sets_panel:
-                col = object_sets_panel.column()
-                u.draw_objects_sets_uilist(col, context)
 
         # ====== Vertex Groups UI List ======
         if cat_show_vertex_groups_editor:

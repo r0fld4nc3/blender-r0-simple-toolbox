@@ -8,33 +8,32 @@ from .operators import *
 _mod = f"{parent_mod}.UI"
 
 
-class r0Tools_PT_SimpleToolboxEdgeDataOps(bpy.types.Panel):
-    bl_idname = "OBJECT_PT_simple_toolbox_edge_data"
-    bl_label = f"Edge Data - {ADDON_NAME_BARE}.{IDNAME_EXTRA}"
+class r0Tools_PT_SimpleToolboxObjectSets(bpy.types.Panel):
+    bl_idname = "OBJECT_PT_simple_toolbox_object_sets"
+    bl_label = f"Object Sets - {ADDON_NAME_BARE}.{IDNAME_EXTRA}"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "Item"
+    bl_category = ADDON_CATEGORY
     bl_options = {"DEFAULT_CLOSED", "INSTANCED"}
-    bl_order = 2
+    bl_order = 1
 
     @classmethod
     def poll(cls, context):
-        addon_prefs = u.get_addon_prefs()
-        addon_experimental_props = addon_prefs.experimental_features
+        addon_props = u.get_addon_props()
 
-        return addon_experimental_props
+        return addon_props.cat_show_object_sets_editor
 
     def draw(self, context):
         layout = self.layout
-        u.draw_edge_data_panel_ui(layout, context)
+        u.draw_objects_sets_uilist(layout, context)
 
 
 classes = []
 
 # fmt: off
 panel_attributions = {
-    r0Tools_PT_SimpleToolboxEdgeDataOps: {
-        "categories": [ADDON_CATEGORY, "Item"]
+    r0Tools_PT_SimpleToolboxObjectSets: {
+        "categories": [ADDON_CATEGORY]
     }
 }
 # fmt : on
