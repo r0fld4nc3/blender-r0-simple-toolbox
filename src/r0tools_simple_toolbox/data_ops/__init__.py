@@ -3,6 +3,7 @@ import sys
 
 # Import order here is really important!
 from .operators import *  # isort: skip
+from ..defines import DEBUG  # isort: skip
 
 package = __name__
 _mod = "DATA OPS"
