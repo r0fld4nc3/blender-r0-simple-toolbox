@@ -75,6 +75,14 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
         name="Toggle Vertex Groups Panel", description="Toggle Vertex Groups Editor Panel", default=False
     )  # type: ignore
 
+    cat_show_edge_data_panel: BoolProperty(
+        name="Toggle Edge Data Panel", description="Toggle Edge Data Panel", default=False
+    )  # type: ignore
+
+    cat_show_quick_export_panel: BoolProperty(
+        name="Toggle Quick Export Panel", description="Toggle Quick Export Panel", default=False
+    )  # type: ignore
+
     cat_show_custom_properties_editor: BoolProperty(
         name="Toggle Custom Properties Editor", description="Toggle Custom Properties Editor", default=False
     )  # type: ignore
