@@ -20,9 +20,11 @@ class r0Tools_PT_SimpleToolboxQuickExportOps(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         addon_prefs = u.get_addon_prefs()
-        addon_experimental_props = addon_prefs.experimental_features
+        addon_props = u.get_addon_props()
+        experimental_enabled = addon_prefs.experimental_features
+        show_panel = addon_props.cat_show_quick_export_panel
 
-        return addon_experimental_props
+        return experimental_enabled and show_panel
 
     def draw(self, context):
         layout = self.layout

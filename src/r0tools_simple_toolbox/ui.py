@@ -39,25 +39,27 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         layout = self.layout
 
         row = layout.row()
-        split = row.split(factor=0.85)
+        categories_column = row.column()
+        special_categories_column = row.column()
+        special_categories_row = special_categories_column.row()
 
-        # Left control region
-        categories_grid_flow = split.grid_flow(
-            row_major=False, columns=9, even_columns=False, even_rows=False, align=False
+        categories_entries = categories_column.grid_flow(
+            row_major=True, columns=8, even_columns=True, even_rows=False, align=True
         )
-        categories_grid_flow.prop(addon_props, "cat_show_object_ops", text="", icon="EVENT_O")
-        categories_grid_flow.prop(addon_props, "cat_show_mesh_ops", text="", icon="EVENT_M")
-        categories_grid_flow.prop(addon_props, "cat_show_uv_ops", text="", icon="EVENT_U")
-        categories_grid_flow.prop(addon_props, "cat_show_custom_properties_editor", text="", icon="EVENT_C")
-        categories_grid_flow.prop(addon_props, "cat_show_find_modifiers_ops", text="", icon="MODIFIER")
-        categories_grid_flow.prop(addon_props, "cat_show_object_sets_editor", text="", icon="MESH_CUBE")
-        categories_grid_flow.prop(addon_props, "cat_show_vertex_groups_editor", text="", icon="GROUP_VERTEX")
-        categories_grid_flow.separator(factor=1.0)
+        categories_entries.prop(addon_props, "cat_show_object_ops", text="", icon="EVENT_O")
+        categories_entries.prop(addon_props, "cat_show_mesh_ops", text="", icon="EVENT_M")
+        categories_entries.prop(addon_props, "cat_show_uv_ops", text="", icon="EVENT_U")
+        categories_entries.prop(addon_props, "cat_show_custom_properties_editor", text="", icon="EVENT_C")
+        categories_entries.prop(addon_props, "cat_show_find_modifiers_ops", text="", icon="MODIFIER")
+        categories_entries.prop(addon_props, "cat_show_object_sets_editor", text="", icon="MESH_CUBE")
+        categories_entries.prop(addon_props, "cat_show_vertex_groups_editor", text="", icon="GROUP_VERTEX")
+        if addon_prefs.experimental_features:
+            categories_entries.prop(addon_props, "cat_show_edge_data_panel", text="", icon="EDGESEL")
+            categories_entries.prop(addon_props, "cat_show_quick_export_panel", text="", icon="EXPORT")
 
         # Right control region
-        categories_row = split.row()
-        categories_row.prop(addon_prefs, "dev_tools", text="", icon="TOOL_SETTINGS")
-        categories_row.prop(addon_prefs, "experimental_features", text="", icon="EXPERIMENTAL")
+        special_categories_row.prop(addon_prefs, "dev_tools", text="", icon="TOOL_SETTINGS")
+        special_categories_row.prop(addon_prefs, "experimental_features", text="", icon="EXPERIMENTAL")
 
         # Category visibility properties
         cat_show_object_ops = addon_props.cat_show_object_ops
@@ -72,8 +74,6 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         panelvis_mesh_ops = "panelvis_mesh_ops"
         panelvis_uv_ops = "panelvis_uv_ops"
         panelvis_find_modifier_ops = "panelvis_find_modifier_ops"
-        panelvis_object_sets_ops = "panelvis_object_sets_ops"
-        panelvis_vertex_groups_ops = "panelvis_vertex_groups_ops"
         panelvis_custom_properties_ops = "panelvis_custom_properties_ops"
 
         if self.has_update:
@@ -187,6 +187,34 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                     row.operator(SimpleToolbox_OT_ClearAxisSharpEdgesZ.bl_idname, text="Z")
                 """
 
+        # ====== Find Modifiers ======
+        if cat_show_find_modifiers_ops:
+            find_modifiers_header, find_modifiers_panel = layout.panel_prop(addon_props, panelvis_find_modifier_ops)
+            if find_modifiers_header:
+                find_modifiers_header.label(text="Find Modifiers")
+
+            if find_modifiers_panel:
+                find_modifiers_panel_row = find_modifiers_panel.row()
+                find_modifiers_panel_row.label(text="Name or Type (comma-separated):")
+                find_modifiers_panel_row = find_modifiers_panel.row()
+                find_modifiers_panel_row.prop(addon_props, "find_modifier_search_text", icon="SORTALPHA", text="")
+                find_modifiers_panel_row.operator(
+                    SimpleToolbox_OT_FindModifierSearch.bl_idname, icon="VIEWZOOM", text=""
+                )
+
+                if addon_prefs.experimental_features:
+                    # Found objects UIList
+                    find_modifiers_panel_row = find_modifiers_panel.row()
+                    find_modifiers_panel_row.template_list(
+                        "R0PROP_UL_FindModifierObjectsList",
+                        "",
+                        addon_find_modifier_props.objects_list,  # Collection owner
+                        "found_objects",  # Collection property
+                        addon_find_modifier_props.objects_list,  # Active item owner
+                        "active_index",  # Active item property
+                        rows=10,
+                    )
+
         # ====== Custom Properties UI List ======
         if cat_show_custom_properties_editor:
             custom_properties_header, custom_properties_panel = layout.panel_prop(
@@ -256,34 +284,6 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
 
                     row = uv_island_thresholds_panel.row()
                     row.operator(SimpleToolbox_OT_UVCheckIslandThresholds.bl_idname)
-
-        # ====== Find Modifiers ======
-        if cat_show_find_modifiers_ops:
-            find_modifiers_header, find_modifiers_panel = layout.panel_prop(addon_props, panelvis_find_modifier_ops)
-            if find_modifiers_header:
-                find_modifiers_header.label(text="Find Modifiers")
-
-            if find_modifiers_panel:
-                find_modifiers_panel_row = find_modifiers_panel.row()
-                find_modifiers_panel_row.label(text="Name or Type (comma-separated):")
-                find_modifiers_panel_row = find_modifiers_panel.row()
-                find_modifiers_panel_row.prop(addon_props, "find_modifier_search_text", icon="SORTALPHA", text="")
-                find_modifiers_panel_row.operator(
-                    SimpleToolbox_OT_FindModifierSearch.bl_idname, icon="VIEWZOOM", text=""
-                )
-
-                if addon_prefs.experimental_features:
-                    # Found objects UIList
-                    find_modifiers_panel_row = find_modifiers_panel.row()
-                    find_modifiers_panel_row.template_list(
-                        "R0PROP_UL_FindModifierObjectsList",
-                        "",
-                        addon_find_modifier_props.objects_list,  # Collection owner
-                        "found_objects",  # Collection property
-                        addon_find_modifier_props.objects_list,  # Active item owner
-                        "active_index",  # Active item property
-                        rows=10,
-                    )
 
         # if addon_prefs.experimental_features:
         # experimental_features_box = layout.box()
