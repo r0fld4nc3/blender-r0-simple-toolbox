@@ -16,7 +16,6 @@ submodules = [
     "find_modifiers_props",
     "export_props",
     "experimental_props",
-    "attributes_props",
     "properties",
 ]
 # fmt: on
