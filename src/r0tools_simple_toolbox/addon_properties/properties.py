@@ -63,6 +63,10 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
         name="Show UV Ops", description="Show operations for UV context", default=False
     )  # type: ignore
 
+    cat_show_attributes_panel: BoolProperty(
+        name="Togglew Attributes Panel", description="Toggle Attributes Panel", default=False
+    )  # type: ignore
+
     cat_show_find_modifiers_ops: BoolProperty(
         name="Show Find Modifiers", description="Show operations for Finding Modifiers", default=True
     )  # type: ignore

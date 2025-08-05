@@ -19,9 +19,9 @@ class r0Tools_PT_SimpleToolboxAttributesOps(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         addon_prefs = u.get_addon_prefs()
-        addon_attributes_props = u.get_addon_attributes_props()
+        addon_props = u.get_addon_props()
 
-        show_panel = addon_attributes_props.cat_show_attributes_panel
+        show_panel = addon_props.cat_show_attributes_panel
         addon_experimental_props = addon_prefs.experimental_features
 
         return addon_experimental_props and show_panel

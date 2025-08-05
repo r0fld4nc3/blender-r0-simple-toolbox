@@ -34,7 +34,6 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         addon_props = u.get_addon_props()
         addon_prefs = u.get_addon_prefs()
         addon_find_modifier_props = u.get_addon_find_modifier_props()
-        addon_attributes_props = u.get_addon_attributes_props()
 
         layout = self.layout
 
@@ -49,7 +48,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         categories_grid_flow.prop(addon_props, "cat_show_mesh_ops", text="", icon="EVENT_M")
         categories_grid_flow.prop(addon_props, "cat_show_uv_ops", text="", icon="EVENT_U")
         categories_grid_flow.prop(addon_props, "cat_show_custom_properties_editor", text="", icon="EVENT_C")
-        categories_grid_flow.prop(addon_attributes_props, "cat_show_attributes_panel", text="", icon="EVENT_A")
+        categories_grid_flow.prop(addon_props, "cat_show_attributes_panel", text="", icon="EVENT_A")
         categories_grid_flow.prop(addon_props, "cat_show_find_modifiers_ops", text="", icon="MODIFIER")
         categories_grid_flow.prop(addon_props, "cat_show_object_sets_editor", text="", icon="MESH_CUBE")
         categories_grid_flow.prop(addon_props, "cat_show_vertex_groups_editor", text="", icon="GROUP_VERTEX")
