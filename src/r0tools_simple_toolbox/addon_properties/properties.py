@@ -68,11 +68,11 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
     )  # type: ignore
 
     cat_show_object_sets_editor: BoolProperty(
-        name="Toggle Object Sets Editor", description="Toggle Object Sets Editor", default=False
+        name="Toggle Object Sets Panel", description="Toggle Object Sets Editor Panel", default=False
     )  # type: ignore
 
     cat_show_vertex_groups_editor: BoolProperty(
-        name="Toggle Vertex Groups Editor", description="Toggle Vertex Groups Editor", default=False
+        name="Toggle Vertex Groups Panel", description="Toggle Vertex Groups Editor Panel", default=False
     )  # type: ignore
 
     cat_show_custom_properties_editor: BoolProperty(
