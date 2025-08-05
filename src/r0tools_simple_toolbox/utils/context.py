@@ -43,6 +43,11 @@ def get_addon_export_props():
     return get_scene().r0fl_toolbox_export_props
 
 
+def get_addon_attributes_props():
+    """Get the addon property group from current scene"""
+    return get_scene().r0fl_toolbox_attributes_props
+
+
 def get_addon_prefs():
     """Get the addon preferences"""
     return bpy.context.preferences.addons[INTERNAL_NAME].preferences

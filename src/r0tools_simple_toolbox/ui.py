@@ -34,18 +34,29 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         addon_props = u.get_addon_props()
         addon_prefs = u.get_addon_prefs()
         addon_find_modifier_props = u.get_addon_find_modifier_props()
+        addon_attributes_props = u.get_addon_attributes_props()
 
         layout = self.layout
 
-        categories_row = layout.row()
-        categories_row.prop(addon_props, "cat_show_object_ops", text="", icon="EVENT_O")
-        categories_row.prop(addon_props, "cat_show_mesh_ops", text="", icon="EVENT_M")
-        categories_row.prop(addon_props, "cat_show_uv_ops", text="", icon="EVENT_U")
-        categories_row.prop(addon_props, "cat_show_custom_properties_editor", text="", icon="EVENT_C")
-        categories_row.prop(addon_props, "cat_show_find_modifiers_ops", text="", icon="MODIFIER")
-        categories_row.prop(addon_props, "cat_show_object_sets_editor", text="", icon="MESH_CUBE")
-        categories_row.prop(addon_props, "cat_show_vertex_groups_editor", text="", icon="GROUP_VERTEX")
-        categories_row.separator(factor=1.0)
+        row = layout.row()
+        split = row.split(factor=0.85)
+
+        # Left control region
+        categories_grid_flow = split.grid_flow(
+            row_major=False, columns=9, even_columns=False, even_rows=False, align=False
+        )
+        categories_grid_flow.prop(addon_props, "cat_show_object_ops", text="", icon="EVENT_O")
+        categories_grid_flow.prop(addon_props, "cat_show_mesh_ops", text="", icon="EVENT_M")
+        categories_grid_flow.prop(addon_props, "cat_show_uv_ops", text="", icon="EVENT_U")
+        categories_grid_flow.prop(addon_props, "cat_show_custom_properties_editor", text="", icon="EVENT_C")
+        categories_grid_flow.prop(addon_attributes_props, "cat_show_attributes_panel", text="", icon="EVENT_A")
+        categories_grid_flow.prop(addon_props, "cat_show_find_modifiers_ops", text="", icon="MODIFIER")
+        categories_grid_flow.prop(addon_props, "cat_show_object_sets_editor", text="", icon="MESH_CUBE")
+        categories_grid_flow.prop(addon_props, "cat_show_vertex_groups_editor", text="", icon="GROUP_VERTEX")
+        categories_grid_flow.separator(factor=1.0)
+
+        # Right control region
+        categories_row = split.row()
         categories_row.prop(addon_prefs, "dev_tools", text="", icon="TOOL_SETTINGS")
         categories_row.prop(addon_prefs, "experimental_features", text="", icon="EXPERIMENTAL")
 

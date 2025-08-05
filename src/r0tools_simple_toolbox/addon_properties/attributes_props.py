@@ -16,7 +16,10 @@ from ..defines import DEBUG
 _mod = "ATTRIBUTES PROPS"
 
 
-class r0SimpleToolboxAttributesProps(bpy.types.PropertyGroup): ...
+class r0SimpleToolboxAttributesProps(bpy.types.PropertyGroup):
+    cat_show_attributes_panel: BoolProperty(
+        name="Togglew Attributes Panel", description="Toggle Attributes Panel", default=False
+    )  # type: ignore
 
 
 # ===================================================================
