@@ -195,6 +195,8 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
 
             if find_modifiers_panel:
                 find_modifiers_panel_row = find_modifiers_panel.row()
+                find_modifiers_panel_row.prop(addon_find_modifier_props, "experimental_features")
+                find_modifiers_panel_row = find_modifiers_panel.row()
                 find_modifiers_panel_row.label(text="Name or Type (comma-separated):")
                 find_modifiers_panel_row = find_modifiers_panel.row()
                 find_modifiers_panel_row.prop(addon_props, "find_modifier_search_text", icon="SORTALPHA", text="")
@@ -202,7 +204,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                     SimpleToolbox_OT_FindModifierSearch.bl_idname, icon="VIEWZOOM", text=""
                 )
 
-                if addon_prefs.experimental_features:
+                if addon_find_modifier_props.experimental_features:
                     # Found objects UIList
                     find_modifiers_panel_row = find_modifiers_panel.row()
                     find_modifiers_panel_row.template_list(

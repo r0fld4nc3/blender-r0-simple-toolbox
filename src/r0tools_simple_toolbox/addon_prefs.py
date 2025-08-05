@@ -38,13 +38,13 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
     experimental_features: BoolProperty(
         name="Experimental Features",
-        description="Enable experimental features",
+        description="Toggle experimental features",
         default=False,
     )  # type: ignore
 
     dev_tools: BoolProperty(
         name="Dev Tools",
-        description="Enable Dev Tool features",
+        description="Toggle Dev Tool features",
         default=False,
     )  # type: ignore
 

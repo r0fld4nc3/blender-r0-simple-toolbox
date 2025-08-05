@@ -84,6 +84,11 @@ class R0PROP_UL_FindModifierObjectsList(bpy.types.UIList):
 
 
 class r0SimpleToolboxFindModifierProps(bpy.types.PropertyGroup):
+    experimental_features: BoolProperty(
+        name="Experimental Features",
+        description="Toggle experimental features",
+        default=False,
+    )  # type: ignore
     objects_list: PointerProperty(type=R0PROP_PG_FindModifierListProperties)  # type: ignore
 
 
