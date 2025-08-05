@@ -64,7 +64,6 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         cat_show_mesh_ops = addon_props.cat_show_mesh_ops
         cat_show_uv_ops = addon_props.cat_show_uv_ops
         cat_show_find_modifiers_ops = addon_props.cat_show_find_modifiers_ops
-        cat_show_vertex_groups_editor = addon_props.cat_show_vertex_groups_editor
         cat_show_custom_properties_editor = addon_props.cat_show_custom_properties_editor
 
         # Category panel visibility properties
@@ -285,16 +284,6 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                         "active_index",  # Active item property
                         rows=10,
                     )
-
-        # ====== Vertex Groups UI List ======
-        if cat_show_vertex_groups_editor:
-            vertex_groups_header, vertex_groups_panel = layout.panel_prop(addon_props, panelvis_vertex_groups_ops)
-            if vertex_groups_header:
-                vertex_groups_header.label(text="Vertex Groups")
-
-            if vertex_groups_panel:
-                col = vertex_groups_panel.column()
-                u.draw_vertex_groups_uilist(col, context)
 
         # if addon_prefs.experimental_features:
         # experimental_features_box = layout.box()

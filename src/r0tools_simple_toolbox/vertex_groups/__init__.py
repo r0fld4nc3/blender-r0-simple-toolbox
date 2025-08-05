@@ -12,6 +12,7 @@ _mod = "VERTEX_GROUPS.__INIT__"
 # List of submodules, keep in sync with imports
 submodules = [
     "operators",
+    "ui",
 ]
 # fmt: on
 _module_objects = []

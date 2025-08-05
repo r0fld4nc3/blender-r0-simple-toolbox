@@ -15,7 +15,7 @@ class r0Tools_PT_SimpleToolboxEdgeDataOps(bpy.types.Panel):
     bl_region_type = "UI"
     bl_category = "Item"
     bl_options = {"DEFAULT_CLOSED", "INSTANCED"}
-    bl_order = 2
+    bl_order = 3
 
     @classmethod
     def poll(cls, context):

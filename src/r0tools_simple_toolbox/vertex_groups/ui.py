@@ -8,36 +8,32 @@ from .operators import *
 _mod = f"{parent_mod}.UI"
 
 
-class r0Tools_PT_SimpleToolboxQuickExportOps(bpy.types.Panel):
-    bl_idname = "OBJECT_PT_simple_toolbox_quick_export_ops"
-    bl_label = f"Quick Export - {ADDON_NAME_BARE}.{IDNAME_EXTRA}"
+class r0Tools_PT_SimpleToolboxVertexGroups(bpy.types.Panel):
+    bl_idname = "OBJECT_PT_simple_toolbox_vertex_gropus"
+    bl_label = f"Vertex Groups - {ADDON_NAME_BARE}.{IDNAME_EXTRA}"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "Item"
+    bl_category = ADDON_CATEGORY
     bl_options = {"DEFAULT_CLOSED", "INSTANCED"}
-    bl_order = 4
+    bl_order = 2
 
     @classmethod
     def poll(cls, context):
-        addon_prefs = u.get_addon_prefs()
-        addon_experimental_props = addon_prefs.experimental_features
+        addon_props = u.get_addon_props()
 
-        return addon_experimental_props
+        return addon_props.cat_show_vertex_groups_editor
 
     def draw(self, context):
         layout = self.layout
-
-        layout.label(text="Quick Export (FBX)")
-
-        u.draw_quick_export_sets_uilist(layout, context)
+        u.draw_vertex_groups_uilist(layout, context)
 
 
 classes = []
 
 # fmt: off
 panel_attributions = {
-    r0Tools_PT_SimpleToolboxQuickExportOps: {
-        "categories": [ADDON_CATEGORY, "Item"]
+    r0Tools_PT_SimpleToolboxVertexGroups: {
+        "categories": [ADDON_CATEGORY]
     }
 }
 # fmt : on
