@@ -18,11 +18,10 @@ def _set_addon_internal_name(from_name: str):
         if len(split) >= 3 and split[0].lower() == "bl_ext":  # Probably an extension
             for split_item in split:
                 if from_name in split_item:
-                    print(f"[INFO] [{_mod}] {from_name} is an extension: {__package__}")
+                    # Is an extension
                     return __package__
 
     # Extension name not found
-    print(f"[INFO] [{_mod}] {from_name} not found as an extension")
     return from_name
 
 
@@ -33,7 +32,9 @@ VERSION_STR        = _version_str(VERSION)
 BASE_NAME          = "r0tools_simple_toolbox"
 ADDON_NAME         = bl_info.get("name")
 ADDON_NAME_BARE    = "SimpleToolbox"
+ADDON_BRANCH       = "main"
 ADDON_CATEGORY     = "Simple Toolbox"
+IDNAME_EXTRA       = ADDON_BRANCH if ADDON_BRANCH else ''
 INTERNAL_NAME      = _set_addon_internal_name(BASE_NAME)
 REPO_NAME          = "r0Tools Extensions"
 UPDATE_CHECK_CD    = 60  # seconds

@@ -38,13 +38,13 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
     experimental_features: BoolProperty(
         name="Experimental Features",
-        description="Enable experimental features",
+        description="Toggle experimental features",
         default=False,
     )  # type: ignore
 
     dev_tools: BoolProperty(
         name="Dev Tools",
-        description="Enable Dev Tool features",
+        description="Toggle Dev Tool features",
         default=False,
     )  # type: ignore
 
@@ -56,37 +56,27 @@ class AddonPreferences(bpy.types.AddonPreferences):
         update=lambda self, context: u.save_preferences(),
     )  # type: ignore
 
-    object_sets_use_colour: BoolProperty(
-        name="Object Sets Use Colour",
-        description="Objects Sets are assigned a colour. Each object within the set is also assigned the colour of the Object Set it is contained in.\nTo view the objects with their assigned colour, change the Viewport Shading either to 'Wire Shading > Object' and/or 'Color > Object'.\nWhen an object is contained in multiple Object Sets, depending on the setting that allows the override, it will display in either the colour of the first Object Set it is found in, or the last",
-        default=True,
-    )  # type: ignore
+    OPERATOR_COLUMN_SIZE_X = 0.7
 
-    object_sets_colour_allow_override: BoolProperty(
-        name="Allow Colour Override",
-        description="Allow colour override for objects that area already present in Object Sets and are added or modified in other sets. When disallowed, the object will (hopefully) only retain the colour of the first Object Set is contained in.\nWhen allowed, the object will change colours freely depending on the last modified set, given the object is contained within.",
-        default=False,
-    )  # type: ignore
+    #########################
+    ### CUSTOM PROPERTIES ###
+    #########################
+    custom_properties_list_rows: IntProperty(name="Custom Properties List Rows", default=6, min=1)  # type: ignore
 
+    ###################
+    ### OBJECT SETS ###
+    ###################
     object_sets_default_colour: FloatVectorProperty(
         name="Object Sets Default Colour",
         subtype="COLOR",
         size=4,  # RGBA
         min=0.0,
         max=1.0,
-        default=(0.0, 0.0, 0.0, 1.0),
+        default=(1.0, 1.0, 1.0, 1.0),
     )  # type: ignore
 
-    object_sets_modal_width: IntProperty(name="Object Sets Modal Width", default=300, min=0, max=400)  # type: ignore
-
-    object_sets_list_rows: IntProperty(name="Object Sets List Rows", default=6, min=1)  # type: ignore
-
-    custom_properties_list_rows: IntProperty(name="Custom Properties List Rows", default=6, min=1)  # type: ignore
-
-    vertex_groups_list_rows: IntProperty(name="Vertex Groups List Rows", default=8, min=1)  # type: ignore
-
     #######################
-    ### Edge Data Reset ###
+    ### EDGE DATA RESET ###
     #######################
     edge_reset_sharp: BoolProperty(name="Reset Edge Sharpness", description="Set whether to always reset this component", default=True)  # type: ignore
     edge_reset_seam: BoolProperty(name="Reset Edge Seam", description="Set whether to always reset this component", default=True)  # type: ignore
@@ -99,7 +89,16 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
     keymap_object_sets_modal: StringProperty(name="Object Sets Modal Key", default="ONE")  # type: ignore
 
+    ###################
+    ### EXPORT SETS ###
+    ###################
+    from .addon_properties.export_props import r0SimpleToolbox_PG_FBXExportSettings
+
+    export_settings_global_fbx: PointerProperty(type=r0SimpleToolbox_PG_FBXExportSettings, name="FBX Export Settings", description="Global FBX Exporter Settings")  # type: ignore
+
     def draw(self, context):
+        addon_object_sets_props = u.get_addon_object_sets_props()
+
         layout = self.layout
         layout.use_property_split = False
 
@@ -125,17 +124,17 @@ class AddonPreferences(bpy.types.AddonPreferences):
         row = object_sets_settings_box.row()
         row.label(text="Object Sets Settings")
         row = object_sets_settings_box.row()
-        row.prop(self, "object_sets_modal_width")
+        row.prop(addon_object_sets_props, "object_sets_modal_width")
         row = object_sets_settings_box.row()
-        row.prop(self, "object_sets_list_rows")
+        row.prop(addon_object_sets_props, "object_sets_list_rows")
         # Object Sets Use Colour
         row = object_sets_settings_box.row()
-        row.prop(self, "object_sets_use_colour")
+        row.prop(addon_object_sets_props, "object_sets_use_colour")
 
         row = object_sets_settings_box.row()
-        row.prop(self, "object_sets_colour_allow_override")
+        row.prop(addon_object_sets_props, "object_sets_colour_allow_override")
 
-        if self.object_sets_use_colour:
+        if addon_object_sets_props.object_sets_use_colour:
             row = object_sets_settings_box.row()
             row.prop(self, "object_sets_default_colour", text="Default Colour")
 

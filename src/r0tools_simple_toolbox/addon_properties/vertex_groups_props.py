@@ -114,6 +114,7 @@ class r0VertexGroupsProps(bpy.types.PropertyGroup):
     vertex_groups_lock_states: CollectionProperty(type=R0PROP_PG_LockStateEntry)  # type: ignore
     vertex_group_list_index: IntProperty(default=0, name="Vertex Group")  # type: ignore
     vgroups_do_update: BoolProperty(default=True)  # type: ignore
+    vertex_groups_list_rows: IntProperty(name="Vertex Groups List Rows", default=8, min=1)  # type: ignore
 
 
 # ===================================================================

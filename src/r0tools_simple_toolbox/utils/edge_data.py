@@ -16,27 +16,25 @@ def draw_edge_bweights_presets_operators(layout, context):
     )
     from . import LOG, get_addon_edge_data_props, get_addon_prefs, get_addon_props
 
-    addon_props = get_addon_props()
     addon_prefs = get_addon_prefs()
     addon_edge_data_props = get_addon_edge_data_props()
 
     alt_view = addon_prefs.edge_data_bweight_presets_alt_view
 
-    bweight_presets_box = layout.box()
-    row = bweight_presets_box.row()
+    row = layout.row()
     row.prop(addon_prefs, "edge_data_bweight_presets_alt_view", icon="MESH_GRID", text="")
     row.label(
         text=f"{'Bevel Weight Presets' if not addon_prefs.edge_data_bweight_presets_alt_view else 'Bevel Weight Presets Alternative'}"
     )
 
     # Where to apply to
-    row = bweight_presets_box.row(align=True)
+    row = layout.row(align=True)
     row.prop(addon_edge_data_props, "apply_as_bevel_weights", toggle=True)
     # row = layout.row()
     row.prop(addon_edge_data_props, "apply_as_creases", toggle=True)
 
     # Layer to select
-    row = bweight_presets_box.row(align=True)
+    row = layout.row(align=True)
     op = row.operator(SimpleToolbox_OT_SelectColourAttributeLayer.bl_idname, text="Select Bevel Layer")
     op.select_bevel_layer = True
     op.select_crease_layer = False
@@ -44,12 +42,12 @@ def draw_edge_bweights_presets_operators(layout, context):
     op.select_bevel_layer = False
     op.select_crease_layer = True
 
-    row = bweight_presets_box.row()
+    row = layout.row()
 
     values = addon_edge_data_props.edge_bweights_presets.presets
 
     if not alt_view:
-        row = bweight_presets_box.row()
+        row = layout.row()
         split = row.split(factor=0.45)
 
         # === Left Column: Most Used ===
@@ -87,9 +85,7 @@ def draw_edge_bweights_presets_operators(layout, context):
                 op.value = preset.value
     else:
         # Grid flow with 2 columns
-        grid_flow = bweight_presets_box.grid_flow(
-            row_major=False, columns=2, even_columns=True, even_rows=False, align=True
-        )
+        grid_flow = layout.grid_flow(row_major=False, columns=2, even_columns=True, even_rows=False, align=True)
 
         for preset in values:
             value_text = f"{preset.value*100:.2f}".split(".")[0] + "%"

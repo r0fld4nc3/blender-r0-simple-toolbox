@@ -39,7 +39,7 @@ class R0PROP_UL_FindModifierObjectsList(bpy.types.UIList):
         # Category header
         if item.category_name:
             row = layout.row()
-            expand_icon = "MODIFIER_DATA" if item.expanded else "TRIA_RIGHT"
+            expand_icon = "TRIA_DOWN" if item.expanded else "TRIA_RIGHT"
             row.prop(item, "expanded", text="", icon=expand_icon, emboss=False)
             row.label(text=item.category_name)
         # Object entry
@@ -84,6 +84,11 @@ class R0PROP_UL_FindModifierObjectsList(bpy.types.UIList):
 
 
 class r0SimpleToolboxFindModifierProps(bpy.types.PropertyGroup):
+    experimental_features: BoolProperty(
+        name="Experimental Features",
+        description="Toggle experimental features",
+        default=False,
+    )  # type: ignore
     objects_list: PointerProperty(type=R0PROP_PG_FindModifierListProperties)  # type: ignore
 
 

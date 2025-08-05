@@ -47,7 +47,7 @@ def get_selected_vgroups() -> list:
 
 
 def set_vertex_group_locked(vertex_group):
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Vertex Groups Set Locked: Unsafe Context.")
         return None
 
@@ -57,7 +57,7 @@ def set_vertex_group_locked(vertex_group):
 
 
 def set_vertex_group_unlocked(vertex_group):
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Vertex Groups Set Unlocked: Unsafe Context.")
         return None
 
@@ -87,7 +87,7 @@ def get_active_vertex_group_index() -> int:
 
 
 def set_vertex_groups_depsgraph_do_update(do_update=True):
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Set Vertex Groups Depsgraph Do Update: Unsafe Context.")
         return None
 
@@ -114,7 +114,7 @@ def set_vertex_group_highlighted_by_name(vertex_group_name: str) -> int:
 
     Returns `index` if succesful, `-1` if name was not found
     """
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Set Vertex Groups Highlighted By Name: Unsafe Context.")
         return None
 
@@ -134,7 +134,7 @@ def set_vertex_group_highlighted_by_name(vertex_group_name: str) -> int:
 
 
 def iter_vertex_groups_lock_states():
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Vertex Groups Iter Lock States: Unsafe Context.")
         return None
 
@@ -143,7 +143,7 @@ def iter_vertex_groups_lock_states():
 
 
 def vertex_groups_lock_states_remove_at_index(index: int):
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Vertex Groups Lock States Remove At Index: Unsafe Context.")
         return None
 
@@ -152,7 +152,7 @@ def vertex_groups_lock_states_remove_at_index(index: int):
 
 
 def vertex_groups_cleanup_lock_states():
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Vertex Groups Cleanup Lock States: Unsafe Context.")
         return None
 
@@ -175,7 +175,7 @@ def vertex_groups_cleanup_lock_states():
 
 
 def _vertex_groups_store_states() -> dict:
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Vertex Groups Store States: Unsafe Context.")
         return None
 
@@ -191,7 +191,7 @@ def _vertex_groups_store_states() -> dict:
 
 
 def vertex_groups_list_add_groups(props: dict, selection_state: dict):
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Vertex Groups List Add Groups: Unsafe Context.")
         return None
 
@@ -236,7 +236,7 @@ def _needs_update():
 
 
 def vertex_groups_list_update(force: bool = False):
-    if not u.is_writing_context_safe(bpy.context.scene, check_addon_props=True):
+    if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Vertex Groups List Update: Unsafe Context.")
         return None
 
@@ -251,7 +251,7 @@ def vertex_groups_list_update(force: bool = False):
         if not _needs_update():
             return None
 
-    if not addon_props.cat_show_vertex_groups_editor or not addon_props.show_vertex_groups:
+    if not addon_props.cat_show_vertex_groups_editor:
         # Skip update if panel is not visible
         return None
 
@@ -343,7 +343,7 @@ def set_obj_active_vertex_group(obj, vertex_group) -> bool:
     return False
 
 
-def draw_vertex_groups_uilist(layout, context, vertex_groups_box=None):
+def draw_vertex_groups_uilist(layout, context):
     from ..menus import SimpleToolbox_MT_VertexGroupsActionsMenu
     from .operators import (
         SimpleToolbox_OT_VgroupsAddPopup,
@@ -361,49 +361,41 @@ def draw_vertex_groups_uilist(layout, context, vertex_groups_box=None):
     addon_prefs = u.get_addon_prefs()
     addon_vertex_groups_props = u.get_addon_vertex_groups_props()
 
-    # Object Sets Editor parent layout
-    if vertex_groups_box:
-        parent = vertex_groups_box
-    elif layout:
-        parent = layout
-    else:
-        print(f"[ERROR] [{_mod}] No valid layout to use:\n{layout=}\n{vertex_groups_box=}")
-        return False
-
     # Vertex Groups Row Number Slider
-    row = parent.row()
-    split = row.split(factor=0.35)
-    col = split.column()
-    col.prop(addon_prefs, "vertex_groups_list_rows", text="Rows:")
-    col = split.column()
-    col.separator()
+    row = layout.row()
+    col_left = row.column()
+    col_left.alignment = "LEFT"
+    col_left.prop(addon_vertex_groups_props, "vertex_groups_list_rows", text="Rows:")
+    col_right = row.column()
+    col_right.separator()
 
-    row = parent.row()
-    split = row.split(factor=0.92)
+    row = layout.row()
 
     # Left Section - List
-    col = split.column()
-    col.template_list(
+    col_left = row.column()
+    col_left.template_list(
         "R0PROP_UL_VertexGroupsList",
         "vertex_groups",
         addon_vertex_groups_props,
         "vertex_groups",
         addon_vertex_groups_props,
         "vertex_group_list_index",
-        rows=addon_prefs.vertex_groups_list_rows,
+        rows=addon_vertex_groups_props.vertex_groups_list_rows,
     )
 
     # Right Side - Buttons
-    col = split.column(align=True)
-    col.operator(SimpleToolbox_OT_VgroupsAddPopup.bl_idname, text="+")
-    col.operator(SimpleToolbox_OT_VgroupsRemoveHighlighted.bl_idname, text="-")
+    col_right = row.column(align=True)
+    col_right.alignment = "RIGHT"
+    col_right.scale_x = addon_prefs.OPERATOR_COLUMN_SIZE_X
+    col_right.operator(SimpleToolbox_OT_VgroupsAddPopup.bl_idname, text="+")
+    col_right.operator(SimpleToolbox_OT_VgroupsRemoveHighlighted.bl_idname, text="-")
 
-    col.separator(factor=1.0)
-    col.operator(SimpleToolbox_OT_VgroupsRefresh.bl_idname, icon="FILE_REFRESH")
+    col_right.separator(factor=1.0)
+    col_right.operator(SimpleToolbox_OT_VgroupsRefresh.bl_idname, icon="FILE_REFRESH", text="")
 
     # Vertex Groups Actions (Downward arrow dropdown menu)
-    col.separator(factor=1.0)  # Spacer
-    col.menu(SimpleToolbox_MT_VertexGroupsActionsMenu.bl_idname, text="")
+    col_right.separator(factor=1.0)  # Spacer
+    col_right.menu(SimpleToolbox_MT_VertexGroupsActionsMenu.bl_idname, text="")
 
     # Bottom
     # Assign/Unassign Vertices
@@ -412,7 +404,7 @@ def draw_vertex_groups_uilist(layout, context, vertex_groups_box=None):
         and len(context.selected_objects) > 0
         and u.get_vertex_groups_count() > 0
     ):
-        col = parent.column()
+        col = layout.column()
         split = col.split(factor=0.5)
         # Assign/Unassign
         row = split.row(align=True)
@@ -423,19 +415,19 @@ def draw_vertex_groups_uilist(layout, context, vertex_groups_box=None):
         row.operator(SimpleToolbox_OT_VgroupsSelectVertices.bl_idname)
         row.operator(SimpleToolbox_OT_VgroupsDeselectVertices.bl_idname)
 
-        row = parent.row()
+        row = layout.row()
         row.prop(bpy.context.scene.tool_settings, "vertex_group_weight")
 
         # Separator
-        row = parent.row()
+        row = layout.row()
         row.separator(factor=1.0)
 
     # Remove Selected Vgroups
-    row = parent.row(align=True)
+    row = layout.row(align=True)
     row.operator(SimpleToolbox_OT_VgroupsRemoveSelected.bl_idname)
     row.operator(SimpleToolbox_OT_VgroupsKeepSelected.bl_idname)
 
-    row = parent.row(align=True)
+    row = layout.row(align=True)
     row.operator(SimpleToolbox_OT_VgroupsSelectObjectsWithVgroups.bl_idname)
 
     # MESH_MT_vertex_group_context_menu

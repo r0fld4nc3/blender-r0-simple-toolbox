@@ -1,7 +1,7 @@
 bl_info = {
     "name": "r0Tools - Simple Toolbox",
     "author": "Artur Rosário",
-    "version": (0, 0, 32),
+    "version": (0, 0, 33),
     "blender": (4, 2, 5),
     "location": "3D View > Simple Toolbox",
     "description": "Miscellaneous Utilities",
@@ -17,12 +17,12 @@ from typing import List, Tuple
 from .defines import DEBUG  # isort: skip
 
 modules = (
-    ".addon_prefs",
     ".addon_properties",
+    ".addon_prefs",
     ".operators",
     ".menus",
-    ".ui",
     ".utils",
+    ".ui",
     ".object_sets",
     ".vertex_groups",
     ".depsgraph",
@@ -30,6 +30,7 @@ modules = (
     ".repo.operators",
     ".repo.ui",
     ".data_ops",
+    ".export_ops",
     ".keymaps",
 )
 

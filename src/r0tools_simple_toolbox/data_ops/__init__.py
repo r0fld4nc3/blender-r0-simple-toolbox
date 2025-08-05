@@ -3,6 +3,7 @@ import sys
 
 # Import order here is really important!
 from .operators import *  # isort: skip
+from ..defines import DEBUG  # isort: skip
 
 package = __name__
 _mod = "DATA OPS"
@@ -10,7 +11,8 @@ _mod = "DATA OPS"
 # fmt: off
 # List of submodules, keep in sync with imports
 submodules = [
-    "operators"
+    "operators",
+    "ui",
 ]
 # fmt: on
 _module_objects = []

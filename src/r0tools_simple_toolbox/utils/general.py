@@ -1,4 +1,5 @@
 import math
+from contextlib import contextmanager
 from pathlib import Path
 
 import bmesh
@@ -197,6 +198,118 @@ def is_object_visible_in_viewport(obj):
                 print(f"[DEBUG] [{_mod}]    - {collection.name} is hidden.")
 
     return False
+
+
+def unhide_object_and_collections(obj: bpy.types.Object):
+    """
+    Recursively unhide object and all it's parent collections.
+
+    Returns a list of items that were modified, for later restoration if needed.
+
+    Returns:
+        list: List of tuples (item, attr_name, original_value)
+    """
+
+    modified = []
+
+    # Get the view layer
+    view_layer = bpy.context.view_layer
+
+    # Check Object.hide_viewport (monitor icon)
+    # NOTE: Will skip for now, as should be controlled by
+    # a Property, such as "force_unhide_objects" so that
+    # the user can still retain objects in object sets
+    # but hide then using the monitor icon - more deliberately
+    # to have finer control over what is exported
+    has_implemented_feature = False
+    if has_implemented_feature:
+        if obj.hide_viewport:
+            modified.append((obj, "hide_viewport", True))
+            obj.hide_viewport = False
+
+    # Check object's visibility (eye icon)
+    if obj.hide_get():
+        modified.append((obj, "hide_set", True))
+        obj.hide_set(False)
+
+    # Check Object's selectability
+    if obj.hide_select:
+        modified.append((obj, "hide_select", True))
+        obj.hide_select = False
+
+    # Helper to find LayerCollection for a given Collection
+    def find_layer_collection(layer_collection, collection):
+        if layer_collection.collection == collection:
+            return layer_collection
+
+        for child in layer_collection.children:
+            result = find_layer_collection(child, collection)
+            if result:
+                return result
+        return None
+
+    # Recursively unhide parent collections
+    def unhide_collection_hierarchy(collection):
+        # Check Collection's selectability
+        if collection.hide_select:
+            modified.append((collection, "hide_select", True))
+            collection.hide_select = False
+
+        # Check Collection.hide_viewport attribute (monitor icon)
+        if collection.hide_viewport:
+            modified.append((collection, "hide_viewport", True))
+            collection.hide_viewport = False
+
+        layer_collection = find_layer_collection(view_layer.layer_collection, collection)
+
+        if layer_collection and layer_collection.hide_viewport:
+            modified.append((layer_collection, "hide_viewport", True))
+            layer_collection.hide_viewport = False
+
+        # Check parents
+        for parent_coll in bpy.data.collections:
+            if collection.name in parent_coll.children:
+                unhide_collection_hierarchy(parent_coll)
+
+    # Unhide all collections
+    for collection in obj.users_collection:
+        unhide_collection_hierarchy(collection)
+
+    return modified
+
+
+def restore_visibility_state(modified):
+    """
+    Restore the original visibility state of objects and collections
+    given a modifications list.
+    """
+
+    for item, attr_name, original_value in modified:
+        if attr_name == "hide_set":
+            item.hide_set(original_value)
+        else:
+            setattr(item, attr_name, original_value)
+
+
+# Context manager for unhiding and restoring object and collection visibility
+@contextmanager
+def temporarily_unhide_objects(objects: list | tuple | set):
+    """
+    Context manager to temporarily unhide objects and their collections,
+    ending by restorign their state before change.
+    """
+
+    all_modified = []
+
+    try:
+        for obj in objects:
+            modified = unhide_object_and_collections(obj)
+            all_modified.extend(modified)
+
+        yield  # Allow operations here
+
+    finally:
+        restore_visibility_state(all_modified)
 
 
 def deselect_all():
@@ -631,12 +744,12 @@ def property_list_update(force_run=False):
 
     from .context import is_writing_context_safe
 
-    if not is_writing_context_safe(scene, check_addon_props=True):
+    if not is_writing_context_safe(scene):
         return None
 
     addon_props = get_addon_props()
 
-    if not addon_props.show_custom_property_list_prop and not force_run:
+    if not addon_props.cat_show_custom_properties_editor and not force_run:
         # Skip update if panel is not visible
         return None
 

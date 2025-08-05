@@ -2,7 +2,7 @@ import importlib
 import sys
 
 # Import order here is really important!
-from ..defines import DEBUG
+from ..defines import DEBUG  # isort: skip
 
 package = __name__
 _mod = "ADDON PROPERTIES"
@@ -14,6 +14,7 @@ submodules = [
     "object_sets_props",
     "vertex_groups_props",
     "find_modifiers_props",
+    "export_props",
     "experimental_props",
     "properties",
 ]
