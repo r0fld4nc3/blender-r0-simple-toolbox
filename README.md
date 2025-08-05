@@ -4,6 +4,7 @@ A simple Panel addon for some personal convenience functions.
 <p align="center">
   <img src="https://github.com/r0fld4nc3/blender-quick-simple-toolbox/blob/main/media/Panel_Preview_1.png" width="200" alt="Image 1">
   <img src="https://github.com/r0fld4nc3/blender-quick-simple-toolbox/blob/main/media/Panel_Preview_2.png" width="200" alt="Image 2">
+  <img src="https://github.com/r0fld4nc3/blender-quick-simple-toolbox/blob/main/media/Panel_Preview_3.png" width="200" alt="Image 3">
 </p>
 
 # Installation - Remote Extension
