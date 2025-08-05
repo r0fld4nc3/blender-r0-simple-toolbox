@@ -1,7 +1,5 @@
-branch = "attributes"
-
 bl_info = {
-    "name": f"r0Tools - Simple Toolbox.{branch}",
+    "name": "r0Tools - Simple Toolbox.attributes",
     "author": "Artur Rosário",
     "version": (0, 0, 33),
     "blender": (4, 2, 5),
@@ -32,6 +30,7 @@ modules = (
     ".repo.ui",
     ".data_ops",
     ".export_ops",
+    ".attributes_ops",
     ".keymaps",
     ".ui",
 )
