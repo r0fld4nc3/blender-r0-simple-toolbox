@@ -22,6 +22,7 @@ modules = (
     ".operators",
     ".menus",
     ".utils",
+    ".ui",
     ".object_sets",
     ".vertex_groups",
     ".depsgraph",
@@ -31,7 +32,6 @@ modules = (
     ".data_ops",
     ".export_ops",
     ".keymaps",
-    ".ui",
 )
 
 _mod = "__INIT__"
