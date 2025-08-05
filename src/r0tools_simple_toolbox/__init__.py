@@ -1,5 +1,7 @@
+branch = "attributes"
+
 bl_info = {
-    "name": "r0Tools - Simple Toolbox.dev",
+    "name": f"r0Tools - Simple Toolbox.{branch}",
     "author": "Artur Rosário",
     "version": (0, 0, 33),
     "blender": (4, 2, 5),

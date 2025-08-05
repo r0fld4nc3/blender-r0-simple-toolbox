@@ -1,4 +1,4 @@
-from . import bl_info
+from . import bl_info, branch
 
 _mod = "DEFINES"
 
@@ -32,7 +32,7 @@ VERSION_STR        = _version_str(VERSION)
 BASE_NAME          = "r0tools_simple_toolbox"
 ADDON_NAME         = bl_info.get("name")
 ADDON_NAME_BARE    = "SimpleToolbox"
-ADDON_BRANCH       = "dev"
+ADDON_BRANCH       = branch
 ADDON_CATEGORY     = "Simple Toolbox"
 IDNAME_EXTRA       = ADDON_BRANCH if ADDON_BRANCH else ''
 INTERNAL_NAME      = _set_addon_internal_name(BASE_NAME)
