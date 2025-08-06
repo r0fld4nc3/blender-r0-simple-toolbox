@@ -43,9 +43,33 @@ class r0SimpleToolboxEdgeDataProps(bpy.types.PropertyGroup):
     apply_as_bevel_weights: BoolProperty(name="As Bevel Weights", description="Apply selected preset value as Edge Bevel Weight", default=True)  # type: ignore
     apply_as_creases: BoolProperty(name="As Creases", description="Apply selected preset value as Crease", default=False)  # type: ignore
 
-    bevel_weights_to_vcol: BoolProperty(name="Bevel Weights", description="Convert Bevel Edge Weights to Vertex Colours", default=True)  # type: ignore
+    convert_data_as: EnumProperty(
+        name="Apply Data As:",
+        description="Choose how to convert the selected preset value",
+        items=[
+            ("BEVEL_WEIGHTS", "Bevel Weights", "Convert Bevel Weights to Vertex Colours"),
+            ("CREASES", "Creases", "Convert Creases to Vertex Colours"),
+        ],
+        default="BEVEL_WEIGHTS",
+    )  # type: ignore
 
-    crease_to_vcol: BoolProperty(name="Creases", description="Convert Creases to Vertex Colours", default=False)  # type: ignore
+    convert_using_max_value: BoolProperty(
+        name="Use Max Value",
+        description="Use the highest value among connected edges instead of averaging",
+        default=False,
+    )  # type: ignore
+
+    apply_value_to_channel_r: BoolProperty(
+        name="Red", description="Apply Bevel/Crease Vertex Colour value to the Red Channel", default=True
+    )  # type: ignore
+
+    apply_value_to_channel_g: BoolProperty(
+        name="Green", description="Apply Bevel/Crease Vertex Colour value to the Green Channel", default=False
+    )  # type: ignore
+
+    apply_value_to_channel_b: BoolProperty(
+        name="Blue", description="Apply Bevel/Crease Vertex Colour value to the Blue Channel", default=False
+    )  # type: ignore
 
 
 # ===================================================================

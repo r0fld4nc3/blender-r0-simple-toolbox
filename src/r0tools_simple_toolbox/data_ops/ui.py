@@ -127,17 +127,26 @@ def draw_edge_data_panel_ui(layout, context):
 
     addon_edge_data_props = get_addon_edge_data_props()
 
-    row = layout.row()
-    row.prop(addon_edge_data_props, "convert_using_max_value")
-
+    # Convert button (big)
     row = layout.row()
     row.scale_y = 2
     row.operator(SimpleToolbox_OT_EdgeDataToVertexColour.bl_idname, icon="GROUP_VCOL")
+
+    # Apply to channels
+    row = layout.row()
+    row.label(text="Apply to channel(s):")
+    row = layout.row(align=True)
+    row.prop(addon_edge_data_props, "apply_value_to_channel_r", text="R", toggle=True)
+    row.prop(addon_edge_data_props, "apply_value_to_channel_g", text="G", toggle=True)
+    row.prop(addon_edge_data_props, "apply_value_to_channel_b", text="B", toggle=True)
+
+    # Convert options
     row = layout.row()
     row.label(text="Convert:")
+    row = layout.row()
+    row.prop(addon_edge_data_props, "convert_using_max_value")
     row = layout.row(align=True)
-    row.prop(addon_edge_data_props, "bevel_weights_to_vcol", toggle=True)
-    row.prop(addon_edge_data_props, "crease_to_vcol", toggle=True)
+    row.prop(addon_edge_data_props, "convert_data_as", expand=True)
     row = layout.row()
 
     draw_edge_bweights_presets_operators(layout, context)

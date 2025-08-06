@@ -33,6 +33,24 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
         name="Convert Creases", description="Convert Edge Creases to a Color Attribute"
     )  # type: ignore
 
+    use_max_value: BoolProperty(
+        name="Use Max Value",
+        description="Use the highest value among connected edges instead of averaging",
+        default=False,
+    )  # type: ignore
+
+    convert_to_channel_r: BoolProperty(
+        name="Red", description="Apply converted values to Red vertex colour channel", default=True
+    )  # type: ignore
+
+    convert_to_channel_g: BoolProperty(
+        name="Red", description="Apply converted values to Green vertex colour channel", default=False
+    )  # type: ignore
+
+    convert_to_channel_b: BoolProperty(
+        name="Red", description="Apply converted values to Blue vertex colour channel", default=False
+    )  # type: ignore
+
     @classmethod
     def poll(cls, context):
         addon_edge_data_props = u.get_addon_edge_data_props()
@@ -45,8 +63,15 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
     def invoke(self, context, event):
         addon_edge_data_props = u.get_addon_edge_data_props()
 
-        self.bevel_weights_to_vcol = addon_edge_data_props.bevel_weights_to_vcol
-        self.crease_to_vcol = addon_edge_data_props.crease_to_vcol
+        self.bevel_weights_to_vcol = addon_edge_data_props.convert_data_as == "BEVEL_WEIGHTS"
+        self.crease_to_vcol = addon_edge_data_props.convert_data_as == "CREASES"
+        self.use_max_value = addon_edge_data_props.convert_using_max_value
+
+        self.convert_to_channel_r = addon_edge_data_props.apply_value_to_channel_r
+
+        self.convert_to_channel_g = addon_edge_data_props.apply_value_to_channel_b
+
+        self.convert_to_channel_b = addon_edge_data_props.apply_value_to_channel_g
 
         return self.execute(context)
 
@@ -65,6 +90,11 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
 
         vcol_bevel_layer_name = addon_edge_data_props.vcol_bevel_layer_name
         vcol_crease_layer_name = addon_edge_data_props.vcol_crease_layer_name
+
+        # Ensure at least always one channels (the default ideally) gets the conversion data
+        if not any([self.convert_to_channel_r, self.convert_to_channel_g, self.convert_to_channel_b]):
+            self.convert_to_channel_r = True
+            addon_edge_data_props.apply_value_to_channel_r = True
 
         start_time = time.time()
 
@@ -124,8 +154,11 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
                                 edge[edge_bevel_layer] for edge in connected_edges if edge[edge_bevel_layer] > 0
                             ]
                             if edges_with_bevel:
-                                bevel_average = sum(edges_with_bevel) / len(edges_with_bevel)
-                                vertex_bevel_values[vert.index] = max(0.0, min(1.0, bevel_average))
+                                if self.use_max_value:
+                                    bevel_value = max(edges_with_bevel)
+                                else:
+                                    bevel_value = sum(edges_with_bevel) / len(edges_with_bevel)
+                                vertex_bevel_values[vert.index] = max(0.0, min(1.0, bevel_value))
                             else:
                                 vertex_bevel_values[vert.index] = 0.0
                         else:
@@ -138,8 +171,11 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
                                 edge[crease_layer] for edge in connected_edges if edge[crease_layer] > 0
                             ]
                             if edges_with_crease:
-                                crease_average = sum(edges_with_crease) / len(edges_with_crease)
-                                vertex_crease_values[vert.index] = max(0.0, min(1.0, crease_average))
+                                if self.use_max_value:
+                                    crease_value = max(edges_with_crease)
+                                else:
+                                    crease_value = sum(edges_with_crease) / len(edges_with_crease)
+                                vertex_crease_values[vert.index] = max(0.0, min(1.0, crease_value))
                             else:
                                 vertex_crease_values[vert.index] = 0.0
                         else:
@@ -157,13 +193,27 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
                     vert_idx = loop.vert.index
                     if self.bevel_weights_to_vcol:
                         bevel_value = vertex_bevel_values.get(vert_idx, 0.0)
-                        # Grayscale
-                        loop[bevel_vcol_layer] = (bevel_value, bevel_value, bevel_value, 1.0)
+
+                        existing_color = loop[bevel_vcol_layer]
+
+                        # Apply values to RGB channels
+                        bevel_value_r = bevel_value if self.convert_to_channel_r else existing_color[0]
+                        bevel_value_g = bevel_value if self.convert_to_channel_g else existing_color[1]
+                        bevel_value_b = bevel_value if self.convert_to_channel_b else existing_color[2]
+
+                        loop[bevel_vcol_layer] = (bevel_value_r, bevel_value_g, bevel_value_b, 1.0)
 
                     if self.crease_to_vcol:
                         crease_value = vertex_crease_values.get(vert_idx, 0.0)
-                        # Grayscale
-                        loop[crease_vcol_layer] = (crease_value, crease_value, crease_value, 1.0)
+
+                        existing_color = loop[crease_vcol_layer]
+
+                        # Apply values to RGB channels
+                        crease_value_r = crease_value if self.convert_to_channel_r else existing_color[0]
+                        crease_value_g = crease_value if self.convert_to_channel_g else existing_color[1]
+                        crease_value_b = crease_value if self.convert_to_channel_b else existing_color[2]
+
+                        loop[crease_vcol_layer] = (crease_value_r, crease_value_g, crease_value_b, 1.0)
 
             # Allow bmesh to update to prevent decode errors
             if obj.mode == u.OBJECT_MODES.EDIT:
