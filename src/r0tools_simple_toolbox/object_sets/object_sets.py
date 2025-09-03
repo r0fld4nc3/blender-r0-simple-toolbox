@@ -149,11 +149,7 @@ def cleanup_object_set_invalid_references():
         print(f"[WARNING] [{_mod}] Object Sets Cleanup Invalid References O1: Unsafe Context.")
         return None
 
-    addon_props = u.get_addon_props()
     addon_object_sets_props = u.get_addon_object_sets_props()
-
-    if not addon_props.cat_show_object_sets_editor:
-        return
 
     # Build set of object names for O(1) lookup
     valid_objects = set(scene.objects.keys())
