@@ -294,15 +294,29 @@ class SimpleToolbox_OT_SelectEdgesWithValue(bpy.types.Operator):
             for edge in bm.edges:
                 should_select = False
 
+                # Edge-case: Select 0%
+                # Selecting with 0% makes no sense without a specific context because
+                # it would select all edges with no bevel edge weight.
+                # It would make more sense to only select edges with 0% that are also sharp edges.
+                zero_edge_case = math.isclose(self.value_to_select, 0)
+
                 if self.select_bweights and edge_bevel_layer:
                     bweight_value = edge[edge_bevel_layer]
                     if math.isclose(bweight_value, self.value_to_select):
-                        should_select = True
+                        # Edge-case: 0%
+                        if zero_edge_case:
+                            should_select = not edge.smooth
+                        else:
+                            should_select = True
 
                 if self.select_creases and crease_layer:
                     crease_value = edge[crease_layer]
                     if math.isclose(crease_value, self.value_to_select):
-                        should_select = True
+                        # Edge-case: 0%
+                        if zero_edge_case:
+                            should_select = not edge.smooth
+                        else:
+                            should_select = True
 
                 # Update edge selection state
                 if edge.select != should_select:
