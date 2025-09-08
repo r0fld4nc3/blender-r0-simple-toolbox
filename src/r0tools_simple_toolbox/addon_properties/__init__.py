@@ -15,6 +15,7 @@ submodules = [
     "vertex_groups_props",
     "find_modifiers_props",
     "export_props",
+    "object_props",
     "experimental_props",
     "properties",
 ]
