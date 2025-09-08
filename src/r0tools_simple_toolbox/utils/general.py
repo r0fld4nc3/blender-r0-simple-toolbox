@@ -521,7 +521,7 @@ def object_count_changed() -> bool:
     scene = bpy.context.scene
     scene_objects_count = len(scene.objects)
 
-    changed = scene_objects_count < _last_object_count
+    changed = scene_objects_count != _last_object_count
 
     _last_object_count = scene_objects_count
 
