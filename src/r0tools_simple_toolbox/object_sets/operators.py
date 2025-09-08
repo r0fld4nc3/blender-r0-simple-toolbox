@@ -1,5 +1,4 @@
 import random
-import uuid
 
 import bpy
 from bpy.props import BoolProperty, FloatVectorProperty, IntProperty, StringProperty
@@ -154,7 +153,7 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
             new_set = u.get_object_sets().add()
             new_set.name = self.add_non_conflicting_name()
             new_set.set_object_set_colour(self.object_set_colour)
-            new_set.uuid = str(uuid.uuid4())  # Add UUID as Object Set is created
+            new_set.uuid = u.generate_uuid()  # Add UUID as Object Set is created
             set_active_object_set_index(len(u.get_object_sets()) - 1)
 
             # Immediately add selected objects to set, for convenience
@@ -168,6 +167,62 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
         if context.area:
             context.area.tag_redraw()
 
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_UpdateObjectSetsUUIDs(bpy.types.Operator):
+    bl_label = "Fix UUIDs"
+    bl_idname = "r0tools.update_object_sets_uuids"
+    bl_description = (
+        "Forces an update to the UUID's of the Object Sets as well as the membership of the objects contained within"
+    )
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return len(u.get_object_sets()) > 0
+
+    def execute(self, context):
+        object_sets = u.get_object_sets()
+
+        uuids = set()
+        uuids_fixed = 0
+
+        sets_and_objects = {}
+
+        # First pass - Assert UUIDs, clear UUID membership property and store Set <-> Object cache
+        for object_set in object_sets:
+            uuid = object_set.uuid
+
+            # Is duplicate UUID
+            if uuid in uuids:
+                u.LOG(f"[INFO] [{_mod}] UUID {uuid} is duplicate. Regenerating.")
+                uuid = u.generate_uuid()
+                uuids_fixed += 1
+
+            # UUID doesn't exist (legacy reasons)
+            elif not object_set.uuid or object_set.uuid == "":
+                u.LOG(f"[INFO] [{_mod}] {object_set.name} does not have valid UUID. Generating.")
+                uuid = u.generate_uuid()
+                uuids_fixed += 1
+
+            object_set.uuid = uuid
+            uuids.add(uuid)
+
+            sets_and_objects[object_set] = []
+
+            for object_set_member in object_set.objects:
+                member = object_set_member.object
+                sets_and_objects[object_set].append(member)  # Store in cache
+                object_props = u.get_object_props(member)
+                if object_props:
+                    object_props.object_sets.clear()  # Clear membership property
+
+        # Second pass - Reassign members
+        for object_set, members in sets_and_objects.items():
+            object_set.assign_objects(members)
+
+        self.report({"INFO"}, f"Finished rebuilding UUID and membership. Fixed {uuids_fixed} UUIDs and memberships")
         return {"FINISHED"}
 
 
@@ -811,6 +866,7 @@ class SimpleToolbox_OT_LinkObjectsInObjectSetsToCollections(bpy.types.Operator):
 classes = [
     SimpleToolbox_OT_ObjectSetsModal,
     SimpleToolbox_OT_AddObjectSetPopup,
+    SimpleToolbox_OT_UpdateObjectSetsUUIDs,
     SimpleToolbox_OT_RenameObjectSet,
     SimpleToolbox_OT_MoveObjectSetItem,
     SimpleToolbox_OT_RemoveObjectSet,

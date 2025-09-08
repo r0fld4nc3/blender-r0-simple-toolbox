@@ -1,4 +1,5 @@
 import math
+import uuid
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -34,6 +35,10 @@ def LOG(*values: object, sep: str | None = "", end: str | None = "\n", flush=Fal
     addon_prefs = get_addon_prefs()
     if addon_prefs.log_output:
         print(*values, sep=sep, end=end, flush=flush)
+
+
+def generate_uuid() -> str:
+    return str(uuid.uuid4())
 
 
 # ==============================
