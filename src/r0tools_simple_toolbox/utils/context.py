@@ -18,6 +18,11 @@ def get_addon_object_sets_props():
     return get_scene().r0fl_object_sets_props
 
 
+def get_object_props(obj: bpy.types.Object):
+    """Get the Object-level Object properties from the given Object"""
+    return obj.r0fl_toolbox_props
+
+
 def get_addon_vertex_groups_props():
     """Get the addon property group from current scene"""
     return get_scene().r0fl_vertex_groups_props

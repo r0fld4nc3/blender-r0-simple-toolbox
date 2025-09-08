@@ -24,6 +24,7 @@ def handler_depsgraph_post_update(scene, depsgraph):
             if u.object_count_changed():
                 # u.timer_manager.schedule(u.cleanup_object_set_invalid_references, delay=0, min_interval=0.1)
                 u.cleanup_object_set_invalid_references()
+                u.handle_object_duplication_update()
 
             # u.object_sets_update_mesh_stats(depsgraph)
 

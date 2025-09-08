@@ -1,4 +1,5 @@
 import random
+import uuid
 
 import bpy
 from bpy.props import BoolProperty, FloatVectorProperty, IntProperty, StringProperty
@@ -153,6 +154,7 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
             new_set = u.get_object_sets().add()
             new_set.name = self.add_non_conflicting_name()
             new_set.set_object_set_colour(self.object_set_colour)
+            new_set.uuid = str(uuid.uuid4())  # Add UUID as Object Set is created
             set_active_object_set_index(len(u.get_object_sets()) - 1)
 
             # Immediately add selected objects to set, for convenience

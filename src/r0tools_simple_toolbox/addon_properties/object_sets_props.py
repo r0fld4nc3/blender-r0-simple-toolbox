@@ -1,3 +1,5 @@
+import uuid
+
 import bpy
 from bpy.props import (  # type: ignore
     BoolProperty,
@@ -75,6 +77,7 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
     name: bpy.props.StringProperty(name="Object Set Name", default="New Object Set")  # type: ignore
     separator: bpy.props.BoolProperty(default=False)  # type: ignore
     default_separator_name = "-" * 16
+    uuid: bpy.props.StringProperty(name="Unique ID")  # type: ignore
 
     objects: bpy.props.CollectionProperty(type=R0PROP_PG_ObjectSetObjectItem)  # type: ignore
     _object_cache = set()  # Internal set of object collision management. Helps with checking on a O(1) complexity
@@ -123,6 +126,12 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
                 new_object = self.objects.add()
                 new_object.object = obj
                 cache.add(obj_ptr)
+
+            # Handle Object-level membership
+            object_props = u.get_object_props(obj)
+            if self.uuid not in [item.uuid for item in object_props.object_sets]:
+                new_ref = object_props.object_sets.add()
+                new_ref.uuid = self.uuid
 
         self.update_count()
 
@@ -176,6 +185,13 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
                     obj.color = containing_sets[-1].set_colour
                 else:
                     obj.color = containing_sets[0].set_colour
+
+                # Handle Object-level membership
+                object_props = u.get_object_props(obj)
+                for i, ref in enumerate(object_props.object_sets):
+                    if ref.uuid == self.uuid:
+                        object_props.object_sets.remove(i)
+                        break
 
         self.update_count()
 

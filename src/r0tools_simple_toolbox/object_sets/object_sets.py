@@ -189,6 +189,43 @@ def cleanup_object_set_invalid_references():
                 area.tag_redraw()
 
 
+def handle_object_duplication_update():
+    """
+    Checks selected objects and assigns them to the correct Object Sets
+    based on their stored UUIDs.
+
+    This should be called from a depsgraph update handler when new objects
+    are detected.
+    """
+
+    # Global list of object sets
+    object_sets = u.get_object_sets()
+    if not object_sets:
+        return
+
+    # Lookup dict for efficiency
+    uuid_to_set_map = {obj_set.uuid: obj_set for obj_set in object_sets if not obj_set.separator}
+
+    for obj in u.iter_scene_objects(selected=True):
+        object_props = u.get_object_props(obj)
+        if not object_props or not hasattr(object_props, "object_sets"):
+            continue
+
+        member_uuids = {member.uuid for member in object_props.object_sets}
+        bulk_assign = {}
+
+        for set_uuid in member_uuids:
+            target_set = uuid_to_set_map.get(set_uuid)
+
+            if target_set:
+                if not target_set in bulk_assign:
+                    bulk_assign[target_set] = []
+                bulk_assign[target_set].append(obj)
+
+        for target_set, objects in bulk_assign.items():
+            target_set.assign_objects(objects)
+
+
 def check_object_in_sets(obj) -> list:
     """
     Checks if an object is present in more Object Sets. If so
