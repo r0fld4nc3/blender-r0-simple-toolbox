@@ -186,12 +186,12 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
                 else:
                     obj.color = containing_sets[0].set_colour
 
-                # Handle Object-level membership
-                object_props = u.get_object_props(obj)
-                for i, ref in enumerate(object_props.object_sets):
-                    if ref.uuid == self.uuid:
-                        object_props.object_sets.remove(i)
-                        break
+            # Handle Object-level membership
+            object_props = u.get_object_props(obj)
+            for i, ref in enumerate(object_props.object_sets):
+                if ref.uuid == self.uuid:
+                    object_props.object_sets.remove(i)
+                    break
 
         self.update_count()
 
