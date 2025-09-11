@@ -46,7 +46,7 @@ def register():
 
     if DEBUG:
         print(f"[INFO] [{_mod}] Register bpy.types.Object.r0fl_toolbox_props")
-    bpy.types.Object.r0fl_toolbox_props = PointerProperty(type=r0SimpleToolboxObjectProps)
+    bpy.types.Object.r0fl_toolbox_props = PointerProperty(type=r0SimpleToolboxObjectProps, name="ToolboxObject")
 
     for handler in load_post_handlers:
         if DEBUG:

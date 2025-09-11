@@ -93,7 +93,9 @@ def register():
 
     if DEBUG:
         print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_edge_data_props")
-    bpy.types.Scene.r0fl_toolbox_edge_data_props = PointerProperty(type=r0SimpleToolboxEdgeDataProps)
+    bpy.types.Scene.r0fl_toolbox_edge_data_props = PointerProperty(
+        type=r0SimpleToolboxEdgeDataProps, name="r0fl Toolbox Edge Data"
+    )
 
     for handler in load_post_handlers:
         if DEBUG:

@@ -260,7 +260,7 @@ def register():
     if DEBUG:
         print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_props")
     # Registering to Scene also has the side effect of saving properties on a per scene/file basis, which is nice!
-    bpy.types.Scene.r0fl_toolbox_props = PointerProperty(type=r0SimpleToolboxProps)
+    bpy.types.Scene.r0fl_toolbox_props = PointerProperty(type=r0SimpleToolboxProps, name="r0fl Toolbox")
 
     for handler in load_post_handlers:
         if DEBUG:

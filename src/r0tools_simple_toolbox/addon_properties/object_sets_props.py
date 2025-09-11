@@ -429,7 +429,7 @@ def register():
 
     if DEBUG:
         print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_object_sets_props")
-    bpy.types.Scene.r0fl_object_sets_props = PointerProperty(type=r0ObjectSetsProps)
+    bpy.types.Scene.r0fl_object_sets_props = PointerProperty(type=r0ObjectSetsProps, name="r0fl Toolbox Object Sets")
 
     for handler in load_post_handlers:
         if DEBUG:

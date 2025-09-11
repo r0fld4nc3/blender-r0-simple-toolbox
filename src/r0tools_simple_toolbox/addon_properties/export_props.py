@@ -490,7 +490,9 @@ def register():
 
     if DEBUG:
         print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_export_props")
-    bpy.types.Scene.r0fl_toolbox_export_props = PointerProperty(type=r0SimpleToolbox_PG_ExportProps)
+    bpy.types.Scene.r0fl_toolbox_export_props = PointerProperty(
+        type=r0SimpleToolbox_PG_ExportProps, name="r0fl Toolbox Export"
+    )
 
 
 def unregister():

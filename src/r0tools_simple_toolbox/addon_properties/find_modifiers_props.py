@@ -114,7 +114,9 @@ def register():
 
     if DEBUG:
         print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_find_modifier_props")
-    bpy.types.Scene.r0fl_toolbox_find_modifier_props = PointerProperty(type=r0SimpleToolboxFindModifierProps)
+    bpy.types.Scene.r0fl_toolbox_find_modifier_props = PointerProperty(
+        type=r0SimpleToolboxFindModifierProps, name="r0fl Toolbox Find Modifier"
+    )
 
     for handler in load_post_handlers:
         if DEBUG:

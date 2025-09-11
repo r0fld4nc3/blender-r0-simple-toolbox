@@ -39,7 +39,9 @@ def register():
 
     if DEBUG:
         print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_experimental_props")
-    bpy.types.Scene.r0fl_toolbox_experimental_props = PointerProperty(type=r0SimpleToolboxExperimentalProps)
+    bpy.types.Scene.r0fl_toolbox_experimental_props = PointerProperty(
+        type=r0SimpleToolboxExperimentalProps, name="r0fl Toolbox Experimental"
+    )
 
     for handler in load_post_handlers:
         if DEBUG:

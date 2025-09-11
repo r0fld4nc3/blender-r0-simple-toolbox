@@ -139,7 +139,9 @@ def register():
 
     if DEBUG:
         print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_vertex_groups_props")
-    bpy.types.Scene.r0fl_vertex_groups_props = PointerProperty(type=r0VertexGroupsProps)
+    bpy.types.Scene.r0fl_vertex_groups_props = PointerProperty(
+        type=r0VertexGroupsProps, name="r0fl Toolbox Vertex Groups"
+    )
 
     for handler in load_post_handlers:
         if DEBUG:
