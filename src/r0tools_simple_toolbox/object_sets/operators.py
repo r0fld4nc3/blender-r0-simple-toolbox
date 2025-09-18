@@ -143,24 +143,27 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
         return f"{self.object_set_name}.{suffix:03}"
 
     def execute(self, context):
-        if self.separator:
-            new_set = u.get_object_sets().add()
-            new_set.name = new_set.default_separator_name
-            new_set.separator = self.separator
+        try:
+            if self.separator:
+                new_set = u.get_object_sets().add()
+                new_set.name = new_set.default_separator_name
+                new_set.separator = self.separator
+                self.report({"INFO"}, f"Added separator ot Object Sets")
 
-            self.report({"INFO"}, f"Added separator ot Object Sets")
-        else:
-            new_set = u.get_object_sets().add()
-            new_set.name = self.add_non_conflicting_name()
-            new_set.set_object_set_colour(self.object_set_colour)
-            new_set.uuid = u.generate_uuid()  # Add UUID as Object Set is created
-            set_active_object_set_index(len(u.get_object_sets()) - 1)
+            else:
+                new_set = u.get_object_sets().add()
+                new_set.name = self.add_non_conflicting_name()
+                new_set.set_object_set_colour(self.object_set_colour)
+                new_set.uuid = u.generate_uuid()  # Add UUID as Object Set is created
+                set_active_object_set_index(len(u.get_object_sets()) - 1)
 
-            # Immediately add selected objects to set, for convenience
-            if context.selected_objects:
-                bpy.ops.r0tools.assign_to_object_set()
+                # Immediately add selected objects to set, for convenience
+                if context.selected_objects:
+                    bpy.ops.r0tools.assign_to_object_set()
 
-            self.report({"INFO"}, f"Created Object Set: {self.object_set_name}")
+                self.report({"INFO"}, f"Created Object Set: {self.object_set_name}")
+        except Exception as e:
+            print(f"[ERROR] [{_mod}] Error creating new Object Set: {e}")
 
         if context.area:
             context.area.tag_redraw()

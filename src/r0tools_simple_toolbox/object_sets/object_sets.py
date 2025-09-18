@@ -143,50 +143,53 @@ def move_object_set_to_index(from_index, to_index):
 def cleanup_object_set_invalid_references():
     """Optimised cleanup using batch operations"""
 
-    scene = bpy.context.scene
+    try:
+        scene = bpy.context.scene
 
-    if not u.is_writing_context_safe(scene):
-        print(f"[WARNING] [{_mod}] Object Sets Cleanup Invalid References O1: Unsafe Context.")
-        return None
+        if not u.is_writing_context_safe(scene):
+            print(f"[WARNING] [{_mod}] Object Sets Cleanup Invalid References O1: Unsafe Context.")
+            return None
 
-    addon_object_sets_props = u.get_addon_object_sets_props()
+        addon_object_sets_props = u.get_addon_object_sets_props()
 
-    # Build set of object names for O(1) lookup
-    valid_objects = set(scene.objects.keys())
-    total_cleaned = 0
+        # Build set of object names for O(1) lookup
+        valid_objects = set(scene.objects.keys())
+        total_cleaned = 0
 
-    for object_set in addon_object_sets_props.object_sets:
-        if object_set.separator:
-            continue
+        for object_set in addon_object_sets_props.object_sets:
+            if object_set.separator:
+                continue
 
-        # Collect indices in one pass
-        indices_to_remove = [
-            i
-            for i, item in enumerate(object_set.objects)
-            if item.object is None or item.object.name not in valid_objects
-        ]
+            # Collect indices in one pass
+            indices_to_remove = [
+                i
+                for i, item in enumerate(object_set.objects)
+                if item.object is None or item.object.name not in valid_objects
+            ]
 
-        if not indices_to_remove:
-            continue
+            if not indices_to_remove:
+                continue
 
-        # Remove in reverse order
-        cleaned_up = 0
-        for i in reversed(indices_to_remove):
-            try:
-                object_set.objects.remove(i)
-                cleaned_up += 1
-            except Exception as e:
-                print(f"[ERROR] [{_mod}] Failed to remove object at index {i} of {object_set.name}: {e}")
+            # Remove in reverse order
+            cleaned_up = 0
+            for i in reversed(indices_to_remove):
+                try:
+                    object_set.objects.remove(i)
+                    cleaned_up += 1
+                except Exception as e:
+                    print(f"[ERROR] [{_mod}] Failed to remove object at index {i} of {object_set.name}: {e}")
 
-        object_set.update_count()
-        total_cleaned += len(indices_to_remove)
+            object_set.update_count()
+            total_cleaned += len(indices_to_remove)
 
-        print(f"[INFO] [{_mod}] Cleaned up {cleaned_up} references for Object Set '{object_set.name}'")
+            print(f"[INFO] [{_mod}] Cleaned up {cleaned_up} references for Object Set '{object_set.name}'")
 
-    if total_cleaned > 0:
-        for area in bpy.context.screen.areas:
-            if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
-                area.tag_redraw()
+        if total_cleaned > 0:
+            for area in bpy.context.screen.areas:
+                if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
+                    area.tag_redraw()
+    except Exception as e:
+        print(f"[ERROR] [{_mod}] Error cleaning up invalid Object Set references: {e}")
 
 
 def handle_object_duplication_update():
@@ -197,33 +200,35 @@ def handle_object_duplication_update():
     This should be called from a depsgraph update handler when new objects
     are detected.
     """
+    try:
+        # Global list of object sets
+        object_sets = u.get_object_sets()
+        if not object_sets:
+            return
 
-    # Global list of object sets
-    object_sets = u.get_object_sets()
-    if not object_sets:
-        return
+        # Lookup dict for efficiency
+        uuid_to_set_map = {obj_set.uuid: obj_set for obj_set in object_sets if not obj_set.separator}
 
-    # Lookup dict for efficiency
-    uuid_to_set_map = {obj_set.uuid: obj_set for obj_set in object_sets if not obj_set.separator}
+        for obj in u.iter_scene_objects(selected=True):
+            object_props = u.get_object_props(obj)
+            if not object_props or not hasattr(object_props, "object_sets"):
+                continue
 
-    for obj in u.iter_scene_objects(selected=True):
-        object_props = u.get_object_props(obj)
-        if not object_props or not hasattr(object_props, "object_sets"):
-            continue
+            member_uuids = {member.uuid for member in object_props.object_sets}
+            bulk_assign = {}
 
-        member_uuids = {member.uuid for member in object_props.object_sets}
-        bulk_assign = {}
+            for set_uuid in member_uuids:
+                target_set = uuid_to_set_map.get(set_uuid)
 
-        for set_uuid in member_uuids:
-            target_set = uuid_to_set_map.get(set_uuid)
+                if target_set:
+                    if not target_set in bulk_assign:
+                        bulk_assign[target_set] = []
+                    bulk_assign[target_set].append(obj)
 
-            if target_set:
-                if not target_set in bulk_assign:
-                    bulk_assign[target_set] = []
-                bulk_assign[target_set].append(obj)
-
-        for target_set, objects in bulk_assign.items():
-            target_set.assign_objects(objects)
+            for target_set, objects in bulk_assign.items():
+                target_set.assign_objects(objects)
+    except Exception as e:
+        print(f"[ERROR] [{_mod}] Error handling Object duplication update: {e}")
 
 
 def check_object_in_sets(obj) -> list:
