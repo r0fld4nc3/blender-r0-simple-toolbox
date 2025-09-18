@@ -266,7 +266,7 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
 class SimpleToolbox_OT_SelectEdgesWithValue(bpy.types.Operator):
     bl_label = "Select Edges With Value"
     bl_idname = "r0tools.edge_data_select_edges_with_value"
-    bl_description = "Select edges with bevel weight or creases with a determined value"
+    bl_description = "Select Edges with Bevel Weight or Creases with the determined assigned value"
     bl_options = {"REGISTER", "UNDO"}
 
     accepted_contexts = [u.OBJECT_MODES.EDIT_MESH]
@@ -275,6 +275,15 @@ class SimpleToolbox_OT_SelectEdgesWithValue(bpy.types.Operator):
 
     select_bweights: BoolProperty(default=True)  # type: ignore
     select_creases: BoolProperty(default=False)  # type: ignore
+
+    @classmethod
+    def description(cls, context, properties):
+        value = round(properties.value_to_select, 2)
+
+        if value == 0.0:
+            return f"Select all Sharp Edges that have no Bevel Weight or Crease value assigned"
+
+        return f"Select all Edges with Bevel Weight or Creases have an assigned value of {value}"
 
     @classmethod
     def poll(cls, context):
@@ -348,6 +357,15 @@ class SimpleToolbox_OT_ApplyBWeightPreset(bpy.types.Operator):
 
     select_bweights: BoolProperty(default=False)  # type: ignore
     select_creases: BoolProperty(default=False)  # type: ignore
+
+    @classmethod
+    def description(cls, context, properties):
+        value = round(properties.value, 2)
+
+        if value == 0.0:
+            return f"Apply selected Edge Bevel Weight value of {value} to selected edges.\n\n++SPECIAL CASE++: Selecting edges with a value of 0 will instead select ALL Sharp Edges that have no Bevel Weight or Crease value assigned to them.\n\nMODIFIERS:\n- SHIFT: Select all Sharp Edges that have no Bevel Weight value assigned.\n- CTRL: Select all Sharp Edges that have no Crease value assigned."
+
+        return f"Apply selected Edge Bevel Weight or Crease value of {value} to selected edges.\n\nMODIFIERS:\n- SHIFT: Select Bevel Weighted edges with value {value}.\n- CTRL: Select Creased edges with value {value}"
 
     @classmethod
     def poll(cls, context):
