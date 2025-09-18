@@ -24,12 +24,6 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
     log_output: BoolProperty(name="Log", description="Whehter to produce regular Log output", default=False)  # type: ignore
 
-    lock_states_avoided: IntProperty(
-        name="Avoided Locks",
-        description="Silly counter to log how many crashes were avoided by forbidden ID context writes",
-        default=0,
-    )  # type: ignore
-
     check_update_startup: BoolProperty(
         name="Check Update on Startup",
         description="Flag to set whether to check for extension updates on startup or not",
@@ -101,9 +95,6 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
         layout = self.layout
         layout.use_property_split = False
-
-        lock_states_avoided_row = layout.row()
-        lock_states_avoided_row.label(text=f"Lock States Avoided: {self.lock_states_avoided}")
 
         row = layout.row()
         row.prop(self, "debug", text="Debug Mode")

@@ -150,12 +150,8 @@ def is_writing_context_safe(scene) -> bool:
 
     from .general import LOG
 
-    addon_prefs = get_addon_prefs()
-
     if not hasattr(scene, TOOLBOX_PROPS_NAME):
-        if addon_prefs is not None and hasattr(addon_prefs, "lock_states_avoided"):
-            addon_prefs.lock_states_avoided += 1
-            LOG(f"[INFO] [{_mod}] Scene does not have proper attribute(s). Skipping.")
+        LOG(f"[INFO] [{_mod}] Scene does not have proper attribute(s). Skipping.")
         return False
 
     # Check for boxcutter running
