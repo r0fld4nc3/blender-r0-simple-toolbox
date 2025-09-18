@@ -20,6 +20,7 @@ def handler_depsgraph_post_update(scene, depsgraph):
     # Check specifically for object changes
     if depsgraph.id_type_updated(u.DEPSGRAPH_ID_TYPES.OBJECT):
         if not u.is_writing_context_safe(scene):
+            print(f"[WARNING] [{_mod}] Depsgraph writing context unsafe.")
             return None
 
         if u.object_count_changed():
