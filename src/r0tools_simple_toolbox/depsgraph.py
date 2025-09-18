@@ -14,28 +14,29 @@ def handler_depsgraph_post_update(scene, depsgraph):
 
     boxcutter_running = u.boxcutter_running()
 
+    if boxcutter_running:
+        return None
+
     # Check specifically for object changes
     if depsgraph.id_type_updated(u.DEPSGRAPH_ID_TYPES.OBJECT):
         if not u.is_writing_context_safe(scene):
             return None
 
-        if not boxcutter_running:
-            if u.object_count_changed():
-                # u.timer_manager.schedule(u.cleanup_object_set_invalid_references, delay=0, min_interval=0.1)
-                u.cleanup_object_set_invalid_references()
-                u.handle_object_duplication_update()
+        if u.object_count_changed():
+            # u.timer_manager.schedule(u.cleanup_object_set_invalid_references, delay=0, min_interval=0.1)
+            u.cleanup_object_set_invalid_references()
+            u.handle_object_duplication_update()
 
-            # u.object_sets_update_mesh_stats(depsgraph)
+        # u.object_sets_update_mesh_stats(depsgraph)
 
-            # u.timer_manager.schedule(u.vertex_groups_list_update, delay=0, min_interval=0.05)
-            u.vertex_groups_list_update()
+        # u.timer_manager.schedule(u.vertex_groups_list_update, delay=0, min_interval=0.05)
+        u.vertex_groups_list_update()
 
-            u.property_list_update()
+        u.property_list_update()
 
-    if not boxcutter_running:
-        CustomTransformsOrientationsTracker.track_custom_orientations(
-            scene,
-        )
+    CustomTransformsOrientationsTracker.track_custom_orientations(
+        scene,
+    )
 
 
 depsgraph_handlers = [handler_depsgraph_post_update]
