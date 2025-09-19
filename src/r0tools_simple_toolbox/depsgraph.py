@@ -24,16 +24,18 @@ def handler_depsgraph_post_update(scene, depsgraph):
             return None
 
         if u.object_count_changed():
-            # u.timer_manager.schedule(u.cleanup_object_set_invalid_references, delay=0, min_interval=0.1)
-            u.cleanup_object_set_invalid_references()
-            u.handle_object_duplication_update()
+            u.timer_manager.schedule(u.cleanup_object_set_invalid_references, delay=0, min_interval=0.1)
+            # u.cleanup_object_set_invalid_references()
+            u.timer_manager.schedule(u.handle_object_duplication_update, delay=0, min_interval=0.1)
+            # u.handle_object_duplication_update()
 
         # u.object_sets_update_mesh_stats(depsgraph)
 
-        # u.timer_manager.schedule(u.vertex_groups_list_update, delay=0, min_interval=0.05)
-        u.vertex_groups_list_update()
+        u.timer_manager.schedule(u.vertex_groups_list_update, delay=0, min_interval=0.1)
+        # u.vertex_groups_list_update()
 
-        u.property_list_update()
+        u.timer_manager.schedule(u.property_list_update, delay=0, min_interval=0.1)
+        # u.property_list_update()
 
     CustomTransformsOrientationsTracker.track_custom_orientations(
         scene,
