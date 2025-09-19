@@ -1166,7 +1166,8 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
         # Select initial selection of edges
         if self.keep_initial_selection:
             for edge in initial_selection:
-                edge.select = True
+                if edge.is_valid:
+                    edge.select = True
 
         u.set_mode_object()
 
