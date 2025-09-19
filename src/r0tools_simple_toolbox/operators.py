@@ -991,6 +991,52 @@ class SimpleToolbox_OT_FindModifierSelectObject(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_FindModifierSelectCategory(bpy.types.Operator):
+    bl_idname = "r0tools.find_modifier_select_category"
+    bl_label = "Select in Category"
+    bl_description = "Selects all objects in a Category"
+    bl_options = {"REGISTER", "UNDO"}
+
+    category_name: StringProperty()  # type: ignore
+
+    extend: BoolProperty(
+        name="Extend Selection", description="Add to existing selection", default=False
+    )  # type: ignore
+
+    def invoke(self, context, event):
+        self.extend = event.shift
+        return self.execute(context)
+
+    def execute(self, context):
+        find_modifier_props = u.get_addon_find_modifier_props()
+        found_objects_collection = find_modifier_props.objects_list.found_objects
+
+        if not self.extend:
+            u.deselect_all()
+
+        objects_to_select = []
+        in_target_category = False
+
+        for item in found_objects_collection:
+            if item.category_name:
+                # Found category header
+                if item.category_name == self.category_name:
+                    in_target_category = True
+                elif in_target_category:
+                    # Stop when detected another target category
+                    break
+            elif in_target_category and item.obj:
+                objects_to_select.append(item.obj)
+
+        if not objects_to_select:
+            self.report({"WARNING"}, f"No objects found in category '{self.category_name}'")
+
+        for obj in objects_to_select:
+            u.select_object(obj, add=True, set_active=True)
+
+        return {"FINISHED"}
+
+
 class SimpleToolbox_OT_FindModifierClearList(bpy.types.Operator):
     bl_idname = "r0tools.find_modifier_clear_list"
     bl_label = "Clear List"
@@ -1796,6 +1842,7 @@ classes = [
     
     SimpleToolbox_OT_FindModifierSearch,
     SimpleToolbox_OT_FindModifierSelectObject,
+    SimpleToolbox_OT_FindModifierSelectCategory,
     SimpleToolbox_OT_FindModifierClearList,
     
     SimpleToolbox_OT_RemoveUnusedMaterials,

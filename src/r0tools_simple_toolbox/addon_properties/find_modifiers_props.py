@@ -34,14 +34,22 @@ class R0PROP_UL_FindModifierObjectsList(bpy.types.UIList):
     """UI List populated by objects that contain the searched for modifiers"""
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
-        from ..operators import SimpleToolbox_OT_FindModifierSelectObject
+        from ..operators import (
+            SimpleToolbox_OT_FindModifierSelectCategory,
+            SimpleToolbox_OT_FindModifierSelectObject,
+        )
 
         # Category header
         if item.category_name:
-            row = layout.row()
+            row = layout.row(align=True)
             expand_icon = "TRIA_DOWN" if item.expanded else "TRIA_RIGHT"
             row.prop(item, "expanded", text="", icon=expand_icon, emboss=False)
             row.label(text=item.category_name)
+            op = row.operator(
+                SimpleToolbox_OT_FindModifierSelectCategory.bl_idname, text="", icon="RESTRICT_SELECT_OFF"
+            )
+            op.category_name = item.category_name
+
         # Object entry
         else:
             found_obj = item.obj
@@ -135,6 +143,9 @@ def unregister():
             print(f"[INFO] [{_mod}] Unregister load_post_handler: {handler.__name__}")
         bpy.app.handlers.load_post.remove(handler)
 
+    if DEBUG:
+        print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_find_modifier_props")
+    del bpy.types.Scene.r0fl_toolbox_find_modifier_props
     if DEBUG:
         print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_find_modifier_props")
     del bpy.types.Scene.r0fl_toolbox_find_modifier_props
