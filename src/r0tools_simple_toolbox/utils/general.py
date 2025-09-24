@@ -749,8 +749,6 @@ def property_list_update(scene=None, force_run=False):
 
     from .context import is_writing_context_safe
 
-    scene = get_scene(scene)
-
     if not is_writing_context_safe(scene):
         return None
 
