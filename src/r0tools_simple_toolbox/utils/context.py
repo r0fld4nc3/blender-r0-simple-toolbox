@@ -8,14 +8,14 @@ from .boxcutter import boxcutter_running
 _mod = "UTILS.CONTEXT"
 
 
-def get_addon_props():
+def get_addon_props(scene=None):
     """Get the addon property group from current scene"""
-    return get_scene().r0fl_toolbox_props
+    return get_scene(scene).r0fl_toolbox_props
 
 
-def get_addon_object_sets_props():
+def get_addon_object_sets_props(scene=None):
     """Get the addon property group from current scene"""
-    return get_scene().r0fl_object_sets_props
+    return get_scene(scene).r0fl_object_sets_props
 
 
 def get_object_props(obj: bpy.types.Object):
@@ -23,29 +23,29 @@ def get_object_props(obj: bpy.types.Object):
     return obj.r0fl_toolbox_props
 
 
-def get_addon_vertex_groups_props():
+def get_addon_vertex_groups_props(scene=None):
     """Get the addon property group from current scene"""
-    return get_scene().r0fl_vertex_groups_props
+    return get_scene(scene).r0fl_vertex_groups_props
 
 
-def get_addon_edge_data_props():
+def get_addon_edge_data_props(scene=None):
     """Get the addon property group from current scene"""
-    return get_scene().r0fl_toolbox_edge_data_props
+    return get_scene(scene).r0fl_toolbox_edge_data_props
 
 
-def get_addon_experimental_props():
+def get_addon_experimental_props(scene=None):
     """Get the addon property group from current scene"""
-    return get_scene().r0fl_toolbox_experimental_props
+    return get_scene(scene).r0fl_toolbox_experimental_props
 
 
-def get_addon_find_modifier_props():
+def get_addon_find_modifier_props(scene=None):
     """Get the addon property group from current scene"""
-    return get_scene().r0fl_toolbox_find_modifier_props
+    return get_scene(scene).r0fl_toolbox_find_modifier_props
 
 
-def get_addon_export_props():
+def get_addon_export_props(scene=None):
     """Get the addon property group from current scene"""
-    return get_scene().r0fl_toolbox_export_props
+    return get_scene(scene).r0fl_toolbox_export_props
 
 
 def get_addon_prefs():
@@ -53,9 +53,9 @@ def get_addon_prefs():
     return bpy.context.preferences.addons[INTERNAL_NAME].preferences
 
 
-def get_scene() -> bpy.types.Scene:
+def get_scene(scene=None) -> bpy.types.Scene:
     """Get the current scene"""
-    return bpy.context.scene
+    return scene if scene else bpy.context.scene
 
 
 def get_scene_name() -> str:
@@ -141,6 +141,12 @@ def get_uvmap_size_y():
     """Get selected UV Map Size in Y"""
     addon_props = get_addon_props()
     return int(addon_props.uv_size_y)
+
+
+def is_saving() -> bool:
+    from .. import depsgraph
+
+    return depsgraph.is_saving
 
 
 def is_writing_context_safe(scene) -> bool:

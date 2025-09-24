@@ -7,6 +7,24 @@ from .defines import DEBUG  # isort: skip
 
 _mod = "DEPSGRAPH"
 
+is_saving = False
+
+
+@bpy.app.handlers.persistent
+def hanlder_on_save_pre(dummy):
+    """Set the save lock before a file is saved."""
+    global is_saving
+    is_saving = True
+    # print("Save Lock: ON")
+
+
+@bpy.app.handlers.persistent
+def hanlder_on_save_post(dummy):
+    """Set the save lock after a file is saved."""
+    global is_saving
+    is_saving = False
+    # print("Save Lock: OFF")
+
 
 @bpy.app.handlers.persistent
 def handler_depsgraph_post_update(scene, depsgraph):
@@ -17,6 +35,11 @@ def handler_depsgraph_post_update(scene, depsgraph):
     if boxcutter_running:
         return None
 
+    global is_saving
+    if is_saving:
+        print(f"[INFO] [{_mod}] Skipping depsgraph update on file save")
+        return None
+
     # Check specifically for object changes
     if depsgraph.id_type_updated(u.DEPSGRAPH_ID_TYPES.OBJECT):
         if not u.is_writing_context_safe(scene):
@@ -24,18 +47,18 @@ def handler_depsgraph_post_update(scene, depsgraph):
             return None
 
         if u.object_count_changed():
-            u.timer_manager.schedule(u.cleanup_object_set_invalid_references, delay=0, min_interval=0.1)
-            # u.cleanup_object_set_invalid_references()
-            u.timer_manager.schedule(u.handle_object_duplication_update, delay=0, min_interval=0.1)
-            # u.handle_object_duplication_update()
+            # u.timer_manager.schedule(u.cleanup_object_set_invalid_references, kwargs={"scene": scene}, delay=0, min_interval=0.1)
+            u.cleanup_object_set_invalid_references(scene=scene)
+            # u.timer_manager.schedule(u.handle_object_duplication_update, kwargs={"scene": scene}, delay=0, min_interval=0.1)
+            u.handle_object_duplication_update(scene=scene)
 
         # u.object_sets_update_mesh_stats(depsgraph)
 
-        u.timer_manager.schedule(u.vertex_groups_list_update, delay=0, min_interval=0.1)
-        # u.vertex_groups_list_update()
+        # u.timer_manager.schedule(u.vertex_groups_list_update, kwargs={"scene": scene}, delay=0, min_interval=0.1)
+        u.vertex_groups_list_update(scene=scene)
 
-        u.timer_manager.schedule(u.property_list_update, delay=0, min_interval=0.1)
-        # u.property_list_update()
+        # u.timer_manager.schedule(u.property_list_update, delay=0, min_interval=0.1)
+        u.property_list_update()
 
     CustomTransformsOrientationsTracker.track_custom_orientations(
         scene,
@@ -46,6 +69,9 @@ depsgraph_handlers = [handler_depsgraph_post_update]
 
 load_post_handlers = [u.refresh_object_sets_colours]
 
+save_pre_handlers = [hanlder_on_save_pre]
+save_post_handlers = [hanlder_on_save_post]
+
 
 def register():
     for handler in depsgraph_handlers:
@@ -53,6 +79,16 @@ def register():
             print(f"[INFO] [{_mod}] Registering {handler}")
         if handler not in bpy.app.handlers.depsgraph_update_post:
             bpy.app.handlers.depsgraph_update_post.append(handler)
+
+    for handler in save_pre_handlers:
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Register on_save_pre handler: {handler.__name__}")
+        bpy.app.handlers.save_pre.append(handler)
+
+    for handler in save_post_handlers:
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Register on_save_post handler: {handler.__name__}")
+        bpy.app.handlers.save_post.append(handler)
 
     for handler in load_post_handlers:
         if DEBUG:
@@ -66,6 +102,16 @@ def unregister():
             print(f"[INFO] [{_mod}] Unregister {handler}")
         if handler in bpy.app.handlers.depsgraph_update_post:
             bpy.app.handlers.depsgraph_update_post.remove(handler)
+
+    for handler in save_pre_handlers:
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Unregister on_save_pre handler: {handler.__name__}")
+        bpy.app.handlers.save_pre.remove(handler)
+
+    for handler in save_post_handlers:
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Unregister on_save_post handler: {handler.__name__}")
+        bpy.app.handlers.save_post.remove(handler)
 
     for handler in load_post_handlers:
         if DEBUG:

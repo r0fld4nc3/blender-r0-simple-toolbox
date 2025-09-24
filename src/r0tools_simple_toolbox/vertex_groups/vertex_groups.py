@@ -235,14 +235,24 @@ def _needs_update():
     return False
 
 
-def vertex_groups_list_update(force: bool = False):
+def vertex_groups_list_update(scene=None, force: bool = False):
+    if u.is_saving():
+        print(f"[INFO] [{_mod}] Skipping Vertex Groups update during file save.")
+        return None
+
+    scene = u.get_scene(scene)
+
+    if not scene:
+        u.LOG(f"[WARNING] [{_mod}] Scene is {scene}")
+        return None
+
     try:
-        if not u.is_writing_context_safe(bpy.context.scene):
+        if not u.is_writing_context_safe(scene):
             print(f"[WARNING] [{_mod}] Vertex Groups List Update: Unsafe Context.")
             return None
 
-        addon_props = u.get_addon_props()
-        addon_vertex_groups_props = u.get_addon_vertex_groups_props()
+        addon_props = u.get_addon_props(scene)
+        addon_vertex_groups_props = u.get_addon_vertex_groups_props(scene)
 
         if not force:
             if not addon_vertex_groups_props.vgroups_do_update:
@@ -252,8 +262,12 @@ def vertex_groups_list_update(force: bool = False):
             if not _needs_update():
                 return None
 
-        if not addon_props.cat_show_vertex_groups_editor:
-            # Skip update if panel is not visible
+        # Skip update if panel is not visible
+        if not addon_props or not addon_props.cat_show_vertex_groups_editor:
+            return None
+
+        # Skip if addon vertex props is not available
+        if not addon_vertex_groups_props:
             return None
 
         global _vertex_groups_cache

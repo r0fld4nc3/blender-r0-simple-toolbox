@@ -737,7 +737,7 @@ def custom_property_list_add_props(props: set | list, prop_type, selection_state
             context_error_debug(error=e)
 
 
-def property_list_update(force_run=False):
+def property_list_update(scene=None, force_run=False):
     """
     Update property list based on selected objects
 
@@ -745,14 +745,14 @@ def property_list_update(force_run=False):
     when object selection changes.
     """
 
-    scene = bpy.context.scene
-
     from .context import is_writing_context_safe
+
+    scene = get_scene(scene)
 
     if not is_writing_context_safe(scene):
         return None
 
-    addon_props = get_addon_props()
+    addon_props = get_addon_props(scene)
 
     if not addon_props.cat_show_custom_properties_editor and not force_run:
         # Skip update if panel is not visible

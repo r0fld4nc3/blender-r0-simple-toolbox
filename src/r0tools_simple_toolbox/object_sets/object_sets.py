@@ -8,8 +8,8 @@ from .. import utils as u
 _mod = "OBJECT_SETS"
 
 
-def get_object_sets() -> list:
-    addon_object_sets_props = u.get_addon_object_sets_props()
+def get_object_sets(scene=None) -> list:
+    addon_object_sets_props = u.get_addon_object_sets_props(scene=scene)
 
     return addon_object_sets_props.object_sets
 
@@ -140,17 +140,19 @@ def move_object_set_to_index(from_index, to_index):
     object_sets.move(from_index, to_index)
 
 
-def cleanup_object_set_invalid_references():
+def cleanup_object_set_invalid_references(scene=None):
     """Optimised cleanup using batch operations"""
 
-    try:
-        scene = bpy.context.scene
+    if u.is_saving():
+        print(f"[INFO] [{_mod}] Skipping Object Set Invalid Cleanup during file save.")
+        return None
 
+    try:
         if not u.is_writing_context_safe(scene):
             print(f"[WARNING] [{_mod}] Object Sets Cleanup Invalid References O1: Unsafe Context.")
             return None
 
-        addon_object_sets_props = u.get_addon_object_sets_props()
+        addon_object_sets_props = u.get_addon_object_sets_props(scene=scene)
 
         # Build set of object names for O(1) lookup
         valid_objects = set(scene.objects.keys())
@@ -192,7 +194,7 @@ def cleanup_object_set_invalid_references():
         print(f"[ERROR] [{_mod}] Error cleaning up invalid Object Set references: {e}")
 
 
-def handle_object_duplication_update():
+def handle_object_duplication_update(scene=None):
     """
     Checks selected objects and assigns them to the correct Object Sets
     based on their stored UUIDs.
@@ -200,9 +202,14 @@ def handle_object_duplication_update():
     This should be called from a depsgraph update handler when new objects
     are detected.
     """
+
+    if u.is_saving():
+        print(f"[INFO] [{_mod}] Skipping Object Set Duplication Update Handler during file save.")
+        return None
+
     try:
         # Global list of object sets
-        object_sets = u.get_object_sets()
+        object_sets = u.get_object_sets(scene=scene)
         if not object_sets:
             return
 
