@@ -35,8 +35,7 @@ def handler_depsgraph_post_update(scene, depsgraph):
     if boxcutter_running:
         return None
 
-    global is_saving
-    if is_saving:
+    if u.is_saving():
         print(f"[INFO] [{_mod}] Skipping depsgraph update on file save")
         return None
 
