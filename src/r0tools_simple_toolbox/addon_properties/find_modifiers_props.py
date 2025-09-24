@@ -146,6 +146,3 @@ def unregister():
     if DEBUG:
         print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_find_modifier_props")
     del bpy.types.Scene.r0fl_toolbox_find_modifier_props
-    if DEBUG:
-        print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_find_modifier_props")
-    del bpy.types.Scene.r0fl_toolbox_find_modifier_props
