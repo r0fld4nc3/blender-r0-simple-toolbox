@@ -254,6 +254,18 @@ def vertex_groups_list_update(scene=None, force: bool = False):
         addon_props = u.get_addon_props(scene)
         addon_vertex_groups_props = u.get_addon_vertex_groups_props(scene)
 
+        # Skip if addon props is not available
+        if not addon_props:
+            return None
+
+        # Skip if addon vertex props is not available
+        if not addon_vertex_groups_props:
+            return None
+
+        # Skip update if panel is not visible and not forcing update
+        if not addon_props.cat_show_vertex_groups_editor and not force:
+            return None
+
         if not force:
             if not addon_vertex_groups_props.vgroups_do_update:
                 return None
@@ -261,14 +273,6 @@ def vertex_groups_list_update(scene=None, force: bool = False):
             # Check if update is required
             if not _needs_update():
                 return None
-
-        # Skip update if panel is not visible
-        if not addon_props or not addon_props.cat_show_vertex_groups_editor:
-            return None
-
-        # Skip if addon vertex props is not available
-        if not addon_vertex_groups_props:
-            return None
 
         global _vertex_groups_cache
 
