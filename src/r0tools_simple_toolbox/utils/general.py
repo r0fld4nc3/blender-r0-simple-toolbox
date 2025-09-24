@@ -407,9 +407,11 @@ def iter_scene_objects(selected=False, types: list[str] = []):
         selected: Only iterate through selected objects
         types: Filter by object types (empty list = all types)
     """
-    iters = bpy.data.objects
+
     if selected:
         iters = get_selected_objects()
+    else:
+        iters = bpy.data.objects
 
     for o in iters:
         if not types or o.type in types:
