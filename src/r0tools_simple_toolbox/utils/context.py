@@ -156,6 +156,10 @@ def is_writing_context_safe(scene) -> bool:
 
     from .general import LOG
 
+    if is_saving():
+        LOG(f"[INFO] [{_mod}] Unsafe write context while file is being saved.")
+        return False
+
     if not hasattr(scene, TOOLBOX_PROPS_NAME):
         LOG(f"[INFO] [{_mod}] Scene does not have proper attribute(s). Skipping.")
         return False
