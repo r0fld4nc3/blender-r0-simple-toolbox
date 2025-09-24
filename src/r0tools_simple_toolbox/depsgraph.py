@@ -35,6 +35,7 @@ def handler_depsgraph_post_update(scene, depsgraph):
     if boxcutter_running:
         return None
 
+    # Early exit if saving, no need to check for context first
     if u.is_saving():
         print(f"[INFO] [{_mod}] Skipping depsgraph update on file save")
         return None
