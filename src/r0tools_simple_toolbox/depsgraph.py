@@ -74,46 +74,60 @@ save_post_handlers = [hanlder_on_save_post]
 
 
 def register():
+    # Depsgraph Handlers
     for handler in depsgraph_handlers:
         if DEBUG:
             print(f"[INFO] [{_mod}] Registering {handler}")
         if handler not in bpy.app.handlers.depsgraph_update_post:
             bpy.app.handlers.depsgraph_update_post.append(handler)
 
+    # Save Pre Handlers
     for handler in save_pre_handlers:
         if DEBUG:
             print(f"[INFO] [{_mod}] Register on_save_pre handler: {handler.__name__}")
-        bpy.app.handlers.save_pre.append(handler)
+        if handler not in bpy.app.handlers.save_pre:
+            bpy.app.handlers.save_pre.append(handler)
 
+    # Save Post Handlers
     for handler in save_post_handlers:
         if DEBUG:
             print(f"[INFO] [{_mod}] Register on_save_post handler: {handler.__name__}")
-        bpy.app.handlers.save_post.append(handler)
+        if handler not in bpy.app.handlers.save_post:
+            bpy.app.handlers.save_post.append(handler)
 
+    # Load Post Handlers
     for handler in load_post_handlers:
         if DEBUG:
             print(f"[INFO] [{_mod}] Register load_post_handler: {handler.__name__}")
-        bpy.app.handlers.load_post.append(handler)
+        if handler not in bpy.app.handlers.load_post:
+            bpy.app.handlers.load_post.append(handler)
 
 
 def unregister():
+    # Depsgraph Handlers
     for handler in depsgraph_handlers:
         if DEBUG:
             print(f"[INFO] [{_mod}] Unregister {handler}")
         if handler in bpy.app.handlers.depsgraph_update_post:
             bpy.app.handlers.depsgraph_update_post.remove(handler)
 
+    # Save Pre Handlers
     for handler in save_pre_handlers:
         if DEBUG:
             print(f"[INFO] [{_mod}] Unregister on_save_pre handler: {handler.__name__}")
-        bpy.app.handlers.save_pre.remove(handler)
+        if handler in bpy.app.handlers.save_pre:
+            bpy.app.handlers.save_pre.remove(handler)
 
+    # Save Post Handlers
     for handler in save_post_handlers:
         if DEBUG:
             print(f"[INFO] [{_mod}] Unregister on_save_post handler: {handler.__name__}")
-        bpy.app.handlers.save_post.remove(handler)
+        if handler in bpy.app.handlers.save_post:
+            bpy.app.handlers.save_post.remove(handler)
 
+    # Load Post Handlers
     for handler in load_post_handlers:
         if DEBUG:
             print(f"[INFO] [{_mod}] Unregister load_post_handler: {handler.__name__}")
-        bpy.app.handlers.load_post.remove(handler)
+        if handler in bpy.app.handlers.load_post:
+            bpy.app.handlers.load_post.remove(handler)
