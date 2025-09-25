@@ -14,6 +14,7 @@ from ..utils import (
     get_addon_prefs,
     get_addon_props,
     get_scene,
+    is_updating,
 )
 
 _mod = "UTILS.GENERAL"

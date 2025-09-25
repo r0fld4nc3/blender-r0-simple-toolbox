@@ -61,6 +61,9 @@ class CustomTransformsOrientationsTracker:
         if u.IS_DEBUG():
             print(f"------------- Track Custom Orientations -------------")
 
+        if not u.is_writing_context_safe(scene):
+            return None
+
         try:
             # Attempt to extract current orientations
             current_orientations = cls.get_custom_transform_orientations()
@@ -1592,7 +1595,7 @@ class SimpleToolbox_OT_SelectEmptyObjects(bpy.types.Operator):
             if not u.is_object_visible_in_viewport(obj):
                 continue
 
-            u.LOG(f"[INFO] [{_mod}] Processing:", obj.name)
+            u.LOG(f"[INFO] [{_mod}] Processing: {obj.name}")
 
             temp_mesh = None
             temp_obj = None

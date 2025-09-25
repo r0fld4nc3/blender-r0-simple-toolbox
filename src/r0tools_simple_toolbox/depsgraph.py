@@ -8,6 +8,7 @@ from .defines import DEBUG  # isort: skip
 _mod = "DEPSGRAPH"
 
 is_saving = False
+is_updating = False  # Check if our depsgraph update is running
 
 
 @bpy.app.handlers.persistent
@@ -34,6 +35,14 @@ def handler_depsgraph_post_update(scene, depsgraph):
 
     if boxcutter_running:
         return None
+
+    # Early exit if we're updating from our Depsgraph
+    global is_updating
+    if u.is_updating():
+        print(f"[INFO] [{_mod}] Skipping depsgraph update as an update is already in progress.")
+        return None
+    else:
+        is_updating = True
 
     # Early exit if saving, no need to check for context first
     if u.is_saving():
@@ -63,6 +72,8 @@ def handler_depsgraph_post_update(scene, depsgraph):
     CustomTransformsOrientationsTracker.track_custom_orientations(
         scene,
     )
+
+    is_updating = False
 
 
 depsgraph_handlers = [handler_depsgraph_post_update]
