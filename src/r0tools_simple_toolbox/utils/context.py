@@ -149,6 +149,18 @@ def is_saving() -> bool:
     return depsgraph.is_saving
 
 
+def is_updating() -> bool:
+    from .. import depsgraph
+
+    return depsgraph.is_updating
+
+
+def set_is_updating(state: bool):
+    from .. import depsgraph
+
+    depsgraph.is_updating = state
+
+
 def is_writing_context_safe(scene) -> bool:
     """
     Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock
