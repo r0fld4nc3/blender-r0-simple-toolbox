@@ -143,6 +143,8 @@ def move_object_set_to_index(from_index, to_index):
 def cleanup_object_set_invalid_references(scene=None):
     """Optimised cleanup using batch operations"""
 
+    scene = u.get_scene(scene)
+
     if not u.is_writing_context_safe(scene):
         print(f"[WARNING] [{_mod}] Object Sets Cleanup Invalid References O1: Unsafe Context.")
         return None
@@ -195,6 +197,8 @@ def handle_object_duplication_update(scene=None):
     This should be called from a depsgraph update handler when new objects
     are detected.
     """
+
+    scene = u.get_scene(scene)
 
     if not u.is_writing_context_safe(scene):
         print(f"[INFO] [{_mod}] Skipping Object Set Duplication Update Handler during file save.")

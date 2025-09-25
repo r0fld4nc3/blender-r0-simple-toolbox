@@ -58,7 +58,7 @@ def handler_depsgraph_post_update(scene, depsgraph):
         u.vertex_groups_list_update(scene=scene)
 
         # u.timer_manager.schedule(u.property_list_update, delay=0, min_interval=0.1)
-        u.property_list_update()
+        u.property_list_update(scene=scene)
 
     CustomTransformsOrientationsTracker.track_custom_orientations(
         scene,

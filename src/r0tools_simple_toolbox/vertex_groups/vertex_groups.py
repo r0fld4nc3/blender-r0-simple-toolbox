@@ -238,10 +238,6 @@ def _needs_update():
 def vertex_groups_list_update(scene=None, force: bool = False):
     scene = u.get_scene(scene)
 
-    if not scene:
-        u.LOG(f"[WARNING] [{_mod}] Scene is {scene}")
-        return None
-
     if not u.is_writing_context_safe(scene):
         print(f"[WARNING] [{_mod}] Vertex Groups List Update: Unsafe Context.")
         return None

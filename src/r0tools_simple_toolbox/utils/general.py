@@ -526,6 +526,10 @@ def object_count_changed() -> bool:
     global _last_object_count
 
     scene = bpy.context.scene
+
+    if not scene:
+        return False
+
     scene_objects_count = len(scene.objects)
 
     changed = scene_objects_count != _last_object_count
@@ -748,6 +752,8 @@ def property_list_update(scene=None, force_run=False):
     """
 
     from .context import is_writing_context_safe
+
+    scene = get_scene(scene)
 
     if not is_writing_context_safe(scene):
         return None
