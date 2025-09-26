@@ -288,7 +288,7 @@ def vertex_groups_list_update(scene=None, force: bool = False):
         try:
             addon_vertex_groups_props.vertex_groups.clear()
         except Exception as e:
-            print(f"[ERROR] [{_mod}] Property 'vertex_groups' is not writable for '.clear()'. Skipping.\n{e}")
+            print(f"[ERROR] [{_mod}] Executing '.clear()' for property 'vertex_groups'.\n{e}")
             return None
 
         # Sort and add groups (only when changed)
