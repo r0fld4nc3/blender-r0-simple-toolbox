@@ -2,6 +2,7 @@ import bpy
 
 from . import utils as u
 from .operators import CustomTransformsOrientationsTracker
+from .vertex_groups.operators import SimpleToolbox_OT_VertexGroupsListUpdate
 
 from .defines import DEBUG  # isort: skip
 
@@ -30,50 +31,53 @@ def hanlder_on_save_post(dummy):
 @bpy.app.handlers.persistent
 def handler_depsgraph_post_update(scene, depsgraph):
     """Handler that runs after depsgraph updates"""
-
-    boxcutter_running = u.boxcutter_running()
-
-    if boxcutter_running:
-        return None
+    global is_updating
 
     # Early exit if we're updating from our Depsgraph
-    global is_updating
     if u.is_updating():
-        print(f"[INFO] [{_mod}] Skipping depsgraph update as an update is already in progress.")
+        u.LOG(f"[INFO] [{_mod}] Skipping depsgraph update as an update is already in progress.")
         return None
-    else:
-        is_updating = True
 
     # Early exit if saving, no need to check for context first
     if u.is_saving():
         print(f"[INFO] [{_mod}] Skipping depsgraph update on file save")
         return None
 
+    if u.boxcutter_running():
+        return None
+
+    is_updating = True
+
     # Check specifically for object changes
-    if depsgraph.id_type_updated(u.DEPSGRAPH_ID_TYPES.OBJECT):
-        if not u.is_writing_context_safe(scene):
-            print(f"[WARNING] [{_mod}] Depsgraph writing context unsafe.")
-            return None
+    try:
+        if depsgraph.id_type_updated(u.DEPSGRAPH_ID_TYPES.OBJECT):
+            if not u.is_writing_context_safe(scene):
+                print(f"[WARNING] [{_mod}] Depsgraph writing context unsafe.")
+                return None
 
-        if u.object_count_changed():
-            # u.timer_manager.schedule(u.cleanup_object_set_invalid_references, kwargs={"scene": scene}, delay=0, min_interval=0.1)
-            u.cleanup_object_set_invalid_references(scene=scene)
-            # u.timer_manager.schedule(u.handle_object_duplication_update, kwargs={"scene": scene}, delay=0, min_interval=0.1)
-            u.handle_object_duplication_update(scene=scene)
+            if u.object_count_changed():
+                u.cleanup_object_set_invalid_references(scene=scene)
+                u.handle_object_duplication_update(scene=scene)
 
-        # u.object_sets_update_mesh_stats(depsgraph)
+                # u.timer_manager.schedule(u.cleanup_object_set_invalid_references, kwargs={"scene": scene}, delay=0, min_interval=0.1)
+                # u.timer_manager.schedule(u.handle_object_duplication_update, kwargs={"scene": scene}, delay=0, min_interval=0.1)
 
-        # u.timer_manager.schedule(u.vertex_groups_list_update, kwargs={"scene": scene}, delay=0, min_interval=0.1)
-        u.vertex_groups_list_update(scene=scene)
+            # u.object_sets_update_mesh_stats(depsgraph)
 
-        # u.timer_manager.schedule(u.property_list_update, delay=0, min_interval=0.1)
-        u.property_list_update(scene=scene)
+            bpy.ops.r0tools.vertex_groups_list_update()
 
-    CustomTransformsOrientationsTracker.track_custom_orientations(
-        scene,
-    )
+            u.property_list_update(scene=scene)
 
-    is_updating = False
+            # u.timer_manager.schedule(u.property_list_update, delay=0, min_interval=0.1)
+
+        CustomTransformsOrientationsTracker.track_custom_orientations(
+            scene,
+        )
+    except Exception as e:
+        print(f"[ERROR] [{_mod}] {e}")
+    finally:
+        # Ensure flag is always reset
+        is_updating = False
 
 
 depsgraph_handlers = [handler_depsgraph_post_update]
