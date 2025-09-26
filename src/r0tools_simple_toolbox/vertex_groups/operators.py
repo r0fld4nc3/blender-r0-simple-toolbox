@@ -667,6 +667,24 @@ class SimpleToolbox_OT_VgroupsDeselectVertices(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_VertexGroupsListUpdate(bpy.types.Operator):
+    """
+    Update vertex group list and cache
+    """
+
+    bl_label = "Update Vertex Groups List"
+    bl_idname = "r0tools.vertex_groups_list_update"
+    bl_description = "Update Vertex Groups List"
+    bl_options = {"INTERNAL"}
+
+    force: BoolProperty(name="Force", description="Force the update", default=False)  # type: ignore
+
+    def execute(self, context):
+        vertex_groups_list_update(context.scene, force=self.force)
+
+        return {"FINISHED"}
+
+
 # fmt: off
 classes = [
     SimpleToolbox_OT_VgroupsAddPopup,
@@ -681,6 +699,7 @@ classes = [
     SimpleToolbox_OT_VgroupsUnassignVertices,
     SimpleToolbox_OT_VgroupsSelectVertices,
     SimpleToolbox_OT_VgroupsDeselectVertices,
+    SimpleToolbox_OT_VertexGroupsListUpdate,
 ]
 # fmt: on
 
