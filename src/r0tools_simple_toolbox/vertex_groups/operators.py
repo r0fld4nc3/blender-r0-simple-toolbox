@@ -40,8 +40,6 @@ class SimpleToolbox_OT_VgroupsAddPopup(bpy.types.Operator):
         split.prop(self, "vertex_group_name")
 
     def execute(self, context):
-        u.set_is_updating(True)
-
         for obj in u.iter_scene_objects(selected=True, types=self.accepted_object_types):
             vertex_group_add(obj, self.vertex_group_name)
 
@@ -51,8 +49,6 @@ class SimpleToolbox_OT_VgroupsAddPopup(bpy.types.Operator):
 
         if context.mode == u.OBJECT_MODES.EDIT_MESH:
             bpy.ops.r0tools.vgroups_assign_vertices()
-
-        u.set_is_updating(False)
 
         return {"FINISHED"}
 
