@@ -76,7 +76,7 @@ def handler_depsgraph_post_update(scene, depsgraph):
 
             return None  # Return None for timer
 
-        u.timer_manager.schedule(schedule_update, delay=0, min_interval=0.1)
+        u.timer_manager.schedule(schedule_update, delay=0, min_interval=0.01)
 
 
 depsgraph_handlers = [handler_depsgraph_post_update]
