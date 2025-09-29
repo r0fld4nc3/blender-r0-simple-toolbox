@@ -43,7 +43,7 @@ def handler_depsgraph_post_update(scene, depsgraph):
     # Check specifically for object changes
     if depsgraph.id_type_updated(u.DEPSGRAPH_ID_TYPES.OBJECT):
 
-        def schedule_update():
+        def simpletoolbox_depsgraph_update_run():
             # Early exit if saving, no need to check for context first
             if u.is_saving():
                 print(f"[INFO] [{_mod}] Skipping depsgraph update on file save")
@@ -76,7 +76,7 @@ def handler_depsgraph_post_update(scene, depsgraph):
 
             return None  # Return None for timer
 
-        u.timer_manager.schedule(schedule_update, delay=0, min_interval=0.01)
+        u.timer_manager.schedule(simpletoolbox_depsgraph_update_run, delay=0, min_interval=0.01)
 
 
 depsgraph_handlers = [handler_depsgraph_post_update]
