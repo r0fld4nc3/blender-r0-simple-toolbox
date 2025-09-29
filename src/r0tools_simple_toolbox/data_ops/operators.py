@@ -298,6 +298,12 @@ class SimpleToolbox_OT_SelectEdgesWithValue(bpy.types.Operator):
             edge_bevel_layer = u.bmesh_get_bevel_weight_edge_layer(bm)
             crease_layer = u.bmesh_get_crease_layer(bm)
 
+            if not edge_bevel_layer:
+                edge_bevel_layer = u.bmesh_new_bevel_weight_edge_layer(bm)
+
+            if not crease_layer:
+                crease_layer = u.bmesh_new_crease_layer(bm)
+
             active_edge = None
 
             for edge in bm.edges:
