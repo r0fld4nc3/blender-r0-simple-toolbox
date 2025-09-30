@@ -34,7 +34,16 @@ def handler_depsgraph_post_update(scene, depsgraph):
 
     # Early exit if we're updating from our Depsgraph
     if u.is_updating():
-        u.LOG(f"[INFO] [{_mod}] Skipping depsgraph update as an update is already in progress.")
+        u.LOG(f"[INFO] [{_mod}] Skipping depsgraph update: Update already in progress.")
+        return None
+
+    # Check if any running modal operators
+    modal_ops = u.get_active_modal_operators()
+    if modal_ops:
+        if DEBUG:
+            print(f"[INFO] [{_mod}] Skipping depsgraph update: Active Modal Operators running.")
+            for op in modal_ops:
+                print(f"- {op.bl_idname}")
         return None
 
     if u.boxcutter_running():
@@ -47,6 +56,15 @@ def handler_depsgraph_post_update(scene, depsgraph):
             # Early exit if saving, no need to check for context first
             if u.is_saving():
                 print(f"[INFO] [{_mod}] Skipping depsgraph update on file save")
+                return None
+
+            # Check if any running modal operators - also important in the scheduled function
+            modal_ops = u.get_active_modal_operators()
+            if modal_ops:
+                if DEBUG:
+                    print(f"[INFO] [{_mod}] Skipping depsgraph update: Active Modal Operators running.")
+                    for op in modal_ops:
+                        print(f"- {op.bl_idname}")
                 return None
 
             u.set_is_updating(True)
