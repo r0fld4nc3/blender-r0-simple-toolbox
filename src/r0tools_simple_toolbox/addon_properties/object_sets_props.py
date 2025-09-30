@@ -26,33 +26,43 @@ class R0PROP_PG_ObjectSetObjectItem(bpy.types.PropertyGroup):
 class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
     """Property that represents an Object Set that contains a reference to a collection of objects added to the set"""
 
+    _updating = False
+
     def update_object_set_colour(self, dummy):
-        addon_object_sets_props = u.get_addon_object_sets_props()
 
-        allow_override = addon_object_sets_props.object_sets_colour_allow_override
+        if R0PROP_PG_ObjectSetEntryItem._updating:
+            return
 
-        for item in self.objects:
-            obj = item.object
-            if obj is None:
-                continue
+        try:
+            R0PROP_PG_ObjectSetEntryItem._updating = True
+            addon_object_sets_props = u.get_addon_object_sets_props()
 
-            obj.color = self.set_colour
-            # Check in contained in set
-            containing_sets = u.check_object_in_sets(obj)
-            if not containing_sets:  # Object not in an Object Set
-                if u.is_debug():
-                    print(f"[DEBUG] [{_mod}] Object {obj.name} not present in any Object Set.")
+            allow_override = addon_object_sets_props.object_sets_colour_allow_override
+
+            for item in self.objects:
+                obj = item.object
+                if obj is None:
+                    continue
+
                 obj.color = self.set_colour
-            elif containing_sets:
-                if u.is_debug():
-                    print(
-                        f"[DEBUG] [{_mod}] Object {obj.name} contained in {len(containing_sets)} Object Sets. Allow Colour Override is {allow_override}"
-                    )
-                if not allow_override:
-                    obj.color = containing_sets[0].set_colour
-                else:
-                    # Only allow colour override if flag is set.
+                # Check in contained in set
+                containing_sets = u.check_object_in_sets(obj)
+                if not containing_sets:  # Object not in an Object Set
+                    if u.is_debug():
+                        print(f"[DEBUG] [{_mod}] Object {obj.name} not present in any Object Set.")
                     obj.color = self.set_colour
+                elif containing_sets:
+                    if u.is_debug():
+                        print(
+                            f"[DEBUG] [{_mod}] Object {obj.name} contained in {len(containing_sets)} Object Sets. Allow Colour Override is {allow_override}"
+                        )
+                    if not allow_override:
+                        obj.color = containing_sets[0].set_colour
+                    else:
+                        # Only allow colour override if flag is set.
+                        obj.color = self.set_colour
+        finally:
+            R0PROP_PG_ObjectSetEntryItem._updating = True
 
     def set_object_set_colour(self, colour: list):
         """
