@@ -8,6 +8,19 @@ from .boxcutter import boxcutter_running
 _mod = "UTILS.CONTEXT"
 
 
+def get_active_modal_operators(context: bpy.types.Context = None) -> list:
+    """
+    Return a `list` of active Modal Operators.
+
+    When no Modal Operators are running, it will return an empty list
+    """
+
+    if context is None:
+        context = bpy.context
+
+    return context.window.modal_operators if context else []
+
+
 def get_addon_props(scene=None):
     """Get the addon property group from current scene"""
     return get_scene(scene).r0fl_toolbox_props
