@@ -132,4 +132,3 @@ def unregister():
         if u.is_debug():
             print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
-        bpy.utils.unregister_class(cls)
