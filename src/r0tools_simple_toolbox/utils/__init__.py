@@ -13,7 +13,6 @@ from .defer import timer_manager, deferred  # isort: skip
 from .edge_data import (  # isort: skip
     initialize_bweight_presets,
 )
-from .boxcutter import get_boxcutter_props, boxcutter_running  # isort: skip
 from ..export_ops.export_ops import * # isort: skip
 from ..defines import DEBUG # isort: skip
 # fmt: on
@@ -30,7 +29,6 @@ submodules = [
     "general",
     "defer",
     "edge_data",
-    "boxcutter",
 ]
 # fmt: on
 _module_objects = []

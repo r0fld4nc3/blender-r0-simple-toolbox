@@ -2,7 +2,6 @@ import bpy
 
 from . import utils as u
 from .operators import CustomTransformsOrientationsTracker
-from .vertex_groups.operators import SimpleToolbox_OT_VertexGroupsListUpdate
 
 from .defines import DEBUG  # isort: skip
 
@@ -44,9 +43,6 @@ def handler_depsgraph_post_update(scene, depsgraph):
             print(f"[INFO] [{_mod}] Skipping depsgraph update: Active Modal Operators running.")
             for op in modal_ops:
                 print(f"- {op.bl_idname}")
-        return None
-
-    if u.boxcutter_running():
         return None
 
     # Check specifically for object changes

@@ -3,7 +3,6 @@ from pathlib import Path
 import bpy
 
 from ..defines import INTERNAL_NAME, TOOLBOX_PROPS_NAME
-from .boxcutter import boxcutter_running
 
 _mod = "UTILS.CONTEXT"
 
@@ -189,11 +188,6 @@ def is_writing_context_safe(scene) -> bool:
 
     if not hasattr(scene, TOOLBOX_PROPS_NAME):
         LOG(f"[INFO] [{_mod}] Scene does not have proper attribute(s) '{TOOLBOX_PROPS_NAME}'. Skipping.")
-        return False
-
-    # Check for boxcutter running
-    if boxcutter_running():
-        LOG(f"[MONITOR] [{_mod}] Boxcutting running. Skipping.")
         return False
 
     # Check if rendering or baking is active
