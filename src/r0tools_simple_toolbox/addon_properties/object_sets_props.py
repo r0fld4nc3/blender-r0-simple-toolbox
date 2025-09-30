@@ -41,11 +41,11 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
             # Check in contained in set
             containing_sets = u.check_object_in_sets(obj)
             if not containing_sets:  # Object not in an Object Set
-                if u.IS_DEBUG():
+                if u.is_debug():
                     print(f"[DEBUG] [{_mod}] Object {obj.name} not present in any Object Set.")
                 obj.color = self.set_colour
             elif containing_sets:
-                if u.IS_DEBUG():
+                if u.is_debug():
                     print(
                         f"[DEBUG] [{_mod}] Object {obj.name} contained in {len(containing_sets)} Object Sets. Allow Colour Override is {allow_override}"
                     )
@@ -200,7 +200,7 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
             return
 
         self.count = len(self.objects)
-        if u.IS_DEBUG():
+        if u.is_debug():
             print(f"[DEBUG] [{_mod}] Updated count for Set '{self.name}': {self.count}")
 
         self.update_object_set_colour(self)

@@ -146,7 +146,7 @@ class SimpleToolbox_OT_RemoveUnusedVertexGroups(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
-        if u.IS_DEBUG():
+        if u.is_debug():
             print("\n------------- Remove Unused Materials -------------")
 
         original_active = u.get_active_object()
@@ -472,7 +472,7 @@ class SimpleToolbox_OT_VgroupsAssignVertices(bpy.types.Operator):
                     try:
                         vert[deform_layer][vg_index] = 1.0
                     except ReferenceError as ref_error:
-                        if u.IS_DEBUG():
+                        if u.is_debug():
                             print(f"[DEBUG] [{_mod}] AssignVertices: {e}")
                     except Exception as e:
                         print(f"[ERROR] [{_mod}] AssignVertices: {e}")

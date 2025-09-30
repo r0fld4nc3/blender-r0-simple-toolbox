@@ -268,7 +268,7 @@ def vertex_groups_list_update(scene=None, force: bool = False):
     global _vertex_groups_cache
 
     if u.get_selected_objects():
-        if u.IS_DEBUG():
+        if u.is_debug():
             print("------------- Vertex Groups List Update -------------")
 
         # Calculate new vertex groups data
@@ -314,7 +314,7 @@ def vertex_groups_list_update(scene=None, force: bool = False):
             try:
                 addon_vertex_groups_props.vertex_groups.clear()
                 _vertex_groups_cache = {}
-                if u.IS_DEBUG():
+                if u.is_debug():
                     print(f"[DEBUG] [{_mod}] Cleared UIList vertex_groups")
             except Exception as e:
                 print(f"[ERROR] [{_mod}] Error clearing vertex groups list when no selected objects: {e}")

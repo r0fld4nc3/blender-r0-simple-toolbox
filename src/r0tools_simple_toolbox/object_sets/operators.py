@@ -475,7 +475,7 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
             if object_set.separator or object_set.count < 1:
                 return {"FINISHED"}
 
-            if u.IS_DEBUG():
+            if u.is_debug():
                 print(f"[DEBUG] [{_mod}] {self.add_to_selection=}")
 
             if not self.add_to_selection:
@@ -701,7 +701,7 @@ class SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections(bpy.types.Operator):
     def execute(self, context):
         import random
 
-        if u.IS_DEBUG():
+        if u.is_debug():
             print("\n------------- Move Objects In Object Sets Into Set Collections -------------")
 
         active_index = get_active_object_set_index()
@@ -796,7 +796,7 @@ class SimpleToolbox_OT_LinkObjectsInObjectSetsToCollections(bpy.types.Operator):
     def execute(self, context):
         import random
 
-        if u.IS_DEBUG():
+        if u.is_debug():
             print("\n------------- Link Objects In Object Sets To Set Collections -------------")
 
         active_index = get_active_object_set_index()

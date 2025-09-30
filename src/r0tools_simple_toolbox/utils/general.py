@@ -25,7 +25,7 @@ _mod = "UTILS.GENERAL"
 _last_object_count = 0
 
 
-def IS_DEBUG():
+def is_debug():
     """Return current debug state"""
     addon_prefs = get_addon_prefs()
     return DEBUG or addon_prefs.debug
@@ -97,7 +97,7 @@ def set_object_mode(mode: str):
     Args:
         mode: One of the modes defined in `OBJECT_MODES`
     """
-    if IS_DEBUG():
+    if is_debug():
         print(f"[DEBUG] [{_mod}] Setting mode: {mode}")
 
     # Edit Mode weirdness fix
@@ -128,7 +128,7 @@ def select_object(obj: bpy.types.Object, add=True, set_active=False) -> bpy.type
     Returns:
         The selected object or None if failed
     """
-    if IS_DEBUG():
+    if is_debug():
         print(f"[DEBUG] [{_mod}] Selecting {obj.name} {add=} {set_active=}")
     if not add:
         deselect_all()
@@ -160,7 +160,7 @@ def deselect_object(obj: bpy.types.Object) -> bpy.types.Object | None:
     Returns:
         The deselected object or None if failed
     """
-    if IS_DEBUG():
+    if is_debug():
         print(f"[DEBUG] [{_mod}] Deselecting {obj.name}")
 
     if not is_valid_object_global(obj):
@@ -183,24 +183,24 @@ def is_object_visible_in_viewport(obj):
     """
     # Check if the object is set to be visible in the viewport
     if not obj.visible_get():
-        if IS_DEBUG():
+        if is_debug():
             print(f"[DEBUG] [{_mod}] {obj.name} is not visible in viewport.")
         return False
 
-    if IS_DEBUG():
+    if is_debug():
         print(f"[DEBUG] [{_mod}] {obj.name} is visible in viewport.")
         print(f"[DEBUG] [{_mod}] Checking {obj.name} Collection(s).")
 
     # Check if the object's collection is visible in the viewport
     for collection in obj.users_collection:
-        if IS_DEBUG():
+        if is_debug():
             print(f"[DEBUG] [{_mod}]    - {collection.name}")
         if not collection.hide_viewport:
-            if IS_DEBUG():
+            if is_debug():
                 print(f"[DEBUG] [{_mod}]    - {collection.name} is visible.")
             return True
         else:
-            if IS_DEBUG():
+            if is_debug():
                 print(f"[DEBUG] [{_mod}]    - {collection.name} is hidden.")
 
     return False
@@ -395,7 +395,7 @@ def is_valid_object_global(obj):
     except (ReferenceError, KeyError):
         return False
     except Exception as e:
-        if IS_DEBUG():
+        if is_debug():
             print(f"[ERROR] [{_mod}] Validation error: {e}")
         return False
 
@@ -768,7 +768,7 @@ def property_list_update(scene=None, force_run=False):
     if get_selected_objects() or force_run:
         current_selection = {obj.name for obj in iter_scene_objects(selected=True)}
 
-        if IS_DEBUG():
+        if is_debug():
             print("------------- Custom Property List Update -------------")
 
         # Store the current selection state before clearing the list
@@ -786,7 +786,7 @@ def property_list_update(scene=None, force_run=False):
         for obj in iter_scene_objects(selected=True):
             # Object Properties
             for prop_name in obj.keys():
-                if IS_DEBUG():
+                if is_debug():
                     print(f"[DEBUG] [{_mod}] (OP) {obj.name} - {prop_name=}")
                 if not prop_name.startswith("_") and prop_name not in unique_object_data_props:
                     unique_object_data_props.add(prop_name)
@@ -794,7 +794,7 @@ def property_list_update(scene=None, force_run=False):
             # Object Data Properties
             if obj.data and obj.type == "MESH":
                 for prop_name in obj.data.keys():
-                    if IS_DEBUG():
+                    if is_debug():
                         print(f"[DEBUG] [{_mod}] (ODP) {obj.name} - {prop_name=}")
                     if not prop_name.startswith("_") and prop_name not in unique_mesh_data_props:
                         unique_mesh_data_props.add(prop_name)
@@ -828,14 +828,14 @@ def property_list_update(scene=None, force_run=False):
         # Clear the property list if no objects are selected
         try:
             addon_props.custom_property_list.clear()
-            if IS_DEBUG():
+            if is_debug():
                 print(f"[DEBUG] [{_mod}] Cleared UIList custom_property_list")
         except Exception as e:
             print(f"[ERROR] [{_mod}] Error clearing custom property list when no selected objects: {e}")
             context_error_debug(error=e)
         try:
             addon_props.last_object_selection = ""
-            if IS_DEBUG():
+            if is_debug():
                 print(f"[DEBUG] [{_mod}] Cleared property last_object_selection")
         except Exception as e:
             print(f"[ERROR] [{_mod}] Error setting last object selection when no selected objects: {e}")
@@ -892,7 +892,7 @@ def create_panel_variant(panel_class, space_type: str = None, region_type: str =
 
 def context_error_debug(error: str = None, extra_prints: list = []):
     """Print debug information about the current context and error"""
-    if not IS_DEBUG():
+    if not is_debug():
         return
 
     import inspect

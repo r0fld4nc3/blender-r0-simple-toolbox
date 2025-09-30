@@ -271,7 +271,7 @@ _last_update_time = 0
 
 
 def object_sets_update_mesh_stats(depsgraph=None):
-    if u.IS_DEBUG():
+    if u.is_debug():
         print("------------- Object Sets Update Mesh Stats -------------")
 
     scene = bpy.context.scene
@@ -437,7 +437,7 @@ def refresh_object_sets_colours(context):
         print(f"[WARNING] [{_mod}] Object Sets Refresh Object Sets Colours: Unsafe Context.")
         return None
 
-    if u.IS_DEBUG():
+    if u.is_debug():
         print(f"[DEBUG] [{_mod}] Force Refreshing Object Sets' Colours")
 
     addon_object_sets_props = u.get_addon_object_sets_props()
@@ -448,7 +448,7 @@ def refresh_object_sets_colours(context):
         return
 
     for object_set in object_sets:
-        if u.IS_DEBUG():
+        if u.is_debug():
             print(f"[DEBUG] [{_mod}] Refresh: {object_set.name}")
         object_set.update_object_set_colour(context)
 
