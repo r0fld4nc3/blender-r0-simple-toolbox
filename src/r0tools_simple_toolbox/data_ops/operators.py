@@ -257,7 +257,7 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
         total_time = end_time - start_time
         duration_msg = f"Finished. Took {total_time:.4f} seconds."
 
-        u.LOG(f"EdgeDataToVertexColour: {duration_msg}")
+        u.log(f"EdgeDataToVertexColour: {duration_msg}")
         self.report({"INFO"}, duration_msg)
 
         return {"FINISHED"}

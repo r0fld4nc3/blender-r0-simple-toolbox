@@ -87,9 +87,9 @@ def update_vertex_group_name_callback(self, context):
                 renamed_objects.append(obj.name)
 
     if renamed_count > 0:
-        u.LOG(f"[INFO] [{_mod}] Renamed vertex group '{old_name}' to '{new_name}' in {renamed_count} objects")
+        u.log(f"[INFO] [{_mod}] Renamed vertex group '{old_name}' to '{new_name}' in {renamed_count} objects")
         if u.is_debug():
-            u.LOG("\t• " + "\n\t• ".join(renamed_objects))
+            u.log("\t• " + "\n\t• ".join(renamed_objects))
 
 
 class R0PROP_PG_VertexGroupPropertyItem(bpy.types.PropertyGroup):

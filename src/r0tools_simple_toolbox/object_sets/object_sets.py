@@ -466,7 +466,7 @@ def load_legacy_object_sets(dummy):
     legacy_sets = addon_props.object_sets
 
     if legacy_sets:
-        u.LOG(f"[INFO] [{_mod}] Loading legacy sets")
+        u.log(f"[INFO] [{_mod}] Loading legacy sets")
 
     # Collect objects
     total_objects = 0
@@ -486,7 +486,7 @@ def load_legacy_object_sets(dummy):
         if legacy_set.separator:
             new_set.separator = True
             new_set.name = new_set.default_separator_name
-            u.LOG(f"[INFO] [{_mod}] Copy legacy Separator '{legacy_set.name}'")
+            u.log(f"[INFO] [{_mod}] Copy legacy Separator '{legacy_set.name}'")
             continue
 
         exists = legacy_set.name in [object_set.name for object_set in u.get_object_sets()]
@@ -497,7 +497,7 @@ def load_legacy_object_sets(dummy):
 
         legacy_objects = legacy_set.objects
 
-        u.LOG(f"[INFO] [{_mod}] Copying legacy Set '{legacy_set.name}' ({len(legacy_objects)} Objects)")
+        u.log(f"[INFO] [{_mod}] Copying legacy Set '{legacy_set.name}' ({len(legacy_objects)} Objects)")
 
         for item in legacy_objects:
             legacy_obj = item.object
@@ -517,7 +517,7 @@ def load_legacy_object_sets(dummy):
 
     # Remove legacy object sets
     if legacy_sets:
-        u.LOG(f"[INFO] [{_mod}] Clearing legacy sets")
+        u.log(f"[INFO] [{_mod}] Clearing legacy sets")
         if u.is_writing_context_safe(bpy.context.scene):
             legacy_sets.clear()
         else:

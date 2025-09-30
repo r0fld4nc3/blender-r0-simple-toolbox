@@ -42,7 +42,7 @@ def draw_edge_bweights_presets_operators(layout, context):
         SimpleToolbox_OT_ApplyBWeightPreset,
         SimpleToolbox_OT_SelectColourAttributeLayer,
     )
-    from ..utils import LOG, get_addon_edge_data_props, get_addon_prefs, get_addon_props
+    from ..utils import get_addon_edge_data_props, get_addon_prefs, get_addon_props, log
 
     addon_prefs = get_addon_prefs()
     addon_edge_data_props = get_addon_edge_data_props()
@@ -123,7 +123,7 @@ def draw_edge_bweights_presets_operators(layout, context):
 
 def draw_edge_data_panel_ui(layout, context):
     from ..data_ops import SimpleToolbox_OT_EdgeDataToVertexColour
-    from ..utils import LOG, get_addon_edge_data_props, get_addon_prefs, get_addon_props
+    from ..utils import get_addon_edge_data_props, get_addon_prefs, get_addon_props, log
 
     addon_edge_data_props = get_addon_edge_data_props()
 

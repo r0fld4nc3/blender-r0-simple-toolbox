@@ -33,7 +33,7 @@ def handler_depsgraph_post_update(scene, depsgraph):
 
     # Early exit if we're updating from our Depsgraph
     if u.is_updating():
-        u.LOG(f"[INFO] [{_mod}] Skipping depsgraph update: Update already in progress.")
+        u.log(f"[INFO] [{_mod}] Skipping depsgraph update: Update already in progress.")
         return None
 
     # Check if any running modal operators

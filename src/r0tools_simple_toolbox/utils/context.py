@@ -178,35 +178,35 @@ def is_writing_context_safe(scene) -> bool:
     Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock
     """
 
-    from .general import LOG
+    from .general import log
 
     if is_saving():
-        LOG(f"[INFO] [{_mod}] Unsafe write context while file is being saved.")
+        log(f"[INFO] [{_mod}] Unsafe write context while file is being saved.")
         return False
 
     scene = get_scene(scene)
 
     if not hasattr(scene, TOOLBOX_PROPS_NAME):
-        LOG(f"[INFO] [{_mod}] Scene does not have proper attribute(s) '{TOOLBOX_PROPS_NAME}'. Skipping.")
+        log(f"[INFO] [{_mod}] Scene does not have proper attribute(s) '{TOOLBOX_PROPS_NAME}'. Skipping.")
         return False
 
     # Check if rendering or baking is active
     if scene.render.use_lock_interface:
-        LOG(f"[MONITOR] [{_mod}] Interface is locked (rendering/baking). Skipping.")
+        log(f"[MONITOR] [{_mod}] Interface is locked (rendering/baking). Skipping.")
         return False
 
     # Check for active jobs
     jobs = ("RENDER", "COMPOSITE", "OBJECT_BAKE")
     jobs_active = [bpy.app.is_job_running(job) for job in jobs]
     if any(jobs_active):
-        LOG(f"[MONITOR] [{_mod}] Active job(s) detected. Skipping.")
+        log(f"[MONITOR] [{_mod}] Active job(s) detected. Skipping.")
         return False
 
     # Additional check for bake operator
     if hasattr(bpy.context, "active_operator") and bpy.context.active_operator:
         op_idname = bpy.context.active_operator.bl_idname
         if "bake" in op_idname.lower():
-            LOG(f"[MONITOR] [{_mod}] Bake operator active: {op_idname}. Skipping.")
+            log(f"[MONITOR] [{_mod}] Bake operator active: {op_idname}. Skipping.")
             return False
 
     return True

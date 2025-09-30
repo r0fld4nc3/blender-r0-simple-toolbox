@@ -197,13 +197,13 @@ class SimpleToolbox_OT_UpdateObjectSetsUUIDs(bpy.types.Operator):
 
             # Is duplicate UUID
             if uuid in uuids:
-                u.LOG(f"[INFO] [{_mod}] UUID {uuid} is duplicate. Regenerating.")
+                u.log(f"[INFO] [{_mod}] UUID {uuid} is duplicate. Regenerating.")
                 uuid = u.generate_uuid()
                 uuids_fixed += 1
 
             # UUID doesn't exist (legacy reasons)
             elif not object_set.uuid or object_set.uuid == "":
-                u.LOG(f"[INFO] [{_mod}] {object_set.name} does not have valid UUID. Generating.")
+                u.log(f"[INFO] [{_mod}] {object_set.name} does not have valid UUID. Generating.")
                 uuid = u.generate_uuid()
                 uuids_fixed += 1
 
@@ -583,7 +583,7 @@ class SimpleToolbox_OT_RandomiseObjectSetsColours(bpy.types.Operator):
                     if not is_similar:
                         used_colours.add(new_colour)
                         object_set.set_colour = new_colour
-                        u.LOG(f"[INFO] [{_mod}] Updating colour of Object Set '{object_set_name}': {new_colour}")
+                        u.log(f"[INFO] [{_mod}] Updating colour of Object Set '{object_set_name}': {new_colour}")
                         break
 
         bpy.ops.r0tools.object_sets_refresh()
@@ -634,7 +634,7 @@ class SimpleToolbox_OT_RandomiseObjectSetsColours(bpy.types.Operator):
             # A distance of 0.313, means that `new_colour` is only 31.3% different than `color_to_compare_to`.
             # So they are 68.7% similar.
             similar_pct = (1 - distance / max_distance) * 100
-            u.LOG(
+            u.log(
                 f"[INFO] [{_mod}] Color {new_colour} is {similar_pct:.1f}% similar to {colour_to_compare_to} with distance of {distance:.3f} | ({mapped_threshold:.3f})"
             )
 
@@ -722,7 +722,7 @@ class SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections(bpy.types.Operator):
             i = get_object_sets_count()
             for object_set in reversed(get_object_sets()):
                 i -= 1
-                u.LOG(f"[INFO] [{_mod}] {i} {object_set.name}")
+                u.log(f"[INFO] [{_mod}] {i} {object_set.name}")
                 if object_set.separator:
                     continue
                 collection = u.collections_create_new(get_object_set_name_at_index(i))
@@ -817,7 +817,7 @@ class SimpleToolbox_OT_LinkObjectsInObjectSetsToCollections(bpy.types.Operator):
             i = get_object_sets_count()
             for object_set in reversed(get_object_sets()):
                 i -= 1
-                u.LOG(f"[INFO] [{_mod}] {i} {object_set}.name")
+                u.log(f"[INFO] [{_mod}] {i} {object_set}.name")
                 if object_set.separator:
                     continue
                 collection = u.collections_create_new(get_object_set_name_at_index(i))
