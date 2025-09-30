@@ -6,7 +6,7 @@ from pathlib import Path
 import bmesh
 import bpy
 
-from ..defines import DEBUG, TOOLBOX_PROPS_NAME
+from .. import defines
 from ..utils import (
     COLLECTION_COLOURS,
     CUSTOM_PROPERTIES_TYPES,
@@ -28,7 +28,15 @@ _last_object_count = 0
 def is_debug():
     """Return current debug state"""
     addon_prefs = get_addon_prefs()
-    return DEBUG or addon_prefs.debug
+
+    if not addon_prefs:
+        return defines.DEBUG
+
+    # Set global DEBUG as well to match
+    if defines.DEBUG != addon_prefs.debug:
+        defines.DEBUG = addon_prefs.debug
+
+    return addon_prefs.debug
 
 
 def log(*values: object, sep: str | None = "", end: str | None = "\n", flush=False):

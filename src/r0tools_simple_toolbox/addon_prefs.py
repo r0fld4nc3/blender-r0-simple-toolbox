@@ -158,13 +158,6 @@ def register():
         # print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
-    addon_prefs = u.get_addon_prefs()
-    global DEBUG
-    if addon_prefs.debug:
-        DEBUG = True
-    else:
-        DEBUG = False
-
 
 def unregister():
     for cls in classes:

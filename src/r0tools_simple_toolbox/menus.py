@@ -1,6 +1,6 @@
 import bpy
 
-from .defines import DEBUG
+from .utils import is_debug
 
 _mod = "MENUS"
 
@@ -63,13 +63,13 @@ classes = [
 
 def register():
     for cls in classes:
-        if DEBUG:
+        if is_debug():
             print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
 
 def unregister():
     for cls in classes:
-        if DEBUG:
+        if is_debug():
             print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

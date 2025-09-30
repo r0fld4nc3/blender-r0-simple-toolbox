@@ -11,7 +11,6 @@ from bpy.props import (  # type: ignore
 )
 
 from .. import utils as u
-from ..defines import DEBUG
 
 _mod = "VERTEX GROUPS PROPS"
 
@@ -133,33 +132,33 @@ load_post_handlers = []
 
 def register():
     for cls in classes:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
-    if DEBUG:
+    if u.is_debug():
         print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_vertex_groups_props")
     bpy.types.Scene.r0fl_vertex_groups_props = PointerProperty(
         type=r0VertexGroupsProps, name="r0fl Toolbox Vertex Groups"
     )
 
     for handler in load_post_handlers:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Register load_post_handler: {handler.__name__}")
         bpy.app.handlers.load_post.append(handler)
 
 
 def unregister():
     for cls in classes:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
 
     for handler in load_post_handlers:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Unregister load_post_handler: {handler.__name__}")
         bpy.app.handlers.load_post.remove(handler)
 
-    if DEBUG:
+    if u.is_debug():
         print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_vertex_groups_props")
     del bpy.types.Scene.r0fl_vertex_groups_props

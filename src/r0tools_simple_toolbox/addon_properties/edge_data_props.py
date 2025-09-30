@@ -11,7 +11,6 @@ from bpy.props import (  # type: ignore
 )
 
 from .. import utils as u
-from ..defines import DEBUG
 
 _mod = "EDGE DATA PROPS"
 
@@ -87,33 +86,33 @@ load_post_handlers = [u.initialize_bweight_presets]
 
 def register():
     for cls in classes:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
-    if DEBUG:
+    if u.is_debug():
         print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_edge_data_props")
     bpy.types.Scene.r0fl_toolbox_edge_data_props = PointerProperty(
         type=r0SimpleToolboxEdgeDataProps, name="r0fl Toolbox Edge Data"
     )
 
     for handler in load_post_handlers:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Register load_post_handler: {handler.__name__}")
         bpy.app.handlers.load_post.append(handler)
 
 
 def unregister():
     for cls in classes:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
 
     for handler in load_post_handlers:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Unregister load_post_handler: {handler.__name__}")
         bpy.app.handlers.load_post.remove(handler)
 
-    if DEBUG:
+    if u.is_debug():
         print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_edge_data_props")
     del bpy.types.Scene.r0fl_toolbox_edge_data_props

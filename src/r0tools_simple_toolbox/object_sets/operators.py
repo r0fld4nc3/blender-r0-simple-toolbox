@@ -4,7 +4,6 @@ import bpy
 from bpy.props import BoolProperty, FloatVectorProperty, IntProperty, StringProperty
 
 from .. import utils as u
-from ..defines import DEBUG
 from .object_sets import *
 
 _mod = "OBJECT_SETS.OPERATORS"
@@ -890,7 +889,7 @@ def object_sets_modal_menu_func(self, context):
 
 def register():
     for cls in classes:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
@@ -903,7 +902,7 @@ def register():
 
 def unregister():
     for cls in classes:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
 

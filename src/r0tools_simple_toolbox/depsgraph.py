@@ -3,8 +3,6 @@ import bpy
 from . import utils as u
 from .operators import CustomTransformsOrientationsTracker
 
-from .defines import DEBUG  # isort: skip
-
 _mod = "DEPSGRAPH"
 
 is_saving = False
@@ -12,7 +10,7 @@ is_updating = False  # Check if our depsgraph update is running
 
 
 @bpy.app.handlers.persistent
-def hanlder_on_save_pre(dummy):
+def handler_on_save_pre(dummy):
     """Set the save lock before a file is saved."""
     global is_saving
     is_saving = True
@@ -20,7 +18,7 @@ def hanlder_on_save_pre(dummy):
 
 
 @bpy.app.handlers.persistent
-def hanlder_on_save_post(dummy):
+def handler_on_save_post(dummy):
     """Set the save lock after a file is saved."""
     global is_saving
     is_saving = False
@@ -39,10 +37,10 @@ def handler_depsgraph_post_update(scene, depsgraph):
     # Check if any running modal operators
     modal_ops = u.get_active_modal_operators()
     if modal_ops:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Skipping depsgraph update: Active Modal Operators running.")
             for op in modal_ops:
-                print(f"- {op.bl_idname}")
+                print(f"{op.bl_idname}")
         return None
 
     # Check specifically for object changes
@@ -57,10 +55,10 @@ def handler_depsgraph_post_update(scene, depsgraph):
             # Check if any running modal operators - also important in the scheduled function
             modal_ops = u.get_active_modal_operators()
             if modal_ops:
-                if DEBUG:
+                if u.is_debug():
                     print(f"[INFO] [{_mod}] Skipping depsgraph update: Active Modal Operators running.")
                     for op in modal_ops:
-                        print(f"- {op.bl_idname}")
+                        print(f"{op.bl_idname}")
                 return None
 
             u.set_is_updating(True)
@@ -97,35 +95,35 @@ depsgraph_handlers = [handler_depsgraph_post_update]
 
 load_post_handlers = [u.refresh_object_sets_colours]
 
-save_pre_handlers = [hanlder_on_save_pre]
-save_post_handlers = [hanlder_on_save_post]
+save_pre_handlers = [handler_on_save_pre]
+save_post_handlers = [handler_on_save_post]
 
 
 def register():
     # Depsgraph Handlers
     for handler in depsgraph_handlers:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Registering {handler}")
         if handler not in bpy.app.handlers.depsgraph_update_post:
             bpy.app.handlers.depsgraph_update_post.append(handler)
 
     # Save Pre Handlers
     for handler in save_pre_handlers:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Register on_save_pre handler: {handler.__name__}")
         if handler not in bpy.app.handlers.save_pre:
             bpy.app.handlers.save_pre.append(handler)
 
     # Save Post Handlers
     for handler in save_post_handlers:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Register on_save_post handler: {handler.__name__}")
         if handler not in bpy.app.handlers.save_post:
             bpy.app.handlers.save_post.append(handler)
 
     # Load Post Handlers
     for handler in load_post_handlers:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Register load_post_handler: {handler.__name__}")
         if handler not in bpy.app.handlers.load_post:
             bpy.app.handlers.load_post.append(handler)
@@ -134,28 +132,28 @@ def register():
 def unregister():
     # Depsgraph Handlers
     for handler in depsgraph_handlers:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Unregister {handler}")
         if handler in bpy.app.handlers.depsgraph_update_post:
             bpy.app.handlers.depsgraph_update_post.remove(handler)
 
     # Save Pre Handlers
     for handler in save_pre_handlers:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Unregister on_save_pre handler: {handler.__name__}")
         if handler in bpy.app.handlers.save_pre:
             bpy.app.handlers.save_pre.remove(handler)
 
     # Save Post Handlers
     for handler in save_post_handlers:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Unregister on_save_post handler: {handler.__name__}")
         if handler in bpy.app.handlers.save_post:
             bpy.app.handlers.save_post.remove(handler)
 
     # Load Post Handlers
     for handler in load_post_handlers:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Unregister load_post_handler: {handler.__name__}")
         if handler in bpy.app.handlers.load_post:
             bpy.app.handlers.load_post.remove(handler)

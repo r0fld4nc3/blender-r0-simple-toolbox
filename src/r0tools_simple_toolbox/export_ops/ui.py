@@ -1,7 +1,7 @@
 import bpy
 
 from .. import utils as u
-from ..defines import ADDON_CATEGORY, ADDON_NAME_BARE, DEBUG, IDNAME_EXTRA
+from ..defines import ADDON_CATEGORY, ADDON_NAME_BARE, IDNAME_EXTRA
 from . import _mod as parent_mod
 from .operators import *
 
@@ -53,13 +53,13 @@ def register():
             classes.append(variant)
 
     for cls in classes:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
 
 def unregister():
     for cls in classes:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
