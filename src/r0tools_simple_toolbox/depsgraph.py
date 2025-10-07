@@ -26,7 +26,7 @@ def handler_on_save_post(dummy):
 
 
 @bpy.app.handlers.persistent
-def handler_depsgraph_post_update_depr(scene, depsgraph):
+def handler_depsgraph_post_update(scene, depsgraph):
     """Handler that runs after depsgraph updates"""
 
     # Early exit if we're updating from our Depsgraph
@@ -46,7 +46,7 @@ def handler_depsgraph_post_update_depr(scene, depsgraph):
     # Check specifically for object changes
     if depsgraph.id_type_updated(u.DEPSGRAPH_ID_TYPES.OBJECT):
 
-        def simpletoolbox_depsgraph_update_run():
+        def _run_depsgragh_post_update():
             # Early exit if saving, no need to check for context first
             if u.is_saving():
                 print(f"[INFO] [{_mod}] Skipping depsgraph update on file save")
@@ -68,16 +68,11 @@ def handler_depsgraph_post_update_depr(scene, depsgraph):
                     u.cleanup_object_set_invalid_references(scene=scene)
                     u.handle_object_duplication_update(scene=scene)
 
-                    # u.timer_manager.schedule(u.cleanup_object_set_invalid_references, kwargs={"scene": scene}, delay=0, min_interval=0.1)
-                    # u.timer_manager.schedule(u.handle_object_duplication_update, kwargs={"scene": scene}, delay=0, min_interval=0.1)
-
                 # u.object_sets_update_mesh_stats(depsgraph)
 
                 bpy.ops.r0tools.vertex_groups_list_update()
 
                 u.property_list_update(scene=scene)
-
-                # u.timer_manager.schedule(u.property_list_update, delay=0, min_interval=0.1)
 
                 CustomTransformsOrientationsTracker.track_custom_orientations(scene)
             except Exception as e:
@@ -88,70 +83,7 @@ def handler_depsgraph_post_update_depr(scene, depsgraph):
 
             return None  # Return None for timer
 
-        u.timer_manager.schedule(simpletoolbox_depsgraph_update_run, delay=0, min_interval=0.01)
-
-
-@bpy.app.handlers.persistent
-def handler_depsgraph_post_update(scene, depsgraph):
-    """Handler that runs after depsgraph updates"""
-
-    # Early exit if we're updating from our Depsgraph
-    if u.is_updating():
-        u.log(f"[INFO] [{_mod}] Skipping depsgraph update: Update already in progress.")
-        return None
-
-    # Check if any running modal operators
-    modal_ops = u.get_active_modal_operators()
-    if modal_ops:
-        if u.is_debug():
-            print(f"[INFO] [{_mod}] Skipping depsgraph update: Active Modal Operators running.")
-            for op in modal_ops:
-                print(f"{op.bl_idname}")
-        return None
-
-    # Check specifically for object changes
-    if depsgraph.id_type_updated(u.DEPSGRAPH_ID_TYPES.OBJECT):
-
-        # Early exit if saving, no need to check for context first
-        if u.is_saving():
-            print(f"[INFO] [{_mod}] Skipping depsgraph update on file save")
-            return None
-
-        # Check if any running modal operators - also important in the scheduled function
-        modal_ops = u.get_active_modal_operators()
-        if modal_ops:
-            if u.is_debug():
-                print(f"[INFO] [{_mod}] Skipping depsgraph update: Active Modal Operators running.")
-                for op in modal_ops:
-                    print(f"{op.bl_idname}")
-            return None
-
-        u.set_is_updating(True)
-
-        try:
-            if u.object_count_changed():
-                u.cleanup_object_set_invalid_references(scene=scene)
-                u.handle_object_duplication_update(scene=scene)
-
-                # u.timer_manager.schedule(u.cleanup_object_set_invalid_references, kwargs={"scene": scene}, delay=0, min_interval=0.1)
-                # u.timer_manager.schedule(u.handle_object_duplication_update, kwargs={"scene": scene}, delay=0, min_interval=0.1)
-
-            # u.object_sets_update_mesh_stats(depsgraph)
-
-            bpy.ops.r0tools.vertex_groups_list_update()
-
-            u.property_list_update(scene=scene)
-
-            # u.timer_manager.schedule(u.property_list_update, delay=0, min_interval=0.1)
-
-            CustomTransformsOrientationsTracker.track_custom_orientations(scene)
-        except Exception as e:
-            print(f"[ERROR] [{_mod}] {e}")
-        finally:
-            # Ensure flag is always reset
-            u.set_is_updating(False)
-
-        return None  # Return None for timer
+        u.timer_manager.schedule(_run_depsgragh_post_update, delay=0, min_interval=0.01)
 
 
 depsgraph_handlers = [handler_depsgraph_post_update]
