@@ -359,7 +359,7 @@ class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
 
             object_set_count_after = object_set.count - object_set_count_before
 
-            u.timer_manager.schedule(object_sets_update_mesh_stats, delay=1, min_interval=1)
+            # u.timer_manager.schedule(object_sets_update_mesh_stats, delay=1, min_interval=1)
 
             self.report(
                 {"INFO"},
