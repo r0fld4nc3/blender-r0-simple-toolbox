@@ -5,7 +5,8 @@ from pathlib import Path
 
 import bmesh
 import bpy
-from bpy.props import BoolProperty, FloatVectorProperty, IntProperty, StringProperty
+from bpy.props import BoolProperty, FloatProperty, IntProperty, StringProperty
+from mathutils import Vector
 
 from . import defines
 from . import utils as u
@@ -1684,6 +1685,49 @@ class SimpleToolbox_OT_SelectEmptyObjects(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_SelectNonUniformScaleObjects(bpy.types.Operator):
+    bl_label = "Check Non-Uniform Objects"
+    bl_idname = "r0tools.select_non_uniform_scale_objects"
+    bl_description = "Evaluates which objects in the scene have a non-uniform scale. The comparison threshold tolerance can be adjusted"
+    bl_options = {"REGISTER", "UNDO"}
+
+    accepted_contexts = [u.OBJECT_MODES.OBJECT]
+
+    tolerance: FloatProperty(
+        name="Tolerance",
+        description="Maximum allowed distance from a scale of (1, 1, 1)",
+        default=1e-5,
+        min=1e-9,
+        soft_max=1e2,
+        precision=6,
+    )  # type: ignore
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode in cls.accepted_contexts
+
+    def execute(self, context):
+        target_scale = Vector((1.0, 1.0, 1.0))
+
+        objs_to_select = [
+            obj
+            for obj in u.iter_scene_objects(types=[u.OBJECT_TYPES.MESH, u.OBJECT_TYPES.CURVE, u.OBJECT_TYPES.SURFACE])
+            if (obj.scale - target_scale).length > self.tolerance
+        ]
+
+        if not objs_to_select:
+            self.report({"INFO"}, "No objects with non-uniform scale found.")
+            return {"FINISHED"}
+
+        u.deselect_all()
+
+        for obj in objs_to_select:
+            u.select_object(obj, set_active=True)
+
+        self.report({"INFO"}, f"Selected {len(objs_to_select)} objects with non-uniform scale.")
+        return {"FINISHED"}
+
+
 class SimpleToolbox_OT_ClearAxisSharpEdgesX(bpy.types.Operator):
     bl_label = "Clear Sharp X"
     bl_idname = "r0tools.clear_sharp_axis_x"
@@ -1855,7 +1899,7 @@ classes = [
     SimpleToolbox_OT_RestoreNthEdge,
     SimpleToolbox_OT_ResetEdgeData,
     SimpleToolbox_OT_RestoreRotationFromSelection,
-    SimpleToolbox_OT_SelectEmptyObjects,
+    SimpleToolbox_OT_SelectEmptyObjects,SimpleToolbox_OT_SelectNonUniformScaleObjects,
     SimpleToolbox_OT_ClearAxisSharpEdgesX,
     SimpleToolbox_OT_ClearAxisSharpEdgesY,
     SimpleToolbox_OT_ClearAxisSharpEdgesZ,

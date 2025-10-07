@@ -135,6 +135,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 row_split = object_ops_panel_row.split(align=True)
                 # Select Empty Objects
                 row_split.operator(SimpleToolbox_OT_SelectEmptyObjects.bl_idname)
+                row_split.operator(SimpleToolbox_OT_SelectNonUniformScaleObjects.bl_idname)
 
                 # >> Row
                 object_ops_panel_row = object_ops_panel.row(align=True)
