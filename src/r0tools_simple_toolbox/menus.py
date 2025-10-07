@@ -49,6 +49,14 @@ class SimpleToolbox_MT_VertexGroupsActionsMenu(bpy.types.Menu):
         layout.operator(SimpleToolbox_OT_RemoveUnusedVertexGroups.bl_idname, icon="X")
 
 
+def draw_materials_actions_menu(self, context):
+    from .operators import SimpleToolbox_OT_RemoveUnusedMaterials
+
+    layout = self.layout
+    layout.separator()
+    layout.operator(SimpleToolbox_OT_RemoveUnusedMaterials.bl_idname)
+
+
 # ===================================================================
 #   Register & Unregister
 # ===================================================================
@@ -67,9 +75,13 @@ def register():
             print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
+    bpy.types.MATERIAL_MT_context_menu.append(draw_materials_actions_menu)
+
 
 def unregister():
     for cls in classes:
         if is_debug():
             print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
+
+    bpy.types.MATERIAL_MT_context_menu.remove(draw_materials_actions_menu)
