@@ -1,5 +1,3 @@
-import uuid
-
 import bpy
 from bpy.props import (  # type: ignore
     BoolProperty,
@@ -62,7 +60,7 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
                         # Only allow colour override if flag is set.
                         obj.color = self.set_colour
         finally:
-            R0PROP_PG_ObjectSetEntryItem._updating = True
+            R0PROP_PG_ObjectSetEntryItem._updating = False
 
     def set_object_set_colour(self, colour: list):
         """
