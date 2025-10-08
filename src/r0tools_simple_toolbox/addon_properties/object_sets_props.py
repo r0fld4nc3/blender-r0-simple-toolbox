@@ -112,7 +112,6 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
         return self._object_cache
 
     def assign_objects(self, objects_to_add: list[bpy.types.Object]):
-        print("Assign")
         if self.separator:
             return
 
