@@ -143,7 +143,6 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
             self.update_count()
 
     def remove_objects(self, objects_to_remove: list[bpy.types.Object]):
-        print("Remove")
         addon_object_sets_props = u.get_addon_object_sets_props()
 
         allow_override = addon_object_sets_props.object_sets_colour_allow_override
