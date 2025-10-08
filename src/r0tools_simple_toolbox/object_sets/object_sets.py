@@ -187,6 +187,7 @@ def cleanup_object_set_invalid_references(scene=None):
         for area in bpy.context.screen.areas:
             if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
                 area.tag_redraw()
+    return None
 
 
 def handle_object_duplication_update(scene=None):
@@ -199,11 +200,6 @@ def handle_object_duplication_update(scene=None):
     """
 
     scene = u.get_scene(scene)
-
-    if u.is_updating():
-        # Somehow this MUST be here despite checks in the depsgraph scheduling function.
-        # If not, there's a high chance of the file locking up on startup post loading if the user makes a change very quickly to the scene, like selecting all objects.
-        return None
 
     if not u.is_writing_context_safe(scene):
         print(f"[INFO] [{_mod}] Skipping Object Set Duplication Update Handler during file save.")
@@ -220,24 +216,37 @@ def handle_object_duplication_update(scene=None):
     # Lookup dict for efficiency
     uuid_to_set_map = {obj_set.uuid: obj_set for obj_set in object_sets if not obj_set.separator}
 
+    bulk_assign: dict = {}
+
     for obj in u.iter_scene_objects(selected=True):
         object_props = u.get_object_props(obj)
         if not object_props or not hasattr(object_props, "object_sets"):
             continue
 
         member_uuids = {member.uuid for member in object_props.object_sets}
-        bulk_assign = {}
 
         for set_uuid in member_uuids:
             target_set = uuid_to_set_map.get(set_uuid)
+            if not target_set:
+                continue
 
-            if target_set:
-                if not target_set in bulk_assign:
+            cache = target_set._get_or_build_cache()
+            # Use cache for efficient lookup
+            if obj.as_pointer() not in cache:
+                # Object needs to be assigned. Schedule.
+                if target_set not in bulk_assign:
                     bulk_assign[target_set] = []
                 bulk_assign[target_set].append(obj)
 
-        for target_set, objects in bulk_assign.items():
-            target_set.assign_objects(objects)
+    if not bulk_assign:
+        return
+
+    if u.is_debug():
+        print(f"[DEBUG] [{_mod}] Found {sum(len(v) for v in bulk_assign.values())} new assignments to process.")
+
+    # Perform assignments only for objects that really need it
+    for target_set, objects in bulk_assign.items():
+        target_set.assign_objects(objects)
 
     return None
 

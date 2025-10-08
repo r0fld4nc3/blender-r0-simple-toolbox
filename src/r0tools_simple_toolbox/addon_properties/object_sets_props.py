@@ -42,23 +42,17 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
                 if obj is None:
                     continue
 
-                obj.color = self.set_colour
-                # Check in contained in set
-                containing_sets = u.check_object_in_sets(obj)
-                if not containing_sets:  # Object not in an Object Set
+                target_colour = self.set_colour
+                if not allow_override:
+                    containing_sets = u.check_object_in_sets(obj)
+                    if containing_sets:
+                        target_colour = containing_sets[0].set_colour
+
+                # FIX: Attempt to prevent infinite looping
+                if tuple(obj.color) != tuple(target_colour):
                     if u.is_debug():
-                        print(f"[DEBUG] [{_mod}] Object {obj.name} not present in any Object Set.")
-                    obj.color = self.set_colour
-                elif containing_sets:
-                    if u.is_debug():
-                        print(
-                            f"[DEBUG] [{_mod}] Object {obj.name} contained in {len(containing_sets)} Object Sets. Allow Colour Override is {allow_override}"
-                        )
-                    if not allow_override:
-                        obj.color = containing_sets[0].set_colour
-                    else:
-                        # Only allow colour override if flag is set.
-                        obj.color = self.set_colour
+                        print(f"[DEBUG] [{_mod}] Updating color for {obj.name}")
+                    obj.color = target_colour
         finally:
             R0PROP_PG_ObjectSetEntryItem._updating = False
 
@@ -118,10 +112,13 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
         return self._object_cache
 
     def assign_objects(self, objects_to_add: list[bpy.types.Object]):
+        print("Assign")
         if self.separator:
             return
 
         cache = self._get_or_build_cache()
+
+        requires_update = False
 
         for obj in objects_to_add:
             if not obj:
@@ -129,20 +126,25 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
 
             obj_ptr = obj.as_pointer()
 
+            # Add if missing
             if obj_ptr not in cache:
                 new_object = self.objects.add()
                 new_object.object = obj
                 cache.add(obj_ptr)
+                requires_update = True
 
             # Handle Object-level membership
             object_props = u.get_object_props(obj)
-            if self.uuid not in [item.uuid for item in object_props.object_sets]:
+            object_set_uuids = {item.uuid for item in object_props.object_sets}
+            if self.uuid not in object_set_uuids:
                 new_ref = object_props.object_sets.add()
                 new_ref.uuid = self.uuid
 
-        self.update_count()
+        if requires_update:
+            self.update_count()
 
     def remove_objects(self, objects_to_remove: list[bpy.types.Object]):
+        print("Remove")
         addon_object_sets_props = u.get_addon_object_sets_props()
 
         allow_override = addon_object_sets_props.object_sets_colour_allow_override

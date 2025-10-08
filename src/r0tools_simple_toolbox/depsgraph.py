@@ -59,7 +59,8 @@ def handler_depsgraph_post_update(scene, depsgraph):
 
                 # u.object_sets_update_mesh_stats(depsgraph)
 
-                bpy.ops.r0tools.vertex_groups_list_update()
+                # bpy.ops.r0tools.vertex_groups_list_update()
+                u.vertex_groups_list_update(scene)
 
                 u.property_list_update(scene=scene)
 
