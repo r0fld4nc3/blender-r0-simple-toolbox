@@ -200,14 +200,22 @@ def handle_object_duplication_update(scene=None):
 
     scene = u.get_scene(scene)
 
+    if u.is_updating():
+        # Somehow this MUST be here despite checks in the depsgraph scheduling function.
+        # If not, there's a high chance of the file locking up on startup post loading if the user makes a change very quickly to the scene, like selecting all objects.
+        return None
+
     if not u.is_writing_context_safe(scene):
         print(f"[INFO] [{_mod}] Skipping Object Set Duplication Update Handler during file save.")
         return None
 
+    if u.is_debug():
+        print(f"[DEBUG] [{_mod}] Handle Object Duplication Update")
+
     # Global list of object sets
     object_sets = u.get_object_sets(scene=scene)
     if not object_sets:
-        return
+        return None
 
     # Lookup dict for efficiency
     uuid_to_set_map = {obj_set.uuid: obj_set for obj_set in object_sets if not obj_set.separator}
@@ -230,6 +238,8 @@ def handle_object_duplication_update(scene=None):
 
         for target_set, objects in bulk_assign.items():
             target_set.assign_objects(objects)
+
+    return None
 
 
 def check_object_in_sets(obj) -> list:
@@ -451,6 +461,8 @@ def refresh_object_sets_colours(context):
         if u.is_debug():
             print(f"[DEBUG] [{_mod}] Refresh: {object_set.name}")
         object_set.update_object_set_colour(context)
+
+    u.log(f"[INFO] [{_mod}] Finished refreshing Object Set's colours.")
 
 
 @bpy.app.handlers.persistent
