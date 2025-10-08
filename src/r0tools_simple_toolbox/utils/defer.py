@@ -33,6 +33,9 @@ class DeferredTimerManager:
         if kwargs is None:
             kwargs = {}
 
+        if func is None:
+            return
+
         timer_id = timer_id or f"{func.__name__}_{id(args)}_{id(kwargs)}"
 
         if timer_id not in self._timers:
