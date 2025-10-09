@@ -140,6 +140,29 @@ def move_object_set_to_index(from_index, to_index):
     object_sets.move(from_index, to_index)
 
 
+def add_set_reference_to_obj(obj: bpy.types.Object, set_uuid: str):
+    if not obj or not set_uuid:
+        return
+
+    object_props = u.get_object_props(obj)
+
+    existing_uuids = {item.uuid for item in object_props.object_sets}
+    if set_uuid not in existing_uuids:
+        new_ref = object_props.object_sets.add()
+        new_ref.uuid = set_uuid
+
+
+def remove_set_reference_from_obj(obj: bpy.types.Object, set_uuid: str):
+    if not obj or not set_uuid:
+        return
+
+    object_props = u.get_object_props(obj)
+
+    for i, prop in reversed(list(enumerate(object_props.object_sets))):
+        if object_props.object_sets[i].uuid == set_uuid:
+            object_props.object_sets.remove(i)
+
+
 def cleanup_object_set_invalid_references(scene=None):
     """Optimised cleanup using batch operations"""
 

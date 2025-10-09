@@ -220,7 +220,7 @@ class SimpleToolbox_OT_UpdateObjectSetsUUIDs(bpy.types.Operator):
 
         # Second pass - Reassign members
         for object_set, members in sets_and_objects.items():
-            object_set.assign_objects(members)
+            object_set.assign_objects(members, force_update=True)
 
         self.report({"INFO"}, f"Finished rebuilding UUID and membership. Fixed {uuids_fixed} UUIDs and memberships")
         return {"FINISHED"}
@@ -241,7 +241,15 @@ class SimpleToolbox_OT_RemoveObjectSet(bpy.types.Operator):
 
         if 0 <= index < get_object_sets_count():
             set_name = get_object_set_name_at_index(index)
+            object_set = get_object_set_at_index(index)
+            uuid = object_set.uuid
+
+            # Remove objects from set first
+            member_objects = [ob_ref.object for ob_ref in object_set.objects]
+            object_set.remove_objects(member_objects)
+
             remove_object_set_at_index(index)
+
             set_active_object_set_index(max(0, index - 1))
             self.report({"INFO"}, f"Removed Object Set: {set_name}")
         return {"FINISHED"}
@@ -355,7 +363,7 @@ class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
             object_set = get_object_set_at_index(index)
             object_set_count_before = object_set.count
 
-            object_set.assign_objects(context.selected_objects)
+            object_set.assign_objects(context.selected_objects, force_update=True)
 
             object_set_count_after = object_set.count - object_set_count_before
 

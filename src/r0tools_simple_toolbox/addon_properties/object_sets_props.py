@@ -27,7 +27,6 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
     _updating = False
 
     def update_object_set_colour(self, dummy):
-
         if R0PROP_PG_ObjectSetEntryItem._updating:
             return
 
@@ -133,11 +132,7 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
                 requires_update = True
 
             # Handle Object-level membership
-            object_props = u.get_object_props(obj)
-            object_set_uuids = {item.uuid for item in object_props.object_sets}
-            if self.uuid not in object_set_uuids:
-                new_ref = object_props.object_sets.add()
-                new_ref.uuid = self.uuid
+            u.add_set_reference_to_obj(obj, self.uuid)
 
         if requires_update or force_update:
             self.update_count()
@@ -182,8 +177,12 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
             self.objects.remove(index)
 
         for obj in successfully_removed_objects:
+            # Handle Object-level membership
+            u.remove_set_reference_from_obj(obj, self.uuid)
+
             # Check if object not in other sets
             containing_sets = u.check_object_in_sets(obj)
+            print(containing_sets)
             if not containing_sets:
                 obj.color = (1.0, 1.0, 1.0, 1.0)
             else:
@@ -191,14 +190,8 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
                 if allow_override:
                     obj.color = containing_sets[-1].set_colour
                 else:
+                    print(containing_sets[0])
                     obj.color = containing_sets[0].set_colour
-
-            # Handle Object-level membership
-            object_props = u.get_object_props(obj)
-            for i, ref in enumerate(object_props.object_sets):
-                if ref.uuid == self.uuid:
-                    object_props.object_sets.remove(i)
-                    break
 
         self.update_count()
 
