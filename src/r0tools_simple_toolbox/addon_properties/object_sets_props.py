@@ -181,7 +181,6 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
 
             # Check if object not in other sets
             containing_sets = u.check_object_in_sets(obj)
-            print(containing_sets)
             if not containing_sets:
                 obj.color = (1.0, 1.0, 1.0, 1.0)
             else:
@@ -189,7 +188,6 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
                 if allow_override:
                     obj.color = containing_sets[-1].set_colour
                 else:
-                    print(containing_sets[0])
                     obj.color = containing_sets[0].set_colour
 
         self.update_count()
