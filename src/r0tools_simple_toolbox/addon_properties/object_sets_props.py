@@ -80,7 +80,6 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
     uuid: bpy.props.StringProperty(name="Unique ID")  # type: ignore
 
     objects: bpy.props.CollectionProperty(type=R0PROP_PG_ObjectSetObjectItem)  # type: ignore
-    _object_cache = set()  # Internal set of object collision management. Helps with checking on a O(1) complexity
     count: bpy.props.IntProperty(name="Count", default=0)  # type: ignore
     set_colour: bpy.props.FloatVectorProperty(  # type: ignore
         name="Set Object Set Colour",
