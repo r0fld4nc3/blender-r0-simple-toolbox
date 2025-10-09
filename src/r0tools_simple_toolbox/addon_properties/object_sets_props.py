@@ -111,7 +111,7 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
 
         return self._object_cache
 
-    def assign_objects(self, objects_to_add: list[bpy.types.Object]):
+    def assign_objects(self, objects_to_add: list[bpy.types.Object], force_update: bool = False):
         if self.separator:
             return
 
@@ -139,7 +139,7 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
                 new_ref = object_props.object_sets.add()
                 new_ref.uuid = self.uuid
 
-        if requires_update:
+        if requires_update or force_update:
             self.update_count()
 
     def remove_objects(self, objects_to_remove: list[bpy.types.Object]):
