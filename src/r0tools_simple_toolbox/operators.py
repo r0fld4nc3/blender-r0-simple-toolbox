@@ -1640,7 +1640,12 @@ class SimpleToolbox_OT_SelectEmptyObjects(bpy.types.Operator):
                     # Apply the modifiers
                     u.set_active_object(temp_obj)
                     for mod in temp_obj.modifiers:
-                        bpy.ops.object.modifier_apply(modifier=mod.name)
+                        try:
+                            bpy.ops.object.modifier_apply(modifier=mod.name)
+                        except Exception as e:
+                            print(
+                                f"[ERROR] [{_mod}] Error applying modifier '{mod.name}' to temp object '{temp_obj.name}: {e}"
+                            )
 
                     u.deselect_object(temp_obj)
                     break  # Exit the modifiers loop
