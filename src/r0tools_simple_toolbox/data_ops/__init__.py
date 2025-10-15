@@ -2,7 +2,7 @@ import importlib
 import sys
 
 # Import order here is really important!
-from .operators import *  # isort: skip
+from .edge_data_operators import *  # isort: skip
 from .. import utils as u  # isort: skip
 
 package = __name__
@@ -11,7 +11,8 @@ _mod = "DATA OPS"
 # fmt: off
 # List of submodules, keep in sync with imports
 submodules = [
-    "operators",
+    "data_operators",
+    "edge_data_operators",
     "ui",
 ]
 # fmt: on

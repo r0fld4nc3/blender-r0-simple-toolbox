@@ -2,6 +2,11 @@ import bpy
 
 from . import ext_update as upd
 from . import utils as u
+from .data_ops.data_operators import (
+    SimpleToolbox_OT_ClearCustomProperties,
+    SimpleToolbox_OT_ClearCustomSplitNormalsData,
+)
+from .data_ops.ui import draw_clear_custom_properties_ui
 from .defines import ADDON_CATEGORY, ADDON_NAME_BARE, IDNAME_EXTRA, VERSION_STR
 from .operators import *
 from .repo import draw_repo_layout
@@ -220,32 +225,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
 
         # ====== Custom Properties UI List ======
         if cat_show_custom_properties_editor:
-            custom_properties_header, custom_properties_panel = layout.panel_prop(
-                addon_props, panelvis_custom_properties_ops
-            )
-            if custom_properties_header:
-                custom_properties_header.label(text="Custom Properties")
-
-            if custom_properties_panel:
-                custom_properties_panel_row = custom_properties_panel.row()
-                # Row Number Slider
-                row = custom_properties_panel_row.row()
-                split = row.split(factor=0.35)
-                split.prop(addon_prefs, "custom_properties_list_rows", text="Rows:")
-
-                row = custom_properties_panel.row()
-                row.template_list(
-                    "R0PROP_UL_CustomPropertiesList",
-                    "custom_property_list",
-                    u.get_addon_props(),  # Collection owner
-                    "custom_property_list",  # Collection property
-                    u.get_addon_props(),  # Active item owner
-                    "custom_property_list_index",  # Active item property
-                    rows=addon_prefs.custom_properties_list_rows,
-                )
-                # Clear Custom Properties
-                row = custom_properties_panel.row()
-                row.operator(SimpleToolbox_OT_ClearCustomProperties.bl_idname)
+            draw_clear_custom_properties_ui(layout, context)
 
         # ====== UV Ops ======
         if cat_show_uv_ops:
@@ -321,6 +301,9 @@ def register():
 
 def unregister():
     for cls in classes:
+        if u.is_debug():
+            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        bpy.utils.unregister_class(cls)
         if u.is_debug():
             print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

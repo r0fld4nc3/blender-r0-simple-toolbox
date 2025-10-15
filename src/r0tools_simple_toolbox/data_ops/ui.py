@@ -3,7 +3,7 @@ import bpy
 from .. import utils as u
 from ..defines import ADDON_CATEGORY, ADDON_NAME_BARE, IDNAME_EXTRA
 from . import _mod as parent_mod
-from .operators import *
+from .data_operators import *
 
 _mod = f"{parent_mod}.UI"
 
@@ -150,6 +150,43 @@ def draw_edge_data_panel_ui(layout, context):
     row = layout.row()
 
     draw_edge_bweights_presets_operators(layout, context)
+
+
+def draw_clear_custom_properties_ui(layout, context):
+    addon_props = u.get_addon_props()
+    addon_prefs = u.get_addon_prefs()
+
+    cat_show_custom_properties_editor = addon_props.cat_show_custom_properties_editor
+    panelvis_custom_properties_ops = "panelvis_custom_properties_ops"
+
+    # ====== Custom Properties UI List ======
+    if cat_show_custom_properties_editor:
+        custom_properties_header, custom_properties_panel = layout.panel_prop(
+            addon_props, panelvis_custom_properties_ops
+        )
+        if custom_properties_header:
+            custom_properties_header.label(text="Custom Properties")
+
+        if custom_properties_panel:
+            custom_properties_panel_row = custom_properties_panel.row()
+            # Row Number Slider
+            row = custom_properties_panel_row.row()
+            split = row.split(factor=0.35)
+            split.prop(addon_prefs, "custom_properties_list_rows", text="Rows:")
+
+            row = custom_properties_panel.row()
+            row.template_list(
+                "R0PROP_UL_CustomPropertiesList",
+                "custom_property_list",
+                addon_props,  # Collection owner
+                "custom_property_list",  # Collection property
+                addon_props,  # Active item owner
+                "custom_property_list_index",  # Active item property
+                rows=addon_prefs.custom_properties_list_rows,
+            )
+            # Clear Custom Properties
+            row = custom_properties_panel.row()
+            row.operator(SimpleToolbox_OT_ClearCustomProperties.bl_idname)
 
 
 classes = []

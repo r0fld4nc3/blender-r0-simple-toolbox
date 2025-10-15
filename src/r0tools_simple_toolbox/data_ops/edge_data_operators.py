@@ -13,7 +13,7 @@ from bpy.props import (
 
 from .. import utils as u
 
-_mod = "DATA_OPS.OPERATORS"
+_mod = "DATA_OPS.EDGE_DATA_OPERATORS"
 
 
 class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
