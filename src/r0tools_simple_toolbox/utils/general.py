@@ -859,6 +859,127 @@ def property_list_update(scene=None, force_run=False):
     return None
 
 
+def _object_attributes_store_states() -> dict:
+    addon_props = get_addon_props()
+
+    # Store the current selection state of Custom Property List
+    selection_state = {}
+    for item in addon_props.object_attributes_list:
+        selection_state[item.name] = item.selected
+
+    return selection_state
+
+
+def object_attributes_list_add_props(attributes: set | list, selection_state: dict):
+    addon_props = get_addon_props()
+
+    # Populate the UIList
+    for attrib_name in sorted(attributes):
+        try:
+            item = addon_props.object_attributes_list.add()
+            item.name = attrib_name
+            # Restore selection state if it exists
+            key = attrib_name
+            if key in selection_state:
+                item.selected = selection_state[key]
+        except Exception as e:
+            print(f"[ERROR] [{_mod}] Error adding unique Object Attributes: {e}")
+            context_error_debug(error=e)
+
+
+def object_attributes_list_update(scene=None, force_run=False):
+    """
+    Update Object Attribute list based on selected objects
+    """
+
+    from .context import is_writing_context_safe
+
+    scene = get_scene(scene)
+
+    if not is_writing_context_safe(scene):
+        return None
+
+    addon_props = get_addon_props(scene)
+
+    if is_debug():
+        print("------------- Object Attibutes List Update -------------")
+
+    if not addon_props.cat_show_custom_properties_editor and not force_run:
+        # Skip update if panel is not visible
+        return None
+
+    if not addon_props.panelvis_object_attributes and not force_run:
+        # Skip update if rollout is not visible
+        return None
+
+    if get_selected_objects() or force_run:
+        current_selection_names = sorted([obj.name for obj in iter_scene_objects(selected=True)])
+        current_selection_str = ",".join(current_selection_names)
+
+        # Store the current selection state before clearing the list
+        selection_state = _object_attributes_store_states()
+
+        try:
+            addon_props.object_attributes_list.clear()
+        except Exception as e:
+            print(f"[ERROR] [{_mod}] {e}")
+            return None
+
+        # Add unique custom properties to the set
+        unique_attributes = set()
+        if current_selection_names:
+            for obj in iter_scene_objects(selected=True):
+                if not hasattr(obj.data, "attributes"):
+                    continue
+
+                # Object Attributes
+                for attrib_name, attrib_data in obj.data.attributes.items():
+                    if is_debug():
+                        print(f"[DEBUG] [{_mod}] (ObjAttrib) {obj.name} - {attrib_name=}")
+                    if not attrib_name.startswith("."):
+                        unique_attributes.add(attrib_name)
+
+            # Populate the UIList
+            object_attributes_list_add_props(unique_attributes, selection_state)
+
+        # Update the last object selection
+        addon_props.last_object_selection = current_selection_str
+
+        # Force UI update
+        for area in bpy.context.screen.areas:
+            if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
+                area.tag_redraw()
+
+    else:
+        # Store the states even if nothing selected
+        selection_state = _object_attributes_store_states()
+
+        # Clear the property list if no objects are selected
+        try:
+            addon_props.object_attributes_list.clear()
+            if is_debug():
+                print(f"[DEBUG] [{_mod}] Cleared UIList object_attributes_list")
+        except Exception as e:
+            print(f"[ERROR] [{_mod}] Error clearing custom property list when no selected objects: {e}")
+            context_error_debug(error=e)
+        try:
+            addon_props.last_object_selection = ""
+            if is_debug():
+                print(f"[DEBUG] [{_mod}] Cleared property last_object_selection")
+        except Exception as e:
+            print(f"[ERROR] [{_mod}] Error setting last object selection when no selected objects: {e}")
+            context_error_debug(error=e)
+
+        # Force UI update
+        if bpy.context.screen:
+            if hasattr(bpy.context.screen, "areas"):
+                for area in bpy.context.screen.areas:
+                    if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
+                        area.tag_redraw()
+
+    return None
+
+
 def create_panel_variant(panel_class, space_type: str = None, region_type: str = None, category: str = None):
     if space_type:
         identifier = space_type.replace(" ", "_").lower()

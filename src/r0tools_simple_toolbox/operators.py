@@ -8,7 +8,6 @@ import bpy
 from bpy.props import BoolProperty, FloatProperty, IntProperty, StringProperty
 from mathutils import Vector
 
-from . import defines
 from . import utils as u
 from .defines import INTERNAL_NAME
 from .uv_ops import select_small_uv_islands

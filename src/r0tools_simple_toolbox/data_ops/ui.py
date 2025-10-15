@@ -189,6 +189,41 @@ def draw_clear_custom_properties_ui(layout, context):
             row.operator(SimpleToolbox_OT_ClearCustomProperties.bl_idname)
 
 
+def draw_clear_objects_attributes_ui(layout, context):
+    addon_props = u.get_addon_props()
+    addon_prefs = u.get_addon_prefs()
+
+    cat_show_custom_properties_editor = addon_props.cat_show_custom_properties_editor
+    panelvis_object_attributes = "panelvis_object_attributes"
+
+    # ====== Custom Properties UI List ======
+    if cat_show_custom_properties_editor:
+        object_attributes_header, object_attributes_panel = layout.panel_prop(addon_props, panelvis_object_attributes)
+        if object_attributes_header:
+            object_attributes_header.label(text="Object Attributes")
+
+        if object_attributes_panel:
+            object_attributes_panel_row = object_attributes_panel.row()
+            # Row Number Slider
+            row = object_attributes_panel_row.row()
+            split = row.split(factor=0.35)
+            split.prop(addon_prefs, "object_attributes_list_rows", text="Rows:")
+
+            row = object_attributes_panel.row()
+            row.template_list(
+                "R0PROP_UL_ObjectAttributesList",
+                "object_attributes_list",
+                addon_props,  # Collection owner
+                "object_attributes_list",  # Collection property
+                addon_props,  # Active item owner
+                "object_attributes_list_index",  # Active item property
+                rows=addon_prefs.object_attributes_list_rows,
+            )
+            # Clear Attributes
+            row = object_attributes_panel.row()
+            row.operator(SimpleToolbox_OT_ClearObjectAttributes.bl_idname)
+
+
 classes = []
 
 # fmt: off

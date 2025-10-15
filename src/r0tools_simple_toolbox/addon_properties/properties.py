@@ -43,6 +43,25 @@ class R0PROP_PG_CustomPropertyItem(bpy.types.PropertyGroup):
     type: StringProperty(default=u.CUSTOM_PROPERTIES_TYPES.OBJECT_DATA)  # type: ignore
 
 
+##############################################
+###### Object Attributes & Items ######
+##############################################
+class R0PROP_UL_ObjectAttributesList(bpy.types.UIList):
+    """UI List where each entry is an Object Attribute belonging to at least 1 selected object"""
+
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
+        row = layout.row(align=True)
+        row.prop(item, "selected", text="")
+        row.label(text=item.name)
+
+
+class R0PROP_PG_ObjectAttributeItem(bpy.types.PropertyGroup):
+    """Property that represents an entry in the Attributes UI List"""
+
+    name: StringProperty()  # type: ignore
+    selected: BoolProperty(default=False)  # type: ignore
+
+
 # ===================================================================
 #   ADDON PROPERTIES
 # ===================================================================
@@ -112,6 +131,10 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
     )  # type: ignore
     panelvis_custom_properties_ops: BoolProperty(
         name="Custom Properties", description="Toggle visibility state for panel", default=False
+    )  # type: ignore
+
+    panelvis_object_attributes: BoolProperty(
+        name="Object Attributes", description="Toggle visibility state for panel", default=False
     )  # type: ignore
 
     # =======================================================================
@@ -189,6 +212,10 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
 
     custom_property_list: CollectionProperty(type=R0PROP_PG_CustomPropertyItem)  # type: ignore
     custom_property_list_index: IntProperty(default=0)  # type: ignore
+
+    object_attributes_list: CollectionProperty(type=R0PROP_PG_ObjectAttributeItem)  # type: ignore
+    object_attributes_list_index: IntProperty(default=0)  # type: ignore
+
     last_object_selection: StringProperty(  # type: ignore
         name="Last Object Selection",
         description="Comma-separated names of last selected objects",
@@ -243,6 +270,8 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
 classes = [
     R0PROP_UL_CustomPropertiesList,
     R0PROP_PG_CustomPropertyItem,
+    R0PROP_UL_ObjectAttributesList,
+    R0PROP_PG_ObjectAttributeItem,
     r0SimpleToolboxProps,
 ]
 

@@ -2,11 +2,11 @@ import bpy
 
 from . import ext_update as upd
 from . import utils as u
-from .data_ops.data_operators import (
-    SimpleToolbox_OT_ClearCustomProperties,
-    SimpleToolbox_OT_ClearCustomSplitNormalsData,
+from .data_ops.data_operators import SimpleToolbox_OT_ClearCustomSplitNormalsData
+from .data_ops.ui import (
+    draw_clear_custom_properties_ui,
+    draw_clear_objects_attributes_ui,
 )
-from .data_ops.ui import draw_clear_custom_properties_ui
 from .defines import ADDON_CATEGORY, ADDON_NAME_BARE, IDNAME_EXTRA, VERSION_STR
 from .operators import *
 from .repo import draw_repo_layout
@@ -226,6 +226,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         # ====== Custom Properties UI List ======
         if cat_show_custom_properties_editor:
             draw_clear_custom_properties_ui(layout, context)
+            draw_clear_objects_attributes_ui(layout, context)
 
         # ====== UV Ops ======
         if cat_show_uv_ops:
@@ -301,9 +302,6 @@ def register():
 
 def unregister():
     for cls in classes:
-        if u.is_debug():
-            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
-        bpy.utils.unregister_class(cls)
         if u.is_debug():
             print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

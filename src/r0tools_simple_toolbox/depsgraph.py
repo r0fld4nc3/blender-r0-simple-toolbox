@@ -62,6 +62,8 @@ def handler_depsgraph_post_update(scene, depsgraph):
 
             u.property_list_update(scene=scene)
 
+            u.object_attributes_list_update(scene=scene)
+
             CustomTransformsOrientationsTracker.track_custom_orientations(scene)
         except Exception as e:
             print(f"[ERROR] [{_mod}] {e}")

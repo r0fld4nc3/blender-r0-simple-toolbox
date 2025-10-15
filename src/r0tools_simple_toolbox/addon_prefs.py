@@ -57,6 +57,11 @@ class AddonPreferences(bpy.types.AddonPreferences):
     #########################
     custom_properties_list_rows: IntProperty(name="Custom Properties List Rows", default=6, min=1)  # type: ignore
 
+    #########################
+    ### OBJECT ATTRIBUTES ###
+    #########################
+    object_attributes_list_rows: IntProperty(name="Object Attributes List Rows", default=6, min=1)  # type: ignore
+
     ###################
     ### OBJECT SETS ###
     ###################

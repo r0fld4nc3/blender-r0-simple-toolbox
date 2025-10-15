@@ -1,7 +1,3 @@
-import math
-import time
-
-import bmesh
 import bpy
 from bpy.props import (
     BoolProperty,
@@ -123,6 +119,72 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_ClearObjectAttributes(bpy.types.Operator):
+    bl_label = "Delete"
+    bl_idname = "r0tools.delete_object_attributes"
+    bl_description = "Delete Attributes from Object(s)"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return u.get_selected_objects(context)
+
+    def execute(self, context):
+        addon_props = u.get_addon_props()
+
+        if u.is_debug():
+            print("\n------------- Clear Object Attributes -------------")
+        attributes_property_deletions = set()
+        total_deletions = 0
+        total_objects = 0
+
+        errors = []  # Build list and do a single final batch print
+
+        # Find selected properties to remove
+        attribs_to_remove = [item for item in addon_props.object_attributes_list if item.selected]
+
+        print(attribs_to_remove)
+
+        for obj in context.selected_objects:
+            data = obj.data
+
+            if not hasattr(data, "attributes"):
+                continue
+
+            # Remove selected properties
+            for attribute_prop in attribs_to_remove:
+                attrib_name = attribute_prop.name
+
+                # Object Data
+                if attrib_name in reversed(obj.data.attributes.keys()):
+                    if u.is_debug():
+                        print(f"[DEBUG] [{_mod}] Deleting Attribute '{attrib_name}' of object {obj.name}")
+
+                    try:
+                        data.attributes.remove(data.attributes[attrib_name])
+                    except Exception as e:
+                        errors.append(
+                            f"[ERROR] [{_mod}] Unable to remove attribute '{attrib_name}' from '{obj.name}': {e}"
+                        )
+                        continue
+                    attributes_property_deletions.add(attrib_name)
+                    total_deletions += 1
+
+            total_objects += 1
+
+        u.object_attributes_list_update(force_run=True)
+
+        if errors:
+            print("".join(errors))
+
+        # u.show_notification(f"Deleted {total_deletions} propertie(s) across {total_objects} object(s)")
+        self.report(
+            {"INFO"},
+            f"Deleted {total_deletions} attributes from {total_objects} object(s)",
+        )
+        return {"FINISHED"}
+
+
 class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
     bl_label = "Clear Attributes"
     bl_idname = "r0tools.clear_mesh_attributes"
@@ -189,6 +251,7 @@ class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
 classes = [
     SimpleToolbox_OT_ClearCustomSplitNormalsData,
     SimpleToolbox_OT_ClearCustomProperties,
+    SimpleToolbox_OT_ClearObjectAttributes,
     SimpleToolbox_OT_ClearMeshAttributes,
 ]
 # fmt: on
