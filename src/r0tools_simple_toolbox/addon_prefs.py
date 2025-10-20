@@ -95,6 +95,15 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
     export_settings_global_fbx: PointerProperty(type=r0SimpleToolbox_PG_FBXExportSettings, name="FBX Export Settings", description="Global FBX Exporter Settings")  # type: ignore
 
+    #########################
+    ### OBJECT ATTRIBUTES ###
+    #########################
+    object_attributes_to_keep: StringProperty(
+        name="Attributes To Keep",
+        description="Comma-separated list of attribute names to never delete",
+        default="sharp_edge, uv_seam, custom_normal, material_index, UVMap",
+    )  # type: ignore
+
     def draw(self, context):
         addon_object_sets_props = u.get_addon_object_sets_props()
 
@@ -115,7 +124,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
         layout.prop(self, "clear_sharp_axis_float_prop", text="Clear Sharp Edges Threshold")
 
-        # Object Sets
+        # --- Object Sets ---
         object_sets_settings_box = layout.box()
         row = object_sets_settings_box.row()
         row.label(text="Object Sets Settings")
@@ -134,14 +143,26 @@ class AddonPreferences(bpy.types.AddonPreferences):
             row = object_sets_settings_box.row()
             row.prop(self, "object_sets_default_colour", text="Default Colour")
 
-        # Custom Properties
+        # --- Custom Properties ---
         custom_properties_settings_box = layout.box()
         row = custom_properties_settings_box.row()
         row.label(text="Custom Properties Settings")
         row = custom_properties_settings_box.row()
         row.prop(self, "custom_properties_list_rows")
 
-        # Keymaps
+        # --- Object Attributes ---
+        from .data_ops.data_operators import (
+            SimpleToolbox_OT_ObjectAttributesRestoreDefaults,
+        )
+
+        object_attributes_box = layout.box()
+        row = object_attributes_box.row()
+        row.label(text="Object Attributes")
+        row = object_attributes_box.row(align=True)
+        row.prop(self, "object_attributes_to_keep")
+        row.operator(SimpleToolbox_OT_ObjectAttributesRestoreDefaults.bl_idname, text="", icon="LOOP_BACK")
+
+        # --- Keymaps ---
         draw_keymap_settings(layout, self)
 
     def save_axis_threshold(self):
@@ -166,5 +187,7 @@ def register():
 
 def unregister():
     for cls in classes:
+        # print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        bpy.utils.unregister_class(cls)
         # print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

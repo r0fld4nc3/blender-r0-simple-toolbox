@@ -130,7 +130,11 @@ class SimpleToolbox_OT_ClearObjectAttributes(bpy.types.Operator):
         return u.get_selected_objects(context)
 
     def execute(self, context):
+        addon_prefs = u.get_addon_prefs()
         addon_props = u.get_addon_props()
+
+        attrs_to_keep_str: str = addon_prefs.object_attributes_to_keep  # comma-separated list
+        attrs_to_keep = set(attrs_to_keep_str.replace(" ", "").split(","))
 
         if u.is_debug():
             print("\n------------- Clear Object Attributes -------------")
@@ -141,7 +145,9 @@ class SimpleToolbox_OT_ClearObjectAttributes(bpy.types.Operator):
         errors = []  # Build list and do a single final batch print
 
         # Find selected properties to remove
-        attribs_to_remove = [item for item in addon_props.object_attributes_list if item.selected]
+        attribs_to_remove = [
+            item for item in addon_props.object_attributes_list if item.selected and item not in attrs_to_keep
+        ]
 
         print(attribs_to_remove)
 
@@ -182,6 +188,24 @@ class SimpleToolbox_OT_ClearObjectAttributes(bpy.types.Operator):
             {"INFO"},
             f"Deleted {total_deletions} attributes from {total_objects} object(s)",
         )
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_ObjectAttributesRestoreDefaults(bpy.types.Operator):
+    bl_label = "Reset"
+    bl_idname = "r0tools.object_attributes_restore_defaults"
+    bl_description = "Restores default list of attributes to keep"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        addon_prefs = u.get_addon_prefs()
+
+        prop_rna = addon_prefs.bl_rna.properties["object_attributes_to_keep"]
+        default = prop_rna.default
+
+        addon_prefs.object_attributes_to_keep = default
+
+        self.report({"INFO"}, f"Restore default attributes to keep: {default}")
         return {"FINISHED"}
 
 
@@ -252,6 +276,7 @@ classes = [
     SimpleToolbox_OT_ClearCustomSplitNormalsData,
     SimpleToolbox_OT_ClearCustomProperties,
     SimpleToolbox_OT_ClearObjectAttributes,
+    SimpleToolbox_OT_ObjectAttributesRestoreDefaults,
     SimpleToolbox_OT_ClearMeshAttributes,
 ]
 # fmt: on

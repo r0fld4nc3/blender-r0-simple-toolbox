@@ -209,6 +209,11 @@ def draw_clear_objects_attributes_ui(layout, context):
             split = row.split(factor=0.35)
             split.prop(addon_prefs, "object_attributes_list_rows", text="Rows:")
 
+            # Attributes to Keep
+            row = object_attributes_panel.row(align=True)
+            row.prop(addon_prefs, "object_attributes_to_keep", text="Keep")
+            row.operator(SimpleToolbox_OT_ObjectAttributesRestoreDefaults.bl_idname, text="", icon="LOOP_BACK")
+
             row = object_attributes_panel.row()
             row.template_list(
                 "R0PROP_UL_ObjectAttributesList",

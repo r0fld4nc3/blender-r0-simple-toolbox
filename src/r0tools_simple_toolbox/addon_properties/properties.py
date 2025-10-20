@@ -43,9 +43,9 @@ class R0PROP_PG_CustomPropertyItem(bpy.types.PropertyGroup):
     type: StringProperty(default=u.CUSTOM_PROPERTIES_TYPES.OBJECT_DATA)  # type: ignore
 
 
-##############################################
+#######################################
 ###### Object Attributes & Items ######
-##############################################
+#######################################
 class R0PROP_UL_ObjectAttributesList(bpy.types.UIList):
     """UI List where each entry is an Object Attribute belonging to at least 1 selected object"""
 

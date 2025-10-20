@@ -899,6 +899,7 @@ def object_attributes_list_update(scene=None, force_run=False):
     if not is_writing_context_safe(scene):
         return None
 
+    addon_prefs = get_addon_prefs()
     addon_props = get_addon_props(scene)
 
     if is_debug():
@@ -911,6 +912,9 @@ def object_attributes_list_update(scene=None, force_run=False):
     if not addon_props.panelvis_object_attributes and not force_run:
         # Skip update if rollout is not visible
         return None
+
+    attrs_to_keep_str: str = addon_prefs.object_attributes_to_keep  # comma-separated list
+    attrs_to_keep = set(attrs_to_keep_str.replace(" ", "").split(","))
 
     if get_selected_objects() or force_run:
         current_selection_names = sorted([obj.name for obj in iter_scene_objects(selected=True)])
@@ -936,7 +940,7 @@ def object_attributes_list_update(scene=None, force_run=False):
                 for attrib_name, attrib_data in obj.data.attributes.items():
                     if is_debug():
                         print(f"[DEBUG] [{_mod}] (ObjAttrib) {obj.name} - {attrib_name=}")
-                    if not attrib_name.startswith("."):
+                    if not attrib_name.startswith(".") and attrib_name not in attrs_to_keep:
                         unique_attributes.add(attrib_name)
 
             # Populate the UIList
