@@ -189,5 +189,3 @@ def unregister():
     for cls in classes:
         # print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
-        # print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
-        bpy.utils.unregister_class(cls)
