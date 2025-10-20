@@ -205,7 +205,7 @@ class SimpleToolbox_OT_ObjectAttributesRestoreDefaults(bpy.types.Operator):
 
         addon_prefs.object_attributes_to_keep = default
 
-        self.report({"INFO"}, f"Restore default attributes to keep: {default}")
+        self.report({"INFO"}, f"Restored default attributes to keep: {default}")
         return {"FINISHED"}
 
 
