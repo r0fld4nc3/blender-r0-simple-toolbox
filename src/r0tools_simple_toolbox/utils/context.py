@@ -17,6 +17,12 @@ def get_active_modal_operators(context: bpy.types.Context = None) -> list:
     if context is None:
         context = bpy.context
 
+    if not hasattr(context, "window"):
+        return []
+
+    if not hasattr(context.window, "modal_operators"):
+        return []
+
     return context.window.modal_operators if context else []
 
 
