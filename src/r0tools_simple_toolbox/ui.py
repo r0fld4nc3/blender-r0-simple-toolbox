@@ -16,7 +16,7 @@ _mod = "UI"
 
 class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
     bl_idname = "OBJECT_PT_simple_toolbox"
-    bl_label = f"{ADDON_NAME_BARE}.{IDNAME_EXTRA} ({VERSION_STR})"
+    bl_label = f"{ADDON_NAME_BARE}{IDNAME_EXTRA} ({VERSION_STR})"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = ADDON_CATEGORY
