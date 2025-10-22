@@ -24,12 +24,6 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
     log_output: BoolProperty(name="Log", description="Whehter to produce regular Log output", default=False)  # type: ignore
 
-    lock_states_avoided: IntProperty(
-        name="Avoided Locks",
-        description="Silly counter to log how many crashes were avoided by forbidden ID context writes",
-        default=0,
-    )  # type: ignore
-
     check_update_startup: BoolProperty(
         name="Check Update on Startup",
         description="Flag to set whether to check for extension updates on startup or not",
@@ -62,6 +56,11 @@ class AddonPreferences(bpy.types.AddonPreferences):
     ### CUSTOM PROPERTIES ###
     #########################
     custom_properties_list_rows: IntProperty(name="Custom Properties List Rows", default=6, min=1)  # type: ignore
+
+    #########################
+    ### OBJECT ATTRIBUTES ###
+    #########################
+    object_attributes_list_rows: IntProperty(name="Object Attributes List Rows", default=6, min=1)  # type: ignore
 
     ###################
     ### OBJECT SETS ###
@@ -96,14 +95,20 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
     export_settings_global_fbx: PointerProperty(type=r0SimpleToolbox_PG_FBXExportSettings, name="FBX Export Settings", description="Global FBX Exporter Settings")  # type: ignore
 
+    #########################
+    ### OBJECT ATTRIBUTES ###
+    #########################
+    object_attributes_to_keep: StringProperty(
+        name="Attributes To Keep",
+        description="Comma-separated list of attribute names to never delete",
+        default="sharp_edge, uv_seam, custom_normal, material_index, UVMap",
+    )  # type: ignore
+
     def draw(self, context):
         addon_object_sets_props = u.get_addon_object_sets_props()
 
         layout = self.layout
         layout.use_property_split = False
-
-        lock_states_avoided_row = layout.row()
-        lock_states_avoided_row.label(text=f"Lock States Avoided: {self.lock_states_avoided}")
 
         row = layout.row()
         row.prop(self, "debug", text="Debug Mode")
@@ -119,7 +124,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
         layout.prop(self, "clear_sharp_axis_float_prop", text="Clear Sharp Edges Threshold")
 
-        # Object Sets
+        # --- Object Sets ---
         object_sets_settings_box = layout.box()
         row = object_sets_settings_box.row()
         row.label(text="Object Sets Settings")
@@ -138,14 +143,26 @@ class AddonPreferences(bpy.types.AddonPreferences):
             row = object_sets_settings_box.row()
             row.prop(self, "object_sets_default_colour", text="Default Colour")
 
-        # Custom Properties
+        # --- Custom Properties ---
         custom_properties_settings_box = layout.box()
         row = custom_properties_settings_box.row()
         row.label(text="Custom Properties Settings")
         row = custom_properties_settings_box.row()
         row.prop(self, "custom_properties_list_rows")
 
-        # Keymaps
+        # --- Object Attributes ---
+        from .data_ops.data_operators import (
+            SimpleToolbox_OT_ObjectAttributesRestoreDefaults,
+        )
+
+        object_attributes_box = layout.box()
+        row = object_attributes_box.row()
+        row.label(text="Object Attributes")
+        row = object_attributes_box.row(align=True)
+        row.prop(self, "object_attributes_to_keep")
+        row.operator(SimpleToolbox_OT_ObjectAttributesRestoreDefaults.bl_idname, text="", icon="LOOP_BACK")
+
+        # --- Keymaps ---
         draw_keymap_settings(layout, self)
 
     def save_axis_threshold(self):
@@ -166,13 +183,6 @@ def register():
     for cls in classes:
         # print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
-
-    addon_prefs = u.get_addon_prefs()
-    global DEBUG
-    if addon_prefs.debug:
-        DEBUG = True
-    else:
-        DEBUG = False
 
 
 def unregister():

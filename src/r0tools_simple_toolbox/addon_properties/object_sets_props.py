@@ -11,7 +11,6 @@ from bpy.props import (  # type: ignore
 )
 
 from .. import utils as u
-from ..defines import DEBUG
 
 _mod = "OBJECT SETS PROPS"
 
@@ -25,33 +24,36 @@ class R0PROP_PG_ObjectSetObjectItem(bpy.types.PropertyGroup):
 class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
     """Property that represents an Object Set that contains a reference to a collection of objects added to the set"""
 
+    _updating = False
+
     def update_object_set_colour(self, dummy):
-        addon_object_sets_props = u.get_addon_object_sets_props()
+        if R0PROP_PG_ObjectSetEntryItem._updating:
+            return
 
-        allow_override = addon_object_sets_props.object_sets_colour_allow_override
+        try:
+            R0PROP_PG_ObjectSetEntryItem._updating = True
+            addon_object_sets_props = u.get_addon_object_sets_props()
 
-        for item in self.objects:
-            obj = item.object
-            if obj is None:
-                continue
+            allow_override = addon_object_sets_props.object_sets_colour_allow_override
 
-            obj.color = self.set_colour
-            # Check in contained in set
-            containing_sets = u.check_object_in_sets(obj)
-            if not containing_sets:  # Object not in an Object Set
-                if u.IS_DEBUG():
-                    print(f"[DEBUG] [{_mod}] Object {obj.name} not present in any Object Set.")
-                obj.color = self.set_colour
-            elif containing_sets:
-                if u.IS_DEBUG():
-                    print(
-                        f"[DEBUG] [{_mod}] Object {obj.name} contained in {len(containing_sets)} Object Sets. Allow Colour Override is {allow_override}"
-                    )
+            for item in self.objects:
+                obj = item.object
+                if obj is None:
+                    continue
+
+                target_colour = self.set_colour
                 if not allow_override:
-                    obj.color = containing_sets[0].set_colour
-                else:
-                    # Only allow colour override if flag is set.
-                    obj.color = self.set_colour
+                    containing_sets = u.check_object_in_sets(obj)
+                    if containing_sets:
+                        target_colour = containing_sets[0].set_colour
+
+                # FIX: Attempt to prevent infinite looping
+                if tuple(obj.color) != tuple(target_colour):
+                    if u.is_debug():
+                        print(f"[DEBUG] [{_mod}] Updating color for {obj.name}")
+                    obj.color = target_colour
+        finally:
+            R0PROP_PG_ObjectSetEntryItem._updating = False
 
     def set_object_set_colour(self, colour: list):
         """
@@ -75,9 +77,9 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
     name: bpy.props.StringProperty(name="Object Set Name", default="New Object Set")  # type: ignore
     separator: bpy.props.BoolProperty(default=False)  # type: ignore
     default_separator_name = "-" * 16
+    uuid: bpy.props.StringProperty(name="Unique ID")  # type: ignore
 
     objects: bpy.props.CollectionProperty(type=R0PROP_PG_ObjectSetObjectItem)  # type: ignore
-    _object_cache = set()  # Internal set of object collision management. Helps with checking on a O(1) complexity
     count: bpy.props.IntProperty(name="Count", default=0)  # type: ignore
     set_colour: bpy.props.FloatVectorProperty(  # type: ignore
         name="Set Object Set Colour",
@@ -107,11 +109,13 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
 
         return self._object_cache
 
-    def assign_objects(self, objects_to_add: list[bpy.types.Object]):
+    def assign_objects(self, objects_to_add: list[bpy.types.Object], force_update: bool = False):
         if self.separator:
             return
 
         cache = self._get_or_build_cache()
+
+        requires_update = False
 
         for obj in objects_to_add:
             if not obj:
@@ -119,12 +123,18 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
 
             obj_ptr = obj.as_pointer()
 
+            # Add if missing
             if obj_ptr not in cache:
                 new_object = self.objects.add()
                 new_object.object = obj
                 cache.add(obj_ptr)
+                requires_update = True
 
-        self.update_count()
+            # Handle Object-level membership
+            u.add_set_reference_to_obj(obj, self.uuid)
+
+        if requires_update or force_update:
+            self.update_count()
 
     def remove_objects(self, objects_to_remove: list[bpy.types.Object]):
         addon_object_sets_props = u.get_addon_object_sets_props()
@@ -166,6 +176,9 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
             self.objects.remove(index)
 
         for obj in successfully_removed_objects:
+            # Handle Object-level membership
+            u.remove_set_reference_from_obj(obj, self.uuid)
+
             # Check if object not in other sets
             containing_sets = u.check_object_in_sets(obj)
             if not containing_sets:
@@ -184,7 +197,7 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
             return
 
         self.count = len(self.objects)
-        if u.IS_DEBUG():
+        if u.is_debug():
             print(f"[DEBUG] [{_mod}] Updated count for Set '{self.name}': {self.count}")
 
         self.update_object_set_colour(self)
@@ -407,31 +420,31 @@ load_post_handlers = [u.load_legacy_object_sets]
 
 def register():
     for cls in classes:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
-    if DEBUG:
+    if u.is_debug():
         print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_object_sets_props")
-    bpy.types.Scene.r0fl_object_sets_props = PointerProperty(type=r0ObjectSetsProps)
+    bpy.types.Scene.r0fl_object_sets_props = PointerProperty(type=r0ObjectSetsProps, name="r0fl Toolbox Object Sets")
 
     for handler in load_post_handlers:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Register load_post_handler: {handler.__name__}")
         bpy.app.handlers.load_post.append(handler)
 
 
 def unregister():
     for cls in classes:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
 
     for handler in load_post_handlers:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Unregister load_post_handler: {handler.__name__}")
         bpy.app.handlers.load_post.remove(handler)
 
-    if DEBUG:
+    if u.is_debug():
         print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_object_sets_props")
     del bpy.types.Scene.r0fl_object_sets_props

@@ -235,13 +235,27 @@ def _needs_update():
     return False
 
 
-def vertex_groups_list_update(force: bool = False):
-    if not u.is_writing_context_safe(bpy.context.scene):
+def vertex_groups_list_update(scene=None, force: bool = False):
+    scene = u.get_scene(scene)
+
+    if not u.is_writing_context_safe(scene):
         print(f"[WARNING] [{_mod}] Vertex Groups List Update: Unsafe Context.")
         return None
 
-    addon_props = u.get_addon_props()
-    addon_vertex_groups_props = u.get_addon_vertex_groups_props()
+    addon_props = u.get_addon_props(scene)
+    addon_vertex_groups_props = u.get_addon_vertex_groups_props(scene)
+
+    # Skip if addon props is not available
+    if not addon_props:
+        return None
+
+    # Skip if addon vertex props is not available
+    if not addon_vertex_groups_props:
+        return None
+
+    # Skip update if panel is not visible and not forcing update
+    if not addon_props.cat_show_vertex_groups_editor and not force:
+        return None
 
     if not force:
         if not addon_vertex_groups_props.vgroups_do_update:
@@ -251,14 +265,10 @@ def vertex_groups_list_update(force: bool = False):
         if not _needs_update():
             return None
 
-    if not addon_props.cat_show_vertex_groups_editor:
-        # Skip update if panel is not visible
-        return None
-
     global _vertex_groups_cache
 
     if u.get_selected_objects():
-        if u.IS_DEBUG():
+        if u.is_debug():
             print("------------- Vertex Groups List Update -------------")
 
         # Calculate new vertex groups data
@@ -278,9 +288,7 @@ def vertex_groups_list_update(force: bool = False):
         try:
             addon_vertex_groups_props.vertex_groups.clear()
         except Exception as e:
-            print(f"[WARNING] [{_mod}] Property 'vertex_groups' is not writable for '.clear()'. Skipping.")
-            if u.IS_DEBUG():
-                print(f"[DEBUG] [{_mod}] {e}")
+            print(f"[ERROR] [{_mod}] Executing '.clear()' for property 'vertex_groups'.\n{e}")
             return None
 
         # Sort and add groups (only when changed)
@@ -306,7 +314,7 @@ def vertex_groups_list_update(force: bool = False):
             try:
                 addon_vertex_groups_props.vertex_groups.clear()
                 _vertex_groups_cache = {}
-                if u.IS_DEBUG():
+                if u.is_debug():
                     print(f"[DEBUG] [{_mod}] Cleared UIList vertex_groups")
             except Exception as e:
                 print(f"[ERROR] [{_mod}] Error clearing vertex groups list when no selected objects: {e}")
@@ -314,7 +322,6 @@ def vertex_groups_list_update(force: bool = False):
 
             # UI update
             u.tag_redraw_if_visible()
-
     return None
 
 

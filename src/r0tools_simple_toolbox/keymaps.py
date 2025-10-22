@@ -3,7 +3,6 @@ import rna_keymap_ui
 from bpy.props import StringProperty
 
 from . import utils as u
-from .defines import DEBUG
 from .object_sets.operators import SimpleToolbox_OT_ObjectSetsModal
 from .operators import (
     SimpleToolbox_OT_ShowCustomOrientationsPie,
@@ -200,7 +199,7 @@ addon_keymaps = []
 
 def register_keymaps():
     """Register keymaps with support for optional key assignments."""
-    if DEBUG:
+    if u.is_debug():
         print(f"[INFO] [{_mod}] Register Keymaps")
 
     addon_prefs = u.get_addon_prefs()
@@ -225,7 +224,7 @@ def register_keymaps():
 
         if not km:
             km = kc.keymaps.new(name=keymap_name, space_type=space_type, region_type=region_type)
-            if DEBUG:
+            if u.is_debug():
                 print(f"[INFO] [{_mod}] Created new keymap '{keymap_name}'")
 
         # Check if keymap item already exists
@@ -246,7 +245,7 @@ def register_keymaps():
                 kmi = km.keymap_items.new(op_id, type=key, value=cfg["value"])
                 addon_keymaps.append((km, kmi))
 
-                if DEBUG:
+                if u.is_debug():
                     status = "unassigned" if key == "NONE" else f"with key {key}"
                     print(f"[INFO] [{_mod}] Registered {op_id} {status}")
 
@@ -259,12 +258,12 @@ def register_keymaps():
                 setattr(addon_prefs, cfg["addon_pref_prop"], current_key)
 
             addon_keymaps.append((km, existing_kmi))
-            if DEBUG:
+            if u.is_debug():
                 print(f"[INFO] [{_mod}] Found existing keymap for {op_id}")
 
 
 def unregister_keymaps():
-    if DEBUG:
+    if u.is_debug():
         print(f"[INFO] [{_mod}] Unregister Keymaps")
 
     # Save current keybinds to preferences before removing
@@ -276,7 +275,7 @@ def unregister_keymaps():
             setattr(addon_prefs, cfg["addon_pref_prop"], kmi.type)
 
         try:
-            if DEBUG:
+            if u.is_debug():
                 print(f"[INFO] [{_mod}] Remove {kmi.idname}")
             km.keymap_items.remove(kmi)
         except Exception as e:
@@ -293,7 +292,7 @@ classes = [
 
 def register():
     for cls in classes:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
@@ -304,6 +303,6 @@ def unregister():
     unregister_keymaps()
 
     for cls in classes:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

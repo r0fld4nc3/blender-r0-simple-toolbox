@@ -34,7 +34,7 @@ ADDON_NAME         = bl_info.get("name")
 ADDON_NAME_BARE    = "SimpleToolbox"
 ADDON_BRANCH       = "main"
 ADDON_CATEGORY     = "Simple Toolbox"
-IDNAME_EXTRA       = ADDON_BRANCH if ADDON_BRANCH else ''
+IDNAME_EXTRA       = '.' + ADDON_BRANCH if ADDON_BRANCH and ADDON_BRANCH.lower() != "main" else ''
 INTERNAL_NAME      = _set_addon_internal_name(BASE_NAME)
 REPO_NAME          = "r0Tools Extensions"
 UPDATE_CHECK_CD    = 60  # seconds

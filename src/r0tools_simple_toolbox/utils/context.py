@@ -3,44 +3,67 @@ from pathlib import Path
 import bpy
 
 from ..defines import INTERNAL_NAME, TOOLBOX_PROPS_NAME
-from .boxcutter import boxcutter_running
 
 _mod = "UTILS.CONTEXT"
 
 
-def get_addon_props():
+def get_active_modal_operators(context: bpy.types.Context = None) -> list:
+    """
+    Return a `list` of active Modal Operators.
+
+    When no Modal Operators are running, it will return an empty list
+    """
+
+    if context is None:
+        context = bpy.context
+
+    if not hasattr(context, "window"):
+        return []
+
+    if not hasattr(context.window, "modal_operators"):
+        return []
+
+    return context.window.modal_operators if context else []
+
+
+def get_addon_props(scene=None):
     """Get the addon property group from current scene"""
-    return get_scene().r0fl_toolbox_props
+    return get_scene(scene).r0fl_toolbox_props
 
 
-def get_addon_object_sets_props():
+def get_addon_object_sets_props(scene=None):
     """Get the addon property group from current scene"""
-    return get_scene().r0fl_object_sets_props
+    return get_scene(scene).r0fl_object_sets_props
 
 
-def get_addon_vertex_groups_props():
+def get_object_props(obj: bpy.types.Object):
+    """Get the Object-level Object properties from the given Object"""
+    return obj.r0fl_toolbox_props
+
+
+def get_addon_vertex_groups_props(scene=None):
     """Get the addon property group from current scene"""
-    return get_scene().r0fl_vertex_groups_props
+    return get_scene(scene).r0fl_vertex_groups_props
 
 
-def get_addon_edge_data_props():
+def get_addon_edge_data_props(scene=None):
     """Get the addon property group from current scene"""
-    return get_scene().r0fl_toolbox_edge_data_props
+    return get_scene(scene).r0fl_toolbox_edge_data_props
 
 
-def get_addon_experimental_props():
+def get_addon_experimental_props(scene=None):
     """Get the addon property group from current scene"""
-    return get_scene().r0fl_toolbox_experimental_props
+    return get_scene(scene).r0fl_toolbox_experimental_props
 
 
-def get_addon_find_modifier_props():
+def get_addon_find_modifier_props(scene=None):
     """Get the addon property group from current scene"""
-    return get_scene().r0fl_toolbox_find_modifier_props
+    return get_scene(scene).r0fl_toolbox_find_modifier_props
 
 
-def get_addon_export_props():
+def get_addon_export_props(scene=None):
     """Get the addon property group from current scene"""
-    return get_scene().r0fl_toolbox_export_props
+    return get_scene(scene).r0fl_toolbox_export_props
 
 
 def get_addon_prefs():
@@ -48,9 +71,9 @@ def get_addon_prefs():
     return bpy.context.preferences.addons[INTERNAL_NAME].preferences
 
 
-def get_scene() -> bpy.types.Scene:
+def get_scene(scene=None) -> bpy.types.Scene:
     """Get the current scene"""
-    return bpy.context.scene
+    return scene if scene else bpy.context.scene
 
 
 def get_scene_name() -> str:
@@ -138,43 +161,58 @@ def get_uvmap_size_y():
     return int(addon_props.uv_size_y)
 
 
+def is_saving() -> bool:
+    from .. import depsgraph
+
+    return depsgraph.is_saving
+
+
+def is_updating() -> bool:
+    from .. import depsgraph
+
+    return depsgraph.is_updating
+
+
+def set_is_updating(state: bool):
+    from .. import depsgraph
+
+    depsgraph.is_updating = state
+
+
 def is_writing_context_safe(scene) -> bool:
     """
     Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock
     """
 
-    from .general import LOG
+    from .general import log
 
-    addon_prefs = get_addon_prefs()
-
-    if not hasattr(scene, TOOLBOX_PROPS_NAME):
-        if addon_prefs is not None and hasattr(addon_prefs, "lock_states_avoided"):
-            addon_prefs.lock_states_avoided += 1
-            LOG(f"[INFO] [{_mod}] Scene does not have proper attribute(s). Skipping.")
+    if is_saving():
+        log(f"[INFO] [{_mod}] Unsafe write context while file is being saved.")
         return False
 
-    # Check for boxcutter running
-    if boxcutter_running():
-        LOG(f"[MONITOR] [{_mod}] Boxcutting running. Skipping.")
+    scene = get_scene(scene)
+
+    if not hasattr(scene, TOOLBOX_PROPS_NAME):
+        log(f"[INFO] [{_mod}] Scene does not have proper attribute(s) '{TOOLBOX_PROPS_NAME}'. Skipping.")
         return False
 
     # Check if rendering or baking is active
     if scene.render.use_lock_interface:
-        LOG(f"[MONITOR] [{_mod}] Interface is locked (rendering/baking). Skipping.")
+        log(f"[MONITOR] [{_mod}] Interface is locked (rendering/baking). Skipping.")
         return False
 
     # Check for active jobs
     jobs = ("RENDER", "COMPOSITE", "OBJECT_BAKE")
     jobs_active = [bpy.app.is_job_running(job) for job in jobs]
     if any(jobs_active):
-        LOG(f"[MONITOR] [{_mod}] Active job(s) detected. Skipping.")
+        log(f"[MONITOR] [{_mod}] Active job(s) detected. Skipping.")
         return False
 
     # Additional check for bake operator
     if hasattr(bpy.context, "active_operator") and bpy.context.active_operator:
         op_idname = bpy.context.active_operator.bl_idname
         if "bake" in op_idname.lower():
-            LOG(f"[MONITOR] [{_mod}] Bake operator active: {op_idname}. Skipping.")
+            log(f"[MONITOR] [{_mod}] Bake operator active: {op_idname}. Skipping.")
             return False
 
     return True

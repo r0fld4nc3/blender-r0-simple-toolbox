@@ -4,7 +4,6 @@ import bpy
 from bpy.props import BoolProperty, FloatVectorProperty, IntProperty, StringProperty
 
 from .. import utils as u
-from ..defines import DEBUG
 from .object_sets import *
 
 _mod = "OBJECT_SETS.OPERATORS"
@@ -143,29 +142,87 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
         return f"{self.object_set_name}.{suffix:03}"
 
     def execute(self, context):
-        if self.separator:
-            new_set = u.get_object_sets().add()
-            new_set.name = new_set.default_separator_name
-            new_set.separator = self.separator
+        try:
+            if self.separator:
+                new_set = u.get_object_sets().add()
+                new_set.name = new_set.default_separator_name
+                new_set.separator = self.separator
+                self.report({"INFO"}, f"Added separator ot Object Sets")
 
-            self.report({"INFO"}, f"Added separator ot Object Sets")
-        else:
-            new_set = u.get_object_sets().add()
-            new_set.name = self.add_non_conflicting_name()
-            new_set.set_object_set_colour(self.object_set_colour)
-            set_active_object_set_index(len(u.get_object_sets()) - 1)
+            else:
+                new_set = u.get_object_sets().add()
+                new_set.name = self.add_non_conflicting_name()
+                new_set.set_object_set_colour(self.object_set_colour)
+                new_set.uuid = u.generate_uuid()  # Add UUID as Object Set is created
+                set_active_object_set_index(len(u.get_object_sets()) - 1)
 
-            # Immediately add selected objects to set, for convenience
-            if context.selected_objects:
-                bpy.ops.r0tools.assign_to_object_set()
+                # Immediately add selected objects to set, for convenience
+                if context.selected_objects:
+                    bpy.ops.r0tools.assign_to_object_set()
 
-            self.report(
-                {"INFO"}, f"Created Object Set: {self.object_set_name} with colour: {self.object_set_colour[:]}"
-            )
+                self.report({"INFO"}, f"Created Object Set: {self.object_set_name}")
+        except Exception as e:
+            print(f"[ERROR] [{_mod}] Error creating new Object Set: {e}")
 
         if context.area:
             context.area.tag_redraw()
 
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_UpdateObjectSetsUUIDs(bpy.types.Operator):
+    bl_label = "Fix UUIDs"
+    bl_idname = "r0tools.update_object_sets_uuids"
+    bl_description = (
+        "Forces an update to the UUID's of the Object Sets as well as the membership of the objects contained within"
+    )
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return len(u.get_object_sets()) > 0
+
+    def execute(self, context):
+        object_sets = u.get_object_sets()
+
+        uuids = set()
+        uuids_fixed = 0
+
+        sets_and_objects = {}
+
+        # First pass - Assert UUIDs, clear UUID membership property and store Set <-> Object cache
+        for object_set in object_sets:
+            uuid = object_set.uuid
+
+            # Is duplicate UUID
+            if uuid in uuids:
+                u.log(f"[INFO] [{_mod}] UUID {uuid} is duplicate. Regenerating.")
+                uuid = u.generate_uuid()
+                uuids_fixed += 1
+
+            # UUID doesn't exist (legacy reasons)
+            elif not object_set.uuid or object_set.uuid == "":
+                u.log(f"[INFO] [{_mod}] {object_set.name} does not have valid UUID. Generating.")
+                uuid = u.generate_uuid()
+                uuids_fixed += 1
+
+            object_set.uuid = uuid
+            uuids.add(uuid)
+
+            sets_and_objects[object_set] = []
+
+            for object_set_member in object_set.objects:
+                member = object_set_member.object
+                sets_and_objects[object_set].append(member)  # Store in cache
+                object_props = u.get_object_props(member)
+                if object_props:
+                    object_props.object_sets.clear()  # Clear membership property
+
+        # Second pass - Reassign members
+        for object_set, members in sets_and_objects.items():
+            object_set.assign_objects(members, force_update=True)
+
+        self.report({"INFO"}, f"Finished rebuilding UUID and membership. Fixed {uuids_fixed} UUIDs and memberships")
         return {"FINISHED"}
 
 
@@ -184,7 +241,15 @@ class SimpleToolbox_OT_RemoveObjectSet(bpy.types.Operator):
 
         if 0 <= index < get_object_sets_count():
             set_name = get_object_set_name_at_index(index)
+            object_set = get_object_set_at_index(index)
+            uuid = object_set.uuid
+
+            # Remove objects from set first
+            member_objects = [ob_ref.object for ob_ref in object_set.objects]
+            object_set.remove_objects(member_objects)
+
             remove_object_set_at_index(index)
+
             set_active_object_set_index(max(0, index - 1))
             self.report({"INFO"}, f"Removed Object Set: {set_name}")
         return {"FINISHED"}
@@ -298,11 +363,11 @@ class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
             object_set = get_object_set_at_index(index)
             object_set_count_before = object_set.count
 
-            object_set.assign_objects(context.selected_objects)
+            object_set.assign_objects(context.selected_objects, force_update=True)
 
             object_set_count_after = object_set.count - object_set_count_before
 
-            u.timer_manager.schedule(object_sets_update_mesh_stats, delay=1, min_interval=1)
+            # u.timer_manager.schedule(object_sets_update_mesh_stats, delay=1, min_interval=1)
 
             self.report(
                 {"INFO"},
@@ -417,7 +482,7 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
             if object_set.separator or object_set.count < 1:
                 return {"FINISHED"}
 
-            if u.IS_DEBUG():
+            if u.is_debug():
                 print(f"[DEBUG] [{_mod}] {self.add_to_selection=}")
 
             if not self.add_to_selection:
@@ -525,7 +590,7 @@ class SimpleToolbox_OT_RandomiseObjectSetsColours(bpy.types.Operator):
                     if not is_similar:
                         used_colours.add(new_colour)
                         object_set.set_colour = new_colour
-                        u.LOG(f"[INFO] [{_mod}] Updating colour of Object Set '{object_set_name}': {new_colour}")
+                        u.log(f"[INFO] [{_mod}] Updating colour of Object Set '{object_set_name}': {new_colour}")
                         break
 
         bpy.ops.r0tools.object_sets_refresh()
@@ -576,7 +641,7 @@ class SimpleToolbox_OT_RandomiseObjectSetsColours(bpy.types.Operator):
             # A distance of 0.313, means that `new_colour` is only 31.3% different than `color_to_compare_to`.
             # So they are 68.7% similar.
             similar_pct = (1 - distance / max_distance) * 100
-            u.LOG(
+            u.log(
                 f"[INFO] [{_mod}] Color {new_colour} is {similar_pct:.1f}% similar to {colour_to_compare_to} with distance of {distance:.3f} | ({mapped_threshold:.3f})"
             )
 
@@ -643,7 +708,7 @@ class SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections(bpy.types.Operator):
     def execute(self, context):
         import random
 
-        if u.IS_DEBUG():
+        if u.is_debug():
             print("\n------------- Move Objects In Object Sets Into Set Collections -------------")
 
         active_index = get_active_object_set_index()
@@ -664,7 +729,7 @@ class SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections(bpy.types.Operator):
             i = get_object_sets_count()
             for object_set in reversed(get_object_sets()):
                 i -= 1
-                u.LOG(f"[INFO] [{_mod}] {i} {object_set.name}")
+                u.log(f"[INFO] [{_mod}] {i} {object_set.name}")
                 if object_set.separator:
                     continue
                 collection = u.collections_create_new(get_object_set_name_at_index(i))
@@ -738,7 +803,7 @@ class SimpleToolbox_OT_LinkObjectsInObjectSetsToCollections(bpy.types.Operator):
     def execute(self, context):
         import random
 
-        if u.IS_DEBUG():
+        if u.is_debug():
             print("\n------------- Link Objects In Object Sets To Set Collections -------------")
 
         active_index = get_active_object_set_index()
@@ -759,7 +824,7 @@ class SimpleToolbox_OT_LinkObjectsInObjectSetsToCollections(bpy.types.Operator):
             i = get_object_sets_count()
             for object_set in reversed(get_object_sets()):
                 i -= 1
-                u.LOG(f"[INFO] [{_mod}] {i} {object_set}.name")
+                u.log(f"[INFO] [{_mod}] {i} {object_set}.name")
                 if object_set.separator:
                     continue
                 collection = u.collections_create_new(get_object_set_name_at_index(i))
@@ -809,6 +874,7 @@ class SimpleToolbox_OT_LinkObjectsInObjectSetsToCollections(bpy.types.Operator):
 classes = [
     SimpleToolbox_OT_ObjectSetsModal,
     SimpleToolbox_OT_AddObjectSetPopup,
+    SimpleToolbox_OT_UpdateObjectSetsUUIDs,
     SimpleToolbox_OT_RenameObjectSet,
     SimpleToolbox_OT_MoveObjectSetItem,
     SimpleToolbox_OT_RemoveObjectSet,
@@ -831,7 +897,7 @@ def object_sets_modal_menu_func(self, context):
 
 def register():
     for cls in classes:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
@@ -844,7 +910,7 @@ def register():
 
 def unregister():
     for cls in classes:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
 

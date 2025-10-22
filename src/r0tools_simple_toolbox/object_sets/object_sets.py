@@ -8,8 +8,8 @@ from .. import utils as u
 _mod = "OBJECT_SETS"
 
 
-def get_object_sets() -> list:
-    addon_object_sets_props = u.get_addon_object_sets_props()
+def get_object_sets(scene=None) -> list:
+    addon_object_sets_props = u.get_addon_object_sets_props(scene=scene)
 
     return addon_object_sets_props.object_sets
 
@@ -140,20 +140,39 @@ def move_object_set_to_index(from_index, to_index):
     object_sets.move(from_index, to_index)
 
 
-def cleanup_object_set_invalid_references():
+def add_set_reference_to_obj(obj: bpy.types.Object, set_uuid: str):
+    if not obj or not set_uuid:
+        return
+
+    object_props = u.get_object_props(obj)
+
+    existing_uuids = {item.uuid for item in object_props.object_sets}
+    if set_uuid not in existing_uuids:
+        new_ref = object_props.object_sets.add()
+        new_ref.uuid = set_uuid
+
+
+def remove_set_reference_from_obj(obj: bpy.types.Object, set_uuid: str):
+    if not obj or not set_uuid:
+        return
+
+    object_props = u.get_object_props(obj)
+
+    for i, prop in reversed(list(enumerate(object_props.object_sets))):
+        if object_props.object_sets[i].uuid == set_uuid:
+            object_props.object_sets.remove(i)
+
+
+def cleanup_object_set_invalid_references(scene=None):
     """Optimised cleanup using batch operations"""
 
-    scene = bpy.context.scene
+    scene = u.get_scene(scene)
 
     if not u.is_writing_context_safe(scene):
         print(f"[WARNING] [{_mod}] Object Sets Cleanup Invalid References O1: Unsafe Context.")
         return None
 
-    addon_props = u.get_addon_props()
-    addon_object_sets_props = u.get_addon_object_sets_props()
-
-    if not addon_props.cat_show_object_sets_editor:
-        return
+    addon_object_sets_props = u.get_addon_object_sets_props(scene=scene)
 
     # Build set of object names for O(1) lookup
     valid_objects = set(scene.objects.keys())
@@ -191,6 +210,68 @@ def cleanup_object_set_invalid_references():
         for area in bpy.context.screen.areas:
             if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
                 area.tag_redraw()
+    return None
+
+
+def handle_object_duplication_update(scene=None):
+    """
+    Checks selected objects and assigns them to the correct Object Sets
+    based on their stored UUIDs.
+
+    This should be called from a depsgraph update handler when new objects
+    are detected.
+    """
+
+    scene = u.get_scene(scene)
+
+    if not u.is_writing_context_safe(scene):
+        print(f"[INFO] [{_mod}] Skipping Object Set Duplication Update Handler during file save.")
+        return None
+
+    if u.is_debug():
+        print(f"[DEBUG] [{_mod}] Handle Object Duplication Update")
+
+    # Global list of object sets
+    object_sets = u.get_object_sets(scene=scene)
+    if not object_sets:
+        return None
+
+    # Lookup dict for efficiency
+    uuid_to_set_map = {obj_set.uuid: obj_set for obj_set in object_sets if not obj_set.separator}
+
+    bulk_assign: dict = {}
+
+    for obj in u.iter_scene_objects(selected=True):
+        object_props = u.get_object_props(obj)
+        if not object_props or not hasattr(object_props, "object_sets"):
+            continue
+
+        member_uuids = {member.uuid for member in object_props.object_sets}
+
+        for set_uuid in member_uuids:
+            target_set = uuid_to_set_map.get(set_uuid)
+            if not target_set:
+                continue
+
+            cache = target_set._get_or_build_cache()
+            # Use cache for efficient lookup
+            if obj.as_pointer() not in cache:
+                # Object needs to be assigned. Schedule.
+                if target_set not in bulk_assign:
+                    bulk_assign[target_set] = []
+                bulk_assign[target_set].append(obj)
+
+    if not bulk_assign:
+        return
+
+    if u.is_debug():
+        print(f"[DEBUG] [{_mod}] Found {sum(len(v) for v in bulk_assign.values())} new assignments to process.")
+
+    # Perform assignments only for objects that really need it
+    for target_set, objects in bulk_assign.items():
+        target_set.assign_objects(objects)
+
+    return None
 
 
 def check_object_in_sets(obj) -> list:
@@ -232,7 +313,7 @@ _last_update_time = 0
 
 
 def object_sets_update_mesh_stats(depsgraph=None):
-    if u.IS_DEBUG():
+    if u.is_debug():
         print("------------- Object Sets Update Mesh Stats -------------")
 
     scene = bpy.context.scene
@@ -398,7 +479,7 @@ def refresh_object_sets_colours(context):
         print(f"[WARNING] [{_mod}] Object Sets Refresh Object Sets Colours: Unsafe Context.")
         return None
 
-    if u.IS_DEBUG():
+    if u.is_debug():
         print(f"[DEBUG] [{_mod}] Force Refreshing Object Sets' Colours")
 
     addon_object_sets_props = u.get_addon_object_sets_props()
@@ -409,9 +490,11 @@ def refresh_object_sets_colours(context):
         return
 
     for object_set in object_sets:
-        if u.IS_DEBUG():
+        if u.is_debug():
             print(f"[DEBUG] [{_mod}] Refresh: {object_set.name}")
         object_set.update_object_set_colour(context)
+
+    u.log(f"[INFO] [{_mod}] Finished refreshing Object Set's colours.")
 
 
 @bpy.app.handlers.persistent
@@ -427,7 +510,7 @@ def load_legacy_object_sets(dummy):
     legacy_sets = addon_props.object_sets
 
     if legacy_sets:
-        u.LOG(f"[INFO] [{_mod}] Loading legacy sets")
+        u.log(f"[INFO] [{_mod}] Loading legacy sets")
 
     # Collect objects
     total_objects = 0
@@ -447,7 +530,7 @@ def load_legacy_object_sets(dummy):
         if legacy_set.separator:
             new_set.separator = True
             new_set.name = new_set.default_separator_name
-            u.LOG(f"[INFO] [{_mod}] Copy legacy Separator '{legacy_set.name}'")
+            u.log(f"[INFO] [{_mod}] Copy legacy Separator '{legacy_set.name}'")
             continue
 
         exists = legacy_set.name in [object_set.name for object_set in u.get_object_sets()]
@@ -458,7 +541,7 @@ def load_legacy_object_sets(dummy):
 
         legacy_objects = legacy_set.objects
 
-        u.LOG(f"[INFO] [{_mod}] Copying legacy Set '{legacy_set.name}' ({len(legacy_objects)} Objects)")
+        u.log(f"[INFO] [{_mod}] Copying legacy Set '{legacy_set.name}' ({len(legacy_objects)} Objects)")
 
         for item in legacy_objects:
             legacy_obj = item.object
@@ -478,7 +561,7 @@ def load_legacy_object_sets(dummy):
 
     # Remove legacy object sets
     if legacy_sets:
-        u.LOG(f"[INFO] [{_mod}] Clearing legacy sets")
+        u.log(f"[INFO] [{_mod}] Clearing legacy sets")
         if u.is_writing_context_safe(bpy.context.scene):
             legacy_sets.clear()
         else:

@@ -11,7 +11,6 @@ from bpy.props import (  # type: ignore
 )
 
 from .. import utils as u
-from ..defines import DEBUG
 from ..export_ops.export_ops import *
 
 _mod = "EXPORT PROPS"
@@ -484,20 +483,22 @@ load_post_handlers = []
 
 def register():
     for cls in classes:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
-    if DEBUG:
+    if u.is_debug():
         print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_export_props")
-    bpy.types.Scene.r0fl_toolbox_export_props = PointerProperty(type=r0SimpleToolbox_PG_ExportProps)
+    bpy.types.Scene.r0fl_toolbox_export_props = PointerProperty(
+        type=r0SimpleToolbox_PG_ExportProps, name="r0fl Toolbox Export"
+    )
 
 
 def unregister():
     for cls in classes:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
 
-    if DEBUG:
+    if u.is_debug():
         print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_export_props")
     del bpy.types.Scene.r0fl_toolbox_export_props

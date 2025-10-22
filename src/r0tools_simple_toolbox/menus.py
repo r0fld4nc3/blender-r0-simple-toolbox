@@ -1,6 +1,6 @@
 import bpy
 
-from .defines import DEBUG
+from .utils import is_debug
 
 _mod = "MENUS"
 
@@ -16,10 +16,12 @@ class SimpleToolbox_MT_ObjectSetsActionsMenu(bpy.types.Menu):
             SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections,
             SimpleToolbox_OT_RemoveFromAllObjectSets,
             SimpleToolbox_OT_RenameObjectsInObjectSet,
+            SimpleToolbox_OT_UpdateObjectSetsUUIDs,
         )
 
         layout = self.layout
         layout.operator(SimpleToolbox_OT_ForceRefreshObjectSets.bl_idname, icon="FILE_REFRESH")
+        layout.operator(SimpleToolbox_OT_UpdateObjectSetsUUIDs.bl_idname, icon="MOD_BUILD")
         layout.operator(SimpleToolbox_OT_RenameObjectsInObjectSet.bl_idname, icon="OUTLINER_OB_FONT")
         layout.operator(SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections.bl_idname, icon="COLLECTION_NEW")
         layout.operator(SimpleToolbox_OT_LinkObjectsInObjectSetsToCollections.bl_idname, icon="COLLECTION_NEW")
@@ -47,6 +49,14 @@ class SimpleToolbox_MT_VertexGroupsActionsMenu(bpy.types.Menu):
         layout.operator(SimpleToolbox_OT_RemoveUnusedVertexGroups.bl_idname, icon="X")
 
 
+def draw_materials_actions_menu(self, context):
+    from .operators import SimpleToolbox_OT_RemoveUnusedMaterials
+
+    layout = self.layout
+    layout.separator()
+    layout.operator(SimpleToolbox_OT_RemoveUnusedMaterials.bl_idname)
+
+
 # ===================================================================
 #   Register & Unregister
 # ===================================================================
@@ -61,13 +71,17 @@ classes = [
 
 def register():
     for cls in classes:
-        if DEBUG:
+        if is_debug():
             print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
+
+    bpy.types.MATERIAL_MT_context_menu.append(draw_materials_actions_menu)
 
 
 def unregister():
     for cls in classes:
-        if DEBUG:
+        if is_debug():
             print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
+
+    bpy.types.MATERIAL_MT_context_menu.remove(draw_materials_actions_menu)

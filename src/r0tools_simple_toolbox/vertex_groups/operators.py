@@ -3,7 +3,6 @@ import bpy
 from bpy.props import BoolProperty, FloatVectorProperty, IntProperty, StringProperty
 
 from .. import utils as u
-from ..defines import DEBUG
 from .vertex_groups import *
 
 _mod = "VERTEX_GROUPS.OPERATORS"
@@ -146,7 +145,7 @@ class SimpleToolbox_OT_RemoveUnusedVertexGroups(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
-        if u.IS_DEBUG():
+        if u.is_debug():
             print("\n------------- Remove Unused Materials -------------")
 
         original_active = u.get_active_object()
@@ -472,7 +471,7 @@ class SimpleToolbox_OT_VgroupsAssignVertices(bpy.types.Operator):
                     try:
                         vert[deform_layer][vg_index] = 1.0
                     except ReferenceError as ref_error:
-                        if u.IS_DEBUG():
+                        if u.is_debug():
                             print(f"[DEBUG] [{_mod}] AssignVertices: {e}")
                     except Exception as e:
                         print(f"[ERROR] [{_mod}] AssignVertices: {e}")
@@ -663,6 +662,24 @@ class SimpleToolbox_OT_VgroupsDeselectVertices(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_VertexGroupsListUpdate(bpy.types.Operator):
+    """
+    Update vertex group list and cache
+    """
+
+    bl_label = "Update Vertex Groups List"
+    bl_idname = "r0tools.vertex_groups_list_update"
+    bl_description = "Update Vertex Groups List"
+    bl_options = {"INTERNAL"}
+
+    force: BoolProperty(name="Force", description="Force the update", default=False)  # type: ignore
+
+    def execute(self, context):
+        vertex_groups_list_update(context.scene, force=self.force)
+
+        return {"FINISHED"}
+
+
 # fmt: off
 classes = [
     SimpleToolbox_OT_VgroupsAddPopup,
@@ -677,19 +694,20 @@ classes = [
     SimpleToolbox_OT_VgroupsUnassignVertices,
     SimpleToolbox_OT_VgroupsSelectVertices,
     SimpleToolbox_OT_VgroupsDeselectVertices,
+    SimpleToolbox_OT_VertexGroupsListUpdate,
 ]
 # fmt: on
 
 
 def register():
     for cls in classes:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
 
 def unregister():
     for cls in classes:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

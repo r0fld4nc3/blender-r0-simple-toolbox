@@ -2,8 +2,8 @@ import importlib
 import sys
 
 # Import order here is really important!
-from .operators import *  # isort: skip
-from ..defines import DEBUG  # isort: skip
+from .edge_data_operators import *  # isort: skip
+from .. import utils as u  # isort: skip
 
 package = __name__
 _mod = "DATA OPS"
@@ -11,7 +11,8 @@ _mod = "DATA OPS"
 # fmt: off
 # List of submodules, keep in sync with imports
 submodules = [
-    "operators",
+    "data_operators",
+    "edge_data_operators",
     "ui",
 ]
 # fmt: on
@@ -32,7 +33,7 @@ def _import_submodules():
                 module = importlib.import_module(f".{module_name}", package)
 
             _module_objects.append(module)
-            if DEBUG:
+            if u.is_debug():
                 print(f"[INFO] [{_mod}] Imported: {module.__name__}")
         except Exception as e:
             print(f"[ERROR] [{_mod}] Error importing {module_name}: {str(e)}")
@@ -49,7 +50,7 @@ def register():
     for module in _module_objects:
         if hasattr(module, "register"):
             try:
-                if DEBUG:
+                if u.is_debug():
                     print(f"[INFO] [{_mod}] Registering {module.__name__}")
                 module.register()
             except Exception as e:
@@ -62,7 +63,7 @@ def unregister():
     for module in reversed(_module_objects):
         if hasattr(module, "register"):
             try:
-                if DEBUG:
+                if u.is_debug():
                     print(f"[INFO] [{_mod}] Unregistering {module.__name__}")
                 module.unregister()
             except Exception as e:

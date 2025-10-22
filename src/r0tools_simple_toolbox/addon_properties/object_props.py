@@ -12,19 +12,26 @@ from bpy.props import (  # type: ignore
 
 from .. import utils as u
 
-_mod = "EXPERIMENTAL PROPS"
+_mod = "OBJECT PROPS"
 
 
-class r0SimpleToolboxExperimentalProps(bpy.types.PropertyGroup):
-    show_edge_data_ops: BoolProperty(
-        name="Edge Data Ops", description="Toggle visibility of experimental Edge Data Operators", default=True
-    )  # type: ignore
+class R0PROP_PG_ObjectSetUUID(bpy.types.PropertyGroup):
+    uuid: bpy.props.StringProperty(name="Set UUID")  # type: ignore
+
+
+class r0SimpleToolboxObjectProps(bpy.types.PropertyGroup):
+    """Object-level properties for Simple Toolbox"""
+
+    object_sets: bpy.props.CollectionProperty(type=R0PROP_PG_ObjectSetUUID)  # type: ignore
 
 
 # ===================================================================
 #   Register & Unregister
 # ===================================================================
-classes = [r0SimpleToolboxExperimentalProps]
+classes = [
+    R0PROP_PG_ObjectSetUUID,
+    r0SimpleToolboxObjectProps,
+]
 
 
 load_post_handlers = []
@@ -37,10 +44,8 @@ def register():
         bpy.utils.register_class(cls)
 
     if u.is_debug():
-        print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_experimental_props")
-    bpy.types.Scene.r0fl_toolbox_experimental_props = PointerProperty(
-        type=r0SimpleToolboxExperimentalProps, name="r0fl Toolbox Experimental"
-    )
+        print(f"[INFO] [{_mod}] Register bpy.types.Object.r0fl_toolbox_props")
+    bpy.types.Object.r0fl_toolbox_props = PointerProperty(type=r0SimpleToolboxObjectProps, name="ToolboxObject")
 
     for handler in load_post_handlers:
         if u.is_debug():
@@ -60,5 +65,5 @@ def unregister():
         bpy.app.handlers.load_post.remove(handler)
 
     if u.is_debug():
-        print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_experimental_props")
-    del bpy.types.Scene.r0fl_toolbox_experimental_props
+        print(f"[INFO] [{_mod}] Unregister bpy.types.Object.r0fl_toolbox_props")
+    del bpy.types.Object.r0fl_toolbox_props

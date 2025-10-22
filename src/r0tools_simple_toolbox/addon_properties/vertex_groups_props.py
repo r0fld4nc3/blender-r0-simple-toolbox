@@ -11,7 +11,6 @@ from bpy.props import (  # type: ignore
 )
 
 from .. import utils as u
-from ..defines import DEBUG
 
 _mod = "VERTEX GROUPS PROPS"
 
@@ -76,20 +75,20 @@ def update_vertex_group_name_callback(self, context):
 
     # Do renaming
     renamed_count = 0
-    if u.IS_DEBUG():
+    if u.is_debug():
         renamed_objects = []
     for obj in context.selected_objects:
         if obj.type in accepted_objects and old_name in obj.vertex_groups:
             obj.vertex_groups[old_name].name = new_name
             renamed_count += 1
 
-            if u.IS_DEBUG():
+            if u.is_debug():
                 renamed_objects.append(obj.name)
 
     if renamed_count > 0:
-        u.LOG(f"[INFO] [{_mod}] Renamed vertex group '{old_name}' to '{new_name}' in {renamed_count} objects")
-        if u.IS_DEBUG():
-            u.LOG("\t• " + "\n\t• ".join(renamed_objects))
+        u.log(f"[INFO] [{_mod}] Renamed vertex group '{old_name}' to '{new_name}' in {renamed_count} objects")
+        if u.is_debug():
+            u.log("\t• " + "\n\t• ".join(renamed_objects))
 
 
 class R0PROP_PG_VertexGroupPropertyItem(bpy.types.PropertyGroup):
@@ -133,31 +132,33 @@ load_post_handlers = []
 
 def register():
     for cls in classes:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
-    if DEBUG:
+    if u.is_debug():
         print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_vertex_groups_props")
-    bpy.types.Scene.r0fl_vertex_groups_props = PointerProperty(type=r0VertexGroupsProps)
+    bpy.types.Scene.r0fl_vertex_groups_props = PointerProperty(
+        type=r0VertexGroupsProps, name="r0fl Toolbox Vertex Groups"
+    )
 
     for handler in load_post_handlers:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Register load_post_handler: {handler.__name__}")
         bpy.app.handlers.load_post.append(handler)
 
 
 def unregister():
     for cls in classes:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
 
     for handler in load_post_handlers:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Unregister load_post_handler: {handler.__name__}")
         bpy.app.handlers.load_post.remove(handler)
 
-    if DEBUG:
+    if u.is_debug():
         print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_vertex_groups_props")
     del bpy.types.Scene.r0fl_vertex_groups_props

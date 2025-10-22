@@ -4,7 +4,6 @@ import bpy
 from bpy.props import BoolProperty, FloatVectorProperty, IntProperty, StringProperty
 
 from .. import utils as u
-from ..defines import DEBUG
 from .export_ops import *
 
 _mod = "EXPORT.OPERATORS"
@@ -262,8 +261,8 @@ class SimpleToolbox_OT_ExportObjects(bpy.types.Operator):
             if export_item.export_at_frame:
                 u.get_scene().frame_current = export_item.export_frame
 
-            # If we have object set names, select objects from those sets
-            if self.object_set_names:
+            # If the export item is using Objet Sets and we have Object Set names, select objects from those sets
+            if export_item.use_object_sets and self.object_set_names:
                 object_set_names_list = [name.strip() for name in self.object_set_names.split(",") if name.strip()]
 
                 # Get all object sets
@@ -501,13 +500,13 @@ classes = [
 
 def register():
     for cls in classes:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
 
 def unregister():
     for cls in classes:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

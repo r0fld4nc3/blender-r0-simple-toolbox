@@ -1,7 +1,7 @@
 bl_info = {
     "name": "r0Tools - Simple Toolbox",
     "author": "Artur Rosário",
-    "version": (0, 0, 33),
+    "version": (0, 0, 34),
     "blender": (4, 2, 5),
     "location": "3D View > Simple Toolbox",
     "description": "Miscellaneous Utilities",
@@ -14,7 +14,7 @@ import importlib
 import sys
 from typing import List, Tuple
 
-from .defines import DEBUG  # isort: skip
+from . import utils as u  # isort: skip
 
 modules = (
     ".addon_properties",
@@ -48,7 +48,7 @@ def cleanup_modules():
     for module_name in module_names:
         if module_name in sys.modules:
             del sys.modules[module_name]
-            if DEBUG:
+            if u.is_debug():
                 print(f"[INFO] [{_mod}] Cleaned up module: {module_name}")
 
 
@@ -59,7 +59,7 @@ def import_modules() -> List[object]:
         try:
             imported_module = importlib.import_module(module, __package__)
             module_objects.append(imported_module)
-            if DEBUG:
+            if u.is_debug():
                 print(f"[INFO] [{_mod}] Imported: {imported_module.__name__}")
         except Exception as e:
             print(f"[ERROR] [{_mod}] Error importing {module}: {str(e)}")
@@ -71,7 +71,7 @@ def reload_modules(module_objects: List[object]):
     for module in module_objects:
         try:
             importlib.reload(module)
-            if DEBUG:
+            if u.is_debug():
                 print(f"[INFO] [{_mod}] Reloaded: {module.__name__}")
         except Exception as e:
             print(f"[ERROR] [{_mod}] Error reloading {module.__name__}: {str(e)}")
@@ -100,7 +100,7 @@ class AddonRegisterHelper:
         for module in self.modules:
             if hasattr(module, "register"):
                 try:
-                    if DEBUG:
+                    if u.is_debug():
                         print(f"[INFO] [{_mod}] Register module: {module.__name__}")
                     module.register()
                 except Exception as e:
@@ -116,7 +116,7 @@ class AddonRegisterHelper:
         for module in reversed(self.modules):
             if hasattr(module, "unregister"):
                 try:
-                    if DEBUG:
+                    if u.is_debug():
                         print(f"[INFO] [{_mod}] Unregister module: {module.__name__}")
                     module.unregister()
                 except Exception as e:

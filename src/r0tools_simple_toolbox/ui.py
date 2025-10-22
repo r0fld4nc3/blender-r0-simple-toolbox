@@ -2,7 +2,12 @@ import bpy
 
 from . import ext_update as upd
 from . import utils as u
-from .defines import ADDON_CATEGORY, ADDON_NAME_BARE, DEBUG, IDNAME_EXTRA, VERSION_STR
+from .data_ops.data_operators import SimpleToolbox_OT_ClearCustomSplitNormalsData
+from .data_ops.ui import (
+    draw_clear_custom_properties_ui,
+    draw_clear_objects_attributes_ui,
+)
+from .defines import ADDON_CATEGORY, ADDON_NAME_BARE, IDNAME_EXTRA, VERSION_STR
 from .operators import *
 from .repo import draw_repo_layout
 
@@ -11,7 +16,7 @@ _mod = "UI"
 
 class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
     bl_idname = "OBJECT_PT_simple_toolbox"
-    bl_label = f"{ADDON_NAME_BARE}.{IDNAME_EXTRA} ({VERSION_STR})"
+    bl_label = f"{ADDON_NAME_BARE}{IDNAME_EXTRA} ({VERSION_STR})"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = ADDON_CATEGORY
@@ -135,6 +140,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 row_split = object_ops_panel_row.split(align=True)
                 # Select Empty Objects
                 row_split.operator(SimpleToolbox_OT_SelectEmptyObjects.bl_idname)
+                row_split.operator(SimpleToolbox_OT_SelectNonUniformScaleObjects.bl_idname)
 
                 # >> Row
                 object_ops_panel_row = object_ops_panel.row(align=True)
@@ -219,32 +225,8 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
 
         # ====== Custom Properties UI List ======
         if cat_show_custom_properties_editor:
-            custom_properties_header, custom_properties_panel = layout.panel_prop(
-                addon_props, panelvis_custom_properties_ops
-            )
-            if custom_properties_header:
-                custom_properties_header.label(text="Custom Properties")
-
-            if custom_properties_panel:
-                custom_properties_panel_row = custom_properties_panel.row()
-                # Row Number Slider
-                row = custom_properties_panel_row.row()
-                split = row.split(factor=0.35)
-                split.prop(addon_prefs, "custom_properties_list_rows", text="Rows:")
-
-                row = custom_properties_panel.row()
-                row.template_list(
-                    "R0PROP_UL_CustomPropertiesList",
-                    "custom_property_list",
-                    u.get_addon_props(),  # Collection owner
-                    "custom_property_list",  # Collection property
-                    u.get_addon_props(),  # Active item owner
-                    "custom_property_list_index",  # Active item property
-                    rows=addon_prefs.custom_properties_list_rows,
-                )
-                # Clear Custom Properties
-                row = custom_properties_panel.row()
-                row.operator(SimpleToolbox_OT_ClearCustomProperties.bl_idname)
+            draw_clear_custom_properties_ui(layout, context)
+            draw_clear_objects_attributes_ui(layout, context)
 
         # ====== UV Ops ======
         if cat_show_uv_ops:
@@ -310,7 +292,7 @@ classes = [
 
 def register():
     for cls in classes:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
@@ -320,6 +302,6 @@ def register():
 
 def unregister():
     for cls in classes:
-        if DEBUG:
+        if u.is_debug():
             print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
