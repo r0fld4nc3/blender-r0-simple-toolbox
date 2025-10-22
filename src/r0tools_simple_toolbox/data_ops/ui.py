@@ -22,12 +22,10 @@ class r0Tools_PT_SimpleToolboxEdgeDataOps(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        addon_prefs = u.get_addon_prefs()
         addon_props = u.get_addon_props()
-        experimental_enabled = addon_prefs.experimental_features
         show_panel = addon_props.cat_show_edge_data_panel
 
-        return experimental_enabled and show_panel
+        return show_panel
 
     def draw(self, context):
         layout = self.layout
