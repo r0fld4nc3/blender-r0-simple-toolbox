@@ -58,8 +58,8 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         categories_entries.prop(addon_props, "cat_show_find_modifiers_ops", text="", icon="MODIFIER")
         categories_entries.prop(addon_props, "cat_show_object_sets_editor", text="", icon="MESH_CUBE")
         categories_entries.prop(addon_props, "cat_show_vertex_groups_editor", text="", icon="GROUP_VERTEX")
+        categories_entries.prop(addon_props, "cat_show_edge_data_panel", text="", icon="EDGESEL")
         if addon_prefs.experimental_features:
-            categories_entries.prop(addon_props, "cat_show_edge_data_panel", text="", icon="EDGESEL")
             categories_entries.prop(addon_props, "cat_show_quick_export_panel", text="", icon="EXPORT")
 
         # Right control region
@@ -210,18 +210,17 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                     SimpleToolbox_OT_FindModifierSearch.bl_idname, icon="VIEWZOOM", text=""
                 )
 
-                if addon_find_modifier_props.experimental_features:
-                    # Found objects UIList
-                    find_modifiers_panel_row = find_modifiers_panel.row()
-                    find_modifiers_panel_row.template_list(
-                        "R0PROP_UL_FindModifierObjectsList",
-                        "",
-                        addon_find_modifier_props.objects_list,  # Collection owner
-                        "found_objects",  # Collection property
-                        addon_find_modifier_props.objects_list,  # Active item owner
-                        "active_index",  # Active item property
-                        rows=10,
-                    )
+                # Found objects UIList
+                find_modifiers_panel_row = find_modifiers_panel.row()
+                find_modifiers_panel_row.template_list(
+                    "R0PROP_UL_FindModifierObjectsList",
+                    "",
+                    addon_find_modifier_props.objects_list,  # Collection owner
+                    "found_objects",  # Collection property
+                    addon_find_modifier_props.objects_list,  # Active item owner
+                    "active_index",  # Active item property
+                    rows=10,
+                )
 
         # ====== Custom Properties UI List ======
         if cat_show_custom_properties_editor:
