@@ -220,36 +220,17 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
             else:
                 bm.to_mesh(mesh)
 
-            # Get selected vcol layer
-            selected_vcol_layer = mesh.color_attributes.active_color
-
-            # Valid layer names comparison list
-            comparison_names = []
-            if bevel_vcol_layer:
-                comparison_names.append(bevel_vcol_layer.name)
-            if crease_vcol_layer:
-                comparison_names.append(crease_vcol_layer.name)
-
-            if selected_vcol_layer:
-                if selected_vcol_layer.name not in comparison_names:
-                    # Set Bevel layer as active
-                    if self.bevel_weights_to_vcol:
-                        bpy.ops.r0tools.select_vcol_layer(select_bevel_layer=True, obj_name=obj.name)
-                    # Set Crease layer as active
-                    elif self.crease_to_vcol:
-                        bpy.ops.r0tools.select_vcol_layer(select_crease_layer=True, obj_name=obj.name)
-            else:
-                # Set Bevel layer as active
-                if self.bevel_weights_to_vcol:
-                    bpy.ops.r0tools.select_vcol_layer(select_bevel_layer=True, obj_name=obj.name)
-                # Set Crease layer as active
-                elif self.crease_to_vcol:
-                    bpy.ops.r0tools.select_vcol_layer(select_crease_layer=True, obj_name=obj.name)
-
             bm.free()
 
             total_processed += 1
             wm.progress_update(total_processed)
+
+        # Set Bevel layer as active
+        if self.bevel_weights_to_vcol:
+            bpy.ops.r0tools.select_vcol_layer(select_bevel_layer=True)
+        # Set Crease layer as active
+        elif self.crease_to_vcol:
+            bpy.ops.r0tools.select_vcol_layer(select_crease_layer=True)
 
         wm.progress_end()
         end_time = time.time()
@@ -474,7 +455,6 @@ class SimpleToolbox_OT_SelectColourAttributeLayer(bpy.types.Operator):
 
     select_bevel_layer: BoolProperty(default=False, name="Select Bevel Layer", description="Select Bevel Layer")  # type: ignore
     select_crease_layer: BoolProperty(default=False, name="Select Crease Layer", description="Select Crease Layer")  # type: ignore
-    obj_name: StringProperty(default="", name="Object")  # type: ignore
 
     @classmethod
     def poll(cls, context):
@@ -495,20 +475,7 @@ class SimpleToolbox_OT_SelectColourAttributeLayer(bpy.types.Operator):
         bevel_objects_applied = 0
         crease_objects_applied = 0
 
-        if self.obj_name:
-            obj = bpy.data.objects.get(self.obj_name)
-            if obj is None:
-                self.report({"WARNING"}, f"Object '{self.obj_name}' not found")
-                return {"CANCELLED"}
-
-            if obj.type != "MESH":
-                self.report({"WARNING"}, f"Object '{self.obj_name}' is not a mesh.")
-                return {"CANCELLED"}
-            objects_to_process = [obj]
-        else:
-            objects_to_process = list(u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]))
-
-        for obj in objects_to_process:
+        for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
             mesh = obj.data
 
             """
@@ -535,16 +502,10 @@ class SimpleToolbox_OT_SelectColourAttributeLayer(bpy.types.Operator):
                     crease_objects_applied += 1
 
         if self.select_bevel_layer:
-            if not self.obj_name:
-                self.report({"INFO"}, f"Selected Bevel Colour Attribute Layer for {bevel_objects_applied} Objects")
-            else:
-                self.report({"INFO"}, f"Selected Bevel Colour Attribute Layer for '{self.obj_name}'")
+            self.report({"INFO"}, f"Selected Bevel Colour Attribute Layer for {bevel_objects_applied} Objects")
 
         if self.select_crease_layer:
-            if not self.obj_name:
-                self.report({"INFO"}, f"Selected Crease Colour Attribute Layer for {crease_objects_applied} Objects")
-            else:
-                self.report({"INFO"}, f"Selected Crease Colour Attribute Layer for '{self.obj_name}")
+            self.report({"INFO"}, f"Selected Crease Colour Attribute Layer for {crease_objects_applied} Objects")
 
         return {"FINISHED"}
 
