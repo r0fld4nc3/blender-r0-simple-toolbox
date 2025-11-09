@@ -37,8 +37,10 @@ def draw_edge_bweights_presets_operators(layout, context):
     Draw the Edge Bevel Weights Presets UI list
     """
     from ..data_ops import (
+        SimpleToolbox_OT_ApplyEdgeDataValueFromActiveEdge,
         SimpleToolbox_OT_ApplyEdgeDataValuePreset,
         SimpleToolbox_OT_SelectColourAttributeLayer,
+        SimpleToolbox_OT_SelectEdgeDataValueFromActiveEdge,
     )
     from ..utils import get_addon_edge_data_props, get_addon_prefs
 
@@ -117,6 +119,14 @@ def draw_edge_bweights_presets_operators(layout, context):
             value_text = f"{preset.value*100:.2f}".split(".")[0] + "%"
             op = grid_flow.operator(SimpleToolbox_OT_ApplyEdgeDataValuePreset.bl_idname, text=value_text)
             op.value = preset.value
+
+    # Apply from active edge
+    row = layout.row(align=True)
+    row.operator(SimpleToolbox_OT_ApplyEdgeDataValueFromActiveEdge.bl_idname)
+
+    # Select from active edge
+    row = layout.row(align=True)
+    row.operator(SimpleToolbox_OT_SelectEdgeDataValueFromActiveEdge.bl_idname)
 
 
 def draw_edge_data_panel_ui(layout, context):
