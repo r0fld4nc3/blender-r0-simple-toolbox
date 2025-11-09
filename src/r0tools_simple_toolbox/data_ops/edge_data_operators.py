@@ -324,9 +324,9 @@ class SimpleToolbox_OT_SelectEdgesWithValue(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class SimpleToolbox_OT_ApplyBWeightPreset(bpy.types.Operator):
+class SimpleToolbox_OT_ApplyEdgeDataValuePreset(bpy.types.Operator):
     bl_label = "Apply"
-    bl_idname = "r0tools.apply_selected_bweight_value_preset"
+    bl_idname = "r0tools.apply_selected_edge_data_value_preset"
     bl_description = "Apply selected Edge Bevel Weight value preset to selected edges.\n\nMODIFIERS:\n- SHIFT: Select bevel weighted edges with value.\n- CTRL: Select creased edges with value"
     bl_options = {"REGISTER", "UNDO"}
 
@@ -508,7 +508,7 @@ class SimpleToolbox_OT_SelectColourAttributeLayer(bpy.types.Operator):
 # fmt: off
 classes = [
     SimpleToolbox_OT_EdgeDataToVertexColour,
-    SimpleToolbox_OT_ApplyBWeightPreset,
+    SimpleToolbox_OT_ApplyEdgeDataValuePreset,
     SimpleToolbox_OT_SelectEdgesWithValue,
     SimpleToolbox_OT_SelectColourAttributeLayer
 ]

@@ -37,7 +37,7 @@ def draw_edge_bweights_presets_operators(layout, context):
     Draw the Edge Bevel Weights Presets UI list
     """
     from ..data_ops import (
-        SimpleToolbox_OT_ApplyBWeightPreset,
+        SimpleToolbox_OT_ApplyEdgeDataValuePreset,
         SimpleToolbox_OT_SelectColourAttributeLayer,
     )
     from ..utils import get_addon_edge_data_props, get_addon_prefs
@@ -90,7 +90,7 @@ def draw_edge_bweights_presets_operators(layout, context):
             if index < len(values):
                 preset = values[index]
                 value = f"{preset.value*100:.2f}".split(".")[0] + "%"
-                op = row.operator(SimpleToolbox_OT_ApplyBWeightPreset.bl_idname, text=value)
+                op = row.operator(SimpleToolbox_OT_ApplyEdgeDataValuePreset.bl_idname, text=value)
                 op.value = preset.value
 
         # === Right Column: Precise ===
@@ -107,7 +107,7 @@ def draw_edge_bweights_presets_operators(layout, context):
             if index < len(values):
                 preset = values[index]
                 value = f"{preset.value*100:.2f}".split(".")[0] + "%"
-                op = row.operator(SimpleToolbox_OT_ApplyBWeightPreset.bl_idname, text=value)
+                op = row.operator(SimpleToolbox_OT_ApplyEdgeDataValuePreset.bl_idname, text=value)
                 op.value = preset.value
     else:
         # Grid flow with 2 columns
@@ -115,7 +115,7 @@ def draw_edge_bweights_presets_operators(layout, context):
 
         for preset in values:
             value_text = f"{preset.value*100:.2f}".split(".")[0] + "%"
-            op = grid_flow.operator(SimpleToolbox_OT_ApplyBWeightPreset.bl_idname, text=value_text)
+            op = grid_flow.operator(SimpleToolbox_OT_ApplyEdgeDataValuePreset.bl_idname, text=value_text)
             op.value = preset.value
 
 
