@@ -23,3 +23,5 @@ def initialize_bweight_presets(dummy):
     for i in range(10, 101, 5):
         preset = addon_edge_data_props.edge_bweights_presets.presets.add()
         preset.value = round(i / 100.0, 2)
+
+    log(f"[INFO] [{_mod}] Presest: {[v.value for v in addon_edge_data_props.edge_bweights_presets.presets]}")
