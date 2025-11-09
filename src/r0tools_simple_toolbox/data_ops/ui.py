@@ -7,7 +7,7 @@ from .data_operators import *
 
 _mod = f"{parent_mod}.UI"
 
-_most_used_indices = sorted(list({1, 2, 4, 6, 9, 14, 19}))
+_most_used_indices = sorted(list({1, 2, 4, 6, 9, 12, 14, 19}))
 _precise_indices = sorted(list({i for i in range(0, 20, 1)} - set(_most_used_indices)))
 
 
@@ -40,7 +40,7 @@ def draw_edge_bweights_presets_operators(layout, context):
         SimpleToolbox_OT_ApplyBWeightPreset,
         SimpleToolbox_OT_SelectColourAttributeLayer,
     )
-    from ..utils import get_addon_edge_data_props, get_addon_prefs, get_addon_props, log
+    from ..utils import get_addon_edge_data_props, get_addon_prefs
 
     addon_prefs = get_addon_prefs()
     addon_edge_data_props = get_addon_edge_data_props()
@@ -121,29 +121,33 @@ def draw_edge_bweights_presets_operators(layout, context):
 
 def draw_edge_data_panel_ui(layout, context):
     from ..data_ops import SimpleToolbox_OT_EdgeDataToVertexColour
-    from ..utils import get_addon_edge_data_props, get_addon_prefs, get_addon_props, log
+    from ..utils import get_addon_edge_data_props
 
     addon_edge_data_props = get_addon_edge_data_props()
 
     # Convert button (big)
-    row = layout.row()
+    box = layout.box()
+    row = box.row()
     row.scale_y = 2
     row.operator(SimpleToolbox_OT_EdgeDataToVertexColour.bl_idname, icon="GROUP_VCOL")
 
     # Apply to channels
-    row = layout.row()
+    row = box.row()
     row.label(text="Apply to channel(s):")
-    row = layout.row(align=True)
+    row = box.row(align=True)
     row.prop(addon_edge_data_props, "apply_value_to_channel_enum", expand=True)
 
-    # Convert options
-    row = layout.row()
-    row.label(text="Convert:")
-    row = layout.row()
-    row.prop(addon_edge_data_props, "convert_using_max_value")
-    row = layout.row(align=True)
+    # Convert
+    row = box.row(align=True)
+    row.label(text="Convert from:")
+
+    row = box.row(align=True)
     row.prop(addon_edge_data_props, "convert_data_as", expand=True)
-    row = layout.row()
+
+    row = box.row(align=True)
+    row.prop(addon_edge_data_props, "convert_using_max_value")
+
+    row = layout.row()  # Separator
 
     draw_edge_bweights_presets_operators(layout, context)
 
