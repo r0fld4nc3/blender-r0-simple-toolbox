@@ -66,11 +66,11 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
         self.crease_to_vcol = addon_edge_data_props.convert_data_as == "CREASES"
         self.use_max_value = addon_edge_data_props.convert_using_max_value
 
-        self.convert_to_channel_r = addon_edge_data_props.apply_value_to_channel_r
+        self.convert_to_channel_r = addon_edge_data_props.apply_value_to_channel_enum == "R"
 
-        self.convert_to_channel_g = addon_edge_data_props.apply_value_to_channel_b
+        self.convert_to_channel_g = addon_edge_data_props.apply_value_to_channel_enum == "G"
 
-        self.convert_to_channel_b = addon_edge_data_props.apply_value_to_channel_g
+        self.convert_to_channel_b = addon_edge_data_props.apply_value_to_channel_enum == "B"
 
         return self.execute(context)
 
@@ -89,11 +89,6 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
 
         vcol_bevel_layer_name = addon_edge_data_props.vcol_bevel_layer_name
         vcol_crease_layer_name = addon_edge_data_props.vcol_crease_layer_name
-
-        # Ensure at least always one channels (the default ideally) gets the conversion data
-        if not any([self.convert_to_channel_r, self.convert_to_channel_g, self.convert_to_channel_b]):
-            self.convert_to_channel_r = True
-            addon_edge_data_props.apply_value_to_channel_r = True
 
         start_time = time.time()
 

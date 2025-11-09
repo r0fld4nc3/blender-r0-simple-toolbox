@@ -58,16 +58,16 @@ class r0SimpleToolboxEdgeDataProps(bpy.types.PropertyGroup):
         default=False,
     )  # type: ignore
 
-    apply_value_to_channel_r: BoolProperty(
-        name="Red", description="Apply Bevel/Crease Vertex Colour value to the Red Channel", default=True
-    )  # type: ignore
-
-    apply_value_to_channel_g: BoolProperty(
-        name="Green", description="Apply Bevel/Crease Vertex Colour value to the Green Channel", default=False
-    )  # type: ignore
-
-    apply_value_to_channel_b: BoolProperty(
-        name="Blue", description="Apply Bevel/Crease Vertex Colour value to the Blue Channel", default=False
+    apply_value_to_channel_enum: EnumProperty(
+        name="Apply to Channel",
+        description="Which channel to apply the converted data",
+        items=[
+            ("R", "R", "Red Channel"),
+            ("G", "G", "Green Channel"),
+            ("B", "B", "Blue Channel"),
+        ],
+        # options={"ENUM_FLAG"},  # Allow multiple selections. Default and options become a `set`
+        default="R",  # {"R"}
     )  # type: ignore
 
 

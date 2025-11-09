@@ -134,9 +134,7 @@ def draw_edge_data_panel_ui(layout, context):
     row = layout.row()
     row.label(text="Apply to channel(s):")
     row = layout.row(align=True)
-    row.prop(addon_edge_data_props, "apply_value_to_channel_r", text="R", toggle=True)
-    row.prop(addon_edge_data_props, "apply_value_to_channel_g", text="G", toggle=True)
-    row.prop(addon_edge_data_props, "apply_value_to_channel_b", text="B", toggle=True)
+    row.prop(addon_edge_data_props, "apply_value_to_channel_enum", expand=True)
 
     # Convert options
     row = layout.row()
