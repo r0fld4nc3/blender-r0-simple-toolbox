@@ -40,7 +40,6 @@ def draw_edge_bweights_presets_operators(layout, context):
         SimpleToolbox_OT_ApplyEdgeDataValueFromActiveEdge,
         SimpleToolbox_OT_ApplyEdgeDataValuePreset,
         SimpleToolbox_OT_SelectColourAttributeLayer,
-        SimpleToolbox_OT_SelectEdgeDataValueFromActiveEdge,
     )
     from ..utils import get_addon_edge_data_props, get_addon_prefs
 
@@ -123,10 +122,6 @@ def draw_edge_bweights_presets_operators(layout, context):
     # Apply from active edge
     row = layout.row(align=True)
     row.operator(SimpleToolbox_OT_ApplyEdgeDataValueFromActiveEdge.bl_idname)
-
-    # Select from active edge
-    row = layout.row(align=True)
-    row.operator(SimpleToolbox_OT_SelectEdgeDataValueFromActiveEdge.bl_idname)
 
 
 def draw_edge_data_panel_ui(layout, context):
