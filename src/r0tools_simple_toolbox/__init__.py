@@ -30,6 +30,7 @@ modules = (
     ".repo.operators",
     ".repo.ui",
     ".data_ops",
+    ".find_modifiers_ops",
     ".export_ops",
     ".keymaps",
 )
