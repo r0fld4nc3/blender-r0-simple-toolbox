@@ -8,6 +8,7 @@ from .data_ops.ui import (
     draw_clear_objects_attributes_ui,
 )
 from .defines import ADDON_CATEGORY, ADDON_NAME_BARE, IDNAME_EXTRA, VERSION_STR
+from .find_modifiers_ops import SimpleToolbox_OT_FindModifiersCategoryVisCollapse
 from .operators import *
 from .repo import draw_repo_layout
 
@@ -49,7 +50,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         special_categories_row = special_categories_column.row()
 
         categories_entries = categories_column.grid_flow(
-            row_major=True, columns=8, even_columns=True, even_rows=False, align=True
+            row_major=True, columns=6, even_columns=False, even_rows=False, align=True
         )
         categories_entries.prop(addon_props, "cat_show_object_ops", text="", icon="EVENT_O")
         categories_entries.prop(addon_props, "cat_show_mesh_ops", text="", icon="EVENT_M")
@@ -207,6 +208,17 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 find_modifiers_panel_row.operator(
                     SimpleToolbox_OT_FindModifierSearch.bl_idname, icon="VIEWZOOM", text=""
                 )
+
+                find_modifiers_panel_row = find_modifiers_panel.row(align=True)
+                op_collapse = find_modifiers_panel_row.operator(
+                    SimpleToolbox_OT_FindModifiersCategoryVisCollapse.bl_idname, text="Collapse All", icon="TRIA_RIGHT"
+                )
+                op_collapse.collapse = True
+
+                op_unfold = find_modifiers_panel_row.operator(
+                    SimpleToolbox_OT_FindModifiersCategoryVisCollapse.bl_idname, text="Unfold All", icon="TRIA_DOWN"
+                )
+                op_unfold.collapse = False
 
                 # Found objects UIList
                 find_modifiers_panel_row = find_modifiers_panel.row()
