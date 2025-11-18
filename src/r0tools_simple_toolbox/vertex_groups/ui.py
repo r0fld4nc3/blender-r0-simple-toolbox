@@ -10,7 +10,7 @@ _mod = f"{parent_mod}.UI"
 
 class r0Tools_PT_SimpleToolboxVertexGroups(bpy.types.Panel):
     bl_idname = "OBJECT_PT_simple_toolbox_vertex_gropus"
-    bl_label = f"Vertex Groups - {ADDON_NAME_BARE}.{IDNAME_EXTRA}"
+    bl_label = f"Vertex Groups - {ADDON_NAME_BARE}{IDNAME_EXTRA}"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = ADDON_CATEGORY

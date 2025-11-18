@@ -13,7 +13,7 @@ _precise_indices = sorted(list({i for i in range(0, 20, 1)} - set(_most_used_ind
 
 class r0Tools_PT_SimpleToolboxEdgeDataOps(bpy.types.Panel):
     bl_idname = "OBJECT_PT_simple_toolbox_edge_data"
-    bl_label = f"Edge Data - {ADDON_NAME_BARE}.{IDNAME_EXTRA}"
+    bl_label = f"Edge Data - {ADDON_NAME_BARE}{IDNAME_EXTRA}"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Item"
