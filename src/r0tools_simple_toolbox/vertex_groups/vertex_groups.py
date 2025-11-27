@@ -342,12 +342,36 @@ def iter_obj_vertex_groups(obj):
         yield vertex_group
 
 
-def set_obj_active_vertex_group(obj, vertex_group) -> bool:
-    if vertex_group.index < len(obj.vertex_groups):
-        obj.vertex_groups.active_index = vertex_group.index
+def set_obj_active_vertex_group(obj, vertex_group_name: str) -> bool:
+    vgroup_index = obj.vertex_groups.find(vertex_group_name)
+    if vgroup_index != -1:
+        obj.vertex_groups.active_index = vgroup_index
         return True
 
     return False
+
+
+def _vertex_group_sync_selection(self, context):
+    prop_sync_selection = self.sync_selection
+
+    if not prop_sync_selection:
+        return
+
+    if not self.vertex_groups or self.vertex_group_list_index >= len(self.vertex_groups):
+        return
+
+    # Name of vgroup
+    selected_vgroup = get_vertex_group_at_index(self.vertex_group_list_index)
+    vgroup_name = selected_vgroup.name
+
+    # Propagate active vgroup to object selection
+    for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
+        obj_vgroups = obj.vertex_groups
+
+        if vgroup_name not in obj_vgroups:
+            continue
+
+        set_obj_active_vertex_group(obj, vgroup_name)
 
 
 def draw_vertex_groups_uilist(layout, context):
@@ -368,15 +392,31 @@ def draw_vertex_groups_uilist(layout, context):
     addon_prefs = u.get_addon_prefs()
     addon_vertex_groups_props = u.get_addon_vertex_groups_props()
 
+    scene = context.scene
+    scene_tool_settings = scene.tool_settings
+
     # Vertex Groups Row Number Slider
     row = layout.row()
     col_left = row.column()
-    col_left.alignment = "LEFT"
     col_left.prop(addon_vertex_groups_props, "vertex_groups_list_rows", text="Rows:")
+
+    row = layout.row()  # Spacer
+
+    # Sync Selection
+    col_left = row.column()
+    col_left.alignment = "LEFT"
+    col_left.prop(addon_vertex_groups_props, "sync_selection", icon="UV_SYNC_SELECT")
     col_right = row.column()
     col_right.separator()
 
-    row = layout.row()
+    row = layout.row()  # Spacer
+
+    # Auto-Normalize
+    if scene_tool_settings:
+        col_left = row.column()
+        col_left.prop(scene_tool_settings, "use_auto_normalize", text="Auto-Normalize")
+
+    row = layout.row()  # Spacer
 
     # Left Section - List
     col_left = row.column()
