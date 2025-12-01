@@ -149,8 +149,6 @@ class SimpleToolbox_OT_ClearObjectAttributes(bpy.types.Operator):
             item for item in addon_props.object_attributes_list if item.selected and item not in attrs_to_keep
         ]
 
-        print(attribs_to_remove)
-
         for obj in context.selected_objects:
             data = obj.data
 
