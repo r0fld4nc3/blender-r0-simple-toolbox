@@ -90,10 +90,18 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
             update_row.label(text="", icon="FUND")
             update_row.label(text="UPDATE AVAILABLE", icon="FILE_REFRESH")
             update_row.label(text="", icon="FUND")
+
+            # Open Extensions tab in Preferences
             update_row = update_box.row(align=True)
-            update_row.operator(
-                SimpleToolbox_OT_TakeMeToUpdate.bl_idname, text="Take me there!", icon="INDIRECT_ONLY_ON"
+            op = update_row.operator(
+                SimpleToolbox_OT_TakeMeToUpdate.bl_idname, text="Take me to Extensions!", icon="INDIRECT_ONLY_ON"
             )
+            op.open_extensions_tab = True
+
+            # Open GitHub page
+            update_row = update_box.row(align=True)
+            op = update_row.operator(SimpleToolbox_OT_TakeMeToUpdate.bl_idname, text="Take me to GitHub!", icon="URL")
+            op.open_extensions_tab = False
 
         # ====== Dev Tools ======
         if addon_prefs.dev_tools:
