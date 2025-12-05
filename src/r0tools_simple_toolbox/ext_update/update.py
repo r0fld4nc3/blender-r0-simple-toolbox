@@ -370,7 +370,7 @@ def _run_update_check_thread(
             print(f"[INFO] [{_mod}] Local Version: {local_version}")
             print(f"[INFO] [{_mod}] Remote Version: {remote_version}")
 
-            has_update = local_version < remote_version
+            has_update = remote_version > local_version
             update_data[KEY_UPDATE_AVAILABLE] = has_update
 
             with open(update_check_file, "w") as f:
@@ -505,7 +505,7 @@ def _check_extension_update_json_threadsafe(addon_id: str, ext_json: dict) -> bo
     print(f"[INFO] [{_mod}] Local version for '{addon_id}': {installed_version}")
     print(f"[INFO] [{_mod}] Remote version for '{addon_id}': {remote_version}")
 
-    if installed_version < remote_version:
+    if remote_version > installed_version:
         print(f"[INFO] [{_mod}] Update available!")
         return True
     else:
@@ -525,7 +525,7 @@ def _check_local_addon_update_threadsafe(addon_id: str, remote_version: tuple) -
     print(f"[INFO] [{_mod}] Local version for '{addon_id}': {installed_version}")
     print(f"[INFO] [{_mod}] Remote version for '{addon_id}': {remote_version}")
 
-    if installed_version < remote_version:
+    if remote_version > installed_version:
         print(f"[INFO] [{_mod}] Update available!")
         return True
     else:
