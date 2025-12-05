@@ -36,6 +36,7 @@ def trigger_update_check(*args, **kwargs) -> bool:
     update_check_file: Path = get_addon_fs_path() / BASE_NAME / "check_update"
     if not update_check_file.exists():
         update_check_file = get_addon_fs_path() / "check_update"
+
     print(f"[INFO] [{_mod}] Update File: {str(update_check_file)}")
 
     KEY_LAST_CHECKED = "last_checked"
