@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "r0tools_simple_toolbox"
-version = "0.0.34"
+version = "0.1.0"
 name = "r0Tools - Simple Toolbox"
 tagline = "General workflow utitlies"
 maintainer = "https://github.com/r0fld4nc3"

@@ -11,6 +11,7 @@ from bpy.props import (  # type: ignore
 )
 
 from .. import utils as u
+from ..vertex_groups.vertex_groups import _vertex_group_sync_selection
 
 _mod = "VERTEX GROUPS PROPS"
 
@@ -91,6 +92,13 @@ def update_vertex_group_name_callback(self, context):
             u.log("\t• " + "\n\t• ".join(renamed_objects))
 
 
+def update_vertex_group_list_index_callback(self, context):
+    """Callback function for when the active index/entry is updated in the UIList"""
+
+    # Sync Vertex Group selection across selected Objects
+    _vertex_group_sync_selection(self, context)
+
+
 class R0PROP_PG_VertexGroupPropertyItem(bpy.types.PropertyGroup):
     """Property that represent an entry in the Vertex Groups UI List"""
 
@@ -111,9 +119,10 @@ class R0PROP_PG_LockStateEntry(bpy.types.PropertyGroup):
 class r0VertexGroupsProps(bpy.types.PropertyGroup):
     vertex_groups: CollectionProperty(type=R0PROP_PG_VertexGroupPropertyItem)  # type: ignore
     vertex_groups_lock_states: CollectionProperty(type=R0PROP_PG_LockStateEntry)  # type: ignore
-    vertex_group_list_index: IntProperty(default=0, name="Vertex Group")  # type: ignore
+    vertex_group_list_index: IntProperty(default=0, name="Vertex Group", update=update_vertex_group_list_index_callback)  # type: ignore
     vgroups_do_update: BoolProperty(default=True)  # type: ignore
     vertex_groups_list_rows: IntProperty(name="Vertex Groups List Rows", default=8, min=1)  # type: ignore
+    sync_selection: BoolProperty(default=True, name="Sync Selection", description="Sync active vertex group selection from UIList to selected objects")  # type: ignore
 
 
 # ===================================================================

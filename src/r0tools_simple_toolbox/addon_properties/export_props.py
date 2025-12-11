@@ -131,7 +131,7 @@ class r0SimpleToolbox_PG_FBXExportSettings(bpy.types.PropertyGroup):
             ("LINEAR", "Linear", "Export colors in linear color space"),
             ("SRGB", "sRGB", "Export colors in sRGB color space"),
         ],
-        default="LINEAR",
+        default="SRGB",  # TODO: Consider exporting as sRGB? Seems like it maps better? Test.
     )  # type: ignore
 
     prioritize_active_color: BoolProperty(

@@ -10,7 +10,7 @@ _mod = f"{parent_mod}.UI"
 
 class r0Tools_PT_SimpleToolboxQuickExportOps(bpy.types.Panel):
     bl_idname = "OBJECT_PT_simple_toolbox_quick_export_ops"
-    bl_label = f"Quick Export - {ADDON_NAME_BARE}.{IDNAME_EXTRA}"
+    bl_label = f"Quick Export - {ADDON_NAME_BARE}{IDNAME_EXTRA}"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Item"

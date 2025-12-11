@@ -1,7 +1,7 @@
 bl_info = {
-    "name": "r0Tools - Simple Toolbox.dev",
+    "name": "r0Tools - Simple Toolbox",
     "author": "Artur Rosário",
-    "version": (0, 0, 34),
+    "version": (0, 1, 0),
     "blender": (4, 2, 5),
     "location": "3D View > Simple Toolbox",
     "description": "Miscellaneous Utilities",
@@ -30,6 +30,7 @@ modules = (
     ".repo.operators",
     ".repo.ui",
     ".data_ops",
+    ".find_modifiers_ops",
     ".export_ops",
     ".keymaps",
 )

@@ -15,10 +15,7 @@ from .. import utils as u
 _mod = "EXPERIMENTAL PROPS"
 
 
-class r0SimpleToolboxExperimentalProps(bpy.types.PropertyGroup):
-    show_edge_data_ops: BoolProperty(
-        name="Edge Data Ops", description="Toggle visibility of experimental Edge Data Operators", default=True
-    )  # type: ignore
+class r0SimpleToolboxExperimentalProps(bpy.types.PropertyGroup): ...
 
 
 # ===================================================================

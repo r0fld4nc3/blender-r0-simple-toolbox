@@ -238,10 +238,6 @@ def _needs_update():
 def vertex_groups_list_update(scene=None, force: bool = False):
     scene = u.get_scene(scene)
 
-    if not u.is_writing_context_safe(scene):
-        print(f"[WARNING] [{_mod}] Vertex Groups List Update: Unsafe Context.")
-        return None
-
     addon_props = u.get_addon_props(scene)
     addon_vertex_groups_props = u.get_addon_vertex_groups_props(scene)
 
@@ -285,11 +281,7 @@ def vertex_groups_list_update(scene=None, force: bool = False):
         # Store the current selection state before clearing the list
         selection_state = _vertex_groups_store_states()
 
-        try:
-            addon_vertex_groups_props.vertex_groups.clear()
-        except Exception as e:
-            print(f"[ERROR] [{_mod}] Executing '.clear()' for property 'vertex_groups'.\n{e}")
-            return None
+        safe_clear_vertex_groups_collection(scene)
 
         # Sort and add groups (only when changed)
         sorted_groups = dict(sorted(vertex_groups_new.items()))
@@ -312,7 +304,7 @@ def vertex_groups_list_update(scene=None, force: bool = False):
 
             # Clear the property list if no objects are selected
             try:
-                addon_vertex_groups_props.vertex_groups.clear()
+                safe_clear_vertex_groups_collection(scene)
                 _vertex_groups_cache = {}
                 if u.is_debug():
                     print(f"[DEBUG] [{_mod}] Cleared UIList vertex_groups")
@@ -323,6 +315,29 @@ def vertex_groups_list_update(scene=None, force: bool = False):
             # UI update
             u.tag_redraw_if_visible()
     return None
+
+
+def safe_clear_vertex_groups_collection(scene):
+    addon_vertex_groups_props = u.get_addon_vertex_groups_props(scene)
+
+    was_updating_before = u.is_updating()
+
+    if not was_updating_before:
+        u.set_is_updating(True)
+
+    try:
+        while len(addon_vertex_groups_props.vertex_groups) > 0:
+            if not u.is_writing_context_safe(scene):
+                return False
+
+            addon_vertex_groups_props.vertex_groups.remove(len(addon_vertex_groups_props.vertex_groups) - 1)
+        return True
+    except Exception as e:
+        print(f"[ERROR] Failed to clear vertex groups: {e}")
+        return False
+    finally:
+        if not was_updating_before:
+            u.set_is_updating(False)
 
 
 def vertex_group_add(obj: bpy.types.Object, vg_name: str):
@@ -342,12 +357,36 @@ def iter_obj_vertex_groups(obj):
         yield vertex_group
 
 
-def set_obj_active_vertex_group(obj, vertex_group) -> bool:
-    if vertex_group.index < len(obj.vertex_groups):
-        obj.vertex_groups.active_index = vertex_group.index
+def set_obj_active_vertex_group(obj, vertex_group_name: str) -> bool:
+    vgroup_index = obj.vertex_groups.find(vertex_group_name)
+    if vgroup_index != -1:
+        obj.vertex_groups.active_index = vgroup_index
         return True
 
     return False
+
+
+def _vertex_group_sync_selection(self, context):
+    prop_sync_selection = self.sync_selection
+
+    if not prop_sync_selection:
+        return
+
+    if not self.vertex_groups or self.vertex_group_list_index >= len(self.vertex_groups):
+        return
+
+    # Name of vgroup
+    selected_vgroup = get_vertex_group_at_index(self.vertex_group_list_index)
+    vgroup_name = selected_vgroup.name
+
+    # Propagate active vgroup to object selection
+    for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
+        obj_vgroups = obj.vertex_groups
+
+        if vgroup_name not in obj_vgroups:
+            continue
+
+        set_obj_active_vertex_group(obj, vgroup_name)
 
 
 def draw_vertex_groups_uilist(layout, context):
@@ -368,15 +407,31 @@ def draw_vertex_groups_uilist(layout, context):
     addon_prefs = u.get_addon_prefs()
     addon_vertex_groups_props = u.get_addon_vertex_groups_props()
 
+    scene = context.scene
+    scene_tool_settings = scene.tool_settings
+
     # Vertex Groups Row Number Slider
     row = layout.row()
     col_left = row.column()
-    col_left.alignment = "LEFT"
     col_left.prop(addon_vertex_groups_props, "vertex_groups_list_rows", text="Rows:")
+
+    row = layout.row()  # Spacer
+
+    # Sync Selection
+    col_left = row.column()
+    col_left.alignment = "LEFT"
+    col_left.prop(addon_vertex_groups_props, "sync_selection", icon="UV_SYNC_SELECT")
     col_right = row.column()
     col_right.separator()
 
-    row = layout.row()
+    row = layout.row()  # Spacer
+
+    # Auto-Normalize
+    if scene_tool_settings:
+        col_left = row.column()
+        col_left.prop(scene_tool_settings, "use_auto_normalize", text="Auto-Normalize")
+
+    row = layout.row()  # Spacer
 
     # Left Section - List
     col_left = row.column()

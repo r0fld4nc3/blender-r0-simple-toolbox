@@ -1,4 +1,5 @@
 import bpy
+from bpy.props import BoolProperty
 
 from . import ISSUES_BUG_ADD, ISSUES_FEATURE_ADD, ISSUES_PAGE, RELEASES_PAGE, REPOSITORY
 
@@ -74,10 +75,12 @@ class SimpleToolbox_OT_TakeMeToUpdate(bpy.types.Operator):
     bl_description = "Open relevant page to update the addon"
     bl_options = {"REGISTER", "INTERNAL"}
 
-    def execute(self, context):
-        split = INTERNAL_NAME.split(".")
+    open_extensions_tab: BoolProperty(name="Open Extensions", description="Open Extensions tab in Preferences with addon name pre-searched", default=True)  # type: ignore
 
-        if "bl_ext" in split:
+    def execute(self, context):
+        # split = INTERNAL_NAME.split(".")
+
+        if self.open_extensions_tab:
             # Bring up the User Preferences window and pre-search the addon name
             bpy.ops.screen.userpref_show()
 
@@ -86,6 +89,8 @@ class SimpleToolbox_OT_TakeMeToUpdate(bpy.types.Operator):
             bpy.data.window_managers["WinMan"].extension_search = "r0tools"
         else:
             bpy.ops.r0tools.open_repo_releases_page()
+
+            bpy.ops.extensions.repo_sync_all()
 
         return {"FINISHED"}
 

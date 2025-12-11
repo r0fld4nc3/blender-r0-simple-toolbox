@@ -88,7 +88,10 @@ def get_selected_objects(context: bpy.types.Context | None = None) -> list:
     if context is not None:
         return context.selected_objects
 
-    return bpy.context.selected_objects
+    if hasattr(bpy.context, "selected_objects"):
+        return bpy.context.selected_objects
+
+    return []
 
 
 def set_object_mode(mode: str):
@@ -940,6 +943,11 @@ def object_attributes_list_update(scene=None, force_run=False):
                 for attrib_name, attrib_data in obj.data.attributes.items():
                     if is_debug():
                         print(f"[DEBUG] [{_mod}] (ObjAttrib) {obj.name} - {attrib_name=}")
+
+                    # position attribute is required and can't be removed
+                    if attrib_name == "position":
+                        continue
+
                     if not attrib_name.startswith(".") and attrib_name not in attrs_to_keep:
                         unique_attributes.add(attrib_name)
 

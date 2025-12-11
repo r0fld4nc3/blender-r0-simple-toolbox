@@ -66,11 +66,11 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
         self.crease_to_vcol = addon_edge_data_props.convert_data_as == "CREASES"
         self.use_max_value = addon_edge_data_props.convert_using_max_value
 
-        self.convert_to_channel_r = addon_edge_data_props.apply_value_to_channel_r
+        self.convert_to_channel_r = addon_edge_data_props.apply_value_to_channel_enum == "R"
 
-        self.convert_to_channel_g = addon_edge_data_props.apply_value_to_channel_b
+        self.convert_to_channel_g = addon_edge_data_props.apply_value_to_channel_enum == "G"
 
-        self.convert_to_channel_b = addon_edge_data_props.apply_value_to_channel_g
+        self.convert_to_channel_b = addon_edge_data_props.apply_value_to_channel_enum == "B"
 
         return self.execute(context)
 
@@ -89,11 +89,6 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
 
         vcol_bevel_layer_name = addon_edge_data_props.vcol_bevel_layer_name
         vcol_crease_layer_name = addon_edge_data_props.vcol_crease_layer_name
-
-        # Ensure at least always one channels (the default ideally) gets the conversion data
-        if not any([self.convert_to_channel_r, self.convert_to_channel_g, self.convert_to_channel_b]):
-            self.convert_to_channel_r = True
-            addon_edge_data_props.apply_value_to_channel_r = True
 
         start_time = time.time()
 
@@ -220,36 +215,17 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
             else:
                 bm.to_mesh(mesh)
 
-            # Get selected vcol layer
-            selected_vcol_layer = mesh.color_attributes.active_color
-
-            # Valid layer names comparison list
-            comparison_names = []
-            if bevel_vcol_layer:
-                comparison_names.append(bevel_vcol_layer.name)
-            if crease_vcol_layer:
-                comparison_names.append(crease_vcol_layer.name)
-
-            if selected_vcol_layer:
-                if selected_vcol_layer.name not in comparison_names:
-                    # Set Bevel layer as active
-                    if self.bevel_weights_to_vcol:
-                        bpy.ops.r0tools.select_vcol_layer(select_bevel_layer=True)
-                    # Set Crease layer as active
-                    elif self.crease_to_vcol:
-                        bpy.ops.r0tools.select_vcol_layer(select_crease_layer=True)
-            else:
-                # Set Bevel layer as active
-                if self.bevel_weights_to_vcol:
-                    bpy.ops.r0tools.select_vcol_layer(select_bevel_layer=True)
-                # Set Crease layer as active
-                elif self.crease_to_vcol:
-                    bpy.ops.r0tools.select_vcol_layer(select_crease_layer=True)
-
             bm.free()
 
             total_processed += 1
             wm.progress_update(total_processed)
+
+        # Set Bevel layer as active
+        if self.bevel_weights_to_vcol:
+            bpy.ops.r0tools.select_vcol_layer(select_bevel_layer=True)
+        # Set Crease layer as active
+        elif self.crease_to_vcol:
+            bpy.ops.r0tools.select_vcol_layer(select_crease_layer=True)
 
         wm.progress_end()
         end_time = time.time()
@@ -348,9 +324,9 @@ class SimpleToolbox_OT_SelectEdgesWithValue(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class SimpleToolbox_OT_ApplyBWeightPreset(bpy.types.Operator):
+class SimpleToolbox_OT_ApplyEdgeDataValuePreset(bpy.types.Operator):
     bl_label = "Apply"
-    bl_idname = "r0tools.apply_selected_bweight_value_preset"
+    bl_idname = "r0tools.apply_selected_edge_data_value_preset"
     bl_description = "Apply selected Edge Bevel Weight value preset to selected edges.\n\nMODIFIERS:\n- SHIFT: Select bevel weighted edges with value.\n- CTRL: Select creased edges with value"
     bl_options = {"REGISTER", "UNDO"}
 
@@ -464,6 +440,189 @@ class SimpleToolbox_OT_ApplyBWeightPreset(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_ApplyEdgeDataValueFromActiveEdge(bpy.types.Operator):
+    bl_label = "Apply from Active Edge"
+    bl_idname = "r0tools.apply_edge_data_value_from_active_edge"
+    bl_description = (
+        "Applies to all selected edges the data value (edge bevel weight or crease) from the active selected edge"
+    )
+    bl_options = {"REGISTER", "UNDO"}
+
+    accepted_contexts = [u.OBJECT_MODES.EDIT_MESH]
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode in cls.accepted_contexts and u.get_selected_objects(context)
+
+    def execute(self, context):
+        addon_edge_data_props = u.get_addon_edge_data_props()
+
+        source_value = None
+        source_found = False
+        source_layer = None
+
+        apply_as_bevel_weight = addon_edge_data_props.apply_as_bevel_weights
+        apply_as_crease = addon_edge_data_props.apply_as_creases
+
+        for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
+            # Create bmesh representation for each
+            bm = bmesh.from_edit_mesh(obj.data)
+            bm.edges.ensure_lookup_table()
+            active_element = bm.select_history.active
+
+            # Check if the active element is an edge
+            if active_element and isinstance(active_element, bmesh.types.BMEdge):
+                if apply_as_bevel_weight:
+                    layer = u.bmesh_get_bevel_weight_edge_layer(bm)
+                    if layer is None:
+                        continue
+                    source_value = active_element[layer]
+                elif apply_as_crease:
+                    layer = u.bmesh_get_crease_layer(bm)
+                    if layer is None:
+                        continue
+                    source_value = active_element[layer]
+
+                source_found = True
+                source_layer = layer
+                break
+
+        if not source_layer:
+            self.report({"WARNING"}, "Data layer not present in object with active edge. Assign a value first.")
+            return {"CANCELLED"}
+
+        if not source_found:
+            self.report({"WARNING"}, "No active edge found in selection")
+            return {"CANCELLED"}
+
+        if not any([apply_as_bevel_weight, apply_as_crease]):
+            return {"CANCELLED"}
+
+        for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
+            # Create bmesh representation for each
+            bm = bmesh.from_edit_mesh(obj.data)
+            bm.edges.ensure_lookup_table()
+
+            if apply_as_bevel_weight:
+                get_layer = u.bmesh_get_bevel_weight_edge_layer
+                new_layer = u.bmesh_new_bevel_weight_edge_layer
+            elif apply_as_crease:
+                get_layer = u.bmesh_get_crease_layer
+                new_layer = u.bmesh_new_crease_layer
+
+            layer = get_layer(bm)
+            if layer is None:
+                layer = new_layer(bm)
+
+            for edge in bm.edges:
+                if edge.select:
+                    edge[layer] = source_value
+
+            bmesh.update_edit_mesh(obj.data)
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_SelectEdgeDataValueFromActiveEdge(bpy.types.Operator):
+    bl_label = "Select from Active Edge"
+    bl_idname = "r0tools.select_edge_data_value_from_active_edge"
+    bl_description = "Selects all edges the data value (edge bevel weight or crease) from the active selected edge"
+    bl_options = {"REGISTER", "UNDO"}
+
+    accepted_contexts = [u.OBJECT_MODES.EDIT_MESH]
+
+    add_to_selection: BoolProperty(name="Add to selection", default=False)  # type: ignore
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode in cls.accepted_contexts and u.get_selected_objects(context)
+
+    def invoke(self, context, event):
+        self.add_to_selection = False  # Always reset
+
+        if event.shift:
+            self.add_to_selection = True
+
+        return self.execute(context)
+
+    def execute(self, context):
+        addon_edge_data_props = u.get_addon_edge_data_props()
+
+        source_value = None
+        source_found = False
+        source_layer = None
+
+        apply_as_bevel_weight = addon_edge_data_props.apply_as_bevel_weights
+        apply_as_crease = addon_edge_data_props.apply_as_creases
+
+        for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
+            # Create bmesh representation for each
+            bm = bmesh.from_edit_mesh(obj.data)
+            bm.edges.ensure_lookup_table()
+            active_element = bm.select_history.active
+
+            # Check if the active element is an edge
+            if active_element and isinstance(active_element, bmesh.types.BMEdge):
+                if apply_as_bevel_weight:
+                    layer = u.bmesh_get_bevel_weight_edge_layer(bm)
+                    if layer is None:
+                        continue
+                    source_value = active_element[layer]
+                elif apply_as_crease:
+                    layer = u.bmesh_get_crease_layer(bm)
+                    if layer is None:
+                        continue
+                    source_value = active_element[layer]
+
+                source_found = True
+                source_layer = layer
+                break
+
+        if not source_layer:
+            self.report({"WARNING"}, "Data layer not present in object with active edge. Assign a value first.")
+            return {"CANCELLED"}
+
+        if not source_found:
+            self.report({"WARNING"}, "No active edge found in selection")
+            return {"CANCELLED"}
+
+        if not any([apply_as_bevel_weight, apply_as_crease]):
+            return {"CANCELLED"}
+
+        for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
+            # Create bmesh representation for each
+            bm = bmesh.from_edit_mesh(obj.data)
+            bm.edges.ensure_lookup_table()
+
+            # Clear selection
+            if not self.add_to_selection:
+                for vert in bm.verts:
+                    vert.select = False
+                for edge in bm.edges:
+                    edge.select = False
+                for face in bm.faces:
+                    face.select = False
+
+            if apply_as_bevel_weight:
+                get_layer = u.bmesh_get_bevel_weight_edge_layer
+            elif apply_as_crease:
+                get_layer = u.bmesh_get_crease_layer
+
+            layer = get_layer(bm)
+            if layer is None:
+                continue
+
+            for edge in bm.edges:
+                if math.isclose(edge[layer], source_value):
+                    edge.select = True
+
+            bm.select_flush_mode()
+
+            bmesh.update_edit_mesh(obj.data)
+
+        return {"FINISHED"}
+
+
 class SimpleToolbox_OT_SelectColourAttributeLayer(bpy.types.Operator):
     bl_label = "Select Colour Attribute Layer"
     bl_idname = "r0tools.select_vcol_layer"
@@ -497,11 +656,13 @@ class SimpleToolbox_OT_SelectColourAttributeLayer(bpy.types.Operator):
         for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
             mesh = obj.data
 
+            """
             if obj.mode == u.OBJECT_MODES.EDIT:
                 bm = bmesh.from_edit_mesh(mesh)
             else:
                 bm = bmesh.new()
                 bm.from_mesh(mesh)
+            """
 
             # Set Bevel layer as active
             if self.select_bevel_layer:
@@ -530,8 +691,10 @@ class SimpleToolbox_OT_SelectColourAttributeLayer(bpy.types.Operator):
 # fmt: off
 classes = [
     SimpleToolbox_OT_EdgeDataToVertexColour,
-    SimpleToolbox_OT_ApplyBWeightPreset,
+    SimpleToolbox_OT_ApplyEdgeDataValuePreset,
     SimpleToolbox_OT_SelectEdgesWithValue,
+    SimpleToolbox_OT_ApplyEdgeDataValueFromActiveEdge,
+    SimpleToolbox_OT_SelectEdgeDataValueFromActiveEdge,
     SimpleToolbox_OT_SelectColourAttributeLayer
 ]
 # fmt: on

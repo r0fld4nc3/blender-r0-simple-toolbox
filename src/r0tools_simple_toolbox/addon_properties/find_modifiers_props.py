@@ -22,7 +22,7 @@ class R0PROP_FindModifierListItem(bpy.types.PropertyGroup):
 
     category_name: bpy.props.StringProperty(default="")  # type: ignore
     obj: bpy.props.PointerProperty(name="Object", type=bpy.types.Object)  # type: ignore
-    expanded: bpy.props.BoolProperty(name="Expand/Collapse", default=True)  # type: ignore
+    expanded: bpy.props.BoolProperty(name="Expand/Collapse", default=False)  # type: ignore
 
 
 class R0PROP_PG_FindModifierListProperties(bpy.types.PropertyGroup):

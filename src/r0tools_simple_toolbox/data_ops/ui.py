@@ -7,13 +7,13 @@ from .data_operators import *
 
 _mod = f"{parent_mod}.UI"
 
-_most_used_indices = sorted(list({1, 2, 4, 6, 9, 14, 19}))
+_most_used_indices = sorted(list({1, 2, 4, 6, 9, 12, 14, 19}))
 _precise_indices = sorted(list({i for i in range(0, 20, 1)} - set(_most_used_indices)))
 
 
 class r0Tools_PT_SimpleToolboxEdgeDataOps(bpy.types.Panel):
     bl_idname = "OBJECT_PT_simple_toolbox_edge_data"
-    bl_label = f"Edge Data - {ADDON_NAME_BARE}.{IDNAME_EXTRA}"
+    bl_label = f"Edge Data - {ADDON_NAME_BARE}{IDNAME_EXTRA}"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Item"
@@ -37,10 +37,11 @@ def draw_edge_bweights_presets_operators(layout, context):
     Draw the Edge Bevel Weights Presets UI list
     """
     from ..data_ops import (
-        SimpleToolbox_OT_ApplyBWeightPreset,
+        SimpleToolbox_OT_ApplyEdgeDataValueFromActiveEdge,
+        SimpleToolbox_OT_ApplyEdgeDataValuePreset,
         SimpleToolbox_OT_SelectColourAttributeLayer,
     )
-    from ..utils import get_addon_edge_data_props, get_addon_prefs, get_addon_props, log
+    from ..utils import get_addon_edge_data_props, get_addon_prefs
 
     addon_prefs = get_addon_prefs()
     addon_edge_data_props = get_addon_edge_data_props()
@@ -90,7 +91,7 @@ def draw_edge_bweights_presets_operators(layout, context):
             if index < len(values):
                 preset = values[index]
                 value = f"{preset.value*100:.2f}".split(".")[0] + "%"
-                op = row.operator(SimpleToolbox_OT_ApplyBWeightPreset.bl_idname, text=value)
+                op = row.operator(SimpleToolbox_OT_ApplyEdgeDataValuePreset.bl_idname, text=value)
                 op.value = preset.value
 
         # === Right Column: Precise ===
@@ -107,7 +108,7 @@ def draw_edge_bweights_presets_operators(layout, context):
             if index < len(values):
                 preset = values[index]
                 value = f"{preset.value*100:.2f}".split(".")[0] + "%"
-                op = row.operator(SimpleToolbox_OT_ApplyBWeightPreset.bl_idname, text=value)
+                op = row.operator(SimpleToolbox_OT_ApplyEdgeDataValuePreset.bl_idname, text=value)
                 op.value = preset.value
     else:
         # Grid flow with 2 columns
@@ -115,37 +116,43 @@ def draw_edge_bweights_presets_operators(layout, context):
 
         for preset in values:
             value_text = f"{preset.value*100:.2f}".split(".")[0] + "%"
-            op = grid_flow.operator(SimpleToolbox_OT_ApplyBWeightPreset.bl_idname, text=value_text)
+            op = grid_flow.operator(SimpleToolbox_OT_ApplyEdgeDataValuePreset.bl_idname, text=value_text)
             op.value = preset.value
+
+    # Apply from active edge
+    row = layout.row(align=True)
+    row.operator(SimpleToolbox_OT_ApplyEdgeDataValueFromActiveEdge.bl_idname)
 
 
 def draw_edge_data_panel_ui(layout, context):
     from ..data_ops import SimpleToolbox_OT_EdgeDataToVertexColour
-    from ..utils import get_addon_edge_data_props, get_addon_prefs, get_addon_props, log
+    from ..utils import get_addon_edge_data_props
 
     addon_edge_data_props = get_addon_edge_data_props()
 
     # Convert button (big)
-    row = layout.row()
+    box = layout.box()
+    row = box.row()
     row.scale_y = 2
     row.operator(SimpleToolbox_OT_EdgeDataToVertexColour.bl_idname, icon="GROUP_VCOL")
 
     # Apply to channels
-    row = layout.row()
+    row = box.row()
     row.label(text="Apply to channel(s):")
-    row = layout.row(align=True)
-    row.prop(addon_edge_data_props, "apply_value_to_channel_r", text="R", toggle=True)
-    row.prop(addon_edge_data_props, "apply_value_to_channel_g", text="G", toggle=True)
-    row.prop(addon_edge_data_props, "apply_value_to_channel_b", text="B", toggle=True)
+    row = box.row(align=True)
+    row.prop(addon_edge_data_props, "apply_value_to_channel_enum", expand=True)
 
-    # Convert options
-    row = layout.row()
-    row.label(text="Convert:")
-    row = layout.row()
-    row.prop(addon_edge_data_props, "convert_using_max_value")
-    row = layout.row(align=True)
+    # Convert
+    row = box.row(align=True)
+    row.label(text="Convert from:")
+
+    row = box.row(align=True)
     row.prop(addon_edge_data_props, "convert_data_as", expand=True)
-    row = layout.row()
+
+    row = box.row(align=True)
+    row.prop(addon_edge_data_props, "convert_using_max_value")
+
+    row = layout.row()  # Separator
 
     draw_edge_bweights_presets_operators(layout, context)
 
