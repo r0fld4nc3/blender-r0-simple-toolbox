@@ -37,14 +37,16 @@ def handler_depsgraph_post_update(scene, depsgraph):
         u.log(f"[INFO] [{_mod}] Skipping scheduled depsgraph update: Update already in progress.")
         return None
 
+    """
     # Check if any running modal operators - also important in the scheduled function
     modal_ops = u.get_active_modal_operators()
     if modal_ops:
         if u.is_debug():
-            print(f"[INFO] [{_mod}] Skipping scheduled depsgraph update: Active Modal Operators running.")
+            print(f"[DEBUG] [{_mod}] Skipping scheduled depsgraph update: Active Modal Operators running.")
             for op in modal_ops:
                 print(f"{op.bl_idname}")
         return None
+    """
 
     # Check specifically for object changes
     if depsgraph.id_type_updated(u.DEPSGRAPH_ID_TYPES.OBJECT):
@@ -57,7 +59,6 @@ def handler_depsgraph_post_update(scene, depsgraph):
 
             # u.object_sets_update_mesh_stats(depsgraph)
 
-            # bpy.ops.r0tools.vertex_groups_list_update()
             u.vertex_groups_list_update(scene=scene)
 
             u.property_list_update(scene=scene)

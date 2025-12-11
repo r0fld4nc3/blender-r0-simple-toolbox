@@ -201,12 +201,14 @@ def is_writing_context_safe(scene) -> bool:
         log(f"[MONITOR] [{_mod}] Interface is locked (rendering/baking). Skipping.")
         return False
 
+    """
     # Check for active jobs
     jobs = ("RENDER", "COMPOSITE", "OBJECT_BAKE")
     jobs_active = [bpy.app.is_job_running(job) for job in jobs]
     if any(jobs_active):
         log(f"[MONITOR] [{_mod}] Active job(s) detected. Skipping.")
         return False
+    """
 
     # Additional check for bake operator
     if hasattr(bpy.context, "active_operator") and bpy.context.active_operator:

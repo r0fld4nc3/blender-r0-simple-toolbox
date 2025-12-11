@@ -238,10 +238,6 @@ def _needs_update():
 def vertex_groups_list_update(scene=None, force: bool = False):
     scene = u.get_scene(scene)
 
-    if not u.is_writing_context_safe(scene):
-        print(f"[WARNING] [{_mod}] Vertex Groups List Update: Unsafe Context.")
-        return None
-
     addon_props = u.get_addon_props(scene)
     addon_vertex_groups_props = u.get_addon_vertex_groups_props(scene)
 
@@ -285,11 +281,7 @@ def vertex_groups_list_update(scene=None, force: bool = False):
         # Store the current selection state before clearing the list
         selection_state = _vertex_groups_store_states()
 
-        try:
-            addon_vertex_groups_props.vertex_groups.clear()
-        except Exception as e:
-            print(f"[ERROR] [{_mod}] Executing '.clear()' for property 'vertex_groups'.\n{e}")
-            return None
+        safe_clear_vertex_groups_collection(scene)
 
         # Sort and add groups (only when changed)
         sorted_groups = dict(sorted(vertex_groups_new.items()))
@@ -312,7 +304,7 @@ def vertex_groups_list_update(scene=None, force: bool = False):
 
             # Clear the property list if no objects are selected
             try:
-                addon_vertex_groups_props.vertex_groups.clear()
+                safe_clear_vertex_groups_collection(scene)
                 _vertex_groups_cache = {}
                 if u.is_debug():
                     print(f"[DEBUG] [{_mod}] Cleared UIList vertex_groups")
@@ -323,6 +315,29 @@ def vertex_groups_list_update(scene=None, force: bool = False):
             # UI update
             u.tag_redraw_if_visible()
     return None
+
+
+def safe_clear_vertex_groups_collection(scene):
+    addon_vertex_groups_props = u.get_addon_vertex_groups_props(scene)
+
+    was_updating_before = u.is_updating()
+
+    if not was_updating_before:
+        u.set_is_updating(True)
+
+    try:
+        while len(addon_vertex_groups_props.vertex_groups) > 0:
+            if not u.is_writing_context_safe(scene):
+                return False
+
+            addon_vertex_groups_props.vertex_groups.remove(len(addon_vertex_groups_props.vertex_groups) - 1)
+        return True
+    except Exception as e:
+        print(f"[ERROR] Failed to clear vertex groups: {e}")
+        return False
+    finally:
+        if not was_updating_before:
+            u.set_is_updating(False)
 
 
 def vertex_group_add(obj: bpy.types.Object, vg_name: str):
