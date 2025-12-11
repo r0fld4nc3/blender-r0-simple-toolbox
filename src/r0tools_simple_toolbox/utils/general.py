@@ -88,7 +88,10 @@ def get_selected_objects(context: bpy.types.Context | None = None) -> list:
     if context is not None:
         return context.selected_objects
 
-    return bpy.context.selected_objects
+    if hasattr(bpy.context, "selected_objects"):
+        return bpy.context.selected_objects
+
+    return []
 
 
 def set_object_mode(mode: str):
