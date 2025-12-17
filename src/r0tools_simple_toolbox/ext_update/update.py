@@ -385,7 +385,7 @@ def _run_update_check_thread(
     print("-------------------------------------------------------")
 
 
-def trigger_thread_update_check(*args, **kwargs) -> bool:
+def trigger_thread_update_check(*args, force: bool = False, **kwargs) -> bool:
     """
     Function to trigger threaded update check.
     Sets up required main-thread data before proceeding.
@@ -396,7 +396,7 @@ def trigger_thread_update_check(*args, **kwargs) -> bool:
 
     addon_prefs = get_addon_prefs()
 
-    if not addon_prefs.check_update_startup:
+    if not force and not addon_prefs.check_update_startup:
         print(f"[INFO] [{_mod}] Check update turned off. No update check.")
         return False
 
