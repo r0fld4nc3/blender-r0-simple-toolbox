@@ -189,6 +189,29 @@ class SimpleToolbox_OT_ClearObjectAttributes(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_ClearObjectAttributesToggleSelection(bpy.types.Operator):
+    bl_label = "Select All"
+    bl_idname = "r0tools.toggle_object_attributes_selection"
+    bl_description = "Delete Attributes from Object(s)"
+    bl_options = {"REGISTER"}
+
+    selected: BoolProperty(name="Selected", default=True)  # type: ignore
+
+    @classmethod
+    def poll(cls, context):
+        return u.get_selected_objects(context)
+
+    def execute(self, context):
+        addon_props = u.get_addon_props()
+
+        object_attributes_list = addon_props.object_attributes_list
+
+        for item in object_attributes_list:
+            item.selected = self.selected
+
+        return {"FINISHED"}
+
+
 class SimpleToolbox_OT_ObjectAttributesRestoreDefaults(bpy.types.Operator):
     bl_label = "Reset"
     bl_idname = "r0tools.object_attributes_restore_defaults"
@@ -210,7 +233,7 @@ class SimpleToolbox_OT_ObjectAttributesRestoreDefaults(bpy.types.Operator):
 class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
     bl_label = "Clear Attributes"
     bl_idname = "r0tools.clear_mesh_attributes"
-    bl_description = "Clears unneeded mesh(es) attributes created by various addons.\nPreserves some integral and needed attributes such as material_index that is required for multi-material assignments.\nSometimes certain addons or operations will populate this list with attributes you wish to remove at a later date, be it for parsing or exporting"
+    bl_description = "Clears unneeded mesh(es) attributes created by various actions and addons.\nPreserves some integral and needed attributes such as material_index that is required for multi-material assignments.\nSometimes certain actions or addons or operations will populate this list with attributes you wish to remove at a later date, be it for parsing or exporting"
     bl_options = {"REGISTER", "UNDO"}
 
     def op_clear_mesh_attributes(self):
@@ -274,6 +297,7 @@ classes = [
     SimpleToolbox_OT_ClearCustomSplitNormalsData,
     SimpleToolbox_OT_ClearCustomProperties,
     SimpleToolbox_OT_ClearObjectAttributes,
+    SimpleToolbox_OT_ClearObjectAttributesToggleSelection,
     SimpleToolbox_OT_ObjectAttributesRestoreDefaults,
     SimpleToolbox_OT_ClearMeshAttributes,
 ]

@@ -8,7 +8,6 @@ import bpy
 
 from .. import defines
 from ..utils import (
-    COLLECTION_COLOURS,
     CUSTOM_PROPERTIES_TYPES,
     OBJECT_MODES,
     get_addon_prefs,
@@ -553,11 +552,16 @@ def object_count_changed() -> bool:
 
 def get_selected_objects_hash():
     """Generate hash to detect selection changes"""
-    hash_value = 0
-    for obj in iter_scene_objects(selected=True):
-        hash_value ^= hash(obj.name)
+    selected = list(iter_scene_objects(selected=True))
 
-    return hash_value
+    if not selected:
+        return 0
+
+    # Use pointers (memory addresses) for unique id'ing
+    # Sort pointer to ensure consistent order
+    pointers = tuple(sorted(obj.as_pointer() for obj in selected))
+
+    return hash(pointers)
 
 
 # ==============================

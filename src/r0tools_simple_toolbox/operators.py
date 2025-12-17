@@ -1396,7 +1396,7 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
 class SimpleToolbox_OT_SelectEmptyObjects(bpy.types.Operator):
     bl_label = "Check Empty Objects"
     bl_idname = "r0tools.select_empty_objects"
-    bl_description = "Evaluates which objects in the scene have no or potentially unusable geometry data.\nCondition for a potentially invalid mesh is:\n    - No vertices, edges and faces\n    - No faces but has vertices (non manifold)\n\n- SHIFT: Add to current selection"
+    bl_description = "Evaluates which objects in the scene have no or potentially unusable geometry data.\nCondition for a potentially invalid mesh is:\n    - No vertices, edges and faces\n    - No faces but has vertices (non manifold)\nCondition for a potentially invalid curve is:\n    - Less that 1 or no spline points\n\n- SHIFT: Add to current selection"
     bl_options = {"REGISTER", "UNDO"}
 
     accepted_contexts = [u.OBJECT_MODES.OBJECT]
@@ -1423,6 +1423,7 @@ class SimpleToolbox_OT_SelectEmptyObjects(bpy.types.Operator):
 
         flagged = []
 
+        # Process mesh objects
         for obj in u.iter_scene_objects(types=[u.OBJECT_TYPES.MESH]):
             # Check if object is visible
             if not u.is_object_visible_in_viewport(obj):
@@ -1508,6 +1509,31 @@ class SimpleToolbox_OT_SelectEmptyObjects(bpy.types.Operator):
                 bpy.data.meshes.remove(temp_mesh)
 
             bm.free()
+
+        # Process curve objects
+        for obj in u.iter_scene_objects(types=[u.OBJECT_TYPES.CURVE]):
+            if not u.is_object_visible_in_viewport(obj):
+                continue
+
+            u.log(f"[INFO] [{_mod}] Processing curve: {obj.name}")
+
+            # Check if has spline with points
+            has_points = False
+            splines = obj.data.splines
+            if splines:
+                for spline in splines:
+                    # Check both bezier and nurbs/poly points
+                    if len(spline.bezier_points) > 1 or len(spline.points) > 1:
+                        has_points = True
+                        break
+
+            if u.is_debug():
+                print(f"[DEBUG] [{_mod}] {obj.name} Splines: {len(obj.data.splines)}")
+                print(f"[DEBUG] [{_mod}] {obj.name} Has Points: {has_points}")
+
+            # Flag the curve if it has no points
+            if not has_points:
+                flagged.append(obj)
 
         # Report the results
         msg = f"Found {len(flagged)} potentially invalid objects"

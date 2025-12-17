@@ -221,6 +221,17 @@ def draw_clear_objects_attributes_ui(layout, context):
             row.prop(addon_prefs, "object_attributes_to_keep", text="")
             row.operator(SimpleToolbox_OT_ObjectAttributesRestoreDefaults.bl_idname, text="", icon="LOOP_BACK")
 
+            # Toggle Selection
+            row = object_attributes_panel.row(align=True)
+            op = row.operator(
+                SimpleToolbox_OT_ClearObjectAttributesToggleSelection.bl_idname, text="Select All", icon="ALIGN_JUSTIFY"
+            )
+            op.selected = True
+            op = row.operator(
+                SimpleToolbox_OT_ClearObjectAttributesToggleSelection.bl_idname, text="Deselect All", icon="ALIGN_TOP"
+            )
+            op.selected = False
+
             row = object_attributes_panel.row()
             row.template_list(
                 "R0PROP_UL_ObjectAttributesList",

@@ -174,22 +174,6 @@ def vertex_groups_cleanup_lock_states():
         states.remove(index)
 
 
-def _vertex_groups_store_states() -> dict:
-    if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Vertex Groups Store States: Unsafe Context.")
-        return None
-
-    addon_vertex_groups_props = u.get_addon_vertex_groups_props()
-
-    # Store the current selection state of Vertex Groups List
-    selection_state = {}
-
-    for item in addon_vertex_groups_props.vertex_groups:
-        selection_state[item.name] = {"selected": item.selected, "locked": item.locked}
-
-    return selection_state
-
-
 def vertex_groups_list_add_groups(props: dict, selection_state: dict):
     if not u.is_writing_context_safe(bpy.context.scene):
         print(f"[WARNING] [{_mod}] Vertex Groups List Add Groups: Unsafe Context.")
@@ -217,6 +201,22 @@ def vertex_groups_list_add_groups(props: dict, selection_state: dict):
         except Exception as e:
             print(f"[ERROR] [{_mod}] Error adding unique Custom Properties: {e}")
             u.context_error_debug(error=e)
+
+
+def _vertex_groups_store_states() -> dict:
+    if not u.is_writing_context_safe(bpy.context.scene):
+        print(f"[WARNING] [{_mod}] Vertex Groups Store States: Unsafe Context.")
+        return None
+
+    addon_vertex_groups_props = u.get_addon_vertex_groups_props()
+
+    # Store the current selection state of Vertex Groups List
+    selection_state = {}
+
+    for item in addon_vertex_groups_props.vertex_groups:
+        selection_state[item.name] = {"selected": item.selected, "locked": item.locked}
+
+    return selection_state
 
 
 def _needs_update():
