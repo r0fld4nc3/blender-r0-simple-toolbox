@@ -145,27 +145,29 @@ class SimpleToolbox_OT_ClearObjectAttributes(bpy.types.Operator):
         errors = []  # Build list and do a single final batch print
 
         # Find selected properties to remove
-        attribs_to_remove = [
+        attribs_to_remove = set(
             item for item in addon_props.object_attributes_list if item.selected and item not in attrs_to_keep
-        ]
+        )
 
         for obj in context.selected_objects:
-            data = obj.data
+            obj_data = obj.data
 
-            if not hasattr(data, "attributes"):
+            if not hasattr(obj_data, "attributes"):
                 continue
+
+            obj_attributes = obj.data.attributes
 
             # Remove selected properties
             for attribute_prop in attribs_to_remove:
                 attrib_name = attribute_prop.name
 
                 # Object Data
-                if attrib_name in reversed(obj.data.attributes.keys()):
+                if attrib_name in reversed(obj_attributes.keys()):
                     if u.is_debug():
                         print(f"[DEBUG] [{_mod}] Deleting Attribute '{attrib_name}' of object {obj.name}")
 
                     try:
-                        data.attributes.remove(data.attributes[attrib_name])
+                        obj_attributes.remove(obj_attributes[attrib_name])
                     except Exception as e:
                         errors.append(
                             f"[ERROR] [{_mod}] Unable to remove attribute '{attrib_name}' from '{obj.name}': {e}"
@@ -192,7 +194,7 @@ class SimpleToolbox_OT_ClearObjectAttributes(bpy.types.Operator):
 class SimpleToolbox_OT_ClearObjectAttributesToggleSelection(bpy.types.Operator):
     bl_label = "Select All"
     bl_idname = "r0tools.toggle_object_attributes_selection"
-    bl_description = "Delete Attributes from Object(s)"
+    bl_description = "Toggle list selection states"
     bl_options = {"REGISTER"}
 
     selected: BoolProperty(name="Selected", default=True)  # type: ignore
@@ -208,6 +210,47 @@ class SimpleToolbox_OT_ClearObjectAttributesToggleSelection(bpy.types.Operator):
 
         for item in object_attributes_list:
             item.selected = self.selected
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_ObjectAttributesSelectSelected(bpy.types.Operator):
+    bl_label = "Select with selection"
+    bl_idname = "r0tools.select_objects_with_attribute_selection"
+    bl_description = "Select objects with at least one of the selected attributes from the list"
+    bl_options = {"REGISTER"}
+
+    @classmethod
+    def poll(cls, context):
+        addon_props = u.get_addon_props()
+        object_attributes_list = addon_props.object_attributes_list
+        selected_attributes: set = {item.name for item in object_attributes_list if item.selected}
+
+        return u.get_selected_objects(context) and selected_attributes
+
+    def execute(self, context):
+        addon_props = u.get_addon_props()
+
+        object_attributes_list = addon_props.object_attributes_list
+
+        selected_attributes: set = {item.name for item in object_attributes_list if item.selected}
+
+        for obj in u.iter_scene_objects(selected=True):
+            data = obj.data
+
+            if not hasattr(data, "attributes"):
+                continue
+
+            obj_attributes = obj.data.attributes
+
+            # Set intersection and check if attributes match
+            if selected_attributes & set(obj_attributes.keys()):
+                # Keep the object
+                u.log(f"Keep: {obj.name}")
+                continue
+            else:
+                u.log(f"Deselect: {obj.name}")
+                u.deselect_object(obj)
 
         return {"FINISHED"}
 
@@ -298,6 +341,7 @@ classes = [
     SimpleToolbox_OT_ClearCustomProperties,
     SimpleToolbox_OT_ClearObjectAttributes,
     SimpleToolbox_OT_ClearObjectAttributesToggleSelection,
+    SimpleToolbox_OT_ObjectAttributesSelectSelected,
     SimpleToolbox_OT_ObjectAttributesRestoreDefaults,
     SimpleToolbox_OT_ClearMeshAttributes,
 ]

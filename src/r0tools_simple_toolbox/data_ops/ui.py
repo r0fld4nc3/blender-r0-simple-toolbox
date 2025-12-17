@@ -232,6 +232,14 @@ def draw_clear_objects_attributes_ui(layout, context):
             )
             op.selected = False
 
+            # Select objects with Attribute Selection
+            row = object_attributes_panel.row(align=True)
+            row.operator(
+                SimpleToolbox_OT_ObjectAttributesSelectSelected.bl_idname,
+                text="Select",
+                icon="RESTRICT_SELECT_OFF",
+            )
+
             row = object_attributes_panel.row()
             row.template_list(
                 "R0PROP_UL_ObjectAttributesList",
