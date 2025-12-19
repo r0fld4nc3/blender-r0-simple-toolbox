@@ -345,7 +345,7 @@ class SimpleToolbox_OT_VgroupsKeepSelected(bpy.types.Operator):
 
 
 class SimpleToolbox_OT_VgroupsSelectObjectsWithVgroups(bpy.types.Operator):
-    bl_idname = "r0tools.selected_objects_with_selected_vgroups"
+    bl_idname = "r0tools.select_objects_with_selected_vgroups"
     bl_label = "Select Objects w/ Vertex Groups"
     bl_description = "From currently selected objects, selects all objects that contain the selected Vertex Groups"
     bl_options = {"REGISTER", "UNDO"}
@@ -354,7 +354,8 @@ class SimpleToolbox_OT_VgroupsSelectObjectsWithVgroups(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.mode == u.OBJECT_MODES.OBJECT and len(context.selected_objects) > 0
+        has_vgroups = get_vertex_groups_count() > 0
+        return context.mode == u.OBJECT_MODES.OBJECT and len(u.get_selected_objects()) > 0 and has_vgroups
 
     def invoke(self, context, event):
         return self.execute(context)

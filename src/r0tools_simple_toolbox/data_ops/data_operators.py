@@ -127,7 +127,11 @@ class SimpleToolbox_OT_ClearObjectAttributes(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return u.get_selected_objects(context)
+        addon_props = u.get_addon_props()
+        object_attributes_list = addon_props.object_attributes_list
+        selected_attributes: set = {item.name for item in object_attributes_list if item.selected}
+
+        return u.get_selected_objects(context) and selected_attributes
 
     def execute(self, context):
         addon_prefs = u.get_addon_prefs()
