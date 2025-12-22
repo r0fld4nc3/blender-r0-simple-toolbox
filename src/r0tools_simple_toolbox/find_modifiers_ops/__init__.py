@@ -1,5 +1,4 @@
 import importlib
-import sys
 
 # Import order here is really important!
 from .find_modifiers_operators import *  # isort: skip
@@ -8,61 +7,26 @@ from .. import utils as u  # isort: skip
 package = __name__
 _mod = "FIND_MODIFIER_OPS"
 
-# fmt: off
 # List of submodules, keep in sync with imports
 submodules = [
     "find_modifiers_operators",
 ]
-# fmt: on
-_module_objects = []
+modules_load_order = ("find_modifiers_operators",)
 
-
-def _import_submodules():
-    global _module_objects
-
-    for module_name in submodules:
-        full_name = f"{package}.{module_name}"
-        try:
-            if full_name in sys.modules:
-                # Already imported, get reference
-                module = sys.modules[full_name]
-            else:
-                # Import new
-                module = importlib.import_module(f".{module_name}", package)
-
-            _module_objects.append(module)
-            if u.is_debug():
-                print(f"[INFO] [{_mod}] Imported: {module.__name__}")
-        except Exception as e:
-            print(f"[ERROR] [{_mod}] Error importing {module_name}: {str(e)}")
-
-    return _module_objects
+modules = [importlib.import_module(f".{name}", __package__) for name in modules_load_order]
 
 
 def register():
-    global _module_objects
-
-    if not _module_objects:
-        _import_submodules()
-
-    for module in _module_objects:
-        if hasattr(module, "register"):
-            try:
-                if u.is_debug():
-                    print(f"[INFO] [{_mod}] Registering {module.__name__}")
-                module.register()
-            except Exception as e:
-                print(f"[ERROR] [{_mod}] Error registering {module.__name__}: {str(e)}")
+    for mod in modules:
+        if hasattr(mod, "register"):
+            mod.register()
+            if u.is_debug():
+                print(f"[INFO] [{_mod}] Registered: {mod.__name__}")
 
 
 def unregister():
-    global _module_objects
-
-    for module in reversed(_module_objects):
-        if hasattr(module, "register"):
-            try:
-                if u.is_debug():
-                    print(f"[INFO] [{_mod}] Unregistering {module.__name__}")
-                module.unregister()
-            except Exception as e:
-                print(f"[ERROR] [{_mod}] Error unregistering {module.__name__}: {str(e)}")
+    for mod in reversed(modules):
+        if hasattr(mod, "unregister"):
+            mod.unregister()
+            if u.is_debug():
+                print(f"[INFO] [{_mod}] Unregistered: {mod.__name__}")
