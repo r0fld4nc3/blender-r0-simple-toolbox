@@ -12,7 +12,6 @@ bl_info = {
 
 import importlib
 import logging
-from pathlib import Path
 
 from . import utils as u
 from .logs import configure_logging, reset_log_file
@@ -44,12 +43,25 @@ log = logging.getLogger(__name__)
 
 
 def register():
-    from .defines import LOG_FILE
+    from .defines import (
+        ADDON_BRANCH,
+        ADDON_NAME_BARE,
+        IDNAME_EXTRA,
+        INTERNAL_NAME,
+        LOG_FILE,
+        VERSION,
+    )
 
     configure_logging(LOG_FILE)
     reset_log_file(LOG_FILE)
 
     log.info("-------------------------------------------------------------")
+    log.info(f"{ADDON_NAME_BARE}{IDNAME_EXTRA}")
+    log.info(f"Version: {VERSION}")
+    log.info(f"Branch: {ADDON_BRANCH}")
+    log.info(f"Internal Name: {INTERNAL_NAME}")
+    log.info(f"Log: {LOG_FILE}")
+
     log.info(f"Begin Addon Registration - {bl_info.get('name')}")
 
     for mod in modules:
