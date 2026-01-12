@@ -1,6 +1,6 @@
-from . import bl_info
+from pathlib import Path
 
-_mod = "DEFINES"
+from . import bl_info
 
 
 def _version_str(version_tuple: tuple):
@@ -39,4 +39,5 @@ INTERNAL_NAME      = _set_addon_internal_name(BASE_NAME)
 REPO_NAME          = "r0Tools Extensions"
 UPDATE_CHECK_CD    = 60  # seconds
 TOOLBOX_PROPS_NAME = "r0fl_toolbox_props"
+LOG_FILE           = Path(__file__).parent / "simple_toolbox.log"
 # fmt: on

@@ -1,3 +1,5 @@
+import logging
+
 import bmesh
 import bpy
 from bpy.props import BoolProperty, FloatVectorProperty, IntProperty, StringProperty
@@ -5,7 +7,7 @@ from bpy.props import BoolProperty, FloatVectorProperty, IntProperty, StringProp
 from .. import utils as u
 from .vertex_groups import *
 
-_mod = "VERTEX_GROUPS.OPERATORS"
+log = logging.getLogger(__name__)
 
 
 class SimpleToolbox_OT_VgroupsAddPopup(bpy.types.Operator):
@@ -145,8 +147,7 @@ class SimpleToolbox_OT_RemoveUnusedVertexGroups(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
-        if u.is_debug():
-            print("\n------------- Remove Unused Materials -------------")
+        log.info("\n------------- Remove Unused Materials -------------")
 
         original_active = u.get_active_object()
 
@@ -472,10 +473,9 @@ class SimpleToolbox_OT_VgroupsAssignVertices(bpy.types.Operator):
                     try:
                         vert[deform_layer][vg_index] = 1.0
                     except ReferenceError as ref_error:
-                        if u.is_debug():
-                            print(f"[DEBUG] [{_mod}] AssignVertices: {e}")
+                        log.debug(f"AssignVertices: {e}")
                     except Exception as e:
-                        print(f"[ERROR] [{_mod}] AssignVertices: {e}")
+                        log.error(f"AssignVertices: {e}")
 
             bmesh.update_edit_mesh(mesh)
 
@@ -703,12 +703,12 @@ classes = [
 def register():
     for cls in classes:
         if u.is_debug():
-            print(f"[INFO] [{_mod}] Register {cls.__name__}")
+            log.debug(f"Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
 
 def unregister():
     for cls in classes:
         if u.is_debug():
-            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+            log.debug(f"Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

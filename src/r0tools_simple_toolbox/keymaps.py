@@ -1,3 +1,5 @@
+import logging
+
 import bpy
 import rna_keymap_ui
 from bpy.props import StringProperty
@@ -9,7 +11,7 @@ from .operators import (
     SimpleToolbox_OT_ToggleWireDisplay,
 )
 
-_mod = "KEYMAPS"
+log = logging.getLogger(__name__)
 
 KEYMAP_CONFIGS = {
     SimpleToolbox_OT_ToggleWireDisplay.bl_idname: {
@@ -199,15 +201,14 @@ addon_keymaps = []
 
 def register_keymaps():
     """Register keymaps with support for optional key assignments."""
-    if u.is_debug():
-        print(f"[INFO] [{_mod}] Register Keymaps")
+    log.info(f"Register Keymaps")
 
     addon_prefs = u.get_addon_prefs()
     wm = bpy.context.window_manager
     kc = wm.keyconfigs.addon
 
     if not kc:
-        print(f"[WARNING] [{_mod}] No addon keyconfig available")
+        log.warning(f"No addon keyconfig available")
         return
 
     for op_id, cfg in KEYMAP_CONFIGS.items():
@@ -224,8 +225,7 @@ def register_keymaps():
 
         if not km:
             km = kc.keymaps.new(name=keymap_name, space_type=space_type, region_type=region_type)
-            if u.is_debug():
-                print(f"[INFO] [{_mod}] Created new keymap '{keymap_name}'")
+            log.info(f"Created new keymap '{keymap_name}'")
 
         # Check if keymap item already exists
         existing_kmi = get_hotkey_entry_item(km, op_id)
@@ -245,12 +245,11 @@ def register_keymaps():
                 kmi = km.keymap_items.new(op_id, type=key, value=cfg["value"])
                 addon_keymaps.append((km, kmi))
 
-                if u.is_debug():
-                    status = "unassigned" if key == "NONE" else f"with key {key}"
-                    print(f"[INFO] [{_mod}] Registered {op_id} {status}")
+                status = "unassigned" if key == "NONE" else f"with key '{key}'"
+                log.info(f"Registered '{op_id}' {status}")
 
             except Exception as e:
-                print(f"[ERROR] [{_mod}] Failed to register {op_id}: {e}")
+                log.error(f"Failed to register '{op_id}': {e}")
         else:
             # Update preference to match existing keymap
             if hasattr(addon_prefs, cfg["addon_pref_prop"]):
@@ -258,13 +257,11 @@ def register_keymaps():
                 setattr(addon_prefs, cfg["addon_pref_prop"], current_key)
 
             addon_keymaps.append((km, existing_kmi))
-            if u.is_debug():
-                print(f"[INFO] [{_mod}] Found existing keymap for {op_id}")
+            log.info(f"Found existing keymap for {op_id}")
 
 
 def unregister_keymaps():
-    if u.is_debug():
-        print(f"[INFO] [{_mod}] Unregister Keymaps")
+    log.info(f"Unregister Keymaps")
 
     # Save current keybinds to preferences before removing
     addon_prefs = u.get_addon_prefs()
@@ -276,10 +273,10 @@ def unregister_keymaps():
 
         try:
             if u.is_debug():
-                print(f"[INFO] [{_mod}] Remove {kmi.idname}")
+                log.debug(f"Remove {kmi.idname}")
             km.keymap_items.remove(kmi)
         except Exception as e:
-            print(f"[WARNING] [{_mod}] Could not remove {kmi.idname}: {e}")
+            log.warning(f"Could not remove {kmi.idname}: {e}")
 
     addon_keymaps.clear()
 
@@ -292,8 +289,7 @@ classes = [
 
 def register():
     for cls in classes:
-        if u.is_debug():
-            print(f"[INFO] [{_mod}] Register {cls.__name__}")
+        log.debug(f"Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
     register_keymaps()
@@ -303,6 +299,5 @@ def unregister():
     unregister_keymaps()
 
     for cls in classes:
-        if u.is_debug():
-            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        log.debug(f"Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

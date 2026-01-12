@@ -1,4 +1,5 @@
 import importlib
+import logging
 
 # Import order here is really important!
 # fmt: off
@@ -15,7 +16,7 @@ from .edge_data import (  # isort: skip
 from ..export_ops.export_ops import * # isort: skip
 # fmt: on
 
-_mod = "UTILS.__INIT__"
+log = logging.getLogger(__name__)
 
 # List of submodules, keep in sync with imports
 modules_load_order = (
@@ -34,13 +35,11 @@ def register():
     for mod in modules:
         if hasattr(mod, "register"):
             mod.register()
-            if u.is_debug():
-                print(f"[INFO] [{_mod}] Registered: {mod.__name__}")
+            log.debug(f"Registered: {mod.__name__}")
 
 
 def unregister():
     for mod in reversed(modules):
         if hasattr(mod, "unregister"):
             mod.unregister()
-            if u.is_debug():
-                print(f"[INFO] [{_mod}] Unregistered: {mod.__name__}")
+            log.debug(f"Unregistered: {mod.__name__}")

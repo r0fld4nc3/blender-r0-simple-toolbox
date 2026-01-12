@@ -1,9 +1,10 @@
 import importlib
+import logging
 
 # Import order here is really important!
 from .. import utils as u  # isort: skip
 
-_mod = "ADDON PROPERTIES"
+log = logging.getLogger(__name__)
 
 modules_load_order = (
     "edge_data_props",
@@ -23,13 +24,11 @@ def register():
     for mod in modules:
         if hasattr(mod, "register"):
             mod.register()
-            if u.is_debug():
-                print(f"[INFO] [{_mod}] Registered: {mod.__name__}")
+            log.debug(f"Registered: {mod.__name__}")
 
 
 def unregister():
     for mod in reversed(modules):
         if hasattr(mod, "unregister"):
             mod.unregister()
-            if u.is_debug():
-                print(f"[INFO] [{_mod}] Unregistered: {mod.__name__}")
+            log.debug(f"Unregistered: {mod.__name__}")

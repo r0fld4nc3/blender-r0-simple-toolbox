@@ -1,3 +1,4 @@
+import logging
 import time
 
 import bmesh
@@ -5,7 +6,7 @@ import bpy
 
 from .. import utils as u
 
-_mod = "OBJECT_SETS"
+log = logging.getLogger(__name__)
 
 
 def get_object_sets(scene=None) -> list:
@@ -27,7 +28,7 @@ def get_active_object_set_index() -> int:
 
 def set_active_object_set_index(index: int):
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Object Sets Set Active Object Set Index: Unsafe Context.")
+        log.warning(f"Object Sets Set Active Object Set Index: Unsafe Context.")
         return None
 
     addon_object_sets_props = u.get_addon_object_sets_props()
@@ -47,7 +48,7 @@ def get_object_set_at_index(index: int):
 
 def remove_object_set_at_index(index: int):
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Object Sets Remove Object Set At Index: Unsafe Context.")
+        log.warning(f"Object Sets Remove Object Set At Index: Unsafe Context.")
         return None
 
     object_sets = get_object_sets()
@@ -67,13 +68,13 @@ def get_object_set_name_at_index(index: int) -> str:
 
 def set_object_set_name(object_set, new_name) -> bool:
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Object Sets Set Object Set Name: Unsafe Context.")
+        log.warning(f"Object Sets Set Object Set Name: Unsafe Context.")
         return None
 
     try:
         object_set.name = new_name
     except Exception as e:
-        print(f"[ERROR] [{_mod}] Unable to rename object set: {e}")
+        log.error(f"Unable to rename object set: {e}")
         return False
 
     return True
@@ -81,7 +82,7 @@ def set_object_set_name(object_set, new_name) -> bool:
 
 def set_object_set_name_at_index(index, new_name) -> bool:
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Object Sets Set Object Set Name At Index: Unsafe Context.")
+        log.warning(f"Object Sets Set Object Set Name At Index: Unsafe Context.")
         return None
 
     object_set = get_object_set_at_index(index)
@@ -95,7 +96,7 @@ def set_object_set_name_at_index(index, new_name) -> bool:
 
 def object_set_at_index_update_count(index: int) -> bool:
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Object Sets At Index Update Count: Unsafe Context.")
+        log.warning(f"Object Sets At Index Update Count: Unsafe Context.")
         return None
 
     object_set = get_object_set_at_index(index)
@@ -118,7 +119,7 @@ def get_object_set_objects_at_index(index: int):
 
 def iter_objects_of_object_set_at_index(index: int):
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Object Sets Iter Objects of Object Set At Index: Unsafe Context.")
+        log.warning(f"Object Sets Iter Objects of Object Set At Index: Unsafe Context.")
         return None
 
     object_set = get_object_set_at_index(index)
@@ -132,7 +133,7 @@ def iter_objects_of_object_set_at_index(index: int):
 
 def move_object_set_to_index(from_index, to_index):
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Object Sets Move To Index: Unsafe Context.")
+        log.warning(f"Object Sets Move To Index: Unsafe Context.")
         return None
 
     object_sets = get_object_sets()
@@ -169,7 +170,7 @@ def cleanup_object_set_invalid_references(scene=None):
     scene = u.get_scene(scene)
 
     if not u.is_writing_context_safe(scene):
-        print(f"[WARNING] [{_mod}] Object Sets Cleanup Invalid References O1: Unsafe Context.")
+        log.warning(f"Object Sets Cleanup Invalid References O1: Unsafe Context.")
         return None
 
     addon_object_sets_props = u.get_addon_object_sets_props(scene=scene)
@@ -199,12 +200,12 @@ def cleanup_object_set_invalid_references(scene=None):
                 object_set.objects.remove(i)
                 cleaned_up += 1
             except Exception as e:
-                print(f"[ERROR] [{_mod}] Failed to remove object at index {i} of {object_set.name}: {e}")
+                log.error(f"Failed to remove object at index {i} of {object_set.name}: {e}")
 
         object_set.update_count()
         total_cleaned += len(indices_to_remove)
 
-        print(f"[INFO] [{_mod}] Cleaned up {cleaned_up} references for Object Set '{object_set.name}'")
+        log.info(f"Cleaned up {cleaned_up} references for Object Set '{object_set.name}'")
 
     if total_cleaned > 0:
         for area in bpy.context.screen.areas:
@@ -225,11 +226,10 @@ def handle_object_duplication_update(scene=None):
     scene = u.get_scene(scene)
 
     if not u.is_writing_context_safe(scene):
-        print(f"[INFO] [{_mod}] Skipping Object Set Duplication Update Handler during file save.")
+        log.info(f"Skipping Object Set Duplication Update Handler during file save.")
         return None
 
-    if u.is_debug():
-        print(f"[DEBUG] [{_mod}] Handle Object Duplication Update")
+    log.debug(f"Handle Object Duplication Update")
 
     # Global list of object sets
     object_sets = u.get_object_sets(scene=scene)
@@ -264,8 +264,7 @@ def handle_object_duplication_update(scene=None):
     if not bulk_assign:
         return
 
-    if u.is_debug():
-        print(f"[DEBUG] [{_mod}] Found {sum(len(v) for v in bulk_assign.values())} new assignments to process.")
+    log.debug(f"Found {sum(len(v) for v in bulk_assign.values())} new assignments to process.")
 
     # Perform assignments only for objects that really need it
     for target_set, objects in bulk_assign.items():
@@ -283,7 +282,7 @@ def check_object_in_sets(obj) -> list:
     """
 
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Object Sets Check Object In Sets: Unsafe Context.")
+        log.warning(f"Object Sets Check Object In Sets: Unsafe Context.")
         return None
 
     if not obj:
@@ -313,13 +312,12 @@ _last_update_time = 0
 
 
 def object_sets_update_mesh_stats(depsgraph=None):
-    if u.is_debug():
-        print("------------- Object Sets Update Mesh Stats -------------")
+    log.info("------------- Object Sets Update Mesh Stats -------------")
 
     scene = bpy.context.scene
 
     if not u.is_writing_context_safe(scene):
-        print(f"[WARNING] [{_mod}] Object Sets Update Mesh Stats: Unsafe Context.")
+        log.warning(f"Object Sets Update Mesh Stats: Unsafe Context.")
         return
 
     addon_props = u.get_addon_props()
@@ -400,7 +398,7 @@ def _get_object_mesh_stats(obj, depsgraph, show_verts, show_edges, show_faces, s
         return stats
 
     except Exception as e:
-        print(f"[ERROR] [{_mod}] Error processing {obj.name}: {e}")
+        log.error(f"Error processing {obj.name}: {e}")
         return None
     finally:
         if "mesh" in locals() and mesh:
@@ -476,11 +474,10 @@ def refresh_object_sets_colours(context):
     """Refresh colors for all object sets"""
 
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Object Sets Refresh Object Sets Colours: Unsafe Context.")
+        log.warning(f"Object Sets Refresh Object Sets Colours: Unsafe Context.")
         return None
 
-    if u.is_debug():
-        print(f"[DEBUG] [{_mod}] Force Refreshing Object Sets' Colours")
+    log.debug(f"Force Refreshing Object Sets' Colours")
 
     addon_object_sets_props = u.get_addon_object_sets_props()
 
@@ -490,11 +487,10 @@ def refresh_object_sets_colours(context):
         return
 
     for object_set in object_sets:
-        if u.is_debug():
-            print(f"[DEBUG] [{_mod}] Refresh: {object_set.name}")
+        log.debug(f"Refresh: {object_set.name}")
         object_set.update_object_set_colour(context)
 
-    u.log(f"[INFO] [{_mod}] Finished refreshing Object Set's colours.")
+    log.info(f"Finished refreshing Object Set's colours.")
 
 
 @bpy.app.handlers.persistent
@@ -504,13 +500,13 @@ def load_legacy_object_sets(dummy):
     addon_props = u.get_addon_props()
 
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[ERROR] [{_mod}] Context write is not safe")
+        log.error(f"Context write is not safe")
         return
 
     legacy_sets = addon_props.object_sets
 
     if legacy_sets:
-        u.log(f"[INFO] [{_mod}] Loading legacy sets")
+        log.info(f"Loading legacy sets")
 
     # Collect objects
     total_objects = 0
@@ -530,7 +526,7 @@ def load_legacy_object_sets(dummy):
         if legacy_set.separator:
             new_set.separator = True
             new_set.name = new_set.default_separator_name
-            u.log(f"[INFO] [{_mod}] Copy legacy Separator '{legacy_set.name}'")
+            log.info(f"Copy legacy Separator '{legacy_set.name}'")
             continue
 
         exists = legacy_set.name in [object_set.name for object_set in u.get_object_sets()]
@@ -541,7 +537,7 @@ def load_legacy_object_sets(dummy):
 
         legacy_objects = legacy_set.objects
 
-        u.log(f"[INFO] [{_mod}] Copying legacy Set '{legacy_set.name}' ({len(legacy_objects)} Objects)")
+        log.info(f"Copying legacy Set '{legacy_set.name}' ({len(legacy_objects)} Objects)")
 
         for item in legacy_objects:
             legacy_obj = item.object
@@ -561,11 +557,11 @@ def load_legacy_object_sets(dummy):
 
     # Remove legacy object sets
     if legacy_sets:
-        u.log(f"[INFO] [{_mod}] Clearing legacy sets")
+        log.info(f"Clearing legacy sets")
         if u.is_writing_context_safe(bpy.context.scene):
             legacy_sets.clear()
         else:
-            print(f"[ERROR] [{_mod}] Unable to clear legacy Object Sets")
+            log.error(f"Unable to clear legacy Object Sets")
 
 
 def draw_objects_sets_uilist(layout, context):
@@ -579,7 +575,7 @@ def draw_objects_sets_uilist(layout, context):
     """
 
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Object Sets Draw Object Sets UIList: Unsafe Context.")
+        log.warning(f"Object Sets Draw Object Sets UIList: Unsafe Context.")
         return None
 
     from ..menus import SimpleToolbox_MT_ObjectSetsActionsMenu

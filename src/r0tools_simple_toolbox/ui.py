@@ -1,3 +1,5 @@
+import logging
+
 import bpy
 
 from . import ext_update as upd
@@ -12,7 +14,7 @@ from .find_modifiers_ops import SimpleToolbox_OT_FindModifiersCategoryVisCollaps
 from .operators import *
 from .repo import draw_repo_layout
 
-_mod = "UI"
+log = logging.getLogger(__name__)
 
 
 class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
@@ -35,7 +37,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 if area.type == cls.bl_space_type:
                     area.tag_redraw()
         except Exception as e:
-            print(f"[ERROR] [{_mod}] Failed to redraw on callback:\n{e}")
+            log.error(f"Failed to redraw on callback:\n{e}")
 
     def draw(self, context):
         addon_props = u.get_addon_props()
@@ -310,7 +312,7 @@ classes = [
 def register():
     for cls in classes:
         if u.is_debug():
-            print(f"[INFO] [{_mod}] Register {cls.__name__}")
+            log.info(f"Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
     # upd.trigger_update_check()
@@ -320,5 +322,5 @@ def register():
 def unregister():
     for cls in classes:
         if u.is_debug():
-            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+            log.info(f"Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

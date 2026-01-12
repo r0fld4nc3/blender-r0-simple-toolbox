@@ -1,3 +1,5 @@
+import logging
+
 import bmesh
 import bpy
 from mathutils import Vector
@@ -11,7 +13,7 @@ TEXTURE_SIZE_X = 4096  # Texture resolution in pixels (e.g., 4096x4096)
 TEXTURE_SIZE_Y = 4096  # Texture resolution in pixels (e.g., 4096x4096)
 TEXTURE_SIZE_SQ = TEXTURE_SIZE_X * TEXTURE_SIZE_Y
 
-_mod = "UV_OPS.METHODS"
+log = logging.getLogger(__name__)
 
 
 def get_uv_islands(obj):
@@ -108,7 +110,7 @@ def calculate_uv_area(uv_x: int, uv_y: int, obj, islands):
 
     if u.is_debug():
         if batch_print:
-            print(f"[DEBUG] [{_mod}] \n".join(batch_print))
+            log.debug(f"\n".join(batch_print))
 
     return uv_areas
 
@@ -128,14 +130,13 @@ def select_small_uv_islands(
     :rtype: Union[list, list, list]
     """
 
-    if u.is_debug():
-        print(f"[DEBUG] [{_mod}] Selecting Small UV Islands")
-        print(f"[DEBUG] [{_mod}] Obj: {obj}")
-        print(f"[DEBUG] [{_mod}] UV X: {uv_x}")
-        print(f"[DEBUG] [{_mod}] UV Y: {uv_y}")
-        print(f"[DEBUG] [{_mod}] Threshold: {threshold}")
-        print(f"[DEBUG] [{_mod}] Threshold Pixel Coverage: {threshold_px_coverage}")
-        print(f"[DEBUG] [{_mod}] Threshold Percent: {threshold_pct}")
+    log.debug(f"Selecting Small UV Islands")
+    log.debug(f"Obj: {obj}")
+    log.debug(f"UV X: {uv_x}")
+    log.debug(f"UV Y: {uv_y}")
+    log.debug(f"Threshold: {threshold}")
+    log.debug(f"Threshold Pixel Coverage: {threshold_px_coverage}")
+    log.debug(f"Threshold Percent: {threshold_pct}")
 
     uv_island_sync = bpy.context.scene.tool_settings.use_uv_select_sync
 
@@ -169,7 +170,7 @@ def select_small_uv_islands(
                 batch_print.add(f"{obj.name} | Island {i} too small: Pixel Area Percentage: {pixel_area_pct}%")
 
     if u.is_debug() and batch_print:
-        print(f"[DEBUG] [{_mod}] \n".join(batch_print))
+        log.debug(f"\n".join(batch_print))
 
     # Switch to Edit Mode to select faces
     bpy.ops.object.mode_set(mode="EDIT")
@@ -198,6 +199,6 @@ if __name__ == "__main__":
             small_islands, small_faces, small_verts = select_small_uv_islands(
                 obj, TEXTURE_SIZE_X, TEXTURE_SIZE_Y, threshold=THRESHOLD
             )
-            print(
-                f"[INFO] [{_mod}] Object: {obj.name}, Small UV Islands Selected: {len(small_faces)} Faces, {len(small_verts)} Vertices"
+            log.info(
+                f"Object: {obj.name}, Small UV Islands Selected: {len(small_faces)} Faces, {len(small_verts)} Vertices"
             )

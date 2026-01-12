@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 import sys
 import threading
@@ -10,7 +11,7 @@ import requests
 
 REQUEST_TIMEOUT = 5  # seconds
 
-_mod = "REPO.UPDATER"
+log = logging.getLogger(__name__)
 
 
 def tuple_version_string(version_str: str):
@@ -37,7 +38,7 @@ def trigger_update_check(*args, **kwargs) -> bool:
     if not update_check_file.exists():
         update_check_file = get_addon_fs_path() / "check_update"
 
-    print(f"[INFO] [{_mod}] Update File: {str(update_check_file)}")
+    log.info(f"Update File: {str(update_check_file)}")
 
     KEY_LAST_CHECKED = "last_checked"
     KEY_CAN_RUN_WHEN = "can_run_when"
@@ -52,7 +53,7 @@ def trigger_update_check(*args, **kwargs) -> bool:
     }
 
     if addon_prefs.check_update_startup:
-        print("-------------------------------------------------------")
+        log.info("-------------------------------------------------------")
         if update_check_file.exists() and update_check_file.is_file():
             with open(update_check_file, "r") as f:
                 update_data = json.load(f)
@@ -65,18 +66,18 @@ def trigger_update_check(*args, **kwargs) -> bool:
         can_run_after = update_data.get(KEY_CAN_RUN_WHEN)
         elapsed_since_check = now - last_checked
 
-        print(f"[INFO] [{_mod}] Now: {now:.0f}.")
-        print(f"[INFO] [{_mod}] Last checked: {last_checked:.0f}.")
-        print(f"[INFO] [{_mod}] Elapsed: {elapsed_since_check:.0f} seconds. (Cooldown of {UPDATE_CHECK_CD} seconds)")
+        log.info(f"Now: {now:.0f}.")
+        log.info(f"Last checked: {last_checked:.0f}.")
+        log.info(f"Elapsed: {elapsed_since_check:.0f} seconds. (Cooldown of {UPDATE_CHECK_CD} seconds)")
 
         if now > can_run_after:
             is_extension = False
 
             if "bl_ext." in INTERNAL_NAME.lower():
-                print(f"[INFO] [{_mod}] [INFO] Addon is currently loaded as Extension.")
+                log.info(f"Addon is currently loaded as Extension.")
                 is_extension = True
             else:
-                print(f"[INFO] [{_mod}] [INFO] Addon is currently loaded as Local.")
+                log.info(f"Addon is currently loaded as Local.")
 
             if is_extension:
                 remote_json = get_repo_remote_json(BASE_NAME, REPO_NAME)
@@ -107,7 +108,7 @@ def trigger_update_check(*args, **kwargs) -> bool:
             return has_update
         else:
             remaining_seconds = can_run_after - now
-            print(f"[INFO] [{_mod}] Reading from cached file. Can retry in {abs(remaining_seconds):.0f} seconds.")
+            log.info(f"Reading from cached file. Can retry in {abs(remaining_seconds):.0f} seconds.")
             with open(update_check_file, "r") as f:
                 update_data = json.load(f)
 
@@ -115,8 +116,8 @@ def trigger_update_check(*args, **kwargs) -> bool:
             local_version = get_local_version(INTERNAL_NAME)
             ThreadVars.set_local_version(local_version)
 
-            print(f"[INFO] [{_mod}] Local Version: {local_version}")
-            print(f"[INFO] [{_mod}] Remote Version: {remote_version}")
+            log.info(f"Local Version: {local_version}")
+            log.info(f"Remote Version: {remote_version}")
 
             has_update = local_version < remote_version
 
@@ -126,9 +127,9 @@ def trigger_update_check(*args, **kwargs) -> bool:
                 f.write(json.dumps(update_data))
 
             r0Tools_PT_SimpleToolbox._update_callback(has_update)
-        print("-------------------------------------------------------")
+        log.info("-------------------------------------------------------")
     else:
-        print(f"[INFO] [{_mod}] Check update turned off. No update check.")
+        log.info(f"Check update turned off. No update check.")
 
     return False
 
@@ -140,12 +141,12 @@ def get_repo_remote_json(addon_id: str, ext_repo_name: str) -> dict:
 
     # Fetch JSON metadata from online repository
     try:
-        print(f"[INFO] [{_mod}] Fetching matadata '{metadata_url}'.")
+        log.info(f"Fetching matadata '{metadata_url}'.")
         response = requests.get(metadata_url, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
         metadata = response.json()
     except Exception as e:
-        print(f"[ERROR] [{_mod}] Failed to fetch or parse JSON metadata.\n{e}")
+        log.error(f"Failed to fetch or parse JSON metadata.\n{e}")
         return {}
 
     pulled = {}
@@ -155,10 +156,10 @@ def get_repo_remote_json(addon_id: str, ext_repo_name: str) -> dict:
             break
 
     if pulled is None or not pulled:
-        print(f"[INFO] [{_mod}] No remote data foind for addon with id: '{addon_id}'.")
+        log.info(f"No remote data foind for addon with id: '{addon_id}'.")
         return {}
 
-    print(f"[INFO] [{_mod}] {json.dumps(pulled, indent=2)}")
+    log.info(f"{json.dumps(pulled, indent=2)}")
 
     return pulled
 
@@ -168,15 +169,15 @@ def get_repo_addon_version() -> str:
 
     releases_latest = f"{RELEASES_PAGE}/latest"
     try:
-        print(f"[INFO] [{_mod}] Fetching URL response for '{releases_latest}'.")
+        log.info(f"Fetching URL response for '{releases_latest}'.")
         response = requests.get(
             releases_latest, headers={"Content-Type": "application/vnd.github.v3+json"}, timeout=REQUEST_TIMEOUT
         )
         response.raise_for_status()
     except Exception as conn_err:
-        print(f"[ERROR] [{_mod}] {conn_err}")
+        log.error(f"{conn_err}")
 
-    print(f"[INFO] [{_mod}] Response: '{response.url}'.")
+    log.info(f"Response: '{response.url}'.")
 
     release = response.url.split("/")[-1]
     if release in ["releases", "latest"]:
@@ -186,41 +187,41 @@ def get_repo_addon_version() -> str:
 
 
 def check_extension_update_json(addon_id: str, ext_json: dict) -> bool | None:
-    print(f"[INFO] [{_mod}] Checking extension update json")
+    log.info(f"Checking extension update json")
 
     installed_version = get_local_version(addon_id)
 
     remote_version_str = ext_json.get("version")
     if not remote_version_str:
-        print(f"[INFO] [{_mod}] Remote version information not found")
+        log.info(f"Remote version information not found")
         return None
 
     remote_version = tuple_version_string(remote_version_str)
-    print(f"[INFO] [{_mod}] Local version for '{addon_id}': {installed_version}")
-    print(f"[INFO] [{_mod}] Remote version for '{addon_id}': {remote_version}")
+    log.info(f"Local version for '{addon_id}': {installed_version}")
+    log.info(f"Remote version for '{addon_id}': {remote_version}")
 
     if installed_version < remote_version:
-        print(f"[INFO] [{_mod}] Update available!")
+        log.info(f"Update available!")
         return True
     else:
-        print(f"[INFO] [{_mod}] '{addon_id}' is up to date.")
+        log.info(f"'{addon_id}' is up to date.")
 
     return False
 
 
 def check_local_addon_udpate(addon_id, remote_version: tuple) -> bool | None:
-    print(f"[INFO] [{_mod}] Checking local addon update")
+    log.info(f"Checking local addon update")
 
     installed_version = get_local_version(addon_id)
 
-    print(f"[INFO] [{_mod}] Local version for '{addon_id}': {installed_version}")
-    print(f"[INFO] [{_mod}] Remote version for '{addon_id}': {remote_version}")
+    log.info(f"Local version for '{addon_id}': {installed_version}")
+    log.info(f"Remote version for '{addon_id}': {remote_version}")
 
     if installed_version < remote_version:
-        print(f"[INFO] [{_mod}] Update available!")
+        log.info(f"Update available!")
         return True
     else:
-        print(f"[INFO] [{_mod}] '{addon_id}' is up to date.")
+        log.info(f"'{addon_id}' is up to date.")
 
     return False
 
@@ -235,7 +236,7 @@ def get_local_version(addon_id: str) -> tuple:
     addon = bpy.context.preferences.addons.get(addon_id)
 
     if not addon:
-        print(f"[INFO] [{_mod}] Addon '{addon_id}' not found. Unable to retrieve version")
+        log.info(f"Addon '{addon_id}' not found. Unable to retrieve version")
         return (0, 0, 0)
 
     module_name = addon.module
@@ -250,7 +251,7 @@ def get_local_version(addon_id: str) -> tuple:
         mod = mod.defines
 
     installed_version = mod.bl_info.get("version", (0, 0, 0))
-    print(f"[INFO] [{_mod}] Installed version for '{addon_id}': {installed_version}")
+    log.info(f"Installed version for '{addon_id}': {installed_version}")
 
     return installed_version
 
@@ -290,7 +291,7 @@ def _execute_callback_on_main_thread(has_update: bool):
     try:
         r0Tools_PT_SimpleToolbox._update_callback(has_update)
     except Exception as e:
-        print(f"[ERROR] [{_mod}] Failed to execute update callback: {e}")
+        log.error(f"Failed to execute update callback: {e}")
 
     # Stop timer
     return None
@@ -330,9 +331,9 @@ def _run_update_check_thread(
         can_run_after = update_data.get(KEY_CAN_RUN_WHEN)
         elapsed_since_check = now - last_checked
 
-        print(f"[INFO] [{_mod}] Now: {now:.0f}.")
-        print(f"[INFO] [{_mod}] Last checked: {last_checked:.0f}.")
-        print(f"[INFO] [{_mod}] Elapsed: {elapsed_since_check:.0f} seconds. (Cooldown of {update_check_cd} seconds)")
+        log.info(f"Now: {now:.0f}.")
+        log.info(f"Last checked: {last_checked:.0f}.")
+        log.info(f"Elapsed: {elapsed_since_check:.0f} seconds. (Cooldown of {update_check_cd} seconds)")
 
         if now > can_run_after:
             if is_extension:
@@ -360,7 +361,7 @@ def _run_update_check_thread(
         else:
             # Read from cache
             remaining_seconds = can_run_after - now
-            print(f"[INFO] [{_mod}] Reading from cached file. Can retry in {abs(remaining_seconds):.0f} seconds.")
+            log.info(f"Reading from cached file. Can retry in {abs(remaining_seconds):.0f} seconds.")
 
             with open(update_check_file, "r") as f:
                 update_data = json.load(f)
@@ -368,8 +369,8 @@ def _run_update_check_thread(
             remote_version = tuple_version_string(update_data.get(KEY_PULLED_VERSION))
             local_version = ThreadVars.get_local_version()
 
-            print(f"[INFO] [{_mod}] Local Version: {local_version}")
-            print(f"[INFO] [{_mod}] Remote Version: {remote_version}")
+            log.info(f"Local Version: {local_version}")
+            log.info(f"Remote Version: {remote_version}")
 
             has_update = remote_version > local_version
             update_data[KEY_UPDATE_AVAILABLE] = has_update
@@ -379,10 +380,10 @@ def _run_update_check_thread(
 
             bpy.app.timers.register(lambda: _execute_callback_on_main_thread(has_update), first_interval=0.1)
     except Exception as e:
-        print(f"[ERROR] [{_mod}] Update check thread error: {e}")
+        log.error(f"Update check thread error: {e}")
         bpy.app.timers.register(lambda: _execute_callback_on_main_thread(False), first_interval=0.1)
 
-    print("-------------------------------------------------------")
+    log.info("-------------------------------------------------------")
 
 
 def trigger_thread_update_check(*args, force: bool = False, **kwargs) -> bool:
@@ -397,24 +398,24 @@ def trigger_thread_update_check(*args, force: bool = False, **kwargs) -> bool:
     addon_prefs = get_addon_prefs()
 
     if not force and not addon_prefs.check_update_startup:
-        print(f"[INFO] [{_mod}] Check update turned off. No update check.")
+        log.info(f"Check update turned off. No update check.")
         return False
 
-    print("-------------------------------------------------------")
+    log.info("-------------------------------------------------------")
 
     try:
         # Prepare bpy data before thread access
         update_check_file: Path = get_addon_fs_path() / BASE_NAME / "check_update"
         if not update_check_file.exists():
             update_check_file = get_addon_fs_path() / "check_update"
-        print(f"[INFO] [{_mod}] Update File: {str(update_check_file)}")
+        log.info(f"Update File: {str(update_check_file)}")
 
         # Check if it's Extension
         is_extension = "bl_ext." in INTERNAL_NAME.lower()
         if is_extension:
-            print(f"[INFO] [{_mod}] [INFO] Addon is currently loaded as Extension.")
+            log.info(f"Addon is currently loaded as Extension.")
         else:
-            print(f"[INFO] [{_mod}] [INFO] Addon is currently loaded as Local.")
+            log.info(f"Addon is currently loaded as Local.")
 
         repo_data = REPO_NAME
         if is_extension:
@@ -425,7 +426,7 @@ def trigger_thread_update_check(*args, force: bool = False, **kwargs) -> bool:
         # Store local version before threading
         local_version = get_local_version(INTERNAL_NAME)
         ThreadVars.set_local_version(local_version)
-        print(f"[INFO] [{_mod}] Stored local version: {local_version}")
+        log.info(f"Stored local version: {local_version}")
 
         thread = threading.Thread(
             target=_run_update_check_thread,
@@ -441,7 +442,7 @@ def trigger_thread_update_check(*args, force: bool = False, **kwargs) -> bool:
         )
         thread.start()
     except Exception as e:
-        print(f"[ERROR] [{_mod}] Failed to start update check thread: {e}")
+        log.error(f"Failed to start update check thread: {e}")
 
     # Return immediately without blocking
     return False
@@ -454,24 +455,24 @@ def _get_repo_remote_json_threadsafe(addon_id: str, repo_data: dict) -> dict:
     """
     if isinstance(repo_data, str):
         # Legacy mode, can't fetch without bpy access
-        print(f"[WARN] [{_mod}] Repository data not available for threaded check")
+        log.warning(f"Repository data not available for threaded check")
         return {}
 
     metadata_url = repo_data.get("remote_url")
     if not metadata_url:
-        print(f"[ERROR] [{_mod}] No remote URL in repository data")
+        log.error(f"No remote URL in repository data")
         return {}
 
     try:
-        print(f"[INFO] [{_mod}] Fetching metadata '{metadata_url}'")
+        log.info(f"Fetching metadata '{metadata_url}'")
         response = requests.get(metadata_url, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
         metadata = response.json()
     except requests.exceptions.RequestException as e:
-        print(f"[ERROR] [{_mod}] Failed to fetch metadata: {e}")
+        log.error(f"Failed to fetch metadata: {e}")
         return {}
     except json.JSONDecodeError as e:
-        print(f"[ERROR] [{_mod}] Failed to parse JSON metadata: {e}")
+        log.error(f"Failed to parse JSON metadata: {e}")
         return {}
 
     pulled = {}
@@ -481,10 +482,10 @@ def _get_repo_remote_json_threadsafe(addon_id: str, repo_data: dict) -> dict:
             break
 
     if not pulled:
-        print(f"[INFO] [{_mod}] No remote data found for addon with id: '{addon_id}'.")
+        log.info(f"No remote data found for addon with id: '{addon_id}'.")
         return {}
 
-    print(f"[INFO] [{_mod}] {json.dumps(pulled, indent=2)}")
+    log.info(f"{json.dumps(pulled, indent=2)}")
     return pulled
 
 
@@ -493,24 +494,24 @@ def _check_extension_update_json_threadsafe(addon_id: str, ext_json: dict) -> bo
     Thread-safe version of check_extension_update_json.
     """
 
-    print(f"[INFO] [{_mod}] Checking extension update json")
+    log.info(f"Checking extension update json")
 
     installed_version = ThreadVars.get_local_version()
 
     remote_version_str = ext_json.get("version")
     if not remote_version_str:
-        print(f"[INFO] [{_mod}] Remote version information not found")
+        log.info(f"Remote version information not found")
         return None
 
     remote_version = tuple_version_string(remote_version_str)
-    print(f"[INFO] [{_mod}] Local version for '{addon_id}': {installed_version}")
-    print(f"[INFO] [{_mod}] Remote version for '{addon_id}': {remote_version}")
+    log.info(f"Local version for '{addon_id}': {installed_version}")
+    log.info(f"Remote version for '{addon_id}': {remote_version}")
 
     if remote_version > installed_version:
-        print(f"[INFO] [{_mod}] Update available!")
+        log.info(f"Update available!")
         return True
     else:
-        print(f"[INFO] [{_mod}] '{addon_id}' is up to date.")
+        log.info(f"'{addon_id}' is up to date.")
 
     return False
 
@@ -519,17 +520,17 @@ def _check_local_addon_update_threadsafe(addon_id: str, remote_version: tuple) -
     """
     Thread-safe version of check_local_addon_update.
     """
-    print(f"[INFO] [{_mod}] Checking local addon update")
+    log.info(f"Checking local addon update")
 
     installed_version = ThreadVars.get_local_version()
 
-    print(f"[INFO] [{_mod}] Local version for '{addon_id}': {installed_version}")
-    print(f"[INFO] [{_mod}] Remote version for '{addon_id}': {remote_version}")
+    log.info(f"Local version for '{addon_id}': {installed_version}")
+    log.info(f"Remote version for '{addon_id}': {remote_version}")
 
     if remote_version > installed_version:
-        print(f"[INFO] [{_mod}] Update available!")
+        log.info(f"Update available!")
         return True
     else:
-        print(f"[INFO] [{_mod}] '{addon_id}' is up to date.")
+        log.info(f"'{addon_id}' is up to date.")
 
     return False

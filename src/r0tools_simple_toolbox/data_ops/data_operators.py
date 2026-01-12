@@ -1,3 +1,5 @@
+import logging
+
 import bpy
 from bpy.props import (
     BoolProperty,
@@ -9,7 +11,7 @@ from bpy.props import (
 
 from .. import utils as u
 
-_mod = "DATA_OPS.DATA_OPERATORS"
+log = logging.getLogger(__name__)
 
 
 class SimpleToolbox_OT_ClearCustomSplitNormalsData(bpy.types.Operator):
@@ -40,8 +42,7 @@ class SimpleToolbox_OT_ClearCustomSplitNormalsData(bpy.types.Operator):
             # bpy.context.object.data.auto_smooth_angle = 3.14159
 
     def execute(self, context):
-        if u.is_debug():
-            print("\n------------- Clear Custom Split Normals Data -------------")
+        log.info("--------------- Clear Custom Split Normals Data ---------------")
         orig_context = context.mode
         orig_active = bpy.context.view_layer.objects.active
 
@@ -74,8 +75,7 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
     def execute(self, context):
         addon_props = u.get_addon_props()
 
-        if u.is_debug():
-            print("\n------------- Clear Custom Properties -------------")
+        log.info("------------- Clear Custom Properties -------------")
         object_data_property_deletions = set()
         mesh_data_property_deletions = set()
         total_deletions = 0
@@ -93,16 +93,14 @@ class SimpleToolbox_OT_ClearCustomProperties(bpy.types.Operator):
                 # Object Data
                 if prop_type == u.CUSTOM_PROPERTIES_TYPES.OBJECT_DATA:
                     if prop_name in reversed(obj.keys()):
-                        if u.is_debug():
-                            print(f"[DEBUG] [{_mod}] Deleting Object Data Property '{prop_name}' of object {obj.name}")
+                        log.debug(f"Deleting Object Data Property '{prop_name}' of object {obj.name}")
                         del obj[prop_name]
                         object_data_property_deletions.add(prop_name)
                         total_objects += 1
                 # Mesh Data
                 elif prop_type == u.CUSTOM_PROPERTIES_TYPES.MESH_DATA:
                     if prop_name in reversed(obj.data.keys()):
-                        if u.is_debug():
-                            print(f"[DEBUG] [{_mod}] Deleting Mesh Data Property '{prop_name}' of object {obj.name}")
+                        log.debug(f"Deleting Mesh Data Property '{prop_name}' of object {obj.name}")
                         del obj.data[prop_name]
                         mesh_data_property_deletions.add(prop_name)
                         total_objects += 1
@@ -140,8 +138,7 @@ class SimpleToolbox_OT_ClearObjectAttributes(bpy.types.Operator):
         attrs_to_keep_str: str = addon_prefs.object_attributes_to_keep  # comma-separated list
         attrs_to_keep = set(attrs_to_keep_str.replace(" ", "").split(","))
 
-        if u.is_debug():
-            print("\n------------- Clear Object Attributes -------------")
+        log.info("------------- Clear Object Attributes -------------")
         attributes_property_deletions = set()
         total_deletions = 0
         total_objects = 0
@@ -167,15 +164,12 @@ class SimpleToolbox_OT_ClearObjectAttributes(bpy.types.Operator):
 
                 # Object Data
                 if attrib_name in reversed(obj_attributes.keys()):
-                    if u.is_debug():
-                        print(f"[DEBUG] [{_mod}] Deleting Attribute '{attrib_name}' of object {obj.name}")
+                    log.debug(f"Deleting Attribute '{attrib_name}' of object {obj.name}")
 
                     try:
                         obj_attributes.remove(obj_attributes[attrib_name])
                     except Exception as e:
-                        errors.append(
-                            f"[ERROR] [{_mod}] Unable to remove attribute '{attrib_name}' from '{obj.name}': {e}"
-                        )
+                        errors.append(f"Unable to remove attribute '{attrib_name}' from '{obj.name}': {e}")
                         continue
                     attributes_property_deletions.add(attrib_name)
                     total_deletions += 1
@@ -185,7 +179,7 @@ class SimpleToolbox_OT_ClearObjectAttributes(bpy.types.Operator):
         u.object_attributes_list_update(force_run=True)
 
         if errors:
-            print("".join(errors))
+            log.error("".join(errors))
 
         # u.show_notification(f"Deleted {total_deletions} propertie(s) across {total_objects} object(s)")
         self.report(
@@ -250,10 +244,10 @@ class SimpleToolbox_OT_ObjectAttributesSelectSelected(bpy.types.Operator):
             # Set intersection and check if attributes match
             if selected_attributes & set(obj_attributes.keys()):
                 # Keep the object
-                u.log(f"Keep: {obj.name}")
+                log.info(f"Keep: {obj.name}")
                 continue
             else:
-                u.log(f"Deselect: {obj.name}")
+                log.info(f"Deselect: {obj.name}")
                 u.deselect_object(obj)
 
         return {"FINISHED"}
@@ -290,7 +284,7 @@ class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
         Sometimes certain addons or operations will populate this list with attributes you wish to remove at a later date, be it for parsing or exporting.
         """
 
-        u.log(f"[INFO] [{_mod}] [CLEAR MESH ATTRIBUTES]")
+        log.info("--------------- CLEAR MESH ATTRIBUTES ---------------")
 
         initial_obj = bpy.context.active_object
 
@@ -309,8 +303,7 @@ class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
             if obj.type == u.OBJECT_TYPES.MESH:
                 bpy.context.view_layer.objects.active = obj
                 mesh = bpy.context.object.data
-                if u.is_debug():
-                    print(f"[DEBUG] [{_mod}] Object: {mesh.name}")
+                log.debug(f"Object: {mesh.name}")
                 try:
                     for at in reversed(mesh.attributes.items()):
                         # Check if not T4 Attribute
@@ -320,20 +313,20 @@ class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
                         at_name = at[0]
                         if str(at_name).startswith(exclude_filter):
                             if u.is_debug():
-                                print(f"[DEBUG] [{_mod}] {' '*2}Keeping Attribute: {at_name}")
+                                log.debug(f"{' '*2}Keeping Attribute: {at_name}")
                         else:
                             if u.is_debug():
-                                print(f"[DEBUG] [{_mod}] {' '*2}Removing Attribute: {at[0]}")
+                                log.debug(f"{' '*2}Removing Attribute: {at[0]}")
                             mesh.color_attributes.remove(at[1])
                 except Exception as e:
-                    print(f"[ERROR] [{_mod}] Error Clearing Mesh Attributes")
+                    log.error(f"Error Clearing Mesh Attributes")
                     u.context_error_debug(error=e)
 
         bpy.context.view_layer.objects.active = initial_obj
 
     def execute(self, context):
         if u.is_debug():
-            print("\n------------- Clear Mesh Attributes -------------")
+            log.debug("--------------- Clear Mesh Attributes ---------------")
         self.op_clear_mesh_attributes()
         return {"FINISHED"}
 
@@ -354,13 +347,11 @@ classes = [
 
 def register():
     for cls in classes:
-        if u.is_debug():
-            print(f"[INFO] [{_mod}] Register {cls.__name__}")
+        log.debug(f"Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
 
 def unregister():
     for cls in classes:
-        if u.is_debug():
-            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        log.debug(f"Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
