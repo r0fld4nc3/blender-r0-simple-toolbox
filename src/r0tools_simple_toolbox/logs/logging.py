@@ -13,7 +13,8 @@ def configure_logging(log_file: Path, level: int = logging.INFO, console: bool =
     root = logging.getLogger()
     root.setLevel(level)
 
-    formatter = logging.Formatter("[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s", datefmt="%d-%m-%Y %H:%M:%S")
+    # [%(asctime)s]
+    formatter = logging.Formatter("[%(levelname)s] [%(name)s] %(message)s", datefmt="%d-%m-%Y %H:%M:%S")
 
     # Remove any pre-existing handlers.
     root.handlers.clear()
