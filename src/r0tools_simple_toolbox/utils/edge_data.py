@@ -26,4 +26,4 @@ def initialize_bweight_presets(dummy):
         preset = addon_edge_data_props.edge_bweights_presets.presets.add()
         preset.value = round(i / 100.0, 2)
 
-    log.info(f"Preset: {[v.value for v in addon_edge_data_props.edge_bweights_presets.presets]}")
+    log.info(f"Preset: {[round(v.value, 2) for v in addon_edge_data_props.edge_bweights_presets.presets]}")
