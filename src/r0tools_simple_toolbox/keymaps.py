@@ -272,8 +272,7 @@ def unregister_keymaps():
             setattr(addon_prefs, cfg["addon_pref_prop"], kmi.type)
 
         try:
-            if u.is_debug():
-                log.debug(f"Remove {kmi.idname}")
+            log.debug(f"Remove {kmi.idname}")
             km.keymap_items.remove(kmi)
         except Exception as e:
             log.warning(f"Could not remove {kmi.idname}: {e}")

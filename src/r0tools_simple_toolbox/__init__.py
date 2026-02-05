@@ -67,8 +67,7 @@ def register():
     for mod in modules:
         if hasattr(mod, "register"):
             mod.register()
-            if u.is_debug():
-                log.debug(f"Registered: {mod.__name__}")
+            log.debug(f"Registered: {mod.__name__}")
 
     log.info("-------------------------------------------------------------")
 
@@ -80,8 +79,7 @@ def unregister():
     for mod in reversed(modules):
         if hasattr(mod, "unregister"):
             mod.unregister()
-            if u.is_debug():
-                log.debug(f"Registered: {mod.__name__}")
+            log.debug(f"Registered: {mod.__name__}")
 
     log.info("-------------------------------------------------------------")
 

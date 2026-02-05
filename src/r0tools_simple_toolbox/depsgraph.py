@@ -43,10 +43,9 @@ def handler_depsgraph_post_update(scene, depsgraph):
     # Check if any running modal operators - also important in the scheduled function
     modal_ops = u.get_active_modal_operators()
     if modal_ops:
-        if u.is_debug():
-            log.info(f"[DEBUG] Skipping scheduled depsgraph update: Active Modal Operators running.")
-            for op in modal_ops:
-                log.info(f"{op.bl_idname}")
+        log.debug(f"[DEBUG] Skipping scheduled depsgraph update: Active Modal Operators running.")
+        for op in modal_ops:
+            log.debug(f"{op.bl_idname}")
         return None
     """
 
@@ -88,29 +87,25 @@ save_post_handlers = [handler_on_save_post]
 def register():
     # Depsgraph Handlers
     for handler in depsgraph_handlers:
-        if u.is_debug():
-            log.debug(f"Registering {handler}")
+        log.debug(f"Registering {handler}")
         if handler not in bpy.app.handlers.depsgraph_update_post:
             bpy.app.handlers.depsgraph_update_post.append(handler)
 
     # Save Pre Handlers
     for handler in save_pre_handlers:
-        if u.is_debug():
-            log.debug(f"Register on_save_pre handler: {handler.__name__}")
+        log.debug(f"Register on_save_pre handler: {handler.__name__}")
         if handler not in bpy.app.handlers.save_pre:
             bpy.app.handlers.save_pre.append(handler)
 
     # Save Post Handlers
     for handler in save_post_handlers:
-        if u.is_debug():
-            log.debug(f"Register on_save_post handler: {handler.__name__}")
+        log.debug(f"Register on_save_post handler: {handler.__name__}")
         if handler not in bpy.app.handlers.save_post:
             bpy.app.handlers.save_post.append(handler)
 
     # Load Post Handlers
     for handler in load_post_handlers:
-        if u.is_debug():
-            log.debug(f"Register load_post_handler: {handler.__name__}")
+        log.debug(f"Register load_post_handler: {handler.__name__}")
         if handler not in bpy.app.handlers.load_post:
             bpy.app.handlers.load_post.append(handler)
 
@@ -118,28 +113,24 @@ def register():
 def unregister():
     # Depsgraph Handlers
     for handler in depsgraph_handlers:
-        if u.is_debug():
-            log.debug(f"Unregister {handler}")
+        log.debug(f"Unregister {handler}")
         if handler in bpy.app.handlers.depsgraph_update_post:
             bpy.app.handlers.depsgraph_update_post.remove(handler)
 
     # Save Pre Handlers
     for handler in save_pre_handlers:
-        if u.is_debug():
-            log.debug(f"Unregister on_save_pre handler: {handler.__name__}")
+        log.debug(f"Unregister on_save_pre handler: {handler.__name__}")
         if handler in bpy.app.handlers.save_pre:
             bpy.app.handlers.save_pre.remove(handler)
 
     # Save Post Handlers
     for handler in save_post_handlers:
-        if u.is_debug():
-            log.debug(f"Unregister on_save_post handler: {handler.__name__}")
+        log.debug(f"Unregister on_save_post handler: {handler.__name__}")
         if handler in bpy.app.handlers.save_post:
             bpy.app.handlers.save_post.remove(handler)
 
     # Load Post Handlers
     for handler in load_post_handlers:
-        if u.is_debug():
-            log.debug(f"Unregister load_post_handler: {handler.__name__}")
+        log.debug(f"Unregister load_post_handler: {handler.__name__}")
         if handler in bpy.app.handlers.load_post:
             bpy.app.handlers.load_post.remove(handler)

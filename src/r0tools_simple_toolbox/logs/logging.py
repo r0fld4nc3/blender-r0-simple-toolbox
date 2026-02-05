@@ -1,6 +1,9 @@
 import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from typing import Optional
+
+_logger: Optional[logging.Logger] = None
 
 
 def configure_logging(log_file: Path, level: int = logging.INFO, console: bool = True) -> None:
@@ -28,6 +31,9 @@ def configure_logging(log_file: Path, level: int = logging.INFO, console: bool =
         stream_handler.setFormatter(formatter)
         root.addHandler(stream_handler)
 
+    global _logger
+    _logger = root
+
 
 def reset_log_file(log_file: Path) -> None:
     try:
@@ -35,3 +41,17 @@ def reset_log_file(log_file: Path) -> None:
             f.write("")
     except Exception as e:
         raise RuntimeError(f"Error resetting log file: {e}")
+
+
+def get_root_logger() -> Optional[logging.Logger]:
+    global _logger
+    return _logger
+
+
+def set_root_logger_level(level: int) -> None:
+    global _logger
+
+    if not _logger:
+        return
+
+    _logger.setLevel(level)

@@ -24,8 +24,6 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
     debug: BoolProperty(name="Debug", description="Set Debug State", default=False)  # type: ignore
 
-    log_output: BoolProperty(name="Log", description="Whehter to produce regular Log output", default=False)  # type: ignore
-
     check_update_startup: BoolProperty(
         name="Check Update on Startup",
         description="Flag to set whether to check for extension updates on startup or not",
@@ -114,9 +112,6 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
         row = layout.row()
         row.prop(self, "debug", text="Debug Mode")
-
-        row = layout.row()
-        row.prop(self, "log_output", text="Log Output")
 
         row = layout.row()
         row.prop(self, "experimental_features", text="Experimental Features")

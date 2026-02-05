@@ -11,6 +11,7 @@ from mathutils import Vector
 
 from . import utils as u
 from .defines import INTERNAL_NAME
+from .logs import set_root_logger_level
 from .uv_ops import select_small_uv_islands
 
 log = logging.getLogger(__name__)
@@ -229,10 +230,9 @@ class VIEW3D_MT_CustomOrientationsPieMenu(bpy.types.Menu):
         start_index = self._current_start_index
         end_index = min(start_index + 8, len(custom_orientations))
 
-        if u.is_debug():
-            log.debug(f"{remaining_orientations=}")
-            log.debug(f"{start_index=}")
-            log.debug(f"{end_index=}")
+        log.debug(f"{remaining_orientations=}")
+        log.debug(f"{start_index=}")
+        log.debug(f"{end_index=}")
 
         total_added = 0  # 8 is the maximum allowed
         for orientation_name in custom_orientations[self.__class__._current_start_index :]:
@@ -248,8 +248,7 @@ class VIEW3D_MT_CustomOrientationsPieMenu(bpy.types.Menu):
 
                 # Update iterations
                 total_added += 1
-                if u.is_debug():
-                    log.debug(f"({self.__class__._current_start_index}) {orientation_name}")
+                log.debug(f"({self.__class__._current_start_index}) {orientation_name}")
             except Exception as err:
                 log.error(f"Error adding Custom Orientation to Pie Menu: {err}")
                 u.context_error_debug(error=err)
@@ -1698,6 +1697,24 @@ class SimpleToolbox_OT_ClearAxisSharpEdgesZ(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_ToggleDebugMode(bpy.types.Operator):
+    bl_label = "Debug"
+    bl_idname = "r0tools.toggle_debug_mode"
+    bl_description = "Toggle debug mode for more log printing information and context"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        addon_prefs = u.get_addon_prefs()
+        addon_prefs.debug = not addon_prefs.debug
+        if addon_prefs.debug:
+            log.info("Set logging mode: DEBUG")
+            set_root_logger_level(logging.DEBUG)
+        else:
+            log.info("Set logging mode: INFO")
+            set_root_logger_level(logging.INFO)
+        return {"FINISHED"}
+
+
 # ===================================================================
 #   Register & Unregister
 # ===================================================================
@@ -1732,6 +1749,8 @@ classes = [
     SimpleToolbox_OT_ClearAxisSharpEdgesZ,
 
     SimpleToolbox_OT_UVCheckIslandThresholds,
+
+    SimpleToolbox_OT_ToggleDebugMode,
 ]
 # fmt: on
 

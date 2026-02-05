@@ -113,10 +113,13 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
 
             if dev_tools_panel:
                 row = dev_tools_panel.row()
-                row.prop(addon_prefs, "debug", text="Debug", icon="EXPERIMENTAL")
-                row.prop(addon_prefs, "log_output", text="Log", icon="CONSOLE")
-                row = dev_tools_panel.row()
                 row.operator(BUILTINS_OT_IconViewer.bl_idname)
+                row.operator(
+                    SimpleToolbox_OT_ToggleDebugMode.bl_idname,
+                    text="Debug",
+                    icon="CONSOLE",
+                    depress=addon_prefs.debug,
+                )
                 row = dev_tools_panel.row()
                 row.operator("script.reload", text="Reload All Scripts", icon="PACKAGE")
                 reload_user_defined_box = dev_tools_panel.box()
@@ -311,8 +314,7 @@ classes = [
 
 def register():
     for cls in classes:
-        if u.is_debug():
-            log.info(f"Register {cls.__name__}")
+        log.info(f"Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
     # upd.trigger_update_check()
@@ -321,6 +323,5 @@ def register():
 
 def unregister():
     for cls in classes:
-        if u.is_debug():
-            log.info(f"Unregister {cls.__name__}")
+        log.info(f"Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

@@ -127,13 +127,11 @@ classes = [
 
 def register():
     for cls in classes:
-        if u.is_debug():
-            log.debug(f"Register {cls.__name__}")
+        log.debug(f"Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
 
 def unregister():
     for cls in classes:
-        if u.is_debug():
-            log.debug(f"Unregister {cls.__name__}")
+        log.debug(f"Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

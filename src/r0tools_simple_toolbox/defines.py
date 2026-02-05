@@ -26,7 +26,6 @@ def _set_addon_internal_name(from_name: str):
 
 
 # fmt: off
-DEBUG              = False
 VERSION            = bl_info.get("version", (0, 0, 0))
 VERSION_STR        = _version_str(VERSION)
 BASE_NAME          = "r0tools_simple_toolbox"

@@ -78,15 +78,13 @@ def update_vertex_group_name_callback(self, context):
 
     # Do renaming
     renamed_count = 0
-    if u.is_debug():
-        renamed_objects = []
+    renamed_objects = []
     for obj in context.selected_objects:
         if obj.type in accepted_objects and old_name in obj.vertex_groups:
             obj.vertex_groups[old_name].name = new_name
             renamed_count += 1
 
-            if u.is_debug():
-                renamed_objects.append(obj.name)
+            renamed_objects.append(obj.name)
 
     if renamed_count > 0:
         log.info(f"Renamed vertex group '{old_name}' to '{new_name}' in {renamed_count} objects")

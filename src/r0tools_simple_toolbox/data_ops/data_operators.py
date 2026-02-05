@@ -312,11 +312,9 @@ class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
 
                         at_name = at[0]
                         if str(at_name).startswith(exclude_filter):
-                            if u.is_debug():
-                                log.debug(f"{' '*2}Keeping Attribute: {at_name}")
+                            log.debug(f"{' '*2}Keeping Attribute: {at_name}")
                         else:
-                            if u.is_debug():
-                                log.debug(f"{' '*2}Removing Attribute: {at[0]}")
+                            log.debug(f"{' '*2}Removing Attribute: {at[0]}")
                             mesh.color_attributes.remove(at[1])
                 except Exception as e:
                     log.error(f"Error Clearing Mesh Attributes")
@@ -325,8 +323,7 @@ class SimpleToolbox_OT_ClearMeshAttributes(bpy.types.Operator):
         bpy.context.view_layer.objects.active = initial_obj
 
     def execute(self, context):
-        if u.is_debug():
-            log.debug("--------------- Clear Mesh Attributes ---------------")
+        log.debug("--------------- Clear Mesh Attributes ---------------")
         self.op_clear_mesh_attributes()
         return {"FINISHED"}
 

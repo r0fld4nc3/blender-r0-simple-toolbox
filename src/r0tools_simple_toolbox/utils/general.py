@@ -25,20 +25,6 @@ log = logging.getLogger(__name__)
 _last_object_count = 0
 
 
-def is_debug():
-    """Return current debug state"""
-    addon_prefs = get_addon_prefs()
-
-    if not addon_prefs:
-        return defines.DEBUG
-
-    # Set global DEBUG as well to match
-    if defines.DEBUG != addon_prefs.debug:
-        defines.DEBUG = addon_prefs.debug
-
-    return addon_prefs.debug
-
-
 def generate_uuid() -> str:
     return str(uuid.uuid4())
 
@@ -101,8 +87,7 @@ def set_object_mode(mode: str):
     Args:
         mode: One of the modes defined in `OBJECT_MODES`
     """
-    if is_debug():
-        log.debug(f"Setting mode: {mode}")
+    log.debug(f"Setting mode: {mode}")
 
     # Edit Mode weirdness fix
     if mode.upper() == "EDIT_MESH":
@@ -393,8 +378,7 @@ def is_valid_object_global(obj):
     except (ReferenceError, KeyError):
         return False
     except Exception as e:
-        if is_debug():
-            log.error(f"Validation error: {e}")
+        log.error(f"Validation error: {e}")
         return False
 
 
@@ -1016,9 +1000,6 @@ def create_panel_variant(panel_class, space_type: str = None, region_type: str =
 
 def context_error_debug(error: str = None, extra_prints: list = []):
     """Print debug information about the current context and error"""
-    if not is_debug():
-        return
-
     import inspect
 
     log.debug(f"+" * 32)
