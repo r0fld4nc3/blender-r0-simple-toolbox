@@ -440,6 +440,15 @@ class SimpleToolbox_OT_VgroupsAssignVertices(bpy.types.Operator):
 
             bm = bmesh.from_edit_mesh(mesh)
             bm.verts.ensure_lookup_table()
+
+            # Get or create Deform layer FIRST
+            deform_layer = bm.verts.layers.deform.active
+            if deform_layer is None:
+                deform_layer = bm.verts.layers.deform.new()
+                # Re-ensure lookup table after creation
+                bm.verts.ensure_lookup_table()
+
+            # Collect other tables
             bm.edges.ensure_lookup_table()
             bm.faces.ensure_lookup_table()
 
@@ -461,11 +470,6 @@ class SimpleToolbox_OT_VgroupsAssignVertices(bpy.types.Operator):
 
             if not verts_to_assign:
                 continue
-
-            # Get or create a Deform layer
-            deform_layer = bm.verts.layers.deform.active
-            if deform_layer is None:
-                deform_layer = bm.verts.layers.deform.new()
 
             # Assign the vertices to groups
             for vert in verts_to_assign:
