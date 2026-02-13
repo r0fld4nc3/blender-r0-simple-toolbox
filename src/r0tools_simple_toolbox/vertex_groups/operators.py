@@ -472,8 +472,8 @@ class SimpleToolbox_OT_VgroupsAssignVertices(bpy.types.Operator):
                 for vg_index in vg_indices:
                     try:
                         vert[deform_layer][vg_index] = 1.0
-                    except ReferenceError as ref_error:
-                        log.debug(f"AssignVertices: {e}")
+                    except ReferenceError as e:
+                        log.error(f"AssignVertices: {e}")
                     except Exception as e:
                         log.error(f"AssignVertices: {e}")
 
