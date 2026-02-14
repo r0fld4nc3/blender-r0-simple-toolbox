@@ -76,7 +76,7 @@ def handler_depsgraph_post_update(scene, depsgraph):
         return None  # Return None for timer
 
 
-depsgraph_handlers = [handler_depsgraph_post_update]
+depsgraph_handlers = []  # handler_depsgraph_post_update
 
 load_post_handlers = [u.refresh_object_sets_colours]
 

@@ -14,13 +14,14 @@ import importlib
 import logging
 
 from . import utils as u
-from .logs import configure_logging, reset_log_file
+from .logs import configure_logging, reset_log_file, set_root_logger_level
 
 # Thank you ACT plugin and how you do your load order
 # This is directly inspired from you!
 modules_load_order = (
     "addon_properties",
     "addon_prefs",
+    "msgbus",
     "operators",
     "menus",
     "utils",
@@ -67,6 +68,13 @@ def register():
     for mod in modules:
         if hasattr(mod, "register"):
             mod.register()
+            if "addon_prefs" in mod.__name__:
+                addon_prefs = u.get_addon_prefs()
+                addon_prefs.debug = not addon_prefs.debug
+                if addon_prefs.debug:
+                    log.info("Set logging mode: DEBUG")
+                    set_root_logger_level(logging.DEBUG)
+
             log.debug(f"Registered: {mod.__name__}")
 
     log.info("-------------------------------------------------------------")
