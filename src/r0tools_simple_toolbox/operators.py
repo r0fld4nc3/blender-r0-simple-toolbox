@@ -9,6 +9,7 @@ import bpy
 from bpy.props import BoolProperty, FloatProperty, IntProperty, StringProperty
 from mathutils import Vector
 
+from . import settings
 from . import utils as u
 from .defines import INTERNAL_NAME
 from .logs import set_root_logger_level
@@ -1706,12 +1707,15 @@ class SimpleToolbox_OT_ToggleDebugMode(bpy.types.Operator):
     def execute(self, context):
         addon_prefs = u.get_addon_prefs()
         addon_prefs.debug = not addon_prefs.debug
+        settings_mgr = settings.get_settings_manager()
         if addon_prefs.debug:
             log.info("Set logging mode: DEBUG")
             set_root_logger_level(logging.DEBUG)
+            settings_mgr.settings.debug = True
         else:
             log.info("Set logging mode: INFO")
             set_root_logger_level(logging.INFO)
+            settings_mgr.settings.debug = False
         return {"FINISHED"}
 
 

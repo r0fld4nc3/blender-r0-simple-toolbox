@@ -13,6 +13,7 @@ bl_info = {
 import importlib
 import logging
 
+from . import settings
 from . import utils as u
 from .logs import configure_logging, reset_log_file, set_root_logger_level
 
@@ -53,8 +54,16 @@ def register():
         VERSION,
     )
 
+    # Initialise settings
+    settings_mgr = settings.init_settings_manager()
+
     configure_logging(LOG_FILE)
     reset_log_file(LOG_FILE)
+
+    # Update logging level
+    if settings_mgr.settings.debug:
+        log.info("Set logging mode: DEBUG")
+        set_root_logger_level(logging.DEBUG)
 
     log.info("-------------------------------------------------------------")
     log.info(f"{ADDON_NAME_BARE}{IDNAME_EXTRA}")
@@ -68,12 +77,11 @@ def register():
     for mod in modules:
         if hasattr(mod, "register"):
             mod.register()
+
+            # Update addon prefs based on settings after registering
             if "addon_prefs" in mod.__name__:
                 addon_prefs = u.get_addon_prefs()
-                addon_prefs.debug = not addon_prefs.debug
-                if addon_prefs.debug:
-                    log.info("Set logging mode: DEBUG")
-                    set_root_logger_level(logging.DEBUG)
+                addon_prefs.debug = settings_mgr.settings.debug
 
             log.debug(f"Registered: {mod.__name__}")
 

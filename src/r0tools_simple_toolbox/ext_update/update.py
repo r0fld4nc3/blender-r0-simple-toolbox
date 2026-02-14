@@ -9,6 +9,8 @@ from pathlib import Path
 import bpy
 import requests
 
+from .. import settings
+
 REQUEST_TIMEOUT = 5  # seconds
 
 log = logging.getLogger(__name__)
@@ -34,36 +36,13 @@ def trigger_update_check(*args, **kwargs) -> bool:
 
     addon_prefs = get_addon_prefs()
 
-    update_check_file: Path = get_addon_fs_path() / BASE_NAME / "check_update"
-    if not update_check_file.exists():
-        update_check_file = get_addon_fs_path() / "check_update"
-
-    log.info(f"Update File: {str(update_check_file)}")
-
-    KEY_LAST_CHECKED = "last_checked"
-    KEY_CAN_RUN_WHEN = "can_run_when"
-    KEY_UPDATE_AVAILABLE = "update_available"
-    KEY_PULLED_VERSION = "pulled_version"
-
-    update_data = {
-        KEY_LAST_CHECKED: 0,
-        KEY_CAN_RUN_WHEN: 0,
-        KEY_UPDATE_AVAILABLE: False,
-        KEY_PULLED_VERSION: "0.0.0",
-    }
+    settings_mgr = settings.get_settings_manager()
 
     if addon_prefs.check_update_startup:
         log.info("-------------------------------------------------------")
-        if update_check_file.exists() and update_check_file.is_file():
-            with open(update_check_file, "r") as f:
-                update_data = json.load(f)
-        else:
-            with open(update_check_file, "w") as f:
-                f.write(json.dumps(update_data))
-
         now = time.time()
-        last_checked = update_data.get(KEY_LAST_CHECKED)
-        can_run_after = update_data.get(KEY_CAN_RUN_WHEN)
+        last_checked = settings_mgr.settings.update_last_checked
+        can_run_after = settings_mgr.settings.can_update_when
         elapsed_since_check = now - last_checked
 
         log.info(f"Now: {now:.0f}.")
@@ -94,13 +73,11 @@ def trigger_update_check(*args, **kwargs) -> bool:
             if has_update is None:
                 has_update = False
 
-            update_data[KEY_LAST_CHECKED] = now
-            update_data[KEY_CAN_RUN_WHEN] = now + UPDATE_CHECK_CD
-            update_data[KEY_UPDATE_AVAILABLE] = has_update
-            update_data[KEY_PULLED_VERSION] = remote_version
-
-            with open(update_check_file, "w") as f:
-                f.write(json.dumps(update_data))
+            with settings_mgr.batch_update():
+                settings_mgr.settings.update_last_checked = now
+                settings_mgr.settings.can_update_when = now + UPDATE_CHECK_CD
+                settings_mgr.settings.update_available = has_update
+                settings_mgr.settings.pulled_version = remote_version
 
             if has_update:
                 r0Tools_PT_SimpleToolbox._update_callback(has_update)
@@ -108,11 +85,9 @@ def trigger_update_check(*args, **kwargs) -> bool:
             return has_update
         else:
             remaining_seconds = can_run_after - now
-            log.info(f"Reading from cached file. Can retry in {abs(remaining_seconds):.0f} seconds.")
-            with open(update_check_file, "r") as f:
-                update_data = json.load(f)
+            log.info(f"Reading from cached info. Can retry in {abs(remaining_seconds):.0f} seconds.")
 
-            remote_version = tuple_version_string(update_data.get(KEY_PULLED_VERSION))
+            remote_version = tuple_version_string(settings_mgr.settings.pulled_version)
             local_version = get_local_version(INTERNAL_NAME)
             ThreadVars.set_local_version(local_version)
 
@@ -121,10 +96,7 @@ def trigger_update_check(*args, **kwargs) -> bool:
 
             has_update = local_version < remote_version
 
-            update_data[KEY_UPDATE_AVAILABLE] = has_update
-
-            with open(update_check_file, "w") as f:
-                f.write(json.dumps(update_data))
+            settings_mgr.settings.update_available = has_update
 
             r0Tools_PT_SimpleToolbox._update_callback(has_update)
         log.info("-------------------------------------------------------")
@@ -298,7 +270,6 @@ def _execute_callback_on_main_thread(has_update: bool):
 
 
 def _run_update_check_thread(
-    update_check_file: Path,
     internal_name: str,
     base_name: str,
     repo_name: str,
@@ -309,26 +280,12 @@ def _run_update_check_thread(
     Function to run on the separate thread to check for addon updates.
     """
 
-    KEY_LAST_CHECKED = "last_checked"
-    KEY_CAN_RUN_WHEN = "can_run_when"
-    KEY_UPDATE_AVAILABLE = "update_available"
-    KEY_PULLED_VERSION = "pulled_version"
-
-    update_data = {
-        KEY_LAST_CHECKED: 0,
-        KEY_CAN_RUN_WHEN: 0,
-        KEY_UPDATE_AVAILABLE: False,
-        KEY_PULLED_VERSION: "0.0.0",
-    }
+    settings_mgr = settings.get_settings_manager()
 
     try:
-        if update_check_file.exists() and update_check_file.is_file():
-            with open(update_check_file, "r") as f:
-                update_data = json.load(f)
-
         now = time.time()
-        last_checked = update_data.get(KEY_LAST_CHECKED)
-        can_run_after = update_data.get(KEY_CAN_RUN_WHEN)
+        last_checked = settings_mgr.settings.update_last_checked
+        can_run_after = settings_mgr.settings.can_update_when
         elapsed_since_check = now - last_checked
 
         log.info(f"Now: {now:.0f}.")
@@ -349,13 +306,11 @@ def _run_update_check_thread(
                 has_update = False
 
             # Update Cache file
-            update_data[KEY_LAST_CHECKED] = now
-            update_data[KEY_CAN_RUN_WHEN] = now + update_check_cd
-            update_data[KEY_UPDATE_AVAILABLE] = has_update
-            update_data[KEY_PULLED_VERSION] = remote_version
-
-            with open(update_check_file, "w") as f:
-                f.write(json.dumps(update_data))
+            with settings_mgr.batch_update():
+                settings_mgr.settings.update_last_checked = now
+                settings_mgr.settings.can_update_when = now + update_check_cd
+                settings_mgr.settings.update_available = has_update
+                settings_mgr.settings.pulled_version = remote_version
 
             bpy.app.timers.register(lambda: _execute_callback_on_main_thread(has_update), first_interval=0.1)
         else:
@@ -363,20 +318,14 @@ def _run_update_check_thread(
             remaining_seconds = can_run_after - now
             log.info(f"Reading from cached file. Can retry in {abs(remaining_seconds):.0f} seconds.")
 
-            with open(update_check_file, "r") as f:
-                update_data = json.load(f)
-
-            remote_version = tuple_version_string(update_data.get(KEY_PULLED_VERSION))
+            remote_version = tuple_version_string(settings_mgr.settings.pulled_version)
             local_version = ThreadVars.get_local_version()
 
             log.info(f"Local Version: {local_version}")
             log.info(f"Remote Version: {remote_version}")
 
             has_update = remote_version > local_version
-            update_data[KEY_UPDATE_AVAILABLE] = has_update
-
-            with open(update_check_file, "w") as f:
-                f.write(json.dumps(update_data))
+            settings_mgr.settings.update_available = has_update
 
             bpy.app.timers.register(lambda: _execute_callback_on_main_thread(has_update), first_interval=0.1)
     except Exception as e:
@@ -393,7 +342,7 @@ def trigger_thread_update_check(*args, force: bool = False, **kwargs) -> bool:
     """
 
     from ..defines import BASE_NAME, INTERNAL_NAME, REPO_NAME, UPDATE_CHECK_CD
-    from ..utils import get_addon_fs_path, get_addon_prefs
+    from ..utils import get_addon_prefs
 
     addon_prefs = get_addon_prefs()
 
@@ -404,12 +353,6 @@ def trigger_thread_update_check(*args, force: bool = False, **kwargs) -> bool:
     log.info("-------------------------------------------------------")
 
     try:
-        # Prepare bpy data before thread access
-        update_check_file: Path = get_addon_fs_path() / BASE_NAME / "check_update"
-        if not update_check_file.exists():
-            update_check_file = get_addon_fs_path() / "check_update"
-        log.info(f"Update File: {str(update_check_file)}")
-
         # Check if it's Extension
         is_extension = "bl_ext." in INTERNAL_NAME.lower()
         if is_extension:
@@ -431,7 +374,6 @@ def trigger_thread_update_check(*args, force: bool = False, **kwargs) -> bool:
         thread = threading.Thread(
             target=_run_update_check_thread,
             args=(
-                update_check_file,
                 INTERNAL_NAME,
                 BASE_NAME,
                 repo_data,
