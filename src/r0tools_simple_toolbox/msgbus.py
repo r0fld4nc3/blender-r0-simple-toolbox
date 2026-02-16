@@ -271,10 +271,13 @@ _handlers = [
 
 
 def register():
+    log.info("Register msgbus.")
+
     for handler_list, handler_func in _handlers:
         handler_list.append(handler_func)
+        log.debug(f"Register '{handler_func.__name__}'")
 
-    log.info("Msgbus handlers registered (subscriptions deferred to load_post)")
+    log.info("Msgbus handlers registered (subscriptions deferred to load_post).")
 
 
 def unregister():
@@ -288,4 +291,4 @@ def unregister():
         if handler_func in handler_list:
             handler_list.remove(handler_func)
 
-    log.info("Msgbus system unregistered")
+    log.info("Unregister msgbus.")
