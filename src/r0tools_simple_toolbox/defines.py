@@ -31,7 +31,7 @@ VERSION_STR        = _version_str(VERSION)
 BASE_NAME          = "r0tools_simple_toolbox"
 ADDON_NAME         = bl_info.get("name")
 ADDON_NAME_BARE    = "SimpleToolbox"
-ADDON_BRANCH       = "dev"
+ADDON_BRANCH       = "main"
 ADDON_CATEGORY     = "Simple Toolbox"
 IDNAME_EXTRA       = '.' + ADDON_BRANCH if ADDON_BRANCH and ADDON_BRANCH.lower() != "main" else ''
 INTERNAL_NAME      = _set_addon_internal_name(BASE_NAME)
