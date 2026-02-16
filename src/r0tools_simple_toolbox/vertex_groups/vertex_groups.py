@@ -411,7 +411,10 @@ def draw_vertex_groups_uilist(layout, context):
     # Vertex Groups Row Number Slider
     row = layout.row()
     col_left = row.column()
+    col_left.alignment = "LEFT"
     col_left.prop(addon_vertex_groups_props, "vertex_groups_list_rows", text="Rows:")
+    col_right = row.column()
+    col_right.separator()
 
     row = layout.row()  # Spacer
 
