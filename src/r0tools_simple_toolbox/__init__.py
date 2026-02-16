@@ -1,3 +1,4 @@
+# Legacy addon reasons
 bl_info = {
     "name": "r0Tools - Simple Toolbox",
     "author": "Artur Rosário",
@@ -15,6 +16,14 @@ import logging
 
 from . import settings
 from . import utils as u
+from .defines import (
+    ADDON_BRANCH,
+    ADDON_NAME_BARE,
+    IDNAME_EXTRA,
+    INTERNAL_NAME,
+    LOG_FILE,
+    VERSION,
+)
 from .logs import configure_logging, reset_log_file, set_root_logger_level
 
 # Thank you ACT plugin and how you do your load order
@@ -45,15 +54,6 @@ log = logging.getLogger(__name__)
 
 
 def register():
-    from .defines import (
-        ADDON_BRANCH,
-        ADDON_NAME_BARE,
-        IDNAME_EXTRA,
-        INTERNAL_NAME,
-        LOG_FILE,
-        VERSION,
-    )
-
     # Initialise settings
     settings_mgr = settings.init_settings_manager()
 
@@ -72,7 +72,7 @@ def register():
     log.info(f"Internal Name: {INTERNAL_NAME}")
     log.info(f"Log: {LOG_FILE}")
 
-    log.info(f"Begin Addon Registration - {bl_info.get('name')}")
+    log.info(f"Begin Addon Registration - {ADDON_NAME_BARE}")
 
     for mod in modules:
         if hasattr(mod, "register"):
@@ -90,7 +90,7 @@ def register():
 
 def unregister():
     log.info("-------------------------------------------------------------")
-    log.info(f"Begin Addon Unregistration - {bl_info.get('name')}")
+    log.info(f"Begin Addon Unregistration - {ADDON_NAME_BARE}")
 
     for mod in reversed(modules):
         if hasattr(mod, "unregister"):
