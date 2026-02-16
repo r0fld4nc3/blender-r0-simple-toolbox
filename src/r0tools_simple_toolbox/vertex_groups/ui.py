@@ -1,11 +1,12 @@
+import logging
+
 import bpy
 
 from .. import utils as u
 from ..defines import ADDON_CATEGORY, ADDON_NAME_BARE, IDNAME_EXTRA
-from . import _mod as parent_mod
 from .operators import *
 
-_mod = f"{parent_mod}.UI"
+log = logging.getLogger(__name__)
 
 
 class r0Tools_PT_SimpleToolboxVertexGroups(bpy.types.Panel):
@@ -47,13 +48,11 @@ def register():
             classes.append(variant)
 
     for cls in classes:
-        if u.is_debug():
-            print(f"[INFO] [{_mod}] Register {cls.__name__}")
+        log.debug(f"Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
 
 def unregister():
     for cls in classes:
-        if u.is_debug():
-            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        log.debug(f"Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

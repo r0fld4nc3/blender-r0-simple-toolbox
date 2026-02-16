@@ -1,3 +1,5 @@
+import logging
+
 import bpy
 from bpy.props import (  # type: ignore
     BoolProperty,
@@ -14,15 +16,13 @@ from . import utils as u
 from .defines import INTERNAL_NAME
 from .keymaps import draw_keymap_settings
 
-_mod = "PREFERENCES"
+log = logging.getLogger(__name__)
 
 
 class AddonPreferences(bpy.types.AddonPreferences):
     bl_idname = INTERNAL_NAME
 
     debug: BoolProperty(name="Debug", description="Set Debug State", default=False)  # type: ignore
-
-    log_output: BoolProperty(name="Log", description="Whehter to produce regular Log output", default=False)  # type: ignore
 
     check_update_startup: BoolProperty(
         name="Check Update on Startup",
@@ -114,9 +114,6 @@ class AddonPreferences(bpy.types.AddonPreferences):
         row.prop(self, "debug", text="Debug Mode")
 
         row = layout.row()
-        row.prop(self, "log_output", text="Log Output")
-
-        row = layout.row()
         row.prop(self, "experimental_features", text="Experimental Features")
 
         row = layout.row()
@@ -168,7 +165,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
     def save_axis_threshold(self):
         addon_prefs = bpy.context.preferences.addons[INTERNAL_NAME].preferences
         addon_prefs.clear_sharp_axis_float_prop = self.clear_sharp_axis_float_prop
-        # u.LOG(f"[INFO] [{_mod}] Saved Property: clear_sharp_axis_float_prop -> {self.clear_sharp_axis_float_prop}")
+        # log.info(f"Saved Property: clear_sharp_axis_float_prop -> {self.clear_sharp_axis_float_prop}")
 
 
 # ===================================================================
@@ -181,11 +178,11 @@ classes = [
 
 def register():
     for cls in classes:
-        # print(f"[INFO] [{_mod}] Register {cls.__name__}")
+        log.debug(f"[INFO] Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
 
 def unregister():
     for cls in classes:
-        # print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        log.debug(f"[INFO] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

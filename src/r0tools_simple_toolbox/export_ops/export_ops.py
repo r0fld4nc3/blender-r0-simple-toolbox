@@ -1,8 +1,10 @@
+import logging
+
 import bpy
 
 from .. import utils as u
 
-_mod = "EXPORT_SETS"
+log = logging.getLogger(__name__)
 
 
 def get_export_sets() -> list:
@@ -33,7 +35,7 @@ def get_export_set_at_index(index: int):
 
 def remove_export_set_at_index(index: int):
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Export Ops Remove Export Set At Index: Unsafe Context.")
+        log.warning(f"Export Ops Remove Export Set At Index: Unsafe Context.")
         return None
 
     export_sets = get_export_sets()
@@ -44,7 +46,7 @@ def remove_export_set_at_index(index: int):
 
 def set_active_export_set_index(index: int):
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Export Ops Set Active Export Set Index: Unsafe Context.")
+        log.warning(f"Export Ops Set Active Export Set Index: Unsafe Context.")
         return None
 
     addon_export_sets_props = u.get_addon_export_props()
@@ -64,13 +66,13 @@ def get_export_set_name_at_index(index: int) -> str:
 
 def set_export_set_name(export_set, new_name) -> bool:
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Export Ops Set Export Set Name: Unsafe Context.")
+        log.warning(f"Export Ops Set Export Set Name: Unsafe Context.")
         return None
 
     try:
         export_set.name = new_name
     except Exception as e:
-        print(f"[ERROR] [{_mod}] Unable to rename object set: {e}")
+        log.warning(f"[ERROR] Unable to rename object set: {e}")
         return False
 
     return True
@@ -78,7 +80,7 @@ def set_export_set_name(export_set, new_name) -> bool:
 
 def set_export_set_name_at_index(index, new_name) -> bool:
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Export Ops Set Export Set Name At Index: Unsafe Context.")
+        log.warning(f"Export Ops Set Export Set Name At Index: Unsafe Context.")
         return None
 
     export_set = get_export_set_at_index(index)
@@ -101,7 +103,7 @@ def draw_quick_export_sets_uilist(layout, context):
     )
 
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Export Sets Draw UIList: Unsafe Context.")
+        log.warning(f"Export Sets Draw UIList: Unsafe Context.")
         return None
 
     path_row_height_scale = 1.2

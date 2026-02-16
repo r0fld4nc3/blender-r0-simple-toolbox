@@ -1,10 +1,11 @@
+import logging
 from pathlib import Path
 
 import bpy
 
 from ..defines import INTERNAL_NAME, TOOLBOX_PROPS_NAME
 
-_mod = "UTILS.CONTEXT"
+log = logging.getLogger(__name__)
 
 
 def get_active_modal_operators(context: bpy.types.Context = None) -> list:
@@ -187,18 +188,18 @@ def is_writing_context_safe(scene) -> bool:
     from .general import log
 
     if is_saving():
-        log(f"[INFO] [{_mod}] Unsafe write context while file is being saved.")
+        log.info(f"Unsafe write context while file is being saved.")
         return False
 
     scene = get_scene(scene)
 
     if not hasattr(scene, TOOLBOX_PROPS_NAME):
-        log(f"[INFO] [{_mod}] Scene does not have proper attribute(s) '{TOOLBOX_PROPS_NAME}'. Skipping.")
+        log.info(f"Scene does not have proper attribute(s) '{TOOLBOX_PROPS_NAME}'. Skipping.")
         return False
 
     # Check if rendering or baking is active
     if scene.render.use_lock_interface:
-        log(f"[MONITOR] [{_mod}] Interface is locked (rendering/baking). Skipping.")
+        log.info(f"[MONITOR] Interface is locked (rendering/baking). Skipping.")
         return False
 
     """
@@ -206,7 +207,7 @@ def is_writing_context_safe(scene) -> bool:
     jobs = ("RENDER", "COMPOSITE", "OBJECT_BAKE")
     jobs_active = [bpy.app.is_job_running(job) for job in jobs]
     if any(jobs_active):
-        log(f"[MONITOR] [{_mod}] Active job(s) detected. Skipping.")
+        log.info(f"[MONITOR] Active job(s) detected. Skipping.")
         return False
     """
 
@@ -214,7 +215,7 @@ def is_writing_context_safe(scene) -> bool:
     if hasattr(bpy.context, "active_operator") and bpy.context.active_operator:
         op_idname = bpy.context.active_operator.bl_idname
         if "bake" in op_idname.lower():
-            log(f"[MONITOR] [{_mod}] Bake operator active: {op_idname}. Skipping.")
+            log.info(f"[MONITOR] Bake operator active: {op_idname}. Skipping.")
             return False
 
     return True
@@ -232,5 +233,5 @@ def save_preferences():
             bpy.ops.wm.save_userpref()
             save_preferences.is_saving = False
     except Exception as e:
-        print(f"[ERROR] [{_mod}] Error saving preferences: {e}")
+        log.error(f"Error saving preferences: {e}")
         save_preferences.is_saving = False

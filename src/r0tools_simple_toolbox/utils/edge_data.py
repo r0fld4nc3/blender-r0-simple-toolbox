@@ -1,16 +1,18 @@
+import logging
+
 import bpy
 
-_mod = "EDGE_DATA"
+log = logging.getLogger(__name__)
 
 
-@bpy.app.handlers.persistent
+# @bpy.app.handlers.persistent
 def initialize_bweight_presets(dummy):
     """Initialize bevel weight presets with default values"""
-    from . import get_addon_edge_data_props, log
+    from . import get_addon_edge_data_props
 
     addon_edge_data_props = get_addon_edge_data_props()
 
-    log(f"[INFO] [{_mod}] Initialising Edge Bevel Weight Presets")
+    log.info(f"Initialising Edge Bevel Weight Presets")
 
     # Clear existing presets
     addon_edge_data_props.edge_bweights_presets.presets.clear()
@@ -24,4 +26,4 @@ def initialize_bweight_presets(dummy):
         preset = addon_edge_data_props.edge_bweights_presets.presets.add()
         preset.value = round(i / 100.0, 2)
 
-    log(f"[INFO] [{_mod}] Presest: {[v.value for v in addon_edge_data_props.edge_bweights_presets.presets]}")
+    log.info(f"Preset: {[round(v.value, 2) for v in addon_edge_data_props.edge_bweights_presets.presets]}")

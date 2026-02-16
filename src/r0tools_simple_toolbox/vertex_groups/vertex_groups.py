@@ -1,11 +1,11 @@
+import logging
 import time
 
 import bpy
 
 from .. import utils as u
-from ..defines import TOOLBOX_PROPS_NAME
 
-_mod = "VERTEX_GROUPS"
+log = logging.getLogger(__name__)
 
 # ===============
 # === CACHING ===
@@ -48,7 +48,7 @@ def get_selected_vgroups() -> list:
 
 def set_vertex_group_locked(vertex_group):
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Vertex Groups Set Locked: Unsafe Context.")
+        log.warning(f"Vertex Groups Set Locked: Unsafe Context.")
         return None
 
     vertex_group.locked = True
@@ -58,7 +58,7 @@ def set_vertex_group_locked(vertex_group):
 
 def set_vertex_group_unlocked(vertex_group):
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Vertex Groups Set Unlocked: Unsafe Context.")
+        log.warning(f"Vertex Groups Set Unlocked: Unsafe Context.")
         return None
 
     vertex_group.locked = False
@@ -88,7 +88,7 @@ def get_active_vertex_group_index() -> int:
 
 def set_vertex_groups_depsgraph_do_update(do_update=True):
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Set Vertex Groups Depsgraph Do Update: Unsafe Context.")
+        log.warning(f"Set Vertex Groups Depsgraph Do Update: Unsafe Context.")
         return None
 
     addon_vertex_groups_props = u.get_addon_vertex_groups_props()
@@ -115,7 +115,7 @@ def set_vertex_group_highlighted_by_name(vertex_group_name: str) -> int:
     Returns `index` if succesful, `-1` if name was not found
     """
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Set Vertex Groups Highlighted By Name: Unsafe Context.")
+        log.warning(f"Set Vertex Groups Highlighted By Name: Unsafe Context.")
         return None
 
     addon_vertex_groups_props = u.get_addon_vertex_groups_props()
@@ -135,7 +135,7 @@ def set_vertex_group_highlighted_by_name(vertex_group_name: str) -> int:
 
 def iter_vertex_groups_lock_states():
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Vertex Groups Iter Lock States: Unsafe Context.")
+        log.warning(f"Vertex Groups Iter Lock States: Unsafe Context.")
         return None
 
     for state in get_vertex_groups_lock_states():
@@ -144,7 +144,7 @@ def iter_vertex_groups_lock_states():
 
 def vertex_groups_lock_states_remove_at_index(index: int):
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Vertex Groups Lock States Remove At Index: Unsafe Context.")
+        log.warning(f"Vertex Groups Lock States Remove At Index: Unsafe Context.")
         return None
 
     states = get_vertex_groups_lock_states()
@@ -153,7 +153,7 @@ def vertex_groups_lock_states_remove_at_index(index: int):
 
 def vertex_groups_cleanup_lock_states():
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Vertex Groups Cleanup Lock States: Unsafe Context.")
+        log.warning(f"Vertex Groups Cleanup Lock States: Unsafe Context.")
         return None
 
     addon_vertex_groups_props = u.get_addon_vertex_groups_props()
@@ -176,7 +176,7 @@ def vertex_groups_cleanup_lock_states():
 
 def vertex_groups_list_add_groups(props: dict, selection_state: dict):
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Vertex Groups List Add Groups: Unsafe Context.")
+        log.warning(f"Vertex Groups List Add Groups: Unsafe Context.")
         return None
 
     addon_vertex_groups_props = u.get_addon_vertex_groups_props()
@@ -199,13 +199,13 @@ def vertex_groups_list_add_groups(props: dict, selection_state: dict):
                         item.locked = state.locked
                         break
         except Exception as e:
-            print(f"[ERROR] [{_mod}] Error adding unique Custom Properties: {e}")
+            log.error(f"Error adding unique Custom Properties: {e}")
             u.context_error_debug(error=e)
 
 
 def _vertex_groups_store_states() -> dict:
     if not u.is_writing_context_safe(bpy.context.scene):
-        print(f"[WARNING] [{_mod}] Vertex Groups Store States: Unsafe Context.")
+        log.warning(f"Vertex Groups Store States: Unsafe Context.")
         return None
 
     addon_vertex_groups_props = u.get_addon_vertex_groups_props()
@@ -236,6 +236,8 @@ def _needs_update():
 
 
 def vertex_groups_list_update(scene=None, force: bool = False):
+    log.debug(f"vertex_groups_list_update(scene = {scene}, force = {force})")
+
     scene = u.get_scene(scene)
 
     addon_props = u.get_addon_props(scene)
@@ -264,9 +266,6 @@ def vertex_groups_list_update(scene=None, force: bool = False):
     global _vertex_groups_cache
 
     if u.get_selected_objects():
-        if u.is_debug():
-            print("------------- Vertex Groups List Update -------------")
-
         # Calculate new vertex groups data
         vertex_groups_new = {}
         for obj in u.iter_scene_objects(selected=True):
@@ -306,10 +305,9 @@ def vertex_groups_list_update(scene=None, force: bool = False):
             try:
                 safe_clear_vertex_groups_collection(scene)
                 _vertex_groups_cache = {}
-                if u.is_debug():
-                    print(f"[DEBUG] [{_mod}] Cleared UIList vertex_groups")
+                log.debug(f"[DEBUG] Cleared UIList vertex_groups")
             except Exception as e:
-                print(f"[ERROR] [{_mod}] Error clearing vertex groups list when no selected objects: {e}")
+                log.error(f"Error clearing vertex groups list when no selected objects: {e}")
                 u.context_error_debug(error=e)
 
             # UI update
@@ -333,7 +331,7 @@ def safe_clear_vertex_groups_collection(scene):
             addon_vertex_groups_props.vertex_groups.remove(len(addon_vertex_groups_props.vertex_groups) - 1)
         return True
     except Exception as e:
-        print(f"[ERROR] Failed to clear vertex groups: {e}")
+        log.error(f"Failed to clear vertex groups: {e}")
         return False
     finally:
         if not was_updating_before:

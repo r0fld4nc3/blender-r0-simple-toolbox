@@ -1,3 +1,4 @@
+import logging
 import random
 
 import bpy
@@ -6,7 +7,7 @@ from bpy.props import BoolProperty, FloatVectorProperty, IntProperty, StringProp
 from .. import utils as u
 from .object_sets import *
 
-_mod = "OBJECT_SETS.OPERATORS"
+log = logging.getLogger(__name__)
 
 
 class SimpleToolbox_OT_ObjectSetsModal(bpy.types.Operator):
@@ -162,7 +163,7 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
 
                 self.report({"INFO"}, f"Created Object Set: {self.object_set_name}")
         except Exception as e:
-            print(f"[ERROR] [{_mod}] Error creating new Object Set: {e}")
+            log.error(f"Error creating new Object Set: {e}")
 
         if context.area:
             context.area.tag_redraw()
@@ -196,13 +197,13 @@ class SimpleToolbox_OT_UpdateObjectSetsUUIDs(bpy.types.Operator):
 
             # Is duplicate UUID
             if uuid in uuids:
-                u.log(f"[INFO] [{_mod}] UUID {uuid} is duplicate. Regenerating.")
+                log.info(f"UUID {uuid} is duplicate. Regenerating.")
                 uuid = u.generate_uuid()
                 uuids_fixed += 1
 
             # UUID doesn't exist (legacy reasons)
             elif not object_set.uuid or object_set.uuid == "":
-                u.log(f"[INFO] [{_mod}] {object_set.name} does not have valid UUID. Generating.")
+                log.info(f"{object_set.name} does not have valid UUID. Generating.")
                 uuid = u.generate_uuid()
                 uuids_fixed += 1
 
@@ -482,8 +483,7 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
             if object_set.separator or object_set.count < 1:
                 return {"FINISHED"}
 
-            if u.is_debug():
-                print(f"[DEBUG] [{_mod}] {self.add_to_selection=}")
+            log.debug(f"[DEBUG] {self.add_to_selection=}")
 
             if not self.add_to_selection:
                 u.deselect_all()
@@ -590,7 +590,7 @@ class SimpleToolbox_OT_RandomiseObjectSetsColours(bpy.types.Operator):
                     if not is_similar:
                         used_colours.add(new_colour)
                         object_set.set_colour = new_colour
-                        u.log(f"[INFO] [{_mod}] Updating colour of Object Set '{object_set_name}': {new_colour}")
+                        log.info(f"Updating colour of Object Set '{object_set_name}': {new_colour}")
                         break
 
         bpy.ops.r0tools.object_sets_refresh()
@@ -641,8 +641,8 @@ class SimpleToolbox_OT_RandomiseObjectSetsColours(bpy.types.Operator):
             # A distance of 0.313, means that `new_colour` is only 31.3% different than `color_to_compare_to`.
             # So they are 68.7% similar.
             similar_pct = (1 - distance / max_distance) * 100
-            u.log(
-                f"[INFO] [{_mod}] Color {new_colour} is {similar_pct:.1f}% similar to {colour_to_compare_to} with distance of {distance:.3f} | ({mapped_threshold:.3f})"
+            log.info(
+                f"Color {new_colour} is {similar_pct:.1f}% similar to {colour_to_compare_to} with distance of {distance:.3f} | ({mapped_threshold:.3f})"
             )
 
         return is_similar
@@ -708,8 +708,7 @@ class SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections(bpy.types.Operator):
     def execute(self, context):
         import random
 
-        if u.is_debug():
-            print("\n------------- Move Objects In Object Sets Into Set Collections -------------")
+        log.info("------------- Move Objects In Object Sets Into Set Collections -------------")
 
         active_index = get_active_object_set_index()
         active_name = get_object_set_name_at_index(active_index)
@@ -729,7 +728,7 @@ class SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections(bpy.types.Operator):
             i = get_object_sets_count()
             for object_set in reversed(get_object_sets()):
                 i -= 1
-                u.log(f"[INFO] [{_mod}] {i} {object_set.name}")
+                log.info(f"{i} {object_set.name}")
                 if object_set.separator:
                     continue
                 collection = u.collections_create_new(get_object_set_name_at_index(i))
@@ -803,8 +802,7 @@ class SimpleToolbox_OT_LinkObjectsInObjectSetsToCollections(bpy.types.Operator):
     def execute(self, context):
         import random
 
-        if u.is_debug():
-            print("\n------------- Link Objects In Object Sets To Set Collections -------------")
+        log.info("------------- Link Objects In Object Sets To Set Collections -------------")
 
         active_index = get_active_object_set_index()
         active_name = get_object_set_name_at_index(active_index)
@@ -824,7 +822,7 @@ class SimpleToolbox_OT_LinkObjectsInObjectSetsToCollections(bpy.types.Operator):
             i = get_object_sets_count()
             for object_set in reversed(get_object_sets()):
                 i -= 1
-                u.log(f"[INFO] [{_mod}] {i} {object_set}.name")
+                log.info(f"{i} {object_set}.name")
                 if object_set.separator:
                     continue
                 collection = u.collections_create_new(get_object_set_name_at_index(i))
@@ -897,8 +895,7 @@ def object_sets_modal_menu_func(self, context):
 
 def register():
     for cls in classes:
-        if u.is_debug():
-            print(f"[INFO] [{_mod}] Register {cls.__name__}")
+        log.debug(f"Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
     # Register Objects Sets Modal Operator in Viewport > View
@@ -910,8 +907,7 @@ def register():
 
 def unregister():
     for cls in classes:
-        if u.is_debug():
-            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        log.debug(f"Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
 
     # Unregister Objects Sets Modal Operator in Viewport > View

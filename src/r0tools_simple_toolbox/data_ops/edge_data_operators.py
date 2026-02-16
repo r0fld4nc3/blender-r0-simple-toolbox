@@ -1,3 +1,4 @@
+import logging
 import math
 import time
 
@@ -13,7 +14,7 @@ from bpy.props import (
 
 from .. import utils as u
 
-_mod = "DATA_OPS.EDGE_DATA_OPERATORS"
+log = logging.getLogger(__name__)
 
 
 class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
@@ -232,7 +233,7 @@ class SimpleToolbox_OT_EdgeDataToVertexColour(bpy.types.Operator):
         total_time = end_time - start_time
         duration_msg = f"Finished. Took {total_time:.4f} seconds."
 
-        u.log(f"EdgeDataToVertexColour: {duration_msg}")
+        log.info(f"EdgeDataToVertexColour: {duration_msg}")
         self.report({"INFO"}, duration_msg)
 
         return {"FINISHED"}
@@ -702,13 +703,11 @@ classes = [
 
 def register():
     for cls in classes:
-        if u.is_debug():
-            print(f"[INFO] [{_mod}] Register {cls.__name__}")
+        log.debug(f"Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
 
 def unregister():
     for cls in classes:
-        if u.is_debug():
-            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        log.debug(f"Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

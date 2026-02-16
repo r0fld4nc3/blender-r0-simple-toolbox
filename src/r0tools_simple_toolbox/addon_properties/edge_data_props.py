@@ -1,3 +1,5 @@
+import logging
+
 import bpy
 from bpy.props import (  # type: ignore
     BoolProperty,
@@ -12,7 +14,7 @@ from bpy.props import (  # type: ignore
 
 from .. import utils as u
 
-_mod = "EDGE DATA PROPS"
+log = logging.getLogger(__name__)
 
 
 ###################################
@@ -86,33 +88,37 @@ load_post_handlers = [u.initialize_bweight_presets]
 
 def register():
     for cls in classes:
-        if u.is_debug():
-            print(f"[INFO] [{_mod}] Register {cls.__name__}")
+        log.debug(f"Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
-    if u.is_debug():
-        print(f"[INFO] [{_mod}] Register bpy.types.Scene.r0fl_toolbox_edge_data_props")
+    log.debug(f"Register bpy.types.Scene.r0fl_toolbox_edge_data_props")
     bpy.types.Scene.r0fl_toolbox_edge_data_props = PointerProperty(
         type=r0SimpleToolboxEdgeDataProps, name="r0fl Toolbox Edge Data"
     )
 
     for handler in load_post_handlers:
-        if u.is_debug():
-            print(f"[INFO] [{_mod}] Register load_post_handler: {handler.__name__}")
+        log.debug(f"Register load_post_handler: {handler.__name__}")
         bpy.app.handlers.load_post.append(handler)
 
 
 def unregister():
     for cls in classes:
-        if u.is_debug():
-            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        log.debug(f"Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
 
-    for handler in load_post_handlers:
-        if u.is_debug():
-            print(f"[INFO] [{_mod}] Unregister load_post_handler: {handler.__name__}")
-        bpy.app.handlers.load_post.remove(handler)
+    _known_handler_exceptions: set = {"initialize_bweight_presets"}
 
-    if u.is_debug():
-        print(f"[INFO] [{_mod}] Unregister bpy.types.Scene.r0fl_toolbox_edge_data_props")
+    for handler in load_post_handlers:
+        log.debug(f"Unregister load_post_handler: {handler.__name__}")
+        try:
+            bpy.app.handlers.load_post.remove(handler)
+        except Exception as e:
+            if handler.__name__ in _known_handler_exceptions:
+                pass
+            else:
+                log.error(
+                    f"Exception when attempting to remove a handler '{handler.__name__}' from load_post list: {e}"
+                )
+
+    log.debug(f"Unregister bpy.types.Scene.r0fl_toolbox_edge_data_props")
     del bpy.types.Scene.r0fl_toolbox_edge_data_props

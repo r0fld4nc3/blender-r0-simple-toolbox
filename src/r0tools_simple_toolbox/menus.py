@@ -1,8 +1,8 @@
+import logging
+
 import bpy
 
-from .utils import is_debug
-
-_mod = "MENUS"
+log = logging.getLogger(__name__)
 
 
 class SimpleToolbox_MT_ObjectSetsActionsMenu(bpy.types.Menu):
@@ -71,8 +71,7 @@ classes = [
 
 def register():
     for cls in classes:
-        if is_debug():
-            print(f"[INFO] [{_mod}] Register {cls.__name__}")
+        log.debug(f"Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
     bpy.types.MATERIAL_MT_context_menu.append(draw_materials_actions_menu)
@@ -80,8 +79,9 @@ def register():
 
 def unregister():
     for cls in classes:
-        if is_debug():
-            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        log.debug(f"Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
+
+    bpy.types.MATERIAL_MT_context_menu.remove(draw_materials_actions_menu)
 
     bpy.types.MATERIAL_MT_context_menu.remove(draw_materials_actions_menu)

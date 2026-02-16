@@ -1,3 +1,5 @@
+import logging
+
 import bpy
 from bpy.props import (
     BoolProperty,
@@ -9,7 +11,7 @@ from bpy.props import (
 
 from .. import utils as u
 
-_mod = "FIND_MODIFIERS_OPERATORS"
+log = logging.getLogger(__name__)
 
 
 class SimpleToolbox_OT_FindModifiersCategoryVisCollapse(bpy.types.Operator):
@@ -49,13 +51,11 @@ classes = [
 
 def register():
     for cls in classes:
-        if u.is_debug():
-            print(f"[INFO] [{_mod}] Register {cls.__name__}")
+        log.debug(f"Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
 
 def unregister():
     for cls in classes:
-        if u.is_debug():
-            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        log.debug(f"Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

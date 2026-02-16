@@ -1,3 +1,5 @@
+import logging
+
 import bmesh
 import bpy
 from bpy.props import BoolProperty, FloatVectorProperty, IntProperty, StringProperty
@@ -5,7 +7,7 @@ from bpy.props import BoolProperty, FloatVectorProperty, IntProperty, StringProp
 from .. import utils as u
 from .vertex_groups import *
 
-_mod = "VERTEX_GROUPS.OPERATORS"
+log = logging.getLogger(__name__)
 
 
 class SimpleToolbox_OT_VgroupsAddPopup(bpy.types.Operator):
@@ -145,8 +147,7 @@ class SimpleToolbox_OT_RemoveUnusedVertexGroups(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
-        if u.is_debug():
-            print("\n------------- Remove Unused Materials -------------")
+        log.info("\n------------- Remove Unused Materials -------------")
 
         original_active = u.get_active_object()
 
@@ -439,6 +440,15 @@ class SimpleToolbox_OT_VgroupsAssignVertices(bpy.types.Operator):
 
             bm = bmesh.from_edit_mesh(mesh)
             bm.verts.ensure_lookup_table()
+
+            # Get or create Deform layer FIRST
+            deform_layer = bm.verts.layers.deform.active
+            if deform_layer is None:
+                deform_layer = bm.verts.layers.deform.new()
+                # Re-ensure lookup table after creation
+                bm.verts.ensure_lookup_table()
+
+            # Collect other tables
             bm.edges.ensure_lookup_table()
             bm.faces.ensure_lookup_table()
 
@@ -461,21 +471,15 @@ class SimpleToolbox_OT_VgroupsAssignVertices(bpy.types.Operator):
             if not verts_to_assign:
                 continue
 
-            # Get or create a Deform layer
-            deform_layer = bm.verts.layers.deform.active
-            if deform_layer is None:
-                deform_layer = bm.verts.layers.deform.new()
-
             # Assign the vertices to groups
             for vert in verts_to_assign:
                 for vg_index in vg_indices:
                     try:
                         vert[deform_layer][vg_index] = 1.0
-                    except ReferenceError as ref_error:
-                        if u.is_debug():
-                            print(f"[DEBUG] [{_mod}] AssignVertices: {e}")
+                    except ReferenceError as e:
+                        log.error(f"AssignVertices: {e}")
                     except Exception as e:
-                        print(f"[ERROR] [{_mod}] AssignVertices: {e}")
+                        log.error(f"AssignVertices: {e}")
 
             bmesh.update_edit_mesh(mesh)
 
@@ -702,13 +706,11 @@ classes = [
 
 def register():
     for cls in classes:
-        if u.is_debug():
-            print(f"[INFO] [{_mod}] Register {cls.__name__}")
+        log.debug(f"Register {cls.__name__}")
         bpy.utils.register_class(cls)
 
 
 def unregister():
     for cls in classes:
-        if u.is_debug():
-            print(f"[INFO] [{_mod}] Unregister {cls.__name__}")
+        log.debug(f"Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

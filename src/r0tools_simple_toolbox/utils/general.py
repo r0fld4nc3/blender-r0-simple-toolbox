@@ -1,3 +1,4 @@
+import logging
 import math
 import uuid
 from contextlib import contextmanager
@@ -16,33 +17,12 @@ from ..utils import (
     is_updating,
 )
 
-_mod = "UTILS.GENERAL"
+log = logging.getLogger(__name__)
 
 # ===============
 # === CACHING ===
 # ===============
 _last_object_count = 0
-
-
-def is_debug():
-    """Return current debug state"""
-    addon_prefs = get_addon_prefs()
-
-    if not addon_prefs:
-        return defines.DEBUG
-
-    # Set global DEBUG as well to match
-    if defines.DEBUG != addon_prefs.debug:
-        defines.DEBUG = addon_prefs.debug
-
-    return addon_prefs.debug
-
-
-def log(*values: object, sep: str | None = "", end: str | None = "\n", flush=False):
-    """Return current debug state"""
-    addon_prefs = get_addon_prefs()
-    if addon_prefs.log_output:
-        print(*values, sep=sep, end=end, flush=flush)
 
 
 def generate_uuid() -> str:
@@ -107,8 +87,7 @@ def set_object_mode(mode: str):
     Args:
         mode: One of the modes defined in `OBJECT_MODES`
     """
-    if is_debug():
-        print(f"[DEBUG] [{_mod}] Setting mode: {mode}")
+    log.debug(f"Setting mode: {mode}")
 
     # Edit Mode weirdness fix
     if mode.upper() == "EDIT_MESH":
@@ -138,8 +117,8 @@ def select_object(obj: bpy.types.Object, add=True, set_active=False) -> bpy.type
     Returns:
         The selected object or None if failed
     """
-    if is_debug():
-        print(f"[DEBUG] [{_mod}] Selecting {obj.name} {add=} {set_active=}")
+    log.debug(f"Selecting {obj.name} {add=} {set_active=}")
+
     if not add:
         deselect_all()
 
@@ -152,7 +131,7 @@ def select_object(obj: bpy.types.Object, add=True, set_active=False) -> bpy.type
     try:
         obj.select_set(True)
     except Exception as e:
-        print(f"[ERROR] [{_mod}] Selecting {obj.name} {e}")
+        log.error(f"Selecting {obj.name} {e}")
 
     if not add or set_active:
         set_active_object(obj)
@@ -170,8 +149,7 @@ def deselect_object(obj: bpy.types.Object) -> bpy.types.Object | None:
     Returns:
         The deselected object or None if failed
     """
-    if is_debug():
-        print(f"[DEBUG] [{_mod}] Deselecting {obj.name}")
+    log.debug(f"Deselecting {obj.name}")
 
     if not is_valid_object_global(obj):
         return None
@@ -179,7 +157,7 @@ def deselect_object(obj: bpy.types.Object) -> bpy.types.Object | None:
     try:
         obj.select_set(False)
     except Exception as e:
-        print(f"[ERROR] [{_mod}] Deselecting {obj.name} {e}")
+        log.error(f"Deselecting {obj.name} {e}")
 
     return obj
 
@@ -193,25 +171,20 @@ def is_object_visible_in_viewport(obj):
     """
     # Check if the object is set to be visible in the viewport
     if not obj.visible_get():
-        if is_debug():
-            print(f"[DEBUG] [{_mod}] {obj.name} is not visible in viewport.")
+        log.debug(f"{obj.name} is not visible in viewport.")
         return False
 
-    if is_debug():
-        print(f"[DEBUG] [{_mod}] {obj.name} is visible in viewport.")
-        print(f"[DEBUG] [{_mod}] Checking {obj.name} Collection(s).")
+    log.debug(f"{obj.name} is visible in viewport.")
+    log.debug(f"Checking {obj.name} Collection(s).")
 
     # Check if the object's collection is visible in the viewport
     for collection in obj.users_collection:
-        if is_debug():
-            print(f"[DEBUG] [{_mod}]    - {collection.name}")
+        log.debug(f"   - {collection.name}")
         if not collection.hide_viewport:
-            if is_debug():
-                print(f"[DEBUG] [{_mod}]    - {collection.name} is visible.")
+            log.debug(f"   - {collection.name} is visible.")
             return True
         else:
-            if is_debug():
-                print(f"[DEBUG] [{_mod}]    - {collection.name} is hidden.")
+            log.debug(f"   - {collection.name} is hidden.")
 
     return False
 
@@ -405,8 +378,7 @@ def is_valid_object_global(obj):
     except (ReferenceError, KeyError):
         return False
     except Exception as e:
-        if is_debug():
-            print(f"[ERROR] [{_mod}] Validation error: {e}")
+        log.error(f"Validation error: {e}")
         return False
 
 
@@ -637,16 +609,16 @@ def op_clear_sharp_along_axis(axis: str):
     Args:
         axis: The axis to clear sharp edges along (X, Y, or Z)
     """
-    log(f"\n=== Clear Sharp Along Axis {axis}")
+    log.info(f"Clear Sharp Along Axis {axis}")
     axis = str(axis).upper()
 
     threshold = get_addon_prefs().clear_sharp_axis_float_prop
-    log(f"[INFO] [{_mod}] Threshold: {threshold}")
+    log.info(f"Threshold: {threshold}")
 
     # Collect select objects
     objects = [obj for obj in get_selected_objects() if obj.type == "MESH"]
 
-    log(f"[INFO] [{_mod}] Objects: {objects}")
+    log.info(f"Objects: {objects}")
 
     if not objects:
         return False
@@ -654,15 +626,15 @@ def op_clear_sharp_along_axis(axis: str):
     for obj in objects:
         # Set the active object
         bpy.context.view_layer.objects.active = obj
-        log(f"[INFO] [{_mod}] Iterating: {obj.name}")
+        log.info(f"Iterating: {obj.name}")
 
         # Check the mode
         mode = obj.mode
-        log(f"[INFO] [{_mod}] Mode: {mode}")
+        log.info(f"Mode: {mode}")
 
         # Access mesh data
         mesh = obj.data
-        log(f"[INFO] [{_mod}] Mesh: {mesh}")
+        log.info(f"Mesh: {mesh}")
 
         # Store the selection mode
         # Tuple of Booleans for each of the 3 modes
@@ -755,7 +727,7 @@ def custom_property_list_add_props(props: set | list, prop_type, selection_state
             if key in selection_state:
                 item.selected = selection_state[key]
         except Exception as e:
-            print(f"[ERROR] [{_mod}] Error adding unique Custom Properties: {e}")
+            log.error(f"Error adding unique Custom Properties: {e}")
             context_error_debug(error=e)
 
 
@@ -783,8 +755,7 @@ def property_list_update(scene=None, force_run=False):
     if get_selected_objects() or force_run:
         current_selection = {obj.name for obj in iter_scene_objects(selected=True)}
 
-        if is_debug():
-            print("------------- Custom Property List Update -------------")
+        log.debug("------------- Custom Property List Update -------------")
 
         # Store the current selection state before clearing the list
         selection_state = _custom_properties_store_states()
@@ -792,7 +763,7 @@ def property_list_update(scene=None, force_run=False):
         try:
             addon_props.custom_property_list.clear()
         except Exception as e:
-            print(f"[ERROR] [{_mod}] {e}")
+            log.error(f"{e}")
             return None
 
         # Add unique custom properties to the set
@@ -801,16 +772,14 @@ def property_list_update(scene=None, force_run=False):
         for obj in iter_scene_objects(selected=True):
             # Object Properties
             for prop_name in obj.keys():
-                if is_debug():
-                    print(f"[DEBUG] [{_mod}] (OP) {obj.name} - {prop_name=}")
+                log.debug(f"(OP) {obj.name} - {prop_name=}")
                 if not prop_name.startswith("_") and prop_name not in unique_object_data_props:
                     unique_object_data_props.add(prop_name)
 
             # Object Data Properties
             if obj.data and obj.type == "MESH":
                 for prop_name in obj.data.keys():
-                    if is_debug():
-                        print(f"[DEBUG] [{_mod}] (ODP) {obj.name} - {prop_name=}")
+                    log.debug(f"(ODP) {obj.name} - {prop_name=}")
                     if not prop_name.startswith("_") and prop_name not in unique_mesh_data_props:
                         unique_mesh_data_props.add(prop_name)
 
@@ -843,17 +812,15 @@ def property_list_update(scene=None, force_run=False):
         # Clear the property list if no objects are selected
         try:
             addon_props.custom_property_list.clear()
-            if is_debug():
-                print(f"[DEBUG] [{_mod}] Cleared UIList custom_property_list")
+            log.debug(f"Cleared UIList custom_property_list")
         except Exception as e:
-            print(f"[ERROR] [{_mod}] Error clearing custom property list when no selected objects: {e}")
+            log.error(f"Error clearing custom property list when no selected objects: {e}")
             context_error_debug(error=e)
         try:
             addon_props.last_object_selection = ""
-            if is_debug():
-                print(f"[DEBUG] [{_mod}] Cleared property last_object_selection")
+            log.debug(f"Cleared property last_object_selection")
         except Exception as e:
-            print(f"[ERROR] [{_mod}] Error setting last object selection when no selected objects: {e}")
+            log.error(f"Error setting last object selection when no selected objects: {e}")
             context_error_debug(error=e)
 
         # Force UI update
@@ -890,7 +857,7 @@ def object_attributes_list_add_props(attributes: set | list, selection_state: di
             if key in selection_state:
                 item.selected = selection_state[key]
         except Exception as e:
-            print(f"[ERROR] [{_mod}] Error adding unique Object Attributes: {e}")
+            log.error(f"Error adding unique Object Attributes: {e}")
             context_error_debug(error=e)
 
 
@@ -909,8 +876,7 @@ def object_attributes_list_update(scene=None, force_run=False):
     addon_prefs = get_addon_prefs()
     addon_props = get_addon_props(scene)
 
-    if is_debug():
-        print("------------- Object Attibutes List Update -------------")
+    log.debug("------------- Object Attibutes List Update -------------")
 
     if not addon_props.cat_show_custom_properties_editor and not force_run:
         # Skip update if panel is not visible
@@ -933,7 +899,7 @@ def object_attributes_list_update(scene=None, force_run=False):
         try:
             addon_props.object_attributes_list.clear()
         except Exception as e:
-            print(f"[ERROR] [{_mod}] {e}")
+            log.error(f"{e}")
             return None
 
         # Add unique custom properties to the set
@@ -945,8 +911,7 @@ def object_attributes_list_update(scene=None, force_run=False):
 
                 # Object Attributes
                 for attrib_name, attrib_data in obj.data.attributes.items():
-                    if is_debug():
-                        print(f"[DEBUG] [{_mod}] (ObjAttrib) {obj.name} - {attrib_name=}")
+                    log.debug(f"(ObjAttrib) {obj.name} - {attrib_name=}")
 
                     # position attribute is required and can't be removed
                     if attrib_name == "position":
@@ -973,17 +938,15 @@ def object_attributes_list_update(scene=None, force_run=False):
         # Clear the property list if no objects are selected
         try:
             addon_props.object_attributes_list.clear()
-            if is_debug():
-                print(f"[DEBUG] [{_mod}] Cleared UIList object_attributes_list")
+            log.debug(f"Cleared UIList object_attributes_list")
         except Exception as e:
-            print(f"[ERROR] [{_mod}] Error clearing custom property list when no selected objects: {e}")
+            log.error(f"Error clearing custom property list when no selected objects: {e}")
             context_error_debug(error=e)
         try:
             addon_props.last_object_selection = ""
-            if is_debug():
-                print(f"[DEBUG] [{_mod}] Cleared property last_object_selection")
+            log.debug(f"Cleared property last_object_selection")
         except Exception as e:
-            print(f"[ERROR] [{_mod}] Error setting last object selection when no selected objects: {e}")
+            log.error(f"Error setting last object selection when no selected objects: {e}")
             context_error_debug(error=e)
 
         # Force UI update
@@ -1037,46 +1000,42 @@ def create_panel_variant(panel_class, space_type: str = None, region_type: str =
 
 def context_error_debug(error: str = None, extra_prints: list = []):
     """Print debug information about the current context and error"""
-    if not is_debug():
-        return
-
     import inspect
 
-    print(f"+" * 32)
+    log.debug(f"+" * 32)
     if error:
-        print(f"[DEBUG] [{_mod}] Associated Error (below):")
-        print(f"[DEBUG] [{_mod}] {error}")
-        print()
+        log.debug(f"Associated Error (below):")
+        log.debug(f"{error}")
 
     if bpy.app.background:
-        print(f"[DEBUG] [{_mod}] Running in background mode - ID writing may be restricted.")
+        log.debug(f"Running in background mode - ID writing may be restricted.")
 
     if bpy.ops.wm.save_as_mainfile.poll() == False:
-        print(f"[DEBUG] [{_mod}] Restricted context - file saving not allowed.")
+        log.debug(f"Restricted context - file saving not allowed.")
 
-    print(f"[DEBUG] [{_mod}]  bpy.context:", bpy.context)
+    log.debug(f" bpy.context:", bpy.context)
     if bpy.context:
-        print(f"[DEBUG] [{_mod}] bpy.context.scene:", bpy.context.scene)
-        print(f"[DEBUG] [{_mod}] bpy.context.area:", bpy.context.area)
-        print(f"[DEBUG] [{_mod}] bpy.context.mode:", bpy.context.mode)
-        print(f"[DEBUG] [{_mod}] bpy.context.window:", bpy.context.window)
-        print(f"[DEBUG] [{_mod}] bpy.context.space_data:", bpy.context.space_data)
-        print(f"[DEBUG] [{_mod}] bpy.context.region:", bpy.context.region)
-        print(f"[DEBUG] [{_mod}] bpy.context.region_data:", bpy.context.region_data)
-    print(f"[DEBUG] [{_mod}] Window Manager debug mode:", bpy.app.debug_wm)
+        log.debug(f"bpy.context.scene:", bpy.context.scene)
+        log.debug(f"bpy.context.area:", bpy.context.area)
+        log.debug(f"bpy.context.mode:", bpy.context.mode)
+        log.debug(f"bpy.context.window:", bpy.context.window)
+        log.debug(f"bpy.context.space_data:", bpy.context.space_data)
+        log.debug(f"bpy.context.region:", bpy.context.region)
+        log.debug(f"bpy.context.region_data:", bpy.context.region_data)
+    log.debug(f"Window Manager debug mode:", bpy.app.debug_wm)
 
-    print(f"[DEBUG] [{_mod}] Current Handlers:")
+    log.debug(f"Current Handlers:")
     for handler in bpy.app.handlers.depsgraph_update_post:
-        print(f"[DEBUG] [{_mod}]    - {handler.__name__}")
+        log.debug(f"   - {handler.__name__}")
 
-    print(f"[DEBUG] [{_mod}] Call Stack:")
+    log.debug(f"Call Stack:")
     for frame in inspect.stack():
-        print(f"[DEBUG] [{_mod}]   File: {frame.filename}, Line: {frame.lineno}, Function: {frame.function}")
+        log.debug(f"  File: {frame.filename}, Line: {frame.lineno}, Function: {frame.function}")
 
     if extra_prints:
-        print()
-        print(f"[DEBUG] [{_mod}] Extra Prints")
+        log.debug()
+        log.debug(f"Extra Prints")
         for extra_print in extra_prints:
-            print(f"[DEBUG] [{_mod}] Extra: {extra_print}")
+            log.debug(f"Extra: {extra_print}")
 
-    print(f"+" * 32)
+    log.debug(f"+" * 32)
