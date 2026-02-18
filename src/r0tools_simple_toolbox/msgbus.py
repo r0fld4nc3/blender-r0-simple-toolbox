@@ -96,7 +96,7 @@ def _on_selection_changed():
     if u.object_count_changed():
         _pending_updates["objects"] = True
 
-    _process_pending_updates()
+    schedule_deferred_update()
 
 
 def _on_vertex_groups_modified(obj):
@@ -106,7 +106,7 @@ def _on_vertex_groups_modified(obj):
 
     if obj in u.get_selected_objects():
         _pending_updates["vertex_groups"] = True
-        _process_pending_updates()
+        schedule_deferred_update()
 
 
 # ============================================================================
@@ -138,14 +138,14 @@ def on_depsgraph_update_post(scene, depsgraph):
         _pending_updates["vertex_groups"] = True
         _pending_updates["properties"] = True
         _pending_updates["attributes"] = True
-        _schedule_deferred_update()
+        schedule_deferred_update()
 
     # Check object count changes (read-only and defer)
     if depsgraph.id_type_updated(u.DEPSGRAPH_ID_TYPES.OBJECT):
         if u.object_count_changed():
             log.debug(f"Object count changed via depsgraph")
             _pending_updates["objects"] = True
-            _schedule_deferred_update()
+            schedule_deferred_update()
 
 
 def _compute_selection_hash():
@@ -163,7 +163,7 @@ def _compute_selection_hash():
 # ============================================================================
 
 
-def _schedule_deferred_update():
+def schedule_deferred_update():
     if not bpy.app.timers.is_registered(_deferred_update):
         bpy.app.timers.register(_deferred_update, first_interval=0.0)
 
@@ -172,11 +172,11 @@ def _deferred_update():
     """
     This is called via timer, not during depsgraph evaluation.
     """
-    _process_pending_updates()
+    process_pending_updates()
     return None  # Don't repeat
 
 
-def _process_pending_updates():
+def process_pending_updates():
     """
     Process all pending updates in one batch.
     This prevents multiple rapid callbacks from triggering redundant updates.
@@ -249,7 +249,7 @@ def on_undo_redo_post(dummy):
         _pending_updates["properties"] = True
         _pending_updates["attributes"] = True
         _pending_updates["objects"] = True
-        _schedule_deferred_update()
+        schedule_deferred_update()
 
     subscribe_to_all_changes()
 
