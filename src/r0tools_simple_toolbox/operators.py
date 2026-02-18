@@ -693,25 +693,24 @@ class SimpleToolbox_OT_FindModifierSearch(bpy.types.Operator):
                             found_by_category[mod_type_key].add(obj)
                             mod_names_and_types[modifier.name] = modifier.type
 
-        if u.is_writing_context_safe(context.scene):
-            found_objects_collection = addon_find_modifier_props.objects_list.found_objects
-            found_objects_collection.clear()
+        found_objects_collection = addon_find_modifier_props.objects_list.found_objects
+        found_objects_collection.clear()
 
-            # Sort categories alphabetically
-            sorted_categories = sorted(found_by_category.keys())
+        # Sort categories alphabetically
+        sorted_categories = sorted(found_by_category.keys())
 
-            for category in sorted_categories:
-                header_item = found_objects_collection.add()
+        for category in sorted_categories:
+            header_item = found_objects_collection.add()
 
-                # header_item.category_name = category.replace("_", " ").title()
-                cat_mod_type = mod_names_and_types.get(category)
-                header_item.category_name = f"{category} ({cat_mod_type})"
+            # header_item.category_name = category.replace("_", " ").title()
+            cat_mod_type = mod_names_and_types.get(category)
+            header_item.category_name = f"{category} ({cat_mod_type})"
 
-                # Sort objects alphabetically
-                objects_in_category = sorted(list(found_by_category[category]), key=lambda o: o.name)
-                for obj in objects_in_category:
-                    list_item = found_objects_collection.add()
-                    list_item.obj = obj
+            # Sort objects alphabetically
+            objects_in_category = sorted(list(found_by_category[category]), key=lambda o: o.name)
+            for obj in objects_in_category:
+                list_item = found_objects_collection.add()
+                list_item.obj = obj
 
         all_unique_objects = set()
         if found_by_category:
@@ -866,9 +865,8 @@ class SimpleToolbox_OT_FindModifierClearList(bpy.types.Operator):
     bl_options = {"REGISTER"}
 
     def execute(self, context):
-        if u.is_writing_context_safe(context.scene):
-            addon_find_modifier_props = u.get_addon_find_modifier_props()
-            addon_find_modifier_props.objects_list.found_objects.clear()
+        addon_find_modifier_props = u.get_addon_find_modifier_props()
+        addon_find_modifier_props.objects_list.found_objects.clear()
 
         return {"FINISHED"}
 

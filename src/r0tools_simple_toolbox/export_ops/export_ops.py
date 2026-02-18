@@ -34,10 +34,6 @@ def get_export_set_at_index(index: int):
 
 
 def remove_export_set_at_index(index: int):
-    if not u.is_writing_context_safe(bpy.context.scene):
-        log.warning(f"Export Ops Remove Export Set At Index: Unsafe Context.")
-        return None
-
     export_sets = get_export_sets()
 
     if index < get_export_sets_count():
@@ -45,10 +41,6 @@ def remove_export_set_at_index(index: int):
 
 
 def set_active_export_set_index(index: int):
-    if not u.is_writing_context_safe(bpy.context.scene):
-        log.warning(f"Export Ops Set Active Export Set Index: Unsafe Context.")
-        return None
-
     addon_export_sets_props = u.get_addon_export_props()
 
     if index < get_export_sets_count():
@@ -65,10 +57,6 @@ def get_export_set_name_at_index(index: int) -> str:
 
 
 def set_export_set_name(export_set, new_name) -> bool:
-    if not u.is_writing_context_safe(bpy.context.scene):
-        log.warning(f"Export Ops Set Export Set Name: Unsafe Context.")
-        return None
-
     try:
         export_set.name = new_name
     except Exception as e:
@@ -79,10 +67,6 @@ def set_export_set_name(export_set, new_name) -> bool:
 
 
 def set_export_set_name_at_index(index, new_name) -> bool:
-    if not u.is_writing_context_safe(bpy.context.scene):
-        log.warning(f"Export Ops Set Export Set Name At Index: Unsafe Context.")
-        return None
-
     export_set = get_export_set_at_index(index)
 
     if export_set:
@@ -101,10 +85,6 @@ def draw_quick_export_sets_uilist(layout, context):
         SimpleToolbox_OT_RemoveExportSet,
         SimpleToolbox_OT_SelectPath,
     )
-
-    if not u.is_writing_context_safe(bpy.context.scene):
-        log.warning(f"Export Sets Draw UIList: Unsafe Context.")
-        return None
 
     path_row_height_scale = 1.2
 

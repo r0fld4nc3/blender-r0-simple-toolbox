@@ -39,9 +39,6 @@ class R0PROP_UL_VertexGroupsList(bpy.types.UIList):
 
 
 def update_lock_state_callback(self, context):
-    if not u.is_writing_context_safe(context.scene):
-        return
-
     vertex_group_name = self.name
 
     # Update persistent state
