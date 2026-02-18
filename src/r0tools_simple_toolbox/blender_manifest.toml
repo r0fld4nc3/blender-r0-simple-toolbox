@@ -1,6 +1,6 @@
 schema_version = "1.0.0"
 
-id = "r0tools_simple_toolbox"
+id = "r0tools_simple_toolbox_schedule_deferred_update_fix"
 version = "0.3.3"
 name = "r0Tools - Simple Toolbox.schedule-deferred-update-fix"
 tagline = "General workflow utitlies"
