@@ -3,7 +3,6 @@ import logging
 import bpy
 
 from . import utils as u
-from .operators import CustomTransformsOrientationsTracker
 
 log = logging.getLogger(__name__)
 
@@ -16,67 +15,16 @@ def handler_on_save_pre(dummy):
     """Set the save lock before a file is saved."""
     global is_saving
     is_saving = True
-    # log.info("Save Lock: ON")
 
 
 @bpy.app.handlers.persistent
 def handler_on_save_post(dummy):
-    """Set the save lock after a file is saved."""
+    """Clear the save lock after a file is saved."""
     global is_saving
     is_saving = False
-    # log.info("Save Lock: OFF")
 
 
-@bpy.app.handlers.persistent
-def handler_depsgraph_post_update(scene, depsgraph):
-    # Early exit if saving, no need to check for context first
-    if u.is_saving():
-        log.info(f"Skipping scheduled depsgraph update on file save")
-        return None
-
-    # Early exit if we're updating from our Depsgraph
-    if u.is_updating():
-        log.info(f"Skipping scheduled depsgraph update: Update already in progress.")
-        return None
-
-    """
-    # Check if any running modal operators - also important in the scheduled function
-    modal_ops = u.get_active_modal_operators()
-    if modal_ops:
-        log.debug(f"[DEBUG] Skipping scheduled depsgraph update: Active Modal Operators running.")
-        for op in modal_ops:
-            log.debug(f"{op.bl_idname}")
-        return None
-    """
-
-    # Check specifically for object changes
-    if depsgraph.id_type_updated(u.DEPSGRAPH_ID_TYPES.OBJECT):
-        u.set_is_updating(True)
-
-        try:
-            if u.object_count_changed():
-                u.cleanup_object_set_invalid_references(scene=scene)
-                u.handle_object_duplication_update(scene=scene)
-
-            # u.object_sets_update_mesh_stats(depsgraph)
-
-            u.vertex_groups_list_update(scene=scene)
-
-            u.property_list_update(scene=scene)
-
-            u.object_attributes_list_update(scene=scene)
-
-            CustomTransformsOrientationsTracker.track_custom_orientations(scene)
-        except Exception as e:
-            log.error(e)
-        finally:
-            # Ensure flag is always reset
-            u.set_is_updating(False)
-
-        return None  # Return None for timer
-
-
-depsgraph_handlers = []  # handler_depsgraph_post_update
+depsgraph_handlers = []
 
 load_post_handlers = [u.refresh_object_sets_colours]
 
@@ -85,52 +33,40 @@ save_post_handlers = [handler_on_save_post]
 
 
 def register():
-    # Depsgraph Handlers
     for handler in depsgraph_handlers:
-        log.debug(f"Registering {handler}")
         if handler not in bpy.app.handlers.depsgraph_update_post:
             bpy.app.handlers.depsgraph_update_post.append(handler)
+            log.debug(f"Registered depsgraph handler: {handler.__name__}")
 
-    # Save Pre Handlers
     for handler in save_pre_handlers:
-        log.debug(f"Register on_save_pre handler: {handler.__name__}")
         if handler not in bpy.app.handlers.save_pre:
             bpy.app.handlers.save_pre.append(handler)
+            log.debug(f"Registered save_pre handler: {handler.__name__}")
 
-    # Save Post Handlers
     for handler in save_post_handlers:
-        log.debug(f"Register on_save_post handler: {handler.__name__}")
         if handler not in bpy.app.handlers.save_post:
             bpy.app.handlers.save_post.append(handler)
+            log.debug(f"Registered save_post handler: {handler.__name__}")
 
-    # Load Post Handlers
     for handler in load_post_handlers:
-        log.debug(f"Register load_post_handler: {handler.__name__}")
         if handler not in bpy.app.handlers.load_post:
             bpy.app.handlers.load_post.append(handler)
+            log.debug(f"Registered load_post handler: {handler.__name__}")
 
 
 def unregister():
-    # Depsgraph Handlers
     for handler in depsgraph_handlers:
-        log.debug(f"Unregister {handler}")
         if handler in bpy.app.handlers.depsgraph_update_post:
             bpy.app.handlers.depsgraph_update_post.remove(handler)
 
-    # Save Pre Handlers
     for handler in save_pre_handlers:
-        log.debug(f"Unregister on_save_pre handler: {handler.__name__}")
         if handler in bpy.app.handlers.save_pre:
             bpy.app.handlers.save_pre.remove(handler)
 
-    # Save Post Handlers
     for handler in save_post_handlers:
-        log.debug(f"Unregister on_save_post handler: {handler.__name__}")
         if handler in bpy.app.handlers.save_post:
             bpy.app.handlers.save_post.remove(handler)
 
-    # Load Post Handlers
     for handler in load_post_handlers:
-        log.debug(f"Unregister load_post_handler: {handler.__name__}")
         if handler in bpy.app.handlers.load_post:
             bpy.app.handlers.load_post.remove(handler)
