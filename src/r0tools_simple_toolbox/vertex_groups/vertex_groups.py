@@ -167,7 +167,7 @@ def vertex_groups_list_add_groups(props: dict, selection_state: dict):
                         item.locked = state.locked
                         break
         except Exception as e:
-            log.error(f"Error adding unique Custom Properties: {e}")
+            log.error(f"Error popualting UIList: {e}")
             u.context_error_debug(error=e)
 
 
