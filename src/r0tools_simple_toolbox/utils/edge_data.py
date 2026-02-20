@@ -5,7 +5,7 @@ import bpy
 log = logging.getLogger(__name__)
 
 
-# @bpy.app.handlers.persistent
+@bpy.app.handlers.persistent
 def initialize_bweight_presets(dummy):
     """Initialize bevel weight presets with default values"""
     from . import get_addon_edge_data_props
