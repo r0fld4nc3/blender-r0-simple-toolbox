@@ -16,12 +16,29 @@ def handler_on_save_pre(dummy):
     global is_saving
     is_saving = True
 
+    # Cancel queued msgbus updates
+    try:
+        from .msgbus import cancel_pending_updates
+
+        cancel_pending_updates()
+    except Exception as e:
+        log.warning(f"Could not cancel pending updates on save: {e}")
+
 
 @bpy.app.handlers.persistent
 def handler_on_save_post(dummy):
     """Clear the save lock after a file is saved."""
     global is_saving
     is_saving = False
+
+    # Resync selection hash so the next depsgraph tick doesn't
+    # trigger an update due to stale hash comparison
+    try:
+        from .msgbus import resync_selection_hash
+
+        resync_selection_hash()
+    except Exception as e:
+        log.warning(f"Could not resync selection hash after save: {e}")
 
 
 depsgraph_handlers = []
