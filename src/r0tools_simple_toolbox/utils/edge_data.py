@@ -21,20 +21,13 @@ def initialize_bweight_presets(dummy):
     # For that let's get the file version first
     global _initialised
     if _initialised:
-        file_version = u.get_file_version()
-        blender_version = u.get_blender_version()
-
-        f_major = file_version[0]
-        b_major = blender_version[0]
-
-        # File version less or equal to Blender version, skip init.
-        if f_major <= b_major:
-            log.info(
-                f"File version {file_version} <= Blender version {blender_version}. Skipping weight presets re-initialisation."
-            )
+        if not u.file_version_greater_than_blender_version(compare_major=True):
+            # File version is not greater than Blender version, skip re-init.
+            log.info("Skip bweight re-init")
             return
         else:
-            log.info(f"File version {file_version} > Blender version {blender_version}. Re-initialise weight presets.")
+            # File version is greater than Blender version, force re-init.
+            log.info("Force bweight re-init")
 
     addon_edge_data_props = get_addon_edge_data_props()
 
