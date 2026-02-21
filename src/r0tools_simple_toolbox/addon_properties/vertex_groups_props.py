@@ -39,9 +39,6 @@ class R0PROP_UL_VertexGroupsList(bpy.types.UIList):
 
 
 def update_lock_state_callback(self, context):
-    if not u.is_writing_context_safe(context.scene):
-        return
-
     vertex_group_name = self.name
 
     # Update persistent state
@@ -87,8 +84,26 @@ def update_vertex_group_name_callback(self, context):
             renamed_objects.append(obj.name)
 
     if renamed_count > 0:
+        from ..vertex_groups import vertex_groups_list_update
+
         log.info(f"Renamed vertex group '{old_name}' to '{new_name}' in {renamed_count} objects")
         log.debug("\t• " + "\n\t• ".join(renamed_objects))
+
+        # Update list to prevent mismatched assignments
+        vertex_groups_list_update(force=True)
+
+        # Sync the active index to the renamed entry
+        addon_vertex_groups_props = u.get_addon_vertex_groups_props()
+        if addon_vertex_groups_props:
+            # Find new index of renamed item in the collection
+            new_index = next(
+                (i for i, vg in enumerate(addon_vertex_groups_props.vertex_groups) if vg.name == new_name),
+                -1,
+            )
+            if new_index != -1:
+                # Setting this triggers update_vertex_group_list_index_callback,
+                # which calls _vertex_group_sync_selection automatically.
+                addon_vertex_groups_props.vertex_group_list_index = new_index
 
 
 def update_vertex_group_list_index_callback(self, context):

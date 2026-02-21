@@ -180,6 +180,26 @@ def set_is_updating(state: bool):
     depsgraph.is_updating = state
 
 
+def file_version_greater_than_blender_version(compare_major: bool = True) -> bool:
+    from ..utils import get_blender_version, get_file_version
+
+    file_version = get_file_version()
+    blender_version = get_blender_version()
+
+    if compare_major:
+        file_version = file_version[0]
+        blender_version = blender_version[0]
+
+    # File version greater than Blender version
+    if file_version > blender_version:
+        log.info(f"File version {file_version} > Blender version {blender_version}.")
+        return True
+    else:
+        log.info(f"File version {file_version} <= Blender version {blender_version}.")
+
+    return False
+
+
 def is_writing_context_safe(scene) -> bool:
     """
     Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock

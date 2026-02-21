@@ -27,10 +27,6 @@ def get_active_object_set_index() -> int:
 
 
 def set_active_object_set_index(index: int):
-    if not u.is_writing_context_safe(bpy.context.scene):
-        log.warning(f"Object Sets Set Active Object Set Index: Unsafe Context.")
-        return None
-
     addon_object_sets_props = u.get_addon_object_sets_props()
 
     if index < get_object_sets_count():
@@ -47,10 +43,6 @@ def get_object_set_at_index(index: int):
 
 
 def remove_object_set_at_index(index: int):
-    if not u.is_writing_context_safe(bpy.context.scene):
-        log.warning(f"Object Sets Remove Object Set At Index: Unsafe Context.")
-        return None
-
     object_sets = get_object_sets()
 
     if index < get_object_sets_count():
@@ -67,10 +59,6 @@ def get_object_set_name_at_index(index: int) -> str:
 
 
 def set_object_set_name(object_set, new_name) -> bool:
-    if not u.is_writing_context_safe(bpy.context.scene):
-        log.warning(f"Object Sets Set Object Set Name: Unsafe Context.")
-        return None
-
     try:
         object_set.name = new_name
     except Exception as e:
@@ -81,10 +69,6 @@ def set_object_set_name(object_set, new_name) -> bool:
 
 
 def set_object_set_name_at_index(index, new_name) -> bool:
-    if not u.is_writing_context_safe(bpy.context.scene):
-        log.warning(f"Object Sets Set Object Set Name At Index: Unsafe Context.")
-        return None
-
     object_set = get_object_set_at_index(index)
 
     if object_set:
@@ -95,10 +79,6 @@ def set_object_set_name_at_index(index, new_name) -> bool:
 
 
 def object_set_at_index_update_count(index: int) -> bool:
-    if not u.is_writing_context_safe(bpy.context.scene):
-        log.warning(f"Object Sets At Index Update Count: Unsafe Context.")
-        return None
-
     object_set = get_object_set_at_index(index)
 
     if object_set:
@@ -118,10 +98,6 @@ def get_object_set_objects_at_index(index: int):
 
 
 def iter_objects_of_object_set_at_index(index: int):
-    if not u.is_writing_context_safe(bpy.context.scene):
-        log.warning(f"Object Sets Iter Objects of Object Set At Index: Unsafe Context.")
-        return None
-
     object_set = get_object_set_at_index(index)
 
     if object_set:
@@ -132,10 +108,6 @@ def iter_objects_of_object_set_at_index(index: int):
 
 
 def move_object_set_to_index(from_index, to_index):
-    if not u.is_writing_context_safe(bpy.context.scene):
-        log.warning(f"Object Sets Move To Index: Unsafe Context.")
-        return None
-
     object_sets = get_object_sets()
 
     object_sets.move(from_index, to_index)
@@ -168,10 +140,6 @@ def cleanup_object_set_invalid_references(scene=None):
     """Optimised cleanup using batch operations"""
 
     scene = u.get_scene(scene)
-
-    if not u.is_writing_context_safe(scene):
-        log.warning(f"Object Sets Cleanup Invalid References O1: Unsafe Context.")
-        return None
 
     addon_object_sets_props = u.get_addon_object_sets_props(scene=scene)
 
@@ -225,10 +193,6 @@ def handle_object_duplication_update(scene=None):
 
     scene = u.get_scene(scene)
 
-    if not u.is_writing_context_safe(scene):
-        log.info(f"Skipping Object Set Duplication Update Handler during file save.")
-        return None
-
     log.debug(f"Handle Object Duplication Update")
 
     # Global list of object sets
@@ -281,10 +245,6 @@ def check_object_in_sets(obj) -> list:
     :return: `list` of `Object Sets`
     """
 
-    if not u.is_writing_context_safe(bpy.context.scene):
-        log.warning(f"Object Sets Check Object In Sets: Unsafe Context.")
-        return None
-
     if not obj:
         return []
 
@@ -315,10 +275,6 @@ def object_sets_update_mesh_stats(depsgraph=None):
     log.info("------------- Object Sets Update Mesh Stats -------------")
 
     scene = bpy.context.scene
-
-    if not u.is_writing_context_safe(scene):
-        log.warning(f"Object Sets Update Mesh Stats: Unsafe Context.")
-        return
 
     addon_props = u.get_addon_props()
     addon_object_sets_props = u.get_addon_object_sets_props()
@@ -473,10 +429,6 @@ def _calculate_mesh_stats(show_verts, show_edges, show_faces, show_tris):
 def refresh_object_sets_colours(context):
     """Refresh colors for all object sets"""
 
-    if not u.is_writing_context_safe(bpy.context.scene):
-        log.warning(f"Object Sets Refresh Object Sets Colours: Unsafe Context.")
-        return None
-
     log.debug(f"Force Refreshing Object Sets' Colours")
 
     addon_object_sets_props = u.get_addon_object_sets_props()
@@ -498,10 +450,6 @@ def load_legacy_object_sets(dummy):
     """Load legacy properties into new properties"""
 
     addon_props = u.get_addon_props()
-
-    if not u.is_writing_context_safe(bpy.context.scene):
-        log.error(f"Context write is not safe")
-        return
 
     legacy_sets = addon_props.object_sets
 
@@ -573,10 +521,6 @@ def draw_objects_sets_uilist(layout, context):
         context: The current context
         object_sets_box: Optional box to draw within
     """
-
-    if not u.is_writing_context_safe(bpy.context.scene):
-        log.warning(f"Object Sets Draw Object Sets UIList: Unsafe Context.")
-        return None
 
     from ..menus import SimpleToolbox_MT_ObjectSetsActionsMenu
     from .operators import (

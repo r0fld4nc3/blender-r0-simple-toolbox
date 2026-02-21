@@ -8,11 +8,8 @@ from .vertex_groups import vertex_groups_list_update
 
 log = logging.getLogger(__name__)
 
-
-# Global subscription owner - persists across blend file operations
 _msgbus_owner = object()
 
-# Debounce flags to prevent rapid successive updates
 _pending_updates = {
     "vertex_groups": False,
     "properties": False,
@@ -21,6 +18,7 @@ _pending_updates = {
 }
 
 _last_selection_hash = None
+
 
 # ============================================================================
 # Main Subscription Manager
@@ -57,13 +55,12 @@ def _subscribe_to_selection_changes():
         notify=_on_selection_changed,
     )
 
-    log.debug("Subscribed to selection changes")
+    log.debug("Subscribed to active object changes")
 
 
 def _subscribe_to_object_vertex_groups(obj):
     """Subscribe to vertex group changes on specific object"""
     try:
-        # Subscribe to collection
         bpy.msgbus.subscribe_rna(
             key=obj.path_resolve("vertex_groups", False),
             owner=_msgbus_owner,
@@ -74,9 +71,14 @@ def _subscribe_to_object_vertex_groups(obj):
         log.warning(f"Unable to subscribe to vertex groups on {obj.name}: {e}")
 
 
+# ============================================================================
+# Msgbus Callbacks
+# ============================================================================
+
+
 def _on_selection_changed():
     """Selection changed callback"""
-    log.debug("Selection changed - trigger update")
+    log.debug("Selection changed")
 
     selected_objects = u.get_selected_objects()
 
@@ -96,7 +98,7 @@ def _on_selection_changed():
     if u.object_count_changed():
         _pending_updates["objects"] = True
 
-    _process_pending_updates()
+    schedule_deferred_update()
 
 
 def _on_vertex_groups_modified(obj):
@@ -106,46 +108,41 @@ def _on_vertex_groups_modified(obj):
 
     if obj in u.get_selected_objects():
         _pending_updates["vertex_groups"] = True
-        _process_pending_updates()
+        schedule_deferred_update()
 
 
 # ============================================================================
-# Depsgraph Detection (Read-Only, Safe)
+# Depsgraph Fallback (Read-Only Detection Only)
 # ============================================================================
 
 
 @bpy.app.handlers.persistent
 def on_depsgraph_update_post(scene, depsgraph):
-    # Early exits
-    if u.is_saving():
-        return
-
-    if u.is_updating():
+    if u.is_saving() or u.is_updating():
         return
 
     global _last_selection_hash
     current_hash = _compute_selection_hash()
 
     if current_hash != _last_selection_hash:
-        log.debug(f"Selection changed (depsgraph fallback)")
+        log.debug("Selection changed (depsgraph fallback)")
         _last_selection_hash = current_hash
 
         # Re-subscribe to vertex groups for the new selections
         for obj in u.get_selected_objects():
             _subscribe_to_object_vertex_groups(obj)
 
-        # Set flags
+        # Set update flags
         _pending_updates["vertex_groups"] = True
         _pending_updates["properties"] = True
         _pending_updates["attributes"] = True
-        _schedule_deferred_update()
+        schedule_deferred_update()
 
-    # Check object count changes (read-only and defer)
     if depsgraph.id_type_updated(u.DEPSGRAPH_ID_TYPES.OBJECT):
         if u.object_count_changed():
-            log.debug(f"Object count changed via depsgraph")
+            log.debug("Object count changed (depsgraph)")
             _pending_updates["objects"] = True
-            _schedule_deferred_update()
+            schedule_deferred_update()
 
 
 def _compute_selection_hash():
@@ -154,47 +151,60 @@ def _compute_selection_hash():
         active_object = u.get_active_object()
         active_name = active_object.name if active_object else None
         return hash((selected, active_name))
-    except:
+    except Exception:
         return None
 
 
 # ============================================================================
-# Update Processing
+# Deferred Update Processing
 # ============================================================================
 
 
-def _schedule_deferred_update():
+def schedule_deferred_update():
+    """Schedule update via timer - ONLY safe way to write ID properties."""
     if not bpy.app.timers.is_registered(_deferred_update):
         bpy.app.timers.register(_deferred_update, first_interval=0.0)
 
 
 def _deferred_update():
     """
-    This is called via timer, not during depsgraph evaluation.
+    Timer callback - run outside depsgraph evaluation.
+    Returns a float to reschedule if context is still unsafe,
+    or None to stop repeating once updates are processed.
     """
-    _process_pending_updates()
-    return None  # Don't repeat
+    scene = u.get_scene()
+
+    # If context is not write-safe yet, reschedule rather than drop the update
+    if scene is None or not u.is_writing_context_safe(scene):
+        log.warning("Deferred update: context not write-safe, rescheduling in 100ms")
+        return 0.1
+
+    process_pending_updates()
+    return None
 
 
-def _process_pending_updates():
+def process_pending_updates():
     """
     Process all pending updates in one batch.
-    This prevents multiple rapid callbacks from triggering redundant updates.
+    Only called from a write-safe context.
     """
 
     if u.is_saving():
-        log.info("Skipping updates: File is saving")
+        log.debug("Skipping updates: file is saving")
         return
 
     if u.is_updating():
-        log.info("Skipping updates: Update already in progress")
+        log.debug("Skipping updates: update already in progress")
         return
 
-    # Check any pending updates
+    # Redundant safety check
+    scene = u.get_scene()
+    if scene is None or not u.is_writing_context_safe(scene):
+        log.warning("process_pending_updates: write context not safe, aborting")
+        return
+
     if not any(_pending_updates.values()):
         return
-
-    scene = u.get_scene()
 
     try:
         u.set_is_updating(True)
@@ -229,6 +239,33 @@ def _process_pending_updates():
         u.set_is_updating(False)
 
 
+def cancel_pending_updates():
+    """
+    Cancel any queued timer and clear all pending flags.
+    Called externally by depsgraph save handlers to ensure
+    the timer cannot fire during a restricted write context.
+    """
+
+    if bpy.app.timers.is_registered(_deferred_update):
+        bpy.app.timers.unergister(_deferred_update)
+
+    global _pending_updates
+    _pending_updates = {key: False for key in _pending_updates}
+    log.debug("Pending updates cancelled.")
+
+
+def resync_selection_hash():
+    """
+    Recompute and store the current selection hash after a save.
+    Prevents the first post-save depsgraph tick from triggering
+    an update due to a stale hash.
+    """
+
+    global _last_selection_hash
+    _last_selection_hash = _compute_selection_hash()
+    log.debug("Selection hash resynced after save.")
+
+
 # ============================================================================
 # Application Handlers
 # ============================================================================
@@ -244,51 +281,41 @@ def on_load_post(dummy):
 
 @bpy.app.handlers.persistent
 def on_undo_redo_post(dummy):
-    log.debug("Undo/Redo post - re-establishing subscriptions")
+    log.debug("Undo/Redo post")
     if u.object_count_changed():
         _pending_updates["properties"] = True
         _pending_updates["attributes"] = True
         _pending_updates["objects"] = True
-        _schedule_deferred_update()
-
+        schedule_deferred_update()
     subscribe_to_all_changes()
-
-
-@bpy.app.handlers.persistent
-def on_save_pre(dummy):
-    """Clear pending updates before saving"""
-    global _pending_updates
-    _pending_updates = {key: False for key in _pending_updates}
 
 
 _handlers = [
     (bpy.app.handlers.load_post, on_load_post),
     (bpy.app.handlers.undo_post, on_undo_redo_post),
     (bpy.app.handlers.redo_post, on_undo_redo_post),
-    (bpy.app.handlers.save_pre, on_save_pre),
     (bpy.app.handlers.depsgraph_update_post, on_depsgraph_update_post),
 ]
 
 
 def register():
-    log.info("Register msgbus.")
-
     for handler_list, handler_func in _handlers:
         handler_list.append(handler_func)
-        log.debug(f"Register '{handler_func.__name__}'")
-
-    log.info("Msgbus handlers registered (subscriptions deferred to load_post).")
+        log.debug(f"Registered handler '{handler_func.__name__}'")
+    log.info("Registered msgbus update system.")
 
 
 def unregister():
-    # Clear all msgbus subscriptions
+    if bpy.app.timers.is_registered(_deferred_update):
+        bpy.app.timers.unregister(_deferred_update)
+
     try:
         bpy.msgbus.clear_by_owner(_msgbus_owner)
-    except:
-        pass  # May fail if Blender is shutting down
+    except Exception:
+        pass
 
     for handler_list, handler_func in _handlers:
         if handler_func in handler_list:
             handler_list.remove(handler_func)
 
-    log.info("Unregister msgbus.")
+    log.info("Unregistered msgbus update system.")
