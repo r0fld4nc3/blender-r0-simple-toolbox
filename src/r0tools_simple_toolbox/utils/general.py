@@ -25,13 +25,16 @@ log = logging.getLogger(__name__)
 _last_object_count = 0
 
 
+def get_file_version() -> tuple[int, int, int]:
+    return bpy.data.version
+
+
+def get_blender_version() -> tuple[int, int, int]:
+    return bpy.app.version
+
+
 def generate_uuid() -> str:
     return str(uuid.uuid4())
-
-
-# ==============================
-# OBJECT, MESH, SELECTION
-# ==============================
 
 
 def get_bl_config_path() -> str:
@@ -42,6 +45,11 @@ def get_bl_config_path() -> str:
     config_folder = Path(script_paths_user).parent
 
     return str(config_folder)
+
+
+# ==============================
+# OBJECT, MESH, SELECTION
+# ==============================
 
 
 def set_active_object(obj: bpy.types.Object):
