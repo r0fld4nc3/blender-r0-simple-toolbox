@@ -7,14 +7,12 @@ from pathlib import Path
 import bmesh
 import bpy
 
-from .. import defines
 from ..utils import (
     CUSTOM_PROPERTIES_TYPES,
     OBJECT_MODES,
     get_addon_prefs,
     get_addon_props,
     get_scene,
-    is_updating,
 )
 
 log = logging.getLogger(__name__)
