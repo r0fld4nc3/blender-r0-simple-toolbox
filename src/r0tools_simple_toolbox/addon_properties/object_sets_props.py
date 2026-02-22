@@ -72,8 +72,6 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
                 # Only apply if this is the first set that owns the object
                 first_set = next(iter(u.check_object_in_sets(obj, fast=True)), None)
 
-                log.debug(f"{first_set=}")
-
                 if first_set is None or first_set.uuid == self.uuid:
                     log.debug(f"Updating colour for '{obj.name}' with colour from Object Set '{self.name}'")
                     obj.color = target_colour
