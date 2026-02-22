@@ -96,9 +96,6 @@ def _on_selection_changed():
     _pending_updates["properties"] = True
     _pending_updates["attributes"] = True
 
-    if u.object_count_changed():
-        _pending_updates["objects"] = True
-
     schedule_deferred_update()
 
 
@@ -110,29 +107,6 @@ def _on_vertex_groups_modified(obj):
     if obj in u.get_selected_objects():
         _pending_updates["vertex_groups"] = True
         schedule_deferred_update()
-
-
-def _process_new_objects_stage():
-    """
-    Process and stage any new known objects in the scene.
-    This needs to be captured in the depsgraph update and
-    not already in the scheduled function for the pointer
-    and object snapshot to be valid (while it's hot).
-
-    It diffs the current known (synced pointers) with any new
-    unknown pointers and stages (pushes) these objects to process
-    to object_sets' staging list.
-
-    This list is then consumed on process.
-    """
-    new_objects = u.get_new_objects()
-
-    if new_objects:
-        # Push new object changes to object_sets' new_objects list
-        log.debug(f"Staging {len(new_objects)} new object(s) for processing")
-        pending_known_objects.extend(new_objects)
-
-    u.sync_known_objects()
 
 
 # ============================================================================
@@ -163,10 +137,17 @@ def on_depsgraph_update_post(scene, depsgraph):
         schedule_deferred_update()
 
     if depsgraph.id_type_updated(u.DEPSGRAPH_ID_TYPES.OBJECT):
-        if u.object_count_changed():
-            log.debug("Object count changed (depsgraph)")
+        new_objects, was_deleted = u.get_object_changes(depsgraph)
+
+        if new_objects:
+            log.debug(f"Staging {len(new_objects)} new object(s) for processing.")
+            pending_known_objects.extend(new_objects)
             _pending_updates["objects"] = True
-            _process_new_objects_stage()
+            schedule_deferred_update()
+
+        elif was_deleted:
+            log.debug("Object deletion detected (depsgraph)")
+            _pending_updates["objects"] = True
             schedule_deferred_update()
 
 
@@ -303,6 +284,7 @@ def on_load_post(dummy):
     global _last_selection_hash
     _last_selection_hash = _compute_selection_hash()
     subscribe_to_all_changes()
+    u.sync_known_objects()
 
 
 @bpy.app.handlers.persistent
@@ -314,6 +296,7 @@ def on_undo_redo_post(dummy):
         _pending_updates["objects"] = True
         schedule_deferred_update()
     subscribe_to_all_changes()
+    u.sync_known_objects()
 
 
 _handlers = [

@@ -7,6 +7,7 @@ from ..defines import INTERNAL_NAME, TOOLBOX_PROPS_NAME
 
 log = logging.getLogger(__name__)
 
+_last_object_count: int = 0
 _known_object_pointers: set[int] = set()
 
 
@@ -88,29 +89,84 @@ def get_data_objects_len() -> int:
     return len(bpy.data.objects)
 
 
-def get_current_object_pointers() -> set[int]:
-    """Return a set of memory pointers for all current scene objects."""
-    return {obj.as_pointer() for obj in get_scene().objects}
-
-
-def get_new_objects() -> list[bpy.types.Object]:
-    """
-    Returns objects that exist in the scene but not previously tracked.
-    O(n) and should avoid object-specific lookups when necessary.
-    """
-
-    global _known_object_pointers
-    current = {obj.as_pointer(): obj for obj in get_scene().objects}
-    log.debug(f"{current=}")
-    new_pointers = current.keys() - _known_object_pointers
-    log.debug(f"{new_pointers=}")
-    return [current[pointer] for pointer in new_pointers]
-
-
 def sync_known_objects():
-    """Called after any object set change to keep tracker synched."""
-    global _known_object_pointers
-    _known_object_pointers = get_current_object_pointers()
+    """
+    Resets the known object pointer baseline to the current scene state.
+    Useful to call this on load, undo/redo, and after any intentional object mutation.
+    """
+
+    global _last_object_count, _known_object_pointers
+    scene = get_scene()
+    if not scene:
+        return
+    _known_object_pointers = {obj.as_pointer() for obj in scene.objects}
+    _last_object_count = len(scene.objects)
+
+
+def get_object_changes(depsgraph: bpy.types.Depsgraph) -> tuple[list[bpy.types.Object], bool]:
+    """
+    Identifies object additions and deletions from a depsgraph update.
+
+    Attempt to use depsgraph.updates for efficiency.
+    Fall back to pointer-set diff when depsgraph.updates does not expose new objects
+    (i.e. outliner-based duplication).
+
+    Syncs internal state before returning so the next call has a fresh baseline.
+
+    Note: This triggers on every depsgraph update/tick, so it is important to have good guard clauses to keep initial checks cheap and minimal.
+
+    Returns a tuple of:
+        - list[Object]: Newly added objects (empty if none)
+        - bool: True if a deletion was detected
+    """
+    global _last_object_count, _known_object_pointers
+
+    scene = get_scene()
+    if not scene:
+        return [], False
+
+    current_count = len(scene.objects)
+    previous_count = _last_object_count
+    _last_object_count = current_count
+
+    log.debug(f"{current_count=}")
+    log.debug(f"{previous_count=}")
+
+    if current_count == previous_count:
+        return [], False
+
+    was_deleted = current_count < previous_count
+
+    if was_deleted:
+        # Unavoidable scene iteration
+        _known_object_pointers = {obj.as_pointer() for obj in scene.objects}
+        return [], True
+
+    # Addition detected - try depsgraph.updates first
+    updated_objects: list[bpy.types.Object] = [
+        update.id
+        for update in depsgraph.updates
+        if isinstance(update.id, bpy.types.Object) and not update.id.is_evaluated
+    ]
+
+    # Filter only objects present in the scene
+    scene_pointers = {obj.as_pointer(): obj for obj in scene.objects}
+    new_from_depsgraph = [
+        obj
+        for obj in updated_objects
+        if obj.as_pointer() not in _known_object_pointers and obj.as_pointer() in scene_pointers
+    ]
+
+    if new_from_depsgraph:
+        _known_object_pointers = set(scene_pointers.keys())
+        return new_from_depsgraph, False
+
+    # Fallback: pointer diff (non-selection based duplications)
+    new_pointers = scene_pointers.keys() - _known_object_pointers
+    _known_object_pointers = set(scene_pointers.keys())
+
+    new_objects = [scene_pointers[pointer] for pointer in new_pointers]
+    return new_objects, False
 
 
 def get_selection_mode(as_str=False) -> int | str:

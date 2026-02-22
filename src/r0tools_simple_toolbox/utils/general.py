@@ -11,11 +11,6 @@ from .. import utils as u
 
 log = logging.getLogger(__name__)
 
-# ===============
-# === CACHING ===
-# ===============
-_last_object_count = 0
-
 
 def get_file_version() -> tuple[int, int, int]:
     return bpy.data.version
@@ -503,25 +498,6 @@ def object_in_collection(obj, collection):
         return False
 
     return collection in obj.users_collection
-
-
-def object_count_changed() -> bool:
-    global _last_object_count
-
-    scene = bpy.context.scene
-
-    if not scene:
-        return False
-
-    scene_objects_count = len(scene.objects)
-    data_objects_count = u.get_data_objects_len()
-
-    # Check both scene and bpy.data for thoroughness
-    changed = scene_objects_count != _last_object_count or data_objects_count != _last_object_count
-
-    _last_object_count = data_objects_count
-
-    return changed
 
 
 def get_selected_objects_hash():
