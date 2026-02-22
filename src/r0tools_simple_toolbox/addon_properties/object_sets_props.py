@@ -1,4 +1,5 @@
 import logging
+import time
 
 import bpy
 from bpy.props import (  # type: ignore
@@ -17,6 +18,20 @@ from .. import utils as u
 log = logging.getLogger(__name__)
 
 
+def _deferred_colour_resync():
+    from ..object_sets.operators import refresh_object_sets_colours
+
+    refresh_object_sets_colours(None)
+    return None  # Unregisters timer
+
+
+def schedule_deferred_colour_resync():
+    if bpy.app.timers.is_registered(_deferred_colour_resync):
+        bpy.app.timers.unregister(_deferred_colour_resync)
+
+    bpy.app.timers.register(_deferred_colour_resync, first_interval=1)
+
+
 class R0PROP_PG_ObjectSetObjectItem(bpy.types.PropertyGroup):
     """Property representing a reference to an Object within an Object Set"""
 
@@ -32,34 +47,48 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
         if R0PROP_PG_ObjectSetEntryItem._updating:
             return
 
+        addon_object_sets_props = u.get_addon_object_sets_props()
+        allow_colour_override = addon_object_sets_props.object_sets_colour_allow_override
+
+        _start = time.perf_counter()
+
         try:
             R0PROP_PG_ObjectSetEntryItem._updating = True
-            addon_object_sets_props = u.get_addon_object_sets_props()
-
-            allow_override = addon_object_sets_props.object_sets_colour_allow_override
+            target_colour = self.set_colour
 
             for item in self.objects:
                 obj = item.object
                 if obj is None:
                     continue
 
-                target_colour = self.set_colour
-                if not allow_override:
-                    containing_sets = u.check_object_in_sets(obj)
-                    if containing_sets:
-                        target_colour = containing_sets[0].set_colour
+                # Fast path: colour already correct, skip membership lookup
+                if tuple(obj.color) == target_colour:
+                    log.debug(f"Object colour == Target Colour")
+                    continue
 
-                # FIX: Attempt to prevent infinite looping
-                if tuple(obj.color) != tuple(target_colour):
-                    log.debug(f"Updating color for {obj.name}")
+                if allow_colour_override:
+                    continue
+
+                # Only apply if this is the first set that owns the object
+                first_set = next(iter(u.check_object_in_sets(obj, fast=True)), None)
+
+                log.debug(f"{first_set=}")
+
+                if first_set is None or first_set.uuid == self.uuid:
+                    log.debug(f"Updating colour for '{obj.name}' with colour from Object Set '{self.name}'")
                     obj.color = target_colour
         finally:
             R0PROP_PG_ObjectSetEntryItem._updating = False
+
+        _elapsed = time.perf_counter() - _start
+        log.info(f"Took: {_elapsed}s")
 
     def set_object_set_colour(self, colour: list):
         """
         Set colour of Object Set.
         """
+        addon_object_sets_props = u.get_addon_object_sets_props()
+        allow_colour_override = addon_object_sets_props.object_sets_colour_allow_override
 
         # update=func passes context as an argument but we want to
         # pass a list of floats. So in order to workaround having
@@ -68,12 +97,16 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
         if type(colour) in [type(self.set_colour), list, tuple]:
             self.set_colour = colour
 
+        # Used for live-preview
         for item in self.objects:
             obj = item.object
-            if obj is None:
-                continue
+            if obj is not None:
+                obj.color = self.set_colour
 
-            obj.color = self.set_colour
+        # Schedule a deferred re-sync. If already scheduled, timer
+        # handles it, avoiding stacking multiple timers in a drag.
+        if not allow_colour_override:
+            schedule_deferred_colour_resync()
 
     name: bpy.props.StringProperty(name="Object Set Name", default="New Object Set")  # type: ignore
     separator: bpy.props.BoolProperty(default=False)  # type: ignore
@@ -89,7 +122,7 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
         min=0.0,
         max=1.0,
         default=(0.0, 0.0, 0.0, 1.0),
-        update=set_object_set_colour,  # This passes `Context` as an argument....
+        update=set_object_set_colour,  # This passes `context` as an argument....
     )
     checked: bpy.props.BoolProperty(default=False, name="Checked")  # type: ignore
     expanded: bpy.props.BoolProperty(default=False, name="Expand")  # type: ignore
@@ -114,9 +147,13 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
         if self.separator:
             return
 
-        cache = self._get_or_build_cache()
+        addon_object_sets_props = u.get_addon_object_sets_props()
+        allow_colour_override = addon_object_sets_props.object_sets_colour_allow_override
 
+        cache = self._get_or_build_cache()
+        target_colour = tuple(self.set_colour)
         requires_update = False
+        newly_added: list[bpy.types.Object] = []
 
         for obj in objects_to_add:
             if not obj:
@@ -130,22 +167,41 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
                 new_object.object = obj
                 cache.add(obj_ptr)
                 requires_update = True
+                newly_added.append(obj)
 
             # Handle Object-level membership
             u.add_set_reference_to_obj(obj, self.uuid)
 
-        if requires_update or force_update:
-            self.update_count()
-
-    def remove_objects(self, objects_to_remove: list[bpy.types.Object]):
-        addon_object_sets_props = u.get_addon_object_sets_props()
-
-        allow_override = addon_object_sets_props.object_sets_colour_allow_override
-
-        if self.separator:
+        if not (requires_update or force_update):
             return
 
-        if not self.objects:
+        # Update count without triggering the full colour rebuild
+        self.count = len(self.objects)
+        log.debug(f"Updated count for Set '{self.name}': {self.count}")
+
+        # Only colour objects that were just added, skip entire set
+        for obj in newly_added:
+            if tuple(obj.color) == target_colour or allow_colour_override:
+                continue
+
+            if allow_colour_override:
+                log.debug(f"Updating colour for '{obj.name}' with colour from Object Set '{self.name}'")
+                obj.color = self.set_colour
+            else:
+                # Determine if this is the first set this object belongs to.
+                # fast=True returns the first match, so at worst we deal with an O(sets)
+                # Exits immediately once any prior set is found.
+                first_containing_set = next(iter(u.check_object_in_sets(obj, fast=True)), None)
+
+                log.debug(f"'{obj.name}' first set: {first_containing_set.name}")
+
+                if first_containing_set is None or first_containing_set.uuid == self.uuid:
+                    # This is the first (or only) set owner. Apply colour.
+                    log.debug(f"Updating colour for '{obj.name}'")
+                    obj.color = target_colour
+
+    def remove_objects(self, objects_to_remove: list[bpy.types.Object]):
+        if self.separator or not self.objects:
             return
 
         pointers_to_remove = {obj.as_pointer() for obj in objects_to_remove if obj}
@@ -173,7 +229,7 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
             return
 
         # Remove reversed
-        for i, index in enumerate(sorted(indices_to_remove, reverse=True)):
+        for index in sorted(indices_to_remove, reverse=True):
             self.objects.remove(index)
 
         for obj in successfully_removed_objects:
@@ -181,15 +237,8 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
             u.remove_set_reference_from_obj(obj, self.uuid)
 
             # Check if object not in other sets
-            containing_sets = u.check_object_in_sets(obj)
-            if not containing_sets:
-                obj.color = (1.0, 1.0, 1.0, 1.0)
-            else:
-                # Update the object to another set's colour
-                if allow_override:
-                    obj.color = containing_sets[-1].set_colour
-                else:
-                    obj.color = containing_sets[0].set_colour
+            containing_sets = u.check_object_in_sets(obj, fast=True)
+            obj.color = containing_sets[0].set_colour if containing_sets else (1.0, 1.0, 1.0, 1.0)
 
         self.update_count()
 
@@ -200,7 +249,7 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
         self.count = len(self.objects)
         log.debug(f"Updated count for Set '{self.name}': {self.count}")
 
-        self.update_object_set_colour(self)
+        # self.update_object_set_colour(self)
 
 
 class R0PROP_UL_ObjectSetsList(bpy.types.UIList):

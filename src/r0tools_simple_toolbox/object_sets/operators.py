@@ -508,11 +508,10 @@ class SimpleToolbox_OT_ForceRefreshObjectSets(bpy.types.Operator):
     bl_options = {"INTERNAL"}
 
     def execute(self, context):
-        addon_prefs = u.get_addon_prefs()
         addon_object_sets_props = u.get_addon_object_sets_props()
 
         if addon_object_sets_props.object_sets_use_colour:
-            u.refresh_object_sets_colours(context)
+            u.refresh_object_sets_colours(context, force=True)
 
             self.report({"INFO"}, f"Refreshed Object Sets' colours")
 

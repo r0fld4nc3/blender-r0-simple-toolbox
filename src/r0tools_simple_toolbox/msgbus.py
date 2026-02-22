@@ -2,8 +2,8 @@ import logging
 
 import bpy
 
+from . import object_sets
 from . import utils as u
-from .object_sets import pending_known_objects
 from .operators import CustomTransformsOrientationsTracker
 from .vertex_groups import vertex_groups_list_update
 
@@ -16,6 +16,7 @@ _pending_updates = {
     "properties": False,
     "attributes": False,
     "objects": False,
+    "cleanup": False,
 }
 
 _last_selection_hash = None
@@ -141,13 +142,14 @@ def on_depsgraph_update_post(scene, depsgraph):
 
         if new_objects:
             log.debug(f"Staging {len(new_objects)} new object(s) for processing.")
-            pending_known_objects.extend(new_objects)
+            object_sets.pending_known_objects.extend(new_objects)
             _pending_updates["objects"] = True
-            schedule_deferred_update()
 
-        elif was_deleted:
+        if was_deleted:
             log.debug("Object deletion detected (depsgraph)")
-            _pending_updates["objects"] = True
+            _pending_updates["cleanup"] = True
+
+        if new_objects or was_deleted:
             schedule_deferred_update()
 
 
@@ -223,9 +225,13 @@ def process_pending_updates():
 
         # Objects update
         if _pending_updates["objects"]:
-            u.cleanup_object_set_invalid_references(scene=scene)
             u.handle_object_duplication_update(scene=scene)
             _pending_updates["objects"] = False
+
+        # Cleanup
+        if _pending_updates["cleanup"]:
+            u.cleanup_object_set_invalid_references(scene=scene)
+            _pending_updates["cleanup"] = False
 
         # Properties update
         if _pending_updates["properties"]:

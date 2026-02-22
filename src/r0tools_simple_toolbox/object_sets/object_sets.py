@@ -153,6 +153,10 @@ def cleanup_object_set_invalid_references(scene=None):
         if object_set.separator:
             continue
 
+        # Perf: fast pre-check if all members are valid, skip entirely
+        if all(item.object is not None and item.object.name in valid_objects for item in object_set.objects):
+            continue
+
         # Collect indices in one pass
         indices_to_remove = [
             i
@@ -174,13 +178,10 @@ def cleanup_object_set_invalid_references(scene=None):
 
         object_set.update_count()
         total_cleaned += len(indices_to_remove)
-
         log.info(f"Cleaned up {cleaned_up} references for Object Set '{object_set.name}'")
 
     if total_cleaned > 0:
-        for area in bpy.context.screen.areas:
-            if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
-                area.tag_redraw()
+        u.tag_redraw_if_visible()
 
     return None
 
@@ -216,7 +217,12 @@ def handle_object_duplication_update(scene=None):
     log.debug(f"{data_to_process=}")
 
     # Lookup dict for efficiency
+    # Pre-prepare caches before iteration.
+    # Should help with performance as it ensures _get_or_build_cache()
+    # is a pure dict lookup on subsequent calls.
     uuid_to_set_map = {obj_set.uuid: obj_set for obj_set in object_sets if not obj_set.separator}
+    for obj_set in uuid_to_set_map.values():
+        obj_set._get_or_build_cache()
 
     bulk_assign: dict = {}
 
@@ -253,10 +259,12 @@ def handle_object_duplication_update(scene=None):
     return None
 
 
-def check_object_in_sets(obj) -> list:
+def check_object_in_sets(obj, fast: bool = False) -> list:
     """
     Checks if an object is present in more Object Sets. If so
     return a list of references to each Object Set containing the object
+
+    `fast`: Forces return of first instance found, avoiding checing all sets.
 
     :return: `list` of `Object Sets`
     """
@@ -277,6 +285,8 @@ def check_object_in_sets(obj) -> list:
 
         if obj_ptr in cache:
             containing_sets.append(object_set)
+            if fast:
+                break
 
     return containing_sets
 
@@ -442,12 +452,18 @@ def _calculate_mesh_stats(show_verts, show_edges, show_faces, show_tris):
 
 
 @bpy.app.handlers.persistent
-def refresh_object_sets_colours(context):
+def refresh_object_sets_colours(context, force=False):
     """Refresh colors for all object sets"""
 
     log.debug(f"Force Refreshing Object Sets' Colours")
 
     addon_object_sets_props = u.get_addon_object_sets_props()
+    allow_colour_override = addon_object_sets_props.object_sets_colour_allow_override
+
+    # When allowing override, don't refresh the colours to any set colours
+    if allow_colour_override and not force:
+        log.info("Cancelling Object Sets' colour refresh as allowed colour override is in effect.")
+        return
 
     object_sets = get_object_sets()
 
