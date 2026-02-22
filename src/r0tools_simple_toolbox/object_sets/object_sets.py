@@ -206,10 +206,8 @@ def handle_object_duplication_update(scene=None):
         return None
 
     # Process known identified changes first
-    _tag_redraw: bool = False
     new_objects = pending_known_objects[:]
-    if new_objects:
-        _tag_redraw = True
+    _tag_redraw: bool = False if not new_objects else True
     pending_known_objects.clear()  # Consume staged changes
     log.debug(f"{new_objects=}")
 
