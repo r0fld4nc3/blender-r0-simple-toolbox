@@ -296,11 +296,11 @@ def on_load_post(dummy):
 @bpy.app.handlers.persistent
 def on_undo_redo_post(dummy):
     log.debug("Undo/Redo post")
-    if u.object_count_changed():
-        _pending_updates["properties"] = True
-        _pending_updates["attributes"] = True
-        _pending_updates["objects"] = True
-        schedule_deferred_update()
+    _pending_updates["properties"] = True
+    _pending_updates["attributes"] = True
+    _pending_updates["objects"] = True
+    _pending_updates["cleanup"] = True
+    schedule_deferred_update()
     subscribe_to_all_changes()
     u.sync_known_objects()
 
