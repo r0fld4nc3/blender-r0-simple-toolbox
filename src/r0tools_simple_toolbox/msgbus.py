@@ -3,6 +3,7 @@ import logging
 import bpy
 
 from . import utils as u
+from .object_sets import pending_known_objects
 from .operators import CustomTransformsOrientationsTracker
 from .vertex_groups import vertex_groups_list_update
 
@@ -111,6 +112,29 @@ def _on_vertex_groups_modified(obj):
         schedule_deferred_update()
 
 
+def _process_new_objects_stage():
+    """
+    Process and stage any new known objects in the scene.
+    This needs to be captured in the depsgraph update and
+    not already in the scheduled function for the pointer
+    and object snapshot to be valid (while it's hot).
+
+    It diffs the current known (synced pointers) with any new
+    unknown pointers and stages (pushes) these objects to process
+    to object_sets' staging list.
+
+    This list is then consumed on process.
+    """
+    new_objects = u.get_new_objects()
+
+    if new_objects:
+        # Push new object changes to object_sets' new_objects list
+        log.debug(f"Staging {len(new_objects)} new object(s) for processing")
+        pending_known_objects.extend(new_objects)
+
+    u.sync_known_objects()
+
+
 # ============================================================================
 # Depsgraph Fallback (Read-Only Detection Only)
 # ============================================================================
@@ -142,6 +166,7 @@ def on_depsgraph_update_post(scene, depsgraph):
         if u.object_count_changed():
             log.debug("Object count changed (depsgraph)")
             _pending_updates["objects"] = True
+            _process_new_objects_stage()
             schedule_deferred_update()
 
 
@@ -204,6 +229,7 @@ def process_pending_updates():
         return
 
     if not any(_pending_updates.values()):
+        log.debug("No pending updates to process.")
         return
 
     try:

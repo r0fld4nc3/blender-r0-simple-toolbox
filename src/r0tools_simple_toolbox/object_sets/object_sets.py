@@ -8,6 +8,8 @@ from .. import utils as u
 
 log = logging.getLogger(__name__)
 
+pending_known_objects: list[bpy.types.Object] = []
+
 
 def get_object_sets(scene=None) -> list:
     addon_object_sets_props = u.get_addon_object_sets_props(scene=scene)
@@ -179,6 +181,7 @@ def cleanup_object_set_invalid_references(scene=None):
         for area in bpy.context.screen.areas:
             if area.type in {"PROPERTIES", "OUTLINER", "VIEW_3D"}:
                 area.tag_redraw()
+
     return None
 
 
@@ -191,6 +194,8 @@ def handle_object_duplication_update(scene=None):
     are detected.
     """
 
+    global pending_known_objects
+
     scene = u.get_scene(scene)
 
     log.debug(f"Handle Object Duplication Update")
@@ -200,12 +205,24 @@ def handle_object_duplication_update(scene=None):
     if not object_sets:
         return None
 
+    # Process known identified changes first
+    _tag_redraw: bool = False
+    new_objects = pending_known_objects[:]
+    if new_objects:
+        _tag_redraw = True
+    pending_known_objects.clear()  # Consume staged changes
+    log.debug(f"{new_objects=}")
+
+    data_to_process = new_objects if new_objects else list(u.iter_scene_objects(selected=True))
+
+    log.debug(f"{data_to_process=}")
+
     # Lookup dict for efficiency
     uuid_to_set_map = {obj_set.uuid: obj_set for obj_set in object_sets if not obj_set.separator}
 
     bulk_assign: dict = {}
 
-    for obj in u.iter_scene_objects(selected=True):
+    for obj in data_to_process:
         object_props = u.get_object_props(obj)
         if not object_props or not hasattr(object_props, "object_sets"):
             continue
@@ -221,9 +238,7 @@ def handle_object_duplication_update(scene=None):
             # Use cache for efficient lookup
             if obj.as_pointer() not in cache:
                 # Object needs to be assigned. Schedule.
-                if target_set not in bulk_assign:
-                    bulk_assign[target_set] = []
-                bulk_assign[target_set].append(obj)
+                bulk_assign.setdefault(target_set, []).append(obj)
 
     if not bulk_assign:
         return
@@ -233,6 +248,9 @@ def handle_object_duplication_update(scene=None):
     # Perform assignments only for objects that really need it
     for target_set, objects in bulk_assign.items():
         target_set.assign_objects(objects)
+
+    if _tag_redraw:
+        u.tag_redraw_if_visible()
 
     return None
 

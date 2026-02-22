@@ -7,6 +7,8 @@ from ..defines import INTERNAL_NAME, TOOLBOX_PROPS_NAME
 
 log = logging.getLogger(__name__)
 
+_known_object_pointers: set[int] = set()
+
 
 def get_active_modal_operators(context: bpy.types.Context = None) -> list:
     """
@@ -80,6 +82,35 @@ def get_scene(scene=None) -> bpy.types.Scene:
 def get_scene_name() -> str:
     """Get the name of the current scene"""
     return get_scene().name
+
+
+def get_data_objects_len() -> int:
+    return len(bpy.data.objects)
+
+
+def get_current_object_pointers() -> set[int]:
+    """Return a set of memory pointers for all current scene objects."""
+    return {obj.as_pointer() for obj in get_scene().objects}
+
+
+def get_new_objects() -> list[bpy.types.Object]:
+    """
+    Returns objects that exist in the scene but not previously tracked.
+    O(n) and should avoid object-specific lookups when necessary.
+    """
+
+    global _known_object_pointers
+    current = {obj.as_pointer(): obj for obj in get_scene().objects}
+    log.debug(f"{current=}")
+    new_pointers = current.keys() - _known_object_pointers
+    log.debug(f"{new_pointers=}")
+    return [current[pointer] for pointer in new_pointers]
+
+
+def sync_known_objects():
+    """Called after any object set change to keep tracker synched."""
+    global _known_object_pointers
+    _known_object_pointers = get_current_object_pointers()
 
 
 def get_selection_mode(as_str=False) -> int | str:

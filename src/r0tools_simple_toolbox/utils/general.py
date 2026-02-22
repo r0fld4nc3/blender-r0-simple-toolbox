@@ -7,13 +7,7 @@ from pathlib import Path
 import bmesh
 import bpy
 
-from ..utils import (
-    CUSTOM_PROPERTIES_TYPES,
-    OBJECT_MODES,
-    get_addon_prefs,
-    get_addon_props,
-    get_scene,
-)
+from .. import utils as u
 
 log = logging.getLogger(__name__)
 
@@ -97,7 +91,7 @@ def set_object_mode(mode: str):
 
     # Edit Mode weirdness fix
     if mode.upper() == "EDIT_MESH":
-        mode = OBJECT_MODES.EDIT
+        mode = u.OBJECT_MODES.EDIT
     bpy.ops.object.mode_set(mode=mode)
 
 
@@ -310,8 +304,8 @@ def temporarily_unhide_objects(objects: list | tuple | set):
 def deselect_all():
     """Deselect all objects or elements based on current mode"""
     context_mode = bpy.context.mode
-    edit_modes = [OBJECT_MODES.EDIT, OBJECT_MODES.EDIT_MODE]
-    object_modes = [OBJECT_MODES.OBJECT, OBJECT_MODES.OBJECT_MODE]
+    edit_modes = [u.OBJECT_MODES.EDIT, u.OBJECT_MODES.EDIT_MODE]
+    object_modes = [u.OBJECT_MODES.OBJECT, u.OBJECT_MODES.OBJECT_MODE]
 
     if context_mode in edit_modes:
         bpy.ops.mesh.select_all(action="DESELECT")
@@ -520,10 +514,12 @@ def object_count_changed() -> bool:
         return False
 
     scene_objects_count = len(scene.objects)
+    data_objects_count = u.get_data_objects_len()
 
-    changed = scene_objects_count != _last_object_count
+    # Check both scene and bpy.data for thoroughness
+    changed = scene_objects_count != _last_object_count or data_objects_count != _last_object_count
 
-    _last_object_count = scene_objects_count
+    _last_object_count = data_objects_count
 
     return changed
 
@@ -618,7 +614,7 @@ def op_clear_sharp_along_axis(axis: str):
     log.info(f"Clear Sharp Along Axis {axis}")
     axis = str(axis).upper()
 
-    threshold = get_addon_prefs().clear_sharp_axis_float_prop
+    threshold = u.get_addon_prefs().clear_sharp_axis_float_prop
     log.info(f"Threshold: {threshold}")
 
     # Collect select objects
@@ -644,7 +640,7 @@ def op_clear_sharp_along_axis(axis: str):
 
         # Store the selection mode
         # Tuple of Booleans for each of the 3 modes
-        selection_mode = tuple(get_scene().tool_settings.mesh_select_mode)
+        selection_mode = tuple(u.get_scene().tool_settings.mesh_select_mode)
 
         # Store initial selections
         # Vertices
@@ -709,7 +705,7 @@ def op_clear_sharp_along_axis(axis: str):
 
 
 def _custom_properties_store_states() -> dict:
-    addon_props = get_addon_props()
+    addon_props = u.get_addon_props()
 
     # Store the current selection state of Custom Property List
     selection_state = {}
@@ -720,7 +716,7 @@ def _custom_properties_store_states() -> dict:
 
 
 def custom_property_list_add_props(props: set | list, prop_type, selection_state: dict):
-    addon_props = get_addon_props()
+    addon_props = u.get_addon_props()
 
     # Populate the UIList
     for prop_name in props:
@@ -747,12 +743,12 @@ def property_list_update(scene=None, force_run=False):
 
     from .context import is_writing_context_safe
 
-    scene = get_scene(scene)
+    scene = u.get_scene(scene)
 
     if not is_writing_context_safe(scene):
         return None
 
-    addon_props = get_addon_props(scene)
+    addon_props = u.get_addon_props(scene)
 
     if not addon_props.cat_show_custom_properties_editor and not force_run:
         # Skip update if panel is not visible
@@ -791,8 +787,8 @@ def property_list_update(scene=None, force_run=False):
 
         # Populate the UIList
         # Allows it to finally be sorted!
-        custom_property_list_add_props(unique_object_data_props, CUSTOM_PROPERTIES_TYPES.OBJECT_DATA, selection_state)
-        custom_property_list_add_props(unique_mesh_data_props, CUSTOM_PROPERTIES_TYPES.MESH_DATA, selection_state)
+        custom_property_list_add_props(unique_object_data_props, u.CUSTOM_PROPERTIES_TYPES.OBJECT_DATA, selection_state)
+        custom_property_list_add_props(unique_mesh_data_props, u.CUSTOM_PROPERTIES_TYPES.MESH_DATA, selection_state)
 
         # Update the last object selection
         try:
@@ -840,7 +836,7 @@ def property_list_update(scene=None, force_run=False):
 
 
 def _object_attributes_store_states() -> dict:
-    addon_props = get_addon_props()
+    addon_props = u.get_addon_props()
 
     # Store the current selection state of Custom Property List
     selection_state = {}
@@ -851,7 +847,7 @@ def _object_attributes_store_states() -> dict:
 
 
 def object_attributes_list_add_props(attributes: set | list, selection_state: dict):
-    addon_props = get_addon_props()
+    addon_props = u.get_addon_props()
 
     # Populate the UIList
     for attrib_name in sorted(attributes):
@@ -874,13 +870,13 @@ def object_attributes_list_update(scene=None, force_run=False):
 
     from .context import is_writing_context_safe
 
-    scene = get_scene(scene)
+    scene = u.get_scene(scene)
 
     if not is_writing_context_safe(scene):
         return None
 
-    addon_prefs = get_addon_prefs()
-    addon_props = get_addon_props(scene)
+    addon_prefs = u.get_addon_prefs()
+    addon_props = u.get_addon_props(scene)
 
     log.debug("------------- Object Attibutes List Update -------------")
 
