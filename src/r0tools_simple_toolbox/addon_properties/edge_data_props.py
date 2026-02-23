@@ -102,6 +102,9 @@ def register():
 
 
 def unregister():
+    log.debug(f"Unregister bpy.types.Scene.r0fl_toolbox_edge_data_props")
+    del bpy.types.Scene.r0fl_toolbox_edge_data_props
+
     for cls in classes:
         log.debug(f"Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
@@ -119,6 +122,3 @@ def unregister():
                 log.error(
                     f"Exception when attempting to remove a handler '{handler.__name__}' from load_post list: {e}"
                 )
-
-    log.debug(f"Unregister bpy.types.Scene.r0fl_toolbox_edge_data_props")
-    del bpy.types.Scene.r0fl_toolbox_edge_data_props

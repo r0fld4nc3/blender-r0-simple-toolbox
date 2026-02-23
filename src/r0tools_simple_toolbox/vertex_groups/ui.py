@@ -41,6 +41,8 @@ panel_attributions = {
 
 
 def register():
+    classes.clear() # Prevent duplicates
+    
     for panel_class, values in panel_attributions.items():
         categories = values.get("categories")
         for cat in categories:
@@ -56,3 +58,5 @@ def unregister():
     for cls in classes:
         log.debug(f"Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
+
+    classes.clear()
