@@ -495,7 +495,9 @@ def register():
 
 
 def unregister():
-    for cls in classes:
-        log.debug(f"Unregister {cls.__name__}")
     log.debug(f"Unregister bpy.types.Scene.r0fl_toolbox_export_props")
     del bpy.types.Scene.r0fl_toolbox_export_props
+
+    for cls in reversed(classes):
+        log.debug(f"Unregister {cls.__name__}")
+        bpy.utils.unregister_class(cls)
