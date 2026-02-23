@@ -309,21 +309,30 @@ def is_writing_context_safe(scene) -> bool:
         log.info(f"[MONITOR] Interface is locked (rendering/baking). Skipping.")
         return False
 
-    """
-    # Check for active jobs
-    jobs = ("RENDER", "COMPOSITE", "OBJECT_BAKE")
-    jobs_active = [bpy.app.is_job_running(job) for job in jobs]
-    if any(jobs_active):
-        log.info(f"[MONITOR] Active job(s) detected. Skipping.")
-        return False
-    """
-
     # Additional check for bake operator
     if hasattr(bpy.context, "active_operator") and bpy.context.active_operator:
         op_idname = bpy.context.active_operator.bl_idname
         if "bake" in op_idname.lower():
             log.info(f"[MONITOR] Bake operator active: {op_idname}. Skipping.")
             return False
+
+    # Check for active jobs
+    jobs = ("RENDER", "COMPOSITE", "OBJECT_BAKE")
+    jobs_active = [bpy.app.is_job_running(job) for job in jobs]
+    if any(jobs_active):
+        log.info(f"[MONITOR] Active job(s) detected. Skipping.")
+        return False
+
+    # A generalist broader check if all else fails
+    # If the context is restricted for ANY reason, wm.save_as_mainfile
+    # will not poll. This catches mid-operator evaluation, modal operator locks
+    # and other restricted states not covered above.
+    try:
+        if not bpy.ops.wm.save_as_mainfile.poll():
+            log.info("[MONITOR] Context restricted (poll failed). Skipping")
+            return False
+    except Exception as e:
+        return False
 
     return True
 
