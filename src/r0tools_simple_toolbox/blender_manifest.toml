@@ -1,8 +1,8 @@
 schema_version = "1.0.0"
 
-id = "r0tools_simple_toolbox_schedule_deferred_update_fix"
+id = "r0tools_simple_toolbox"
 version = "0.3.5"
-name = "r0Tools - Simple Toolbox.schedule-deferred-update-fix"
+name = "r0Tools - Simple Toolbox"
 tagline = "General workflow utitlies"
 maintainer = "https://github.com/r0fld4nc3"
 # Supported types: "add-on", "theme"
