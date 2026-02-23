@@ -260,7 +260,7 @@ def cancel_pending_updates():
     """
 
     if bpy.app.timers.is_registered(_deferred_update):
-        bpy.app.timers.unergister(_deferred_update)
+        bpy.app.timers.unregister(_deferred_update)
 
     global _pending_updates
     _pending_updates = {key: False for key in _pending_updates}
