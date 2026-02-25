@@ -390,7 +390,7 @@ class SimpleToolbox_OT_VgroupsSelectObjectsWithVgroups(bpy.types.Operator):
             u.set_vertex_groups_depsgraph_do_update(False)
             u.deselect_all()
             for obj in objects_to_select:
-                u.select_object(obj)
+                u.select_object(obj, add=True)
 
             u.set_active_object(objects_to_select[0])
 

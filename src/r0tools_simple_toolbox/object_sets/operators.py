@@ -491,7 +491,7 @@ class SimpleToolbox_OT_SelectObjectSet(bpy.types.Operator):
             to_become_active = object_set.objects[0].object
             for object_set_item in reversed(object_set.objects):
                 obj = object_set_item.object
-                u.select_object(obj)
+                u.select_object(obj, add=True, set_active=False)
 
             u.set_active_object(to_become_active)
 

@@ -100,7 +100,7 @@ def set_mode_edit():
     set_object_mode("EDIT")
 
 
-def select_object(obj: bpy.types.Object, add=True, set_active=False) -> bpy.types.Object | None:
+def select_object(obj: bpy.types.Object, add: bool = False, set_active: bool = True) -> bpy.types.Object | None:
     """
     Select an object in the scene
 
@@ -125,11 +125,15 @@ def select_object(obj: bpy.types.Object, add=True, set_active=False) -> bpy.type
 
     try:
         obj.select_set(True)
-    except Exception as e:
-        log.error(f"Selecting {obj.name} {e}")
 
-    if not add or set_active:
-        set_active_object(obj)
+        if not add or set_active:
+            set_active_object(obj)
+            # If we're not adding to the selection
+            # object needs to be set active to
+            # properly reflect and update selection.
+    except RuntimeError as e:
+        log.error(f"Selecting {obj.name} {e}")
+        return None
 
     return obj
 

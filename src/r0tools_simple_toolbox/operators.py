@@ -724,7 +724,7 @@ class SimpleToolbox_OT_FindModifierSearch(bpy.types.Operator):
 
         if sorted_objects:
             for obj in sorted_objects:
-                u.select_object(obj, add=True)
+                u.select_object(obj, add=True, set_active=False)
 
             u.set_active_object(sorted_objects[-1])
 
@@ -804,10 +804,10 @@ class SimpleToolbox_OT_FindModifierSelectObject(bpy.types.Operator):
             return {"CANCELLED"}
 
         if self.add_to_selection:
-            u.select_object(target_obj, add=True, set_active=True)
+            u.select_object(target_obj, add=True)
         else:
             u.deselect_all()
-            u.select_object(target_obj, add=False, set_active=True)
+            u.select_object(target_obj)
 
         return {"FINISHED"}
 
@@ -853,7 +853,7 @@ class SimpleToolbox_OT_FindModifierSelectCategory(bpy.types.Operator):
             self.report({"WARNING"}, f"No objects found in category '{self.category_name}'")
 
         for obj in objects_to_select:
-            u.select_object(obj, add=True, set_active=True)
+            u.select_object(obj, add=True)
 
         return {"FINISHED"}
 
@@ -950,7 +950,7 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
         u.deselect_all()
 
         # Make active
-        u.select_object(obj, add=False, set_active=True)
+        u.select_object(obj)
 
         if context.mode != u.OBJECT_MODES.EDIT_MESH:
             u.set_mode_edit()
@@ -1046,7 +1046,7 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
 
         # Restore selection
         for obj in selected_objects:
-            u.select_object(obj, add=True)
+            u.select_object(obj, add=True, set_active=False)
         u.set_active_object(original_active_obj)
 
         # Return to the original active object and mode
@@ -1080,7 +1080,7 @@ class SimpleToolbox_OT_RestoreNthEdge(bpy.types.Operator):
         u.deselect_all()
 
         # Make active
-        u.select_object(obj, add=False, set_active=True)
+        u.select_object(obj, add=False)
 
         if context.mode != u.OBJECT_MODES.EDIT_MESH:
             u.set_mode_edit()
@@ -1300,7 +1300,7 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
 
         for obj in orig_selected_objects:
             log.debug(f"Iterating Object: {obj.name}")
-            u.select_object(obj, add=False, set_active=True)
+            u.select_object(obj, add=False)
             u.set_mode_edit()
 
             # TODO: Check for selected loops/polygons, otherwise, skip.
@@ -1340,7 +1340,7 @@ class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
 
         # Restore selection
         for obj in orig_selected_objects:
-            u.select_object(obj)  # Add to selection
+            u.select_object(obj, add=True, set_active=False)  # Add to selection
             u.set_mode_edit()
 
         # Restore active object
@@ -1506,7 +1506,7 @@ class SimpleToolbox_OT_SelectEmptyObjects(bpy.types.Operator):
         log.info(f"{msg}")
         for i, flagged_obj in enumerate(flagged, start=1):
             log.info(f"({i}) {flagged_obj.name}")
-            u.select_object(flagged_obj, set_active=(i == 1))
+            u.select_object(flagged_obj, add=True, set_active=(i == 1))
 
         self.report({"INFO"}, msg)
 
@@ -1550,7 +1550,7 @@ class SimpleToolbox_OT_SelectNonUniformScaleObjects(bpy.types.Operator):
         u.deselect_all()
 
         for obj in objs_to_select:
-            u.select_object(obj, set_active=True)
+            u.select_object(obj, add=True)
 
         self.report({"INFO"}, f"Selected {len(objs_to_select)} objects with non-uniform scale.")
         return {"FINISHED"}
@@ -1652,7 +1652,7 @@ class SimpleToolbox_OT_UVCheckIslandThresholds(bpy.types.Operator):
 
         for obj in original_selection:
             if obj.type == u.OBJECT_TYPES.MESH:
-                u.select_object(obj, add=False, set_active=True)
+                u.select_object(obj)
                 small_islands, small_faces, small_verts = select_small_uv_islands(
                     obj,
                     uv_x,
@@ -1665,7 +1665,7 @@ class SimpleToolbox_OT_UVCheckIslandThresholds(bpy.types.Operator):
 
         # Restore selection
         for obj in original_selection:
-            u.select_object(obj)
+            u.select_object(obj, add=True)
 
         u.set_active_object(original_active)
 
