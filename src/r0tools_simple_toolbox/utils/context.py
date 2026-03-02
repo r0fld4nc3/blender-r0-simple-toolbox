@@ -292,8 +292,6 @@ def is_writing_context_safe(scene) -> bool:
     Potential fix for "AttributeError: Writing to ID classes in this context is now allowed: Scene, Scene datablock
     """
 
-    from .general import log
-
     if is_saving():
         log.info(f"Unsafe write context while file is being saved.")
         return False
