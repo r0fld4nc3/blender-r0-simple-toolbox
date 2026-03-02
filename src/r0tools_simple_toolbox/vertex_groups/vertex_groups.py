@@ -200,8 +200,6 @@ def _needs_update():
 
 
 def vertex_groups_list_update(scene=None, force: bool = False):
-    log.debug(f"vertex_groups_list_update(scene = {scene}, force = {force})")
-
     scene = u.get_scene(scene)
 
     addon_props = u.get_addon_props(scene)
