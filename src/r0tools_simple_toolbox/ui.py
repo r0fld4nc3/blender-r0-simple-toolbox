@@ -9,7 +9,13 @@ from .data_ops.ui import (
     draw_clear_custom_properties_ui,
     draw_clear_objects_attributes_ui,
 )
-from .defines import ADDON_CATEGORY, ADDON_NAME_BARE, IDNAME_EXTRA, VERSION_STR
+from .defines import (
+    ADDON_BRANCH,
+    ADDON_CATEGORY,
+    ADDON_NAME_BARE,
+    IDNAME_EXTRA,
+    VERSION_STR,
+)
 from .find_modifiers_ops import SimpleToolbox_OT_FindModifiersCategoryVisCollapse
 from .operators import *
 from .repo import draw_repo_layout
@@ -84,6 +90,8 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         panelvis_find_modifier_ops = "panelvis_find_modifier_ops"
         panelvis_custom_properties_ops = "panelvis_custom_properties_ops"
 
+        is_dev_branch = ADDON_BRANCH.lower().startswith("dev")
+
         if self.has_update:
             from .repo import SimpleToolbox_OT_TakeMeToUpdate
 
@@ -113,22 +121,24 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
 
             if dev_tools_panel:
                 row = dev_tools_panel.row()
-                row.operator(BUILTINS_OT_IconViewer.bl_idname)
+                if is_dev_branch:
+                    row.operator(BUILTINS_OT_IconViewer.bl_idname)
                 row.operator(
                     SimpleToolbox_OT_ToggleDebugMode.bl_idname,
                     text="Debug",
                     icon="CONSOLE",
                     depress=addon_prefs.debug,
                 )
-                row = dev_tools_panel.row()
-                row.operator("script.reload", text="Reload All Scripts", icon="PACKAGE")
-                reload_user_defined_box = dev_tools_panel.box()
-                row = reload_user_defined_box.row()
-                row.prop(addon_props, "reload_modules_prop")
-                row = reload_user_defined_box.row()
-                row.operator(SimpleToolbox_OT_ReloadNamedScripts.bl_idname, icon="TOOL_SETTINGS")
+                if is_dev_branch:
+                    row = dev_tools_panel.row()
+                    row.operator("script.reload", text="Reload All Scripts", icon="PACKAGE")
+                    reload_user_defined_box = dev_tools_panel.box()
+                    row = reload_user_defined_box.row()
+                    row.prop(addon_props, "reload_modules_prop")
+                    row = reload_user_defined_box.row()
+                    row.operator(SimpleToolbox_OT_ReloadNamedScripts.bl_idname, icon="TOOL_SETTINGS")
 
-                if addon_prefs.experimental_features:
+                if is_dev_branch and addon_prefs.experimental_features:
                     row = dev_tools_panel.row()
                     row.operator("image.reload", icon="IMAGE_DATA")
                     row = dev_tools_panel.row()
@@ -319,6 +329,12 @@ def register():
 
     # upd.trigger_update_check()
     upd.trigger_thread_update_check()
+
+
+def unregister():
+    for cls in classes:
+        log.info(f"Unregister {cls.__name__}")
+        bpy.utils.unregister_class(cls)
 
 
 def unregister():
