@@ -330,6 +330,7 @@ def is_writing_context_safe(scene) -> bool:
             log.info("[MONITOR] Context restricted (poll failed). Skipping")
             return False
     except Exception as e:
+        log.error(e)
         return False
 
     return True
