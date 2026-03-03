@@ -3,26 +3,22 @@ from pathlib import Path
 from . import bl_info
 
 
-def _version_str(version_tuple: tuple):
+def _version_str(version_tuple: tuple) -> str:
     v_str = ".".join([str(n) for n in version_tuple])
     return v_str
 
 
-def _set_addon_internal_name(from_name: str):
-    """Utility function to set the constant addon Internal Name at startup.
-    The issue stems from when the addon is an extension and the internal name becomes
-    bl_ext.module_name.internal_name"""
+def _set_addon_internal_name(from_name: str) -> str:
+    """
+    Returns the correct internal name for use as bl_idname in AddonPreferences.
+    For extensions Blender (4.2+), the add-on is registered under the full
+    'bl_ext.<repo>.<name>' package path, so bl_idname MUST match that full path.
+    For legacy add-ons, the bare module name is used.
+    """
 
-    if __package__:
-        split = __package__.split(".")
-        if len(split) >= 3 and split[0].lower() == "bl_ext":  # Probably an extension
-            for split_item in split:
-                if from_name in split_item:
-                    # Is an extension
-                    return __package__
-
-    # Extension name not found
-    return from_name
+    if __package__ and __package__.startswith("bl_ext."):
+        return __package__
+    return from_name  # Original package name
 
 
 # fmt: off
