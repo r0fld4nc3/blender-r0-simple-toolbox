@@ -120,16 +120,27 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 dev_tools_header.label(text="Dev Tools")
 
             if dev_tools_panel:
+
+                # Show Addon Preferences
+                row = dev_tools_panel.row()
+                row.operator(SimpleToolbox_OT_ShowAddonPreferences.bl_idname, icon="PREFERENCES")
+
+                # Row for Icon Viewer and Debug Mode
                 row = dev_tools_panel.row()
                 if is_dev_branch:
+                    # Icon Viewer
                     row.operator(BUILTINS_OT_IconViewer.bl_idname)
+
+                # Toggle Debug Mode
                 row.operator(
                     SimpleToolbox_OT_ToggleDebugMode.bl_idname,
                     text="Debug",
                     icon="CONSOLE",
                     depress=addon_prefs.debug,
                 )
+
                 if is_dev_branch:
+                    # Reload Scripts
                     row = dev_tools_panel.row()
                     row.operator("script.reload", text="Reload All Scripts", icon="PACKAGE")
                     reload_user_defined_box = dev_tools_panel.box()
@@ -139,6 +150,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                     row.operator(SimpleToolbox_OT_ReloadNamedScripts.bl_idname, icon="TOOL_SETTINGS")
 
                 if is_dev_branch and addon_prefs.experimental_features:
+                    # Reload Images
                     row = dev_tools_panel.row()
                     row.operator("image.reload", icon="IMAGE_DATA")
                     row = dev_tools_panel.row()

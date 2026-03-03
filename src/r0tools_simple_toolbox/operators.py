@@ -1717,6 +1717,17 @@ class SimpleToolbox_OT_ToggleDebugMode(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_ShowAddonPreferences(bpy.types.Operator):
+    bl_label = "Open Addon Prefs"
+    bl_idname = "r0tools.show_addon_preferences"
+    bl_description = "Open the Preferences window with the addon pre-selected"
+    bl_options = {"REGISTER", "INTERNAL"}
+
+    def execute(self, context):
+        bpy.ops.preferences.addon_show(module=INTERNAL_NAME)
+        return {"FINISHED"}
+
+
 # ===================================================================
 #   Register & Unregister
 # ===================================================================
@@ -1753,6 +1764,7 @@ classes = [
     SimpleToolbox_OT_UVCheckIslandThresholds,
 
     SimpleToolbox_OT_ToggleDebugMode,
+    SimpleToolbox_OT_ShowAddonPreferences,
 ]
 # fmt: on
 
