@@ -7,8 +7,8 @@ SET REPO_DIR=.\..\..\blender-addons-repo\release
 rem Build the extension
 %BLENDER_DIR% -b --factory-startup --command extension build --source-dir %SOURCE_DIR% --output-dir %REPO_DIR%
 
-echo ""
-echo "Press any key to continue generating server files. This is a chance to rename the file(s) if needed."
+echo.
+echo Press any key to continue generating server files. This is a chance to rename the file(s) if needed.
 pause
 
 rem Generate server files
