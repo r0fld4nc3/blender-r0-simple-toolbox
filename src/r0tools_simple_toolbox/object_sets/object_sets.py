@@ -478,6 +478,21 @@ def refresh_object_sets_colours(context, force=False):
 
 
 @bpy.app.handlers.persistent
+def resync_object_sets_caches():
+    object_sets: list = get_object_sets()
+
+    for object_set in object_sets:
+        object_set.resync_cache()
+
+
+@bpy.app.handlers.persistent
+def clear_object_sets_cache():
+    from ..addon_properties.object_sets_props import clear_object_sets_cache
+
+    clear_object_sets_cache()
+
+
+@bpy.app.handlers.persistent
 def load_legacy_object_sets(dummy):
     """Load legacy properties into new properties"""
 

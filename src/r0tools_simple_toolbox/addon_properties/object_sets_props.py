@@ -18,6 +18,9 @@ from .. import utils as u
 log = logging.getLogger(__name__)
 
 
+_object_set_caches: dict[int, set[int]] = {}
+
+
 def _deferred_colour_resync():
     from ..object_sets.operators import refresh_object_sets_colours
 
@@ -129,25 +132,64 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
     faces: bpy.props.IntProperty(default=0)  # type: ignore
     tris: bpy.props.IntProperty(default=0)  # type: ignore
 
-    def _get_or_build_cache(self):
+    def _get_or_build_cache(self) -> set[int]:
         """
         Internal method to get the existing object cache (a python set) or
         build it if it doesn't exist or appears outdated.
 
         Using object pointers keeps references when dealing with object renaming.
-        """
-        if not hasattr(self, "_object_cache") or len(self._object_cache) != len(self.objects):
-            self._object_cache = {item.object.as_pointer() for item in self.objects if item.object}
 
-        return self._object_cache
+        v0.3.7: Changed to live in module level Python dict, NOT as PropertyGroup
+        instance. This should avoid RNA writing context restrictions.
+        Also changed to function as a proper maintained cache and not an awkward
+        middle-ground implementation.
+        """
+
+        key = self.as_pointer()
+        cached = _object_set_caches.get(key)
+
+        if cached is not None:
+            log.debug(f"{self.name}: {len(cached)=}")
+
+        # Rebuild if missing or membership count changed
+        if cached is None:
+            # A cold start intial build
+            cached = {item.object.as_pointer() for item in self.objects if item.object}
+            _object_set_caches[key] = cached
+            log.debug(f"Cold cache build for: {self.name} ({len(cached)}) objects.")
+            log.debug(f"{self.name}: {len(cached)=}")
+
+        return cached
+
+    def resync_cache(self) -> set[int]:
+        """
+        Trigger a re-evaluation and resync of the object sets cache.
+        Mainly used in Undo/Redo operations to ensure cache stays in sync.
+        This should be called on an Object Sets loop iteration, i.e.:
+        ```
+        for obj_set in object_sets:
+            obj_set.resync_cache()
+        """
+
+        key = self.as_pointer()
+        prev_count = len(_object_set_caches.get(key), ())
+
+        new_cache = {item.object.as_pointer() for item in self.objects if item.object}
+        _object_set_caches[key] = new_cache
+
+        log.debug(f"Resynced cache for: {self.name} (now {len(new_cache)} | prev {prev_count})")
+        return new_cache
 
     def assign_objects(self, objects_to_add: list[bpy.types.Object], force_update: bool = False):
         if self.separator:
             return
 
+        log.info(f"Assign {len(objects_to_add)} objects to: {self.name}")
+
         addon_object_sets_props = u.get_addon_object_sets_props()
         allow_colour_override = addon_object_sets_props.object_sets_colour_allow_override
 
+        # Get cache. Perf cost should be O(1) if built/warm, O(n) cold.
         cache = self._get_or_build_cache()
         target_colour = tuple(self.set_colour)
         requires_update = False
@@ -163,7 +205,7 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
             if obj_ptr not in cache:
                 new_object = self.objects.add()
                 new_object.object = obj
-                cache.add(obj_ptr)
+                cache.add(obj_ptr)  # Update cache, no rebuild required.
                 requires_update = True
                 newly_added.append(obj)
 
@@ -202,6 +244,8 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
         if self.separator or not self.objects:
             return
 
+        log.info(f"Remove {len(objects_to_remove)} objects to: {self.name}")
+
         pointers_to_remove = {obj.as_pointer() for obj in objects_to_remove if obj}
         cache = self._get_or_build_cache()
 
@@ -220,7 +264,7 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
             if item_ptr in pointers_to_remove:
                 indices_to_remove.append(i)
                 successfully_removed_objects.append(item.object)
-                # Update cache
+                # Update cache - no rebuild required.
                 cache.discard(item_ptr)
 
         if not indices_to_remove:
@@ -448,6 +492,12 @@ class r0ObjectSetsProps(bpy.types.PropertyGroup):
     object_sets_modal_width: IntProperty(name="Object Sets Modal Width", default=300, min=0, max=400)  # type: ignore
 
     object_sets_list_rows: IntProperty(name="Object Sets List Rows", default=8, min=1)  # type: ignore
+
+
+def clear_object_sets_cache() -> None:
+    if _object_set_caches:
+        log.debug("Invalidate Object Sets cache.")
+        _object_set_caches.clear()
 
 
 # ===================================================================

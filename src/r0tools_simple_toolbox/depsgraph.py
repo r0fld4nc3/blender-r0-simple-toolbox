@@ -22,7 +22,7 @@ def handler_on_save_pre(dummy):
 
         cancel_pending_updates()
     except Exception as e:
-        log.warning(f"Could not cancel pending updates on save: {e}")
+        log.warning(f"Could not cancel pending updates on save pre: {e}")
 
 
 @bpy.app.handlers.persistent
@@ -38,12 +38,12 @@ def handler_on_save_post(dummy):
 
         resync_selection_hash()
     except Exception as e:
-        log.warning(f"Could not resync selection hash after save: {e}")
+        log.warning(f"Could not resync selection hash after save post: {e}")
 
 
 depsgraph_handlers = []
 
-load_post_handlers = [u.refresh_object_sets_colours]
+load_post_handlers = []
 
 save_pre_handlers = [handler_on_save_pre]
 save_post_handlers = [handler_on_save_post]

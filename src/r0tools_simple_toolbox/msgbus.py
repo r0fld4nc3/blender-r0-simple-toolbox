@@ -285,12 +285,19 @@ def resync_selection_hash():
 
 
 @bpy.app.handlers.persistent
+def on_load_pre(dummy):
+    log.debug("Load pre")
+    object_sets.clear_object_sets_cache()
+
+
+@bpy.app.handlers.persistent
 def on_load_post(dummy):
     log.debug("Load post - establishing subscriptions")
     global _last_selection_hash
     _last_selection_hash = _compute_selection_hash()
     subscribe_to_all_changes()
     u.sync_known_objects()
+    u.refresh_object_sets_colours(None)
 
 
 @bpy.app.handlers.persistent
@@ -303,9 +310,11 @@ def on_undo_redo_post(dummy):
     schedule_deferred_update()
     subscribe_to_all_changes()
     u.sync_known_objects()
+    object_sets.resync_object_sets_caches()
 
 
 _handlers = [
+    (bpy.app.handlers.load_pre, on_load_pre),
     (bpy.app.handlers.load_post, on_load_post),
     (bpy.app.handlers.undo_post, on_undo_redo_post),
     (bpy.app.handlers.redo_post, on_undo_redo_post),
