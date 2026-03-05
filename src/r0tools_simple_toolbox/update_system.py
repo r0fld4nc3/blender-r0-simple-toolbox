@@ -20,6 +20,8 @@ _pending_updates = {
 }
 
 _last_selection_hash = None
+is_saving = False
+is_updating = False  # Check if our depsgraph update is running
 
 
 # ============================================================================
@@ -40,11 +42,6 @@ def subscribe_to_all_changes():
     _subscribe_to_selection_changes()
 
     log.debug("All msgbus subscriptions established")
-
-
-# ============================================================================
-# Selection & Vertex Groups
-# ============================================================================
 
 
 def _subscribe_to_selection_changes():
@@ -187,11 +184,11 @@ def _deferred_update():
         log.warning("Deferred update: context not write-safe, rescheduling in 100ms")
         return 0.1
 
-    process_pending_updates()
+    _process_pending_updates()
     return None
 
 
-def process_pending_updates():
+def _process_pending_updates():
     """
     Process all pending updates in one batch.
     Only called from a write-safe context.
@@ -252,7 +249,7 @@ def process_pending_updates():
         u.set_is_updating(False)
 
 
-def cancel_pending_updates():
+def _cancel_pending_updates():
     """
     Cancel any queued timer and clear all pending flags.
     Called externally by depsgraph save handlers to ensure
@@ -262,12 +259,14 @@ def cancel_pending_updates():
     if bpy.app.timers.is_registered(_deferred_update):
         bpy.app.timers.unregister(_deferred_update)
 
-    global _pending_updates
-    _pending_updates = {key: False for key in _pending_updates}
+    # v0.3.7: Remove reassignment, preferring mutate in place.
+    for key in _pending_updates:
+        _pending_updates[key] = False
+
     log.debug("Pending updates cancelled.")
 
 
-def resync_selection_hash():
+def _resync_selection_hash():
     """
     Recompute and store the current selection hash after a save.
     Prevents the first post-save depsgraph tick from triggering
@@ -285,13 +284,13 @@ def resync_selection_hash():
 
 
 @bpy.app.handlers.persistent
-def on_load_pre(dummy):
-    log.debug("Load pre")
+def on_load_pre(_):
+    log.debug("Load pre.")
     object_sets.clear_object_sets_cache()
 
 
 @bpy.app.handlers.persistent
-def on_load_post(dummy):
+def on_load_post(_):
     log.debug("Load post - establishing subscriptions")
     global _last_selection_hash
     _last_selection_hash = _compute_selection_hash()
@@ -301,21 +300,52 @@ def on_load_post(dummy):
 
 
 @bpy.app.handlers.persistent
-def on_undo_redo_post(dummy):
+def on_save_pre(_):
+    """Set the save lock before a file is saved."""
+    global is_saving
+    is_saving = True
+
+    # Cancel queued msgbus updates
+    try:
+        _cancel_pending_updates()
+    except Exception as e:
+        log.warning(f"Could not cancel pending updates on save pre: {e}")
+
+
+@bpy.app.handlers.persistent
+def on_save_post(_):
+    """Clear the save lock after a file is saved."""
+    global is_saving
+    is_saving = False
+
+    # Resync selection hash so the next depsgraph tick doesn't
+    # trigger an update due to stale hash comparison
+    try:
+        _resync_selection_hash()
+    except Exception as e:
+        log.warning(f"Could not resync selection hash after save post: {e}")
+
+
+@bpy.app.handlers.persistent
+def on_undo_redo_post(_):
     log.debug("Undo/Redo post")
+
+    subscribe_to_all_changes()
+    u.sync_known_objects()
+    object_sets.resync_object_sets_caches()
+
     _pending_updates["properties"] = True
     _pending_updates["attributes"] = True
     _pending_updates["objects"] = True
     _pending_updates["cleanup"] = True
     schedule_deferred_update()
-    subscribe_to_all_changes()
-    u.sync_known_objects()
-    object_sets.resync_object_sets_caches()
 
 
-_handlers = [
+_handlers: list[tuple] = [
     (bpy.app.handlers.load_pre, on_load_pre),
     (bpy.app.handlers.load_post, on_load_post),
+    (bpy.app.handlers.save_pre, on_save_pre),
+    (bpy.app.handlers.save_post, on_save_post),
     (bpy.app.handlers.undo_post, on_undo_redo_post),
     (bpy.app.handlers.redo_post, on_undo_redo_post),
     (bpy.app.handlers.depsgraph_update_post, on_depsgraph_update_post),
@@ -324,9 +354,11 @@ _handlers = [
 
 def register():
     for handler_list, handler_func in _handlers:
-        handler_list.append(handler_func)
-        log.debug(f"Registered handler '{handler_func.__name__}'")
-    log.info("Registered msgbus update system.")
+        if handler_func not in handler_list:
+            handler_list.append(handler_func)
+            log.debug(f"Registered handler: '{handler_func.__name__}'")
+
+    log.info("Update system registered.")
 
 
 def unregister():
@@ -341,5 +373,6 @@ def unregister():
     for handler_list, handler_func in _handlers:
         if handler_func in handler_list:
             handler_list.remove(handler_func)
+            log.debug(f"Unregistered handler: '{handler_func.__name__}'")
 
-    log.info("Unregistered msgbus update system.")
+    log.info("Update system unregistered.")

@@ -18,9 +18,9 @@ def handler_on_save_pre(dummy):
 
     # Cancel queued msgbus updates
     try:
-        from .msgbus import cancel_pending_updates
+        from .update_system import _cancel_pending_updates
 
-        cancel_pending_updates()
+        _cancel_pending_updates()
     except Exception as e:
         log.warning(f"Could not cancel pending updates on save pre: {e}")
 
@@ -34,9 +34,9 @@ def handler_on_save_post(dummy):
     # Resync selection hash so the next depsgraph tick doesn't
     # trigger an update due to stale hash comparison
     try:
-        from .msgbus import resync_selection_hash
+        from .update_system import _resync_selection_hash
 
-        resync_selection_hash()
+        _resync_selection_hash()
     except Exception as e:
         log.warning(f"Could not resync selection hash after save post: {e}")
 
