@@ -172,7 +172,7 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
         """
 
         key = self.as_pointer()
-        prev_count = len(_object_set_caches.get(key), ())
+        prev_count = len(_object_set_caches.get(key, ()))
 
         new_cache = {item.object.as_pointer() for item in self.objects if item.object}
         _object_set_caches[key] = new_cache
