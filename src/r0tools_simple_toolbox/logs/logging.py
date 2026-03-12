@@ -6,14 +6,14 @@ from typing import Optional
 _logger: Optional[logging.Logger] = None
 
 
-def configure_logging(log_file: Path, level: int = logging.INFO, console: bool = True) -> None:
+def configure_logging(logger_name: str, log_file: Path, level: int = logging.INFO, console: bool = True) -> None:
 
     if log_file.exists() and not log_file.is_file():
         raise RuntimeError(f"Attempting to create/ensure directory when a file path has been given: '{log_file}'.")
 
     log_file.parent.mkdir(parents=True, exist_ok=True)
 
-    root = logging.getLogger()
+    root = logging.getLogger(logger_name)
     root.setLevel(level)
 
     # [%(asctime)s]

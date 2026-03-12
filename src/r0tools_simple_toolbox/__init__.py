@@ -57,7 +57,7 @@ def register():
     # Initialise settings
     settings_mgr = settings.init_settings_manager()
 
-    configure_logging(LOG_FILE)
+    configure_logging(__name__, LOG_FILE)
     reset_log_file(LOG_FILE)
 
     # Update logging level
