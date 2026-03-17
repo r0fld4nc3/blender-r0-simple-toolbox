@@ -15,6 +15,7 @@ def configure_logging(logger_name: str, log_file: Path, level: int = logging.INF
 
     root = logging.getLogger(logger_name)
     root.setLevel(level)
+    root.propagate = False
 
     # [%(asctime)s]
     formatter = logging.Formatter("[%(levelname)s] [%(name)s] %(message)s", datefmt="%d-%m-%Y %H:%M:%S")
