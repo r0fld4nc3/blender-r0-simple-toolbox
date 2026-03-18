@@ -454,3 +454,27 @@ def draw_fbx_export_settings(layout, settings):
     prop_row.alignment = "RIGHT"
     prop_row.label(text="Use Metadata")
     prop_row.prop(settings, "use_metadata", text="")
+
+
+@bpy.app.handlers.persistent
+def migrate_export_paths_on_load():
+    """
+    On file load, convert any legacy absolute export_path values
+    to Blender relative paths '//'
+    """
+
+    log.info("Convert existing legacy export paths.")
+
+    if not bpy.data.filepath:
+        return
+
+    addon_export_props = u.get_addon_export_props()
+    if not addon_export_props:
+        return
+
+    export_sets = u.get_export_sets()
+    for export_entry in export_sets:
+        raw: str = export_entry.get("export_path", "")
+        if raw and not raw.startswith("//"):
+            # dictionary-style access to bypass getter/setter and write directly to storage.
+            export_entry["export_path"] = u.to_relative_path(raw)

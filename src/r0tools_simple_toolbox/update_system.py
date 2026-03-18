@@ -297,6 +297,7 @@ def on_load_post(_):
     subscribe_to_all_changes()
     u.sync_known_objects()
     u.refresh_object_sets_colours(None)
+    u.migrate_export_paths_on_load()
 
 
 @bpy.app.handlers.persistent
