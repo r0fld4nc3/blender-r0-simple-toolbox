@@ -55,7 +55,8 @@ class SimpleToolbox_OT_SelectPath(bpy.types.Operator):
         if 0 <= self.index < len(addon_export_props.export_sets):
             current_path = addon_export_props.export_sets[self.index].export_path
             if current_path:
-                self.filepath = current_path
+                # Resolve to absolute so file browser opens in right place
+                self.filepath = u.to_absolute_path(current_path)
 
         # Open the file browser, configured to use the 'filepath' property to store the result
         context.window_manager.fileselect_add(self)
@@ -73,9 +74,7 @@ class SimpleToolbox_OT_SelectPath(bpy.types.Operator):
         filepath = Path(self.filepath)
 
         # Ensure correct extension
-        if not filepath.suffix:
-            filepath = filepath.with_suffix(self.file_extension)
-        elif filepath.suffix != self.file_extension:
+        if filepath.suffix.lower() != self.file_extension.lower():
             filepath = filepath.with_suffix(self.file_extension)
 
         # Validate directory exists or find closest existing parent
@@ -88,7 +87,14 @@ class SimpleToolbox_OT_SelectPath(bpy.types.Operator):
                 self.directory = str(directory_path)
                 self.report({"WARNING"}, f"Adjusted directory to: {directory_path}")
 
-        addon_export_props.export_sets[self.index].export_path = str(filepath)
+        # Store as relative path where possible
+        stored_path = u.to_relative_path(str(filepath))
+
+        addon_export_props.export_sets[self.index].export_path = stored_path
+
+        # Stored absolute path - Handled automatically
+        # absolute_path = u.to_absolute_path(str(filepath))
+        # addon_export_props.export_sets[self.index].export_path_absolute = absolute_path
 
         self.report({"INFO"}, f"Set export path for '{addon_export_props.export_sets[self.index].name}': {filepath}")
 
@@ -301,17 +307,16 @@ class SimpleToolbox_OT_ExportObjects(bpy.types.Operator):
                     u.select_object(obj, add=True, set_active=True)
 
             # Export path handling
-            export_path = export_item.export_path
-            if not export_path:
+            raw_path = export_item.export_path
+            if not raw_path:
                 self.report({"WARNING"}, "No export path defined")
                 return {"CANCELLED"}
 
-            export_path = Path(export_path)
+            # Resolve '//' relative or '~' paths to real absolute path
+            export_path = Path(u.to_absolute_path(raw_path))
 
             # Ensure .fbx extension
-            if not export_path.suffix:
-                export_path = export_path.with_suffix(".fbx")
-            elif export_path.suffix.lower() != ".fbx":
+            if export_path.suffix.lower() != ".fbx":
                 export_path = export_path.with_suffix(".fbx")
 
             # Create path if it doesn't exist

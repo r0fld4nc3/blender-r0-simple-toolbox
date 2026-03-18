@@ -18,6 +18,30 @@ from ..export_ops.export_ops import *
 log = logging.getLogger(__name__)
 
 
+def _get_absolute_path(self):
+    """
+    Getter: Resolve stored relative path to absolute on the fly.
+    """
+    stored = self.get("export_path", "")
+    if not stored:
+        return ""
+
+    absolute = u.to_absolute_path(stored)
+    log.debug(f"Get absolute path; absolute: {absolute}")
+
+    return absolute
+
+
+def _set_absolute_path(self, value):
+    """
+    Setter: convert user typed absolute path to relative and store that.
+    """
+
+    self["export_path"] = u.to_relative_path(value) if value else ""
+
+    log.debug(f"Set relative path: {self.export_path}")
+
+
 class r0SimpleToolbox_PG_FBXExportSettings(bpy.types.PropertyGroup):
     """FBX Export Settings that can be applied globally or per export entry"""
 
@@ -355,8 +379,16 @@ class r0SimpleToolbox_PG_ExportEntryItem(bpy.types.PropertyGroup):
     )  # type: ignore
 
     export_path: StringProperty(
-        name="Path", default="", description="Full filepath of file to be exported"
+        name="Path", default="", description="Stored filepath (relative to .blend when possible)"
     )  # type: ignore | subtype="FILE_PATH" to add a built-in button to select path
+
+    export_path_absolute: StringProperty(
+        name="Path",
+        default="",
+        description="Resolved absolute path",
+        get=_get_absolute_path,
+        set=_set_absolute_path,
+    )  # type: ignore
 
     export_at_frame: BoolProperty(
         name="Export at Frame",

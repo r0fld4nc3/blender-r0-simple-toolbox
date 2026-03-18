@@ -145,8 +145,9 @@ def draw_quick_export_sets_uilist(layout, context):
     if not export_item:
         return
 
+    # Export Path
     path_row = layout.row(align=True)
-    path_row.prop(export_item, "export_path", text="")
+    path_row.prop(export_item, "export_path_absolute", text="")
     op = path_row.operator(SimpleToolbox_OT_SelectPath.bl_idname, text="", icon="FILE_FOLDER")
     op.index = active_index
 
