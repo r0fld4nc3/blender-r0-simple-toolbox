@@ -981,7 +981,7 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
             bm.select_history.add(edge)  # Make active edge
 
             # Select the ring and nth
-            bpy.ops.mesh.loop_multi_select(ring=True)
+            u.mesh_select_edge_rings()
 
             total_selected = len([edge for edge in bm.edges if edge.select])
             log.debug(f"Total Before Nth: {total_selected}")
@@ -1000,7 +1000,7 @@ class SimpleToolbox_OT_DissolveNthEdge(bpy.types.Operator):
                 continue
 
             if self.expand_edges:
-                bpy.ops.mesh.loop_multi_select(ring=False)
+                u.mesh_select_edge_loops()
 
             # Store those edges
             edges_delete.extend([edge for edge in bm.edges if edge.select])
@@ -1108,9 +1108,9 @@ class SimpleToolbox_OT_RestoreNthEdge(bpy.types.Operator):
             bm.select_history.add(edge)  # Make active edge
 
             # Select the coplanar edge ring
-            bpy.ops.mesh.loop_multi_select(ring=False)
+            u.mesh_select_edge_loops()
             # Propagate the selection "upward"
-            bpy.ops.mesh.loop_multi_select(ring=True)
+            u.mesh_select_edge_rings()
 
             bpy.ops.mesh.subdivide()
 
@@ -1123,8 +1123,8 @@ class SimpleToolbox_OT_RestoreNthEdge(bpy.types.Operator):
         bm.select_history.validate()  # Ensure that only selected elements are in select_history
 
         # Loop around and "up" and circularise
-        bpy.ops.mesh.loop_multi_select(ring=False)
-        bpy.ops.mesh.loop_multi_select(ring=True)
+        u.mesh_select_edge_loops()
+        u.mesh_select_edge_rings()
         bpy.ops.mesh.looptools_circle(
             custom_radius=False,
             fit="best",

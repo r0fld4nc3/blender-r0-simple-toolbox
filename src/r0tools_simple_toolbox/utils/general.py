@@ -546,6 +546,20 @@ def set_mesh_selection_face(*args, **kwargs):
     _set_mesh_selection_mode(*args, **kwargs)
 
 
+def mesh_select_edge_rings():
+    if u.get_blender_version() >= (5, 0, 0):
+        bpy.ops.mesh.select_edge_ring_multi()
+    else:
+        bpy.ops.mesh.loop_multi_select(ring=True)
+
+
+def mesh_select_edge_loops():
+    if u.get_blender_version() >= (5, 0, 0):
+        bpy.ops.mesh.select_edge_loop_multi()
+    else:
+        bpy.ops.mesh.loop_multi_select(ring=False)
+
+
 # ==============================
 # UI & NOTIFICATIONS
 # ==============================
