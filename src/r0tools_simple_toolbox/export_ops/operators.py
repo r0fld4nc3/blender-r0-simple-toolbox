@@ -487,6 +487,24 @@ class SimpleToolbox_OT_BatchExportObjects(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_ExportOpsPanelAttributionsRestoreDefaults(bpy.types.Operator):
+    bl_label = "Reset"
+    bl_idname = "r0tools.export_ops_panel_attributions_restore_defaults"
+    bl_description = "Restores default list of attributes to keep"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        addon_prefs = u.get_addon_prefs()
+
+        prop_rna = addon_prefs.bl_rna.properties["panel_attributions_export_ops"]
+        default = prop_rna.default
+
+        addon_prefs.panel_attributions_export_ops = default
+
+        self.report({"INFO"}, f"Restored default panel attributes: {default}")
+        return {"FINISHED"}
+
+
 # ===================================================================
 #   Register & Unregister
 # ===================================================================
@@ -500,6 +518,7 @@ classes = [
     SimpleToolbox_OT_ToggleObjectSetSelection,
     SimpleToolbox_OT_ExportObjects,
     SimpleToolbox_OT_BatchExportObjects,
+    SimpleToolbox_OT_ExportOpsPanelAttributionsRestoreDefaults,
 ]
 # fmt: on
 

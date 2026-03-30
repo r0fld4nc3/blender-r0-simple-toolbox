@@ -685,6 +685,24 @@ class SimpleToolbox_OT_VertexGroupsListUpdate(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_VertexGroupsPanelAttributionsRestoreDefaults(bpy.types.Operator):
+    bl_label = "Reset"
+    bl_idname = "r0tools.vertex_groups_panel_attributions_restore_defaults"
+    bl_description = "Restores default list of attributes to keep"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        addon_prefs = u.get_addon_prefs()
+
+        prop_rna = addon_prefs.bl_rna.properties["panel_attributions_vertex_groups"]
+        default = prop_rna.default
+
+        addon_prefs.panel_attributions_vertex_groups = default
+
+        self.report({"INFO"}, f"Restored default panel attributes: {default}")
+        return {"FINISHED"}
+
+
 # fmt: off
 classes = [
     SimpleToolbox_OT_VgroupsAddPopup,
@@ -700,6 +718,7 @@ classes = [
     SimpleToolbox_OT_VgroupsSelectVertices,
     SimpleToolbox_OT_VgroupsDeselectVertices,
     SimpleToolbox_OT_VertexGroupsListUpdate,
+    SimpleToolbox_OT_VertexGroupsPanelAttributionsRestoreDefaults,
 ]
 # fmt: on
 

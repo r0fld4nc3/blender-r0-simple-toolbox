@@ -13,10 +13,30 @@ from bpy.props import (  # type: ignore
 )
 
 from . import utils as u
-from .defines import INTERNAL_NAME
+from .defines import ADDON_CATEGORY, INTERNAL_NAME
 from .keymaps import draw_keymap_settings
 
 log = logging.getLogger(__name__)
+
+
+def _reregister_panels(self, context):
+    from .export_ops.ui import register_panels as export_ops_register_panels
+    from .export_ops.ui import unregister_panels as export_ops_unregister_panels
+    from .object_sets.ui import register_panels as os_register_panels
+    from .object_sets.ui import unregister_panels as os_unregister_panels
+    from .vertex_groups.ui import register_panels as vg_register_panels
+    from .vertex_groups.ui import unregister_panels as vg_unregister_panels
+
+    log.info("Reregistering panels.")
+
+    os_unregister_panels()
+    os_register_panels()
+
+    vg_unregister_panels()
+    vg_register_panels()
+
+    export_ops_unregister_panels()
+    export_ops_register_panels()
 
 
 class AddonPreferences(bpy.types.AddonPreferences):
@@ -84,9 +104,24 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
     edge_data_bweight_presets_alt_view: BoolProperty(name="Toggle Alternative View", description="Toggle between a set of buttons configured by arranged presets or a simple set of buttons", default=True)  # type: ignore
 
+    ###############
+    ### KEYMAPS ###
+    ###############
     keymap_toggle_wire: StringProperty(name="Toggle Wire Display Mode Key", default="FOUR")  # type: ignore
-
     keymap_object_sets_modal: StringProperty(name="Object Sets Modal Key", default="ONE")  # type: ignore
+
+    ##########################
+    ### PANEL ATTRIBUTIONS ###
+    ##########################
+    panel_attributions_object_sets: StringProperty(
+        name="Object Sets Panel Categories", default=f"{ADDON_CATEGORY}", update=_reregister_panels
+    )  # type: ignore
+    panel_attributions_vertex_groups: StringProperty(
+        name="Vertex Groups Panel Categories", default=f"{ADDON_CATEGORY}", update=_reregister_panels
+    )  # type: ignore
+    panel_attributions_export_ops: StringProperty(
+        name="Export Ops Panel Categories", default=f"{ADDON_CATEGORY}", update=_reregister_panels
+    )  # type: ignore
 
     ###################
     ### EXPORT SETS ###
@@ -140,11 +175,38 @@ class AddonPreferences(bpy.types.AddonPreferences):
             row = object_sets_settings_box.row()
             row.prop(self, "object_sets_default_colour", text="Default Colour")
 
+        # --- Panel Attributions ---
+        from .export_ops.operators import (
+            SimpleToolbox_OT_ExportOpsPanelAttributionsRestoreDefaults,
+        )
+        from .object_sets.operators import (
+            SimpleToolbox_OT_ObjectSetsPanelAttributionsRestoreDefaults,
+        )
+        from .vertex_groups.operators import (
+            SimpleToolbox_OT_VertexGroupsPanelAttributionsRestoreDefaults,
+        )
+
+        panel_attributions_box = layout.box()
+        # Object Sets
+        row = panel_attributions_box.row(align=True)
+        row.prop(self, "panel_attributions_object_sets")
+        row.operator(SimpleToolbox_OT_ObjectSetsPanelAttributionsRestoreDefaults.bl_idname, text="", icon="LOOP_BACK")
+
+        # Vertex Groups
+        row = panel_attributions_box.row(align=True)
+        row.prop(self, "panel_attributions_vertex_groups")
+        row.operator(SimpleToolbox_OT_VertexGroupsPanelAttributionsRestoreDefaults.bl_idname, text="", icon="LOOP_BACK")
+
+        # Export Ops
+        row = panel_attributions_box.row(align=True)
+        row.prop(self, "panel_attributions_export_ops")
+        row.operator(SimpleToolbox_OT_ExportOpsPanelAttributionsRestoreDefaults.bl_idname, text="", icon="LOOP_BACK")
+
         # --- Custom Properties ---
         custom_properties_settings_box = layout.box()
-        row = custom_properties_settings_box.row()
+        row = custom_properties_settings_box.row(align=True)
         row.label(text="Custom Properties Settings")
-        row = custom_properties_settings_box.row()
+        row = custom_properties_settings_box.row(align=True)
         row.prop(self, "custom_properties_list_rows")
 
         # --- Object Attributes ---
@@ -184,5 +246,13 @@ def register():
 
 def unregister():
     for cls in classes:
+        log.debug(f"[INFO] Unregister {cls.__name__}")
+        bpy.utils.unregister_class(cls)
+
+
+def unregister():
+    for cls in classes:
+        log.debug(f"[INFO] Unregister {cls.__name__}")
+        bpy.utils.unregister_class(cls)
         log.debug(f"[INFO] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)

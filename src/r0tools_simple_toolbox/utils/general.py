@@ -955,6 +955,13 @@ def object_attributes_list_update(scene=None, force_run=False):
     return None
 
 
+def parse_comma_separated_list(raw: str, default: str) -> list[str]:
+    entries = [e.strip() for e in raw.split(",") if e.strip()]
+    if default not in entries:
+        entries.insert(0, default)
+    return entries
+
+
 def create_panel_variant(panel_class, space_type: str = None, region_type: str = None, category: str = None):
     if space_type:
         identifier = space_type.replace(" ", "_").lower()

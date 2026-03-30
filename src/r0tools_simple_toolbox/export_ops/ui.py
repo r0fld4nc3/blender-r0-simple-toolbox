@@ -36,24 +36,49 @@ class r0Tools_PT_SimpleToolboxQuickExportOps(bpy.types.Panel):
 
 
 classes = []
+_panel_classes: list[type] = []
 
-# fmt: off
-panel_attributions = {
-    r0Tools_PT_SimpleToolboxQuickExportOps: {
-        "categories": [ADDON_CATEGORY, "Item"]
+
+def register_panels():
+    global _panel_classes
+    _panel_classes.clear()
+
+    addon_prefs = u.get_addon_prefs()
+
+    panel_attributions = {
+        r0Tools_PT_SimpleToolboxQuickExportOps: {
+            "categories": addon_prefs.panel_attributions_export_ops,
+            "defaults_rna": addon_prefs.bl_rna.properties["panel_attributions_export_ops"].default,
+        }
     }
-}
-# fmt : on
+
+    for panel_class, values in panel_attributions.items():
+        categories = values.get("categories", [])
+
+        for category in u.parse_comma_separated_list(categories, default=values.get("defaults_rna", ADDON_CATEGORY)):
+            variant = u.create_panel_variant(panel_class, category=category)
+            _panel_classes.append(variant)
+
+    for cls in _panel_classes:
+        bpy.utils.register_class(cls)
+
+
+def unregister_panels():
+    global _panel_classes
+
+    for cls in reversed(_panel_classes):
+        try:
+            bpy.utils.unregister_class(cls)
+        except RuntimeError as e:
+            log.error(e)
+
+    _panel_classes.clear()
 
 
 def register():
-    classes.clear() # Prevent duplicates
-    
-    for panel_class, values in panel_attributions.items():
-        categories = values.get("categories")
-        for cat in categories:
-            variant = u.create_panel_variant(panel_class, category=cat)
-            classes.append(variant)
+    classes.clear()  # Prevent duplicates
+
+    register_panels()
 
     for cls in classes:
         log.debug(f"Register {cls.__name__}")
@@ -61,6 +86,8 @@ def register():
 
 
 def unregister():
+    unregister_panels()
+
     for cls in classes:
         log.debug(f"Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
