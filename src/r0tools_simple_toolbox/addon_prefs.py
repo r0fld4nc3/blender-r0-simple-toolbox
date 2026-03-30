@@ -109,6 +109,7 @@ class AddonPreferences(bpy.types.AddonPreferences):
     ###############
     keymap_toggle_wire: StringProperty(name="Toggle Wire Display Mode Key", default="FOUR")  # type: ignore
     keymap_object_sets_modal: StringProperty(name="Object Sets Modal Key", default="ONE")  # type: ignore
+    keymap_vertex_groups_modal: StringProperty(name="Vertex Groups Modal Key", default="SIX")  # type: ignore
 
     ##########################
     ### PANEL ATTRIBUTIONS ###

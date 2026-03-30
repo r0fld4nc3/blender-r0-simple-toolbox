@@ -138,6 +138,11 @@ class r0VertexGroupsProps(bpy.types.PropertyGroup):
     vertex_groups_list_rows: IntProperty(name="Vertex Groups List Rows", default=8, min=1)  # type: ignore
     sync_selection: BoolProperty(default=True, name="Sync Selection", description="Sync active vertex group selection from UIList to selected objects")  # type: ignore
 
+    vertex_groups_modal: BoolProperty(
+        name="Show Vertex Groups Modal", description="Show Vertex Groups Modal Panel", default=False
+    )  # type: ignore
+    vertex_groups_modal_width: IntProperty(name="Vertex Groups Modal Width", default=300, min=0, max=400)  # type: ignore
+
 
 # ===================================================================
 #   Register & Unregister

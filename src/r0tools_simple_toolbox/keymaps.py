@@ -10,6 +10,7 @@ from .operators import (
     SimpleToolbox_OT_ShowCustomOrientationsPie,
     SimpleToolbox_OT_ToggleWireDisplay,
 )
+from .vertex_groups.operators import SimpleToolbox_OT_VertexGroupsModal
 
 log = logging.getLogger(__name__)
 
@@ -29,6 +30,14 @@ KEYMAP_CONFIGS = {
         "region_type": "WINDOW",
         "value": "PRESS",
         "addon_pref_prop": "keymap_object_sets_modal",
+    },
+    SimpleToolbox_OT_VertexGroupsModal.bl_idname: {
+        "default_key": "SIX",
+        "keymap_name": "3D View",
+        "space_type": "VIEW_3D",  # Change to "EMPTY" if using "Object Mode" keymap_name ; Change to "VIEW_3D" if using "3d View" keymap_name
+        "region_type": "WINDOW",
+        "value": "PRESS",
+        "addon_pref_prop": "keymap_vertex_groups_modal",
     },
     SimpleToolbox_OT_ShowCustomOrientationsPie.bl_idname: {
         "default_key": "NONE",

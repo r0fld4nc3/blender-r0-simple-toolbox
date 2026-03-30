@@ -10,6 +10,47 @@ from .vertex_groups import *
 log = logging.getLogger(__name__)
 
 
+class SimpleToolbox_OT_VertexGroupsModal(bpy.types.Operator):
+    """Floating Modal Panel that can be drawn wherever in the UI"""
+
+    bl_idname = "r0tools.vertex_groups_modal"
+    bl_label = "Vertex Groups Modal"
+
+    def invoke(self, context, event):
+        addon_vertex_groups_props = u.get_addon_vertex_groups_props()
+        addon_vertex_groups_props.vertex_groups_modal = True
+        vertex_groups_modal_prefs_width = u.get_addon_vertex_groups_props().vertex_groups_modal_width
+        return context.window_manager.invoke_props_dialog(self, width=vertex_groups_modal_prefs_width)
+
+    def execute(self, context):
+        addon_vertex_groups_props = u.get_addon_vertex_groups_props()
+        addon_vertex_groups_props.vertex_groups_modal = False
+        return {"FINISHED"}
+
+    def cancel(self, context):
+        addon_vertex_groups_props = u.get_addon_vertex_groups_props()
+        addon_vertex_groups_props.vertex_groups_modal = False
+
+    def modal(self, context, event):
+
+        if event.type == "MOUSEMOVE":  # Ignore mouse movement events
+            return {"PASS_THROUGH"}
+
+        if event.type in {"ESC", "RIGHTMOUSE"}:
+            return {"CANCELLED"}
+        elif event.type == "LEFTMOUSE" and event.value == "RELEASE":
+            if context.window_manager.dialog_properties.is_property_set("clicked"):
+                if context.window_manager.dialog_properties.clicked == "OK":
+                    return {"FINISHED"}
+                elif context.window_manager.dialog_properties.clicked == "CANCEL":
+                    return {"CANCELLED"}
+
+        return {"RUNNING_MODAL"}
+
+    def draw(self, context):
+        u.draw_vertex_groups_uilist(self.layout, context)
+
+
 class SimpleToolbox_OT_VgroupsAddPopup(bpy.types.Operator):
     bl_idname = "r0tools.vgrups_add_popup"
     bl_label = "Add Vertex Group"
@@ -705,6 +746,7 @@ class SimpleToolbox_OT_VertexGroupsPanelAttributionsRestoreDefaults(bpy.types.Op
 
 # fmt: off
 classes = [
+    SimpleToolbox_OT_VertexGroupsModal,
     SimpleToolbox_OT_VgroupsAddPopup,
     SimpleToolbox_OT_VgroupsRefresh,
     SimpleToolbox_OT_VgroupsRemoveHighlighted,
