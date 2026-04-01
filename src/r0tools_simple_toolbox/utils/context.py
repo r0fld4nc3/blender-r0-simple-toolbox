@@ -3,6 +3,7 @@ from pathlib import Path
 
 import bpy
 
+from .. import settings
 from ..defines import INTERNAL_NAME, TOOLBOX_PROPS_NAME
 
 log = logging.getLogger(__name__)
@@ -166,6 +167,39 @@ def get_object_changes(depsgraph: bpy.types.Depsgraph) -> tuple[list[bpy.types.O
 
     new_objects = [scene_pointers[pointer] for pointer in new_pointers]
     return new_objects, False
+
+
+def get_object_changes_v2() -> tuple[list[bpy.types.Object], bool]:
+    """
+    Faster implementation of object changes tracker
+    to reflect updates to update system.
+
+    Returns a tuple of:
+    - list[Object]: Newly added objects (empty if none)
+    - bool: True if a deletion was detected
+    """
+
+    global _known_object_pointers
+
+    scene = get_scene()
+    current_objects = set(obj.as_pointer() for obj in scene.objects)
+
+    new_pointers = current_objects - _known_object_pointers
+    was_deleted = len(current_objects) < len(_known_object_pointers)
+
+    new_objects = [obj for obj in scene.objects if obj.as_pointer() in new_pointers] if new_pointers else []
+
+    settings_mgr = settings.get_settings_manager()
+    if settings_mgr.settings.debug:
+        current_count = len(scene.objects)
+        previous_count = _last_object_count
+
+        log.debug(f"{previous_count=} | {current_count=}")
+
+    # Update pointers
+    _known_object_pointers = current_objects
+
+    return new_objects, was_deleted
 
 
 def get_selection_mode(as_str=False) -> int | str:

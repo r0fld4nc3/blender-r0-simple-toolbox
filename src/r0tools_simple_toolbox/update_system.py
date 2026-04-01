@@ -20,6 +20,8 @@ _pending_updates = {
 }
 
 _last_selection_hash = None
+_last_object_count: int = 0
+
 is_saving = False
 is_updating = False  # Check if our depsgraph update is running
 
@@ -117,7 +119,18 @@ def on_depsgraph_update_post(scene, depsgraph):
     if u.is_saving() or u.is_updating():
         return
 
-    global _last_selection_hash
+    global _last_selection_hash, _last_object_count
+
+    # Run a very cheap object count C read gate for pre-checks
+    current_count = len(scene.objects)
+    if current_count != _last_object_count:
+        _last_object_count = current_count
+        _pending_updates["objects"] = True
+        _pending_updates["cleanup"] = True
+        schedule_deferred_update()
+
+    # More expensive hash calculation but only iterates selection
+
     current_hash = _compute_selection_hash()
 
     if current_hash != _last_selection_hash:
@@ -128,12 +141,12 @@ def on_depsgraph_update_post(scene, depsgraph):
         for obj in u.get_selected_objects():
             _subscribe_to_object_vertex_groups(obj)
 
-        # Set update flags
         _pending_updates["vertex_groups"] = True
         _pending_updates["properties"] = True
         _pending_updates["attributes"] = True
         schedule_deferred_update()
 
+    """
     if depsgraph.id_type_updated(u.DEPSGRAPH_ID_TYPES.OBJECT):
         new_objects, was_deleted = u.get_object_changes(depsgraph)
 
@@ -148,6 +161,7 @@ def on_depsgraph_update_post(scene, depsgraph):
 
         if new_objects or was_deleted:
             schedule_deferred_update()
+    """
 
 
 def _compute_selection_hash():
@@ -220,6 +234,7 @@ def _process_pending_updates():
             vertex_groups_list_update(scene=scene, force=True)
             _pending_updates["vertex_groups"] = False
 
+        """
         # Objects update
         if _pending_updates["objects"]:
             u.handle_object_duplication_update(scene=scene)
@@ -228,6 +243,21 @@ def _process_pending_updates():
         # Cleanup
         if _pending_updates["cleanup"]:
             u.cleanup_object_set_invalid_references(scene=scene)
+            _pending_updates["cleanup"] = False
+        """
+
+        # Objects or Cleanup
+        if _pending_updates["objects"] or _pending_updates["cleanup"]:
+            new_objects, deletions = u.get_object_changes_v2()
+
+            if new_objects:
+                object_sets.pending_known_objects.extend(new_objects)
+                u.handle_object_duplication_update(scene=scene)
+
+            if deletions:
+                u.cleanup_object_set_invalid_references(scene=scene)
+
+            _pending_updates["objects"] = False
             _pending_updates["cleanup"] = False
 
         # Properties update
@@ -292,8 +322,10 @@ def on_load_pre(_):
 @bpy.app.handlers.persistent
 def on_load_post(_):
     log.debug("Load post - establishing subscriptions")
-    global _last_selection_hash
+    global _last_selection_hash, _last_object_count
+    scene = u.get_scene()
     _last_selection_hash = _compute_selection_hash()
+    _last_object_count = len(scene.objects) if scene else 0  # Sync object count
     subscribe_to_all_changes()
     u.sync_known_objects()
     u.refresh_object_sets_colours(None)
