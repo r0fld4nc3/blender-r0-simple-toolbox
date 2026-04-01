@@ -129,8 +129,7 @@ def get_object_changes(depsgraph: bpy.types.Depsgraph) -> tuple[list[bpy.types.O
     previous_count = _last_object_count
     _last_object_count = current_count
 
-    log.debug(f"{current_count=}")
-    log.debug(f"{previous_count=}")
+    log.debug(f"{previous_count=} | {current_count=}")
 
     if current_count == previous_count:
         return [], False
