@@ -255,5 +255,3 @@ def unregister():
     for cls in classes:
         log.debug(f"[INFO] Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
-        log.debug(f"[INFO] Unregister {cls.__name__}")
-        bpy.utils.unregister_class(cls)
