@@ -106,8 +106,8 @@ def _remove_matching_kmis(
             removed += 1
         except ReferenceError:
             pass
-        except RuntimeError as exc:
-            log.warning("Could not remove keymap item '%s': %s", op_id, exc)
+        except RuntimeError as e:
+            log.warning(f"Could not remove keymap item '{op_id}': {e}", op_id)
 
     return removed
 
