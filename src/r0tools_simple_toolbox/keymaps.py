@@ -4,7 +4,6 @@ import bpy
 import rna_keymap_ui
 from bpy.props import StringProperty
 
-from . import utils as u
 from .object_sets.operators import SimpleToolbox_OT_ObjectSetsModal
 from .operators import (
     SimpleToolbox_OT_ShowCustomOrientationsPie,
@@ -14,298 +13,343 @@ from .vertex_groups.operators import SimpleToolbox_OT_VertexGroupsModal
 
 log = logging.getLogger(__name__)
 
-KEYMAP_CONFIGS = {
+# ---------------------------------------------------------------------------
+# Keymap configuration
+# ---------------------------------------------------------------------------
+# "default_key": "NONE" = operator is unbound by default.
+# "show_in_prefs": False = hide from the addon preferences UI.
+
+KEYMAP_CONFIGS: dict[str, dict] = {
     SimpleToolbox_OT_ToggleWireDisplay.bl_idname: {
-        "default_key": "FOUR",
-        "keymap_name": "3D View",
-        "space_type": "VIEW_3D",  # Change to "EMPTY" if using "Object Mode" keymap_name ; Change to "VIEW_3D" if using "3d View" keymap_name
-        "region_type": "WINDOW",
-        "value": "PRESS",
-        "addon_pref_prop": "keymap_toggle_wire_display_mode",
-    },
-    SimpleToolbox_OT_ObjectSetsModal.bl_idname: {
-        "default_key": "ONE",
-        "keymap_name": "3D View",
-        "space_type": "VIEW_3D",  # Change to "EMPTY" if using "Object Mode" keymap_name ; Change to "VIEW_3D" if using "3d View" keymap_name
-        "region_type": "WINDOW",
-        "value": "PRESS",
-        "addon_pref_prop": "keymap_object_sets_modal",
-    },
-    SimpleToolbox_OT_VertexGroupsModal.bl_idname: {
-        "default_key": "SIX",
-        "keymap_name": "3D View",
-        "space_type": "VIEW_3D",  # Change to "EMPTY" if using "Object Mode" keymap_name ; Change to "VIEW_3D" if using "3d View" keymap_name
-        "region_type": "WINDOW",
-        "value": "PRESS",
-        "addon_pref_prop": "keymap_vertex_groups_modal",
-    },
-    SimpleToolbox_OT_ShowCustomOrientationsPie.bl_idname: {
+        "label": "Toggle Wire Display",
         "default_key": "NONE",
         "keymap_name": "3D View",
-        "space_type": "VIEW_3D",  # Change to "EMPTY" if using "Object Mode" keymap_name ; Change to "VIEW_3D" if using "3d View" keymap_name
-        "region_type": "WINDOW",
+        "space_type": "VIEW_3D",
         "value": "PRESS",
-        "addon_pref_prop": "keymap_show_custom_orientations_pie",
-        "show_in_assign": False,
+    },
+    SimpleToolbox_OT_ObjectSetsModal.bl_idname: {
+        "label": "Object Sets Modal",
+        "default_key": "NONE",
+        "keymap_name": "3D View",
+        "space_type": "VIEW_3D",
+        "value": "PRESS",
+    },
+    SimpleToolbox_OT_VertexGroupsModal.bl_idname: {
+        "label": "Vertex Groups Modal",
+        "default_key": "NONE",
+        "keymap_name": "3D View",
+        "space_type": "VIEW_3D",
+        "value": "PRESS",
+    },
+    SimpleToolbox_OT_ShowCustomOrientationsPie.bl_idname: {
+        "label": "Custom Orientations Pie",
+        "default_key": "NONE",
+        "keymap_name": "3D View",
+        "space_type": "VIEW_3D",
+        "value": "PRESS",
+        "show_in_prefs": False,
     },
 }
 
-
-def collect_keymaps_by_context_space() -> dict:
-    """
-    Collect available keymaps by their Region Context Name and return a dictionary
-    where base keys are the Region Context Name and the values are another dictionary
-    mapping the Operation ID to its configuration.
-    """
-    context_space_dict = {}
-
-    for op_id, cfg in KEYMAP_CONFIGS.items():
-        keymap_name = cfg.get("keymap_name", "")
-        if keymap_name:
-            context_space_dict.setdefault(keymap_name, {})[op_id] = cfg
-
-    return context_space_dict
+# Tracks (km, kmi) pairs created by this addon for clean unregistration.
+_addon_keymaps: list[tuple[str, bpy.types.KeyMap, bpy.types.KeyMapItem]] = []
 
 
-KEYMAPS_CONTEXT_SPACE_CONFIGS = collect_keymaps_by_context_space()
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
 
 
-def get_hotkey_entry_item(km, kmi_name):
-    """
-    Get a keymap item by operator name.
-    """
+def _matching_kmis(
+    km: bpy.types.KeyMap | None,
+    op_id: str,
+    properties: list[tuple[str, object]] | None = None,
+) -> list[bpy.types.KeyMapItem]:
+    if km is None:
+        return []
+
+    matches: list[bpy.types.KeyMapItem] = []
     for kmi in km.keymap_items:
-        if kmi.idname == kmi_name:
-            return kmi
-    return None
-
-
-def draw_keymap_settings(layout, prefs):
-    wm = bpy.context.window_manager
-    kc = wm.keyconfigs.user
-
-    keymaps_box = layout.box()
-    keymaps_box.label(text="Keymaps:")
-
-    for keymap_name, keymaps in KEYMAPS_CONTEXT_SPACE_CONFIGS.items():
-        context_box = keymaps_box.box()
-        context_box.label(text=f"{keymap_name}:")
-
-        visible_keymaps = {op_id: cfg for op_id, cfg in keymaps.items() if cfg.get("show_in_assign", True)}
-
-        if not visible_keymaps:
+        if kmi.idname != op_id:
             continue
 
-        # Access the existing keymap
-        km = None
-        for keymap in kc.keymaps:
-            if keymap.name == keymap_name:
-                km = keymap
-                break
+        if properties:
+            if not all(getattr(kmi.properties, name, None) == value for name, value in properties):
+                continue
 
-        if km:
-            for op_id, cfg in visible_keymaps.items():
-                kmi = get_hotkey_entry_item(km, op_id)
-                if kmi:
-                    row = context_box.row()
-                    row.context_pointer_set("keymap", km)
+        matches.append(kmi)
 
-                    # Handling for unassigned keys
-                    if kmi.type == "NONE":
-                        split = row.split(factor=0.6)
-                        split.label(text=f"{op_id} (No Key Assigned)")
-
-                        assign_op = split.operator("r0tools.assign_keymap", text="Assign Key")
-                        assign_op.op_id = op_id
-                    else:
-                        # Draw the standard keymap item
-                        rna_keymap_ui.draw_kmi([], kc, km, kmi, row, 0)
-
-                    # Update addon preferences if key changed
-                    if hasattr(prefs, cfg["addon_pref_prop"]):
-                        stored_key = getattr(prefs, cfg["addon_pref_prop"])
-                        current_key = kmi.type if kmi.type != "NONE" else "NONE"
-                        if stored_key != current_key:
-                            setattr(prefs, cfg["addon_pref_prop"], current_key)
-                else:
-                    row = context_box.row()
-                    row.label(text=f"No hotkey found for '{op_id}'")
-                    row.operator("r0tools.restore_keymap", text="Restore").op_id = op_id
-        else:
-            context_box.label(text=f"Keymap '{keymap_name}' not found", icon="ERROR")
+    return matches
 
 
-class SimpleToolbox_OT_Assign_Keymap(bpy.types.Operator):
-    """Assign a key to an unassigned keymap item."""
-
-    bl_idname = "r0tools.assign_keymap"
-    bl_label = "Assign Key to Keymap"
-    bl_description = "Assign a key to this unassigned keymap item"
-
-    op_id: StringProperty()  # type: ignore
-
-    def execute(self, context):
-        self.report({"INFO"}, f"Use the keymap editor below to assign a key to {self.op_id}")
-        return {"FINISHED"}
-
-    def invoke(self, context, event):
-        return context.window_manager.invoke_props_dialog(self, width=400)
-
-    def draw(self, context):
-        layout = self.layout
-        layout.label(text="To assign a key to this operator:")
-        layout.label(text="1. Find the entry in the keymap list below")
-        layout.label(text="2. Click in the key field")
-        layout.label(text="3. Press your desired key combination")
-        layout.separator()
-        layout.label(text=f"Operator: {self.op_id}")
+def _find_kmi(
+    km: bpy.types.KeyMap | None,
+    op_id: str,
+    properties: list[tuple[str, object]] | None = None,
+) -> bpy.types.KeyMapItem | None:
+    matches = _matching_kmis(km, op_id, properties)
+    return matches[0] if matches else None
 
 
-class SimpleToolbox_OT_Restore_Keymap(bpy.types.Operator):
-    """Restore a missing keymap item"""
+def _remove_matching_kmis(
+    km: bpy.types.KeyMap | None,
+    op_id: str,
+    properties: list[tuple[str, object]] | None = None,
+) -> int:
+    if km is None:
+        return 0
+
+    removed = 0
+    for kmi in list(_matching_kmis(km, op_id, properties)):
+        try:
+            km.keymap_items.remove(kmi)
+            removed += 1
+        except ReferenceError:
+            pass
+        except RuntimeError as exc:
+            log.warning("Could not remove keymap item '%s': %s", op_id, exc)
+
+    return removed
+
+
+def _apply_kmi_properties(kmi: bpy.types.KeyMapItem, cfg: dict) -> None:
+    for name, value in cfg.get("properties", []):
+        setattr(kmi.properties, name, value)
+
+
+def _get_effective_kmi(
+    wm: bpy.types.WindowManager,
+    op_id: str,
+) -> tuple[
+    bpy.types.KeyConfig | None,
+    bpy.types.KeyMap | None,
+    bpy.types.KeyMapItem | None,
+    str | None,
+]:
+    """
+    Resolve the visible keymap item for this operator.
+
+    Order matters:
+    - USER overrides ADDON
+    - ADDON is the fallback default recreated on startup
+    """
+    cfg = KEYMAP_CONFIGS.get(op_id)
+    if cfg is None:
+        return None, None, None
+
+    keymap_name = cfg.get("keymap_name")
+    properties = cfg.get("properties")
+
+    kc_user = wm.keyconfigs.user
+    if kc_user is not None:
+        km_user = kc_user.keymaps.get(keymap_name)
+        kmi_user = _find_kmi(km_user, op_id, properties)
+        if kmi_user is not None:
+            return kc_user, km_user, kmi_user, "USER"
+
+    kc_addon = wm.keyconfigs.addon
+    if kc_addon is not None:
+        km_addon = kc_addon.keymaps.get(keymap_name)
+        kmi_addon = _find_kmi(km_addon, op_id, properties)
+        if kmi_addon is not None:
+            return kc_addon, km_addon, kmi_addon, "ADDON"
+
+    return None, None, None, None
+
+
+def _tag_ui_redraw() -> None:
+    wm = bpy.context.window_manager
+    for window in wm.windows:
+        screen = window.screen
+        if screen is None:
+            continue
+
+        for area in screen.areas:
+            if area.type in {"PREFERENCES", "VIEW_3D"}:
+                area.tag_redraw()
+
+
+# ---------------------------------------------------------------------------
+# UI drawing
+# ---------------------------------------------------------------------------
+
+
+def draw_keymap_settings(layout: bpy.types.UILayout, _prefs) -> None:
+    """
+    Draw keymap entries in the addon preferences panel.
+
+    Looks up kmis from keyconfigs.user — the persisted layer — so the
+    displayed state always matches what Blender has saved to userpref.blend.
+    """
+    wm = bpy.context.window_manager
+
+    box = layout.box()
+    box.label(text="Keymaps:")
+
+    # Group entries by keymap_name for a tidy sectioned UI.
+    groups: dict[str, list[tuple[str, dict]]] = {}
+    for op_id, cfg in KEYMAP_CONFIGS.items():
+        if not cfg.get("show_in_prefs", True):
+            continue
+        groups.setdefault(cfg["keymap_name"], []).append((op_id, cfg))
+
+    for keymap_name, entries in groups.items():
+        section = box.box()
+        section.label(text=f"{keymap_name}:")
+
+        for op_id, cfg in entries:
+            kc, km, kmi, source = _get_effective_kmi(wm, op_id)
+
+            row = section.row(align=True)
+
+            if kc is None or km is None or kmi is None:
+                split = row.split(factor=0.35, align=True)
+                split.label(text=cfg["label"])
+                warn = split.row(align=True)
+                warn.alert = True
+                warn.label(text="Missing keymap item", icon="ERROR")
+                continue
+
+            row.context_pointer_set("keymap", km)
+            rna_keymap_ui.draw_kmi(["ADDON", "USER", "DEFAULT"], kc, km, kmi, row, 0)
+
+            # If user override, restore to addon default
+            if source == "USER":
+                op = row.operator(
+                    SimpleToolbox_OT_RestoreKeymap.bl_idname,
+                    text="",
+                    icon="LOOP_BACK",
+                )
+                op.op_id = op_id
+
+
+# ---------------------------------------------------------------------------
+# Restore operator
+# ---------------------------------------------------------------------------
+
+
+class SimpleToolbox_OT_RestoreKeymap(bpy.types.Operator):
+    """Restore a disabled or missing keymap item to its addon default."""
 
     bl_idname = "r0tools.restore_keymap"
     bl_label = "Restore Keymap"
+    bl_description = "Remove the user override and restore the addon default binding"
 
     op_id: StringProperty()  # type: ignore
 
     def execute(self, context):
         cfg = KEYMAP_CONFIGS.get(self.op_id)
         if not cfg:
+            self.report({"WARNING"}, f"No config found for '{self.op_id}'")
             return {"CANCELLED"}
 
-        addon_prefs = u.get_addon_prefs()
         wm = context.window_manager
-        kc = wm.keyconfigs.addon  # Use addon keyconfig to restore
+        kc_user = wm.keyconfigs.user
 
-        # Get or create keymap
-        km = None
-        for keymap in kc.keymaps:
-            if (
-                keymap.name == cfg["keymap_name"]
-                and keymap.space_type == cfg["space_type"]
-                and keymap.region_type == cfg["region_type"]
-            ):
-                km = keymap
-                break
+        if kc_user is None:
+            self.report({"WARNING"}, "User keyconfig is not available")
+            return {"CANCELLED"}
 
-        if not km:
-            km = kc.keymaps.new(name=cfg["keymap_name"], space_type=cfg["space_type"], region_type=cfg["region_type"])
+        # Remove any user-layer override so the addon default shows through.
+        km_user = kc_user.keymaps.get(cfg["keymap_name"])
+        removed = _remove_matching_kmis(
+            km_user,
+            self.op_id,
+            cfg.get("properties"),
+        )
 
-        if km:
-            # Get key from preferences or use default
-            key = getattr(addon_prefs, cfg["addon_pref_prop"], cfg["default_key"])
-            kmi = km.keymap_items.new(self.op_id, type=key, value=cfg["value"])
-            addon_keymaps.append((km, kmi))
+        _tag_ui_redraw()
 
-            self.report({"INFO"}, f"Restored keymap for {self.op_id}")
+        if removed:
+            self.report({"INFO"}, f"Restored default keymap for '{cfg['label']}'")
         else:
-            self.report({"ERROR"}, f"Could not find keymap '{cfg['keymap_name']}'")
+            self.report({"INFO"}, f"No user override found for '{cfg['label']}'")
 
         return {"FINISHED"}
 
 
-addon_keymaps = []
+# ---------------------------------------------------------------------------
+# Registration / unregistration
+# ---------------------------------------------------------------------------
 
 
-def register_keymaps():
-    """Register keymaps with support for optional key assignments."""
-    log.info(f"Register Keymaps")
+def register_keymaps() -> None:
+    """
+    Register default add-on keymaps.
 
-    addon_prefs = u.get_addon_prefs()
+    The add-on layer is recreated each startup, while user edits persist in the
+    user layer and override these defaults.
+    """
+    log.info("Register Keymaps")
+
     wm = bpy.context.window_manager
     kc = wm.keyconfigs.addon
 
-    if not kc:
-        log.warning(f"No addon keyconfig available")
+    if kc is None:
+        log.warning("No addon keyconfig available, skipping keymap registration")
         return
 
+    _addon_keymaps.clear()
+
     for op_id, cfg in KEYMAP_CONFIGS.items():
-        keymap_name = cfg["keymap_name"]
-        space_type = cfg["space_type"]
-        region_type = cfg["region_type"]
+        # keymaps.new() is idempotent: returns the existing km if already present.
+        km = kc.keymaps.new(
+            name=cfg.get("keymap_name", ""),
+            space_type=cfg.get("space_type", "EMPTY"),
+            region_type=cfg.get("region_type", "WINDOW"),
+        )
 
-        # Find existing keymap or create new one
-        km = None
-        for keymap in kc.keymaps:
-            if keymap.name == keymap_name and keymap.space_type == space_type and keymap.region_type == region_type:
-                km = keymap
-                break
+        # Defensive cleanup for script reload / duplicate state
+        _remove_matching_kmis(km, op_id, cfg.get("properties"))
 
-        if not km:
-            km = kc.keymaps.new(name=keymap_name, space_type=space_type, region_type=region_type)
-            log.info(f"Created new keymap '{keymap_name}'")
-
-        # Check if keymap item already exists
-        existing_kmi = get_hotkey_entry_item(km, op_id)
-
-        if not existing_kmi:
-            # Determine key to use
-            key = cfg["default_key"]
-
-            # Check if there's a stored preference
-            if hasattr(addon_prefs, cfg["addon_pref_prop"]):
-                stored_key = getattr(addon_prefs, cfg["addon_pref_prop"])
-                if stored_key and stored_key != "NONE":
-                    key = stored_key
-
-            # Create keymap item even with "NONE" key
-            try:
-                kmi = km.keymap_items.new(op_id, type=key, value=cfg["value"])
-                addon_keymaps.append((km, kmi))
-
-                status = "unassigned" if key == "NONE" else f"with key '{key}'"
-                log.info(f"Registered '{op_id}' {status}")
-
-            except Exception as e:
-                log.error(f"Failed to register '{op_id}': {e}")
-        else:
-            # Update preference to match existing keymap
-            if hasattr(addon_prefs, cfg["addon_pref_prop"]):
-                current_key = existing_kmi.type if existing_kmi.type != "NONE" else "NONE"
-                setattr(addon_prefs, cfg["addon_pref_prop"], current_key)
-
-            addon_keymaps.append((km, existing_kmi))
-            log.info(f"Found existing keymap for {op_id}")
-
-
-def unregister_keymaps():
-    log.info(f"Unregister Keymaps")
-
-    # Save current keybinds to preferences before removing
-    addon_prefs = u.get_addon_prefs()
-
-    for km, kmi in addon_keymaps:
-        cfg = KEYMAP_CONFIGS.get(kmi.idname)
-        if cfg and hasattr(addon_prefs, cfg["addon_pref_prop"]):
-            setattr(addon_prefs, cfg["addon_pref_prop"], kmi.type)
+        key = cfg.get("default_key", "NONE")
+        value = cfg.get("value", "PRESS")
 
         try:
-            log.debug(f"Remove {kmi.idname}")
-            km.keymap_items.remove(kmi)
+            kmi = km.keymap_items.new(op_id, type=key, value=value)
+            _apply_kmi_properties(kmi, cfg)
+
+            # Keep unbound defaults as active, "type='NONE'" is unassigned.
+            _addon_keymaps.append((op_id, km, kmi))
+
+            log.info(f"Registered keymap for '{op_id}' (type={key}, value={value=})")
+
         except Exception as e:
-            log.warning(f"Could not remove {kmi.idname}: {e}")
+            log.error(f"Failed to register keymap for '{op_id}': {e}")
 
-    addon_keymaps.clear()
 
+def unregister_keymaps() -> None:
+    log.info("Unregister Keymaps")
+
+    for op_id, km, kmi in reversed(_addon_keymaps):
+        try:
+            km.keymap_items.remove(kmi)
+        except ReferenceError:
+            log.debug(f"Keymap item '{op_id}' was already invalid")
+        except RuntimeError as e:
+            log.warning(f"Unable to remove keymap item '{op_id}': {e}")
+
+    _addon_keymaps.clear()
+
+
+# ---------------------------------------------------------------------------
+# Module register / unregister
+# ---------------------------------------------------------------------------
 
 classes = [
-    SimpleToolbox_OT_Assign_Keymap,
-    SimpleToolbox_OT_Restore_Keymap,
+    SimpleToolbox_OT_RestoreKeymap,
 ]
 
 
-def register():
+def register() -> None:
     for cls in classes:
         log.debug(f"Register {cls.__name__}")
         bpy.utils.register_class(cls)
-
     register_keymaps()
 
 
-def unregister():
+def unregister() -> None:
     unregister_keymaps()
-
     for cls in classes:
         log.debug(f"Unregister {cls.__name__}")
         bpy.utils.unregister_class(cls)
