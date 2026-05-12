@@ -140,6 +140,7 @@ def get_repo_addon_version() -> str:
     from ..repo import RELEASES_PAGE
 
     releases_latest = f"{RELEASES_PAGE}/latest"
+
     try:
         log.info(f"Fetching URL response for '{releases_latest}'.")
         response = requests.get(
@@ -148,6 +149,7 @@ def get_repo_addon_version() -> str:
         response.raise_for_status()
     except Exception as conn_err:
         log.error(f"{conn_err}")
+        return version_tuple_to_str(tuple_version_string("0.0.0"))
 
     log.info(f"Response: '{response.url}'.")
 
