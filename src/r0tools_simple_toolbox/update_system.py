@@ -25,6 +25,7 @@ _last_object_count: int = 0
 is_saving = False
 is_updating = False  # Check if our depsgraph update is running
 
+RESCHEDULE_DELAY: float = 1  # (X * 1000)ms
 
 # ============================================================================
 # Main Subscription Manager
@@ -195,8 +196,8 @@ def _deferred_update():
 
     # If context is not write-safe yet, reschedule rather than drop the update
     if scene is None or not u.is_writing_context_safe(scene):
-        log.warning("Deferred update: context not write-safe, rescheduling in 100ms")
-        return 0.1
+        log.warning(f"Deferred update: context not write-safe, rescheduling in {RESCHEDULE_DELAY*1000}ms")
+        return RESCHEDULE_DELAY
 
     _process_pending_updates()
     return None
