@@ -120,16 +120,32 @@ def select_object(
     Returns:
         The selected object or None if failed
     """
-    log.debug(f"Selecting {obj.name} {add=} {set_active=}")
+    log.debug(f"Request to select {obj.name} {add=} {set_active=}")
 
-    if context:
-        if not is_object_selectable_in_context(obj, context):
-            log.debug(f"{obj.name} is not selectable in this context.")
+    if context is None:
+        context = bpy.context
+
+    """
+    if not is_object_selectable_in_context(obj, context):
+        log.debug(f"{obj.name} is not selectable in this context.")
+        return None
+    """
+
+    view_layer = context.view_layer
+
+    try:
+        if obj.as_pointer() == 0:
             return None
+    except ReferenceError:
+        return None
 
-        view_layer = context.view_layer
-    else:
-        view_layer = None
+    if not is_object_visible_in_viewport(obj):
+        log.debug(f"f{obj.name} is not visibile in the current view layer.")
+        return None
+
+    if obj.hide_select:
+        log.debug(f"{obj.name} is hidden from selection.")
+        return None
 
     if not add:
         deselect_all()
@@ -148,6 +164,8 @@ def select_object(
     except RuntimeError as e:
         log.error(f"Selecting {obj.name} {e}")
         return None
+
+    log.debug(f"Selected {obj.name} {add=} {set_active=}")
 
     return obj
 
@@ -175,15 +193,18 @@ def deselect_object(obj: bpy.types.Object) -> bpy.types.Object | None:
     return obj
 
 
-def is_object_visible_in_viewport(obj):
+def is_object_visible_in_viewport(obj, view_layer=None):
     """
     Check if an object is visible in the viewport
 
     This checks both the object's visibility setting and
     whether its collections are visible
     """
+    if view_layer is None:
+        view_layer = bpy.context.view_layer
+
     # Check if the object is set to be visible in the viewport
-    if not obj.visible_get():
+    if not obj.visible_get(view_layer=view_layer):
         log.debug(f"{obj.name} is not visible in viewport.")
         return False
 
@@ -200,41 +221,6 @@ def is_object_visible_in_viewport(obj):
             log.debug(f"   - {collection.name} is hidden.")
 
     return False
-
-
-def same_blender_id(a: bpy.types.ID, b: bpy.types.ID) -> bool:
-    """Return True if two Python RNA wrappers point to the same Blender ID."""
-    try:
-        return a.as_pointer() == b.as_pointer()
-    except ReferenceError:
-        return False
-
-
-def is_object_in_view_layer(obj: bpy.types.Object, view_layer: bpy.types.ViewLayer) -> bool:
-    """Return True if object exists in the given view layer."""
-    return any(same_blender_id(obj, view_layer_obj) for view_layer_obj in view_layer.objects)
-
-
-def is_object_selectable_in_context(obj: bpy.types.Object, context: bpy.types.Context) -> bool:
-    """Return True if object can be reasonably selected in the current context."""
-    if not is_valid_object_global(obj):
-        return False
-
-    view_layer = context.view_layer
-
-    if not is_object_in_view_layer(obj, view_layer):
-        log.debug(f"{obj.name} is not in the current view layer.")
-        return False
-
-    if not is_object_visible_in_viewport(obj):
-        log.debug(f"{obj.name} is not visible in the current viewport.")
-        return False
-
-    if obj.hide_select:
-        log.debug(f"{obj.name} is hidden from selection.")
-        return False
-
-    return True
 
 
 def unhide_object_and_collections(obj: bpy.types.Object):
