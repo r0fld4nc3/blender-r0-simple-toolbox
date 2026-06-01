@@ -65,7 +65,7 @@ class R0PROP_UL_FindModifierObjectsList(bpy.types.UIList):
 
             row = split.row()
             op = row.operator(SimpleToolbox_OT_FindModifierSelectObject.bl_idname, text="", icon="RESTRICT_SELECT_OFF")
-            op.object_name = found_obj.name
+            op.item_index = index
             row.prop(found_obj, "name", text="", emboss=False)
 
     def filter_items(self, context, data, propname):

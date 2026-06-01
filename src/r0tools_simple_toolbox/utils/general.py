@@ -43,8 +43,13 @@ def set_active_object(obj: bpy.types.Object):
     """Set the active object in the current view layer"""
     objects = getattr(bpy.context.view_layer, "objects", None)
 
-    if objects and is_valid_object_global(obj) and is_object_visible_in_viewport(obj):
+    is_valid_global = is_valid_object_global(obj)
+    is_visible_viewport = is_object_visible_in_viewport(obj)
+
+    if objects and is_valid_global and is_visible_viewport:
         bpy.context.view_layer.objects.active = obj
+    else:
+        log.debug(f"{obj.name} {is_valid_global=} {is_visible_viewport=}")
 
 
 def get_active_object() -> bpy.types.Object | None:
@@ -100,7 +105,9 @@ def set_mode_edit():
     set_object_mode("EDIT")
 
 
-def select_object(obj: bpy.types.Object, add: bool = False, set_active: bool = True) -> bpy.types.Object | None:
+def select_object(
+    obj: bpy.types.Object, add: bool = False, set_active: bool = True, context: bpy.types.Context = None
+) -> bpy.types.Object | None:
     """
     Select an object in the scene
 
@@ -108,29 +115,36 @@ def select_object(obj: bpy.types.Object, add: bool = False, set_active: bool = T
         obj: Object to select
         add: Whether to add to current selection or replace it
         set_active: Whether to set this as the active object
+        context: Blender context from the calling Operator
 
     Returns:
         The selected object or None if failed
     """
     log.debug(f"Selecting {obj.name} {add=} {set_active=}")
 
+    if context:
+        if not is_object_selectable_in_context(obj, context):
+            log.debug(f"{obj.name} is not selectable in this context.")
+            return None
+
+        view_layer = context.view_layer
+    else:
+        view_layer = None
+
     if not add:
         deselect_all()
 
-    if not is_valid_object_global(obj):
-        return None
-
-    if not is_object_visible_in_viewport(obj):
-        return None
-
     try:
-        obj.select_set(True)
+        if view_layer:
+            obj.select_set(True, view_layer=view_layer)
+        else:
+            obj.select_set(True)
 
         if not add or set_active:
-            set_active_object(obj)
             # If we're not adding to the selection
             # object needs to be set active to
             # properly reflect and update selection.
+            set_active_object(obj)
     except RuntimeError as e:
         log.error(f"Selecting {obj.name} {e}")
         return None
@@ -186,6 +200,41 @@ def is_object_visible_in_viewport(obj):
             log.debug(f"   - {collection.name} is hidden.")
 
     return False
+
+
+def same_blender_id(a: bpy.types.ID, b: bpy.types.ID) -> bool:
+    """Return True if two Python RNA wrappers point to the same Blender ID."""
+    try:
+        return a.as_pointer() == b.as_pointer()
+    except ReferenceError:
+        return False
+
+
+def is_object_in_view_layer(obj: bpy.types.Object, view_layer: bpy.types.ViewLayer) -> bool:
+    """Return True if object exists in the given view layer."""
+    return any(same_blender_id(obj, view_layer_obj) for view_layer_obj in view_layer.objects)
+
+
+def is_object_selectable_in_context(obj: bpy.types.Object, context: bpy.types.Context) -> bool:
+    """Return True if object can be reasonably selected in the current context."""
+    if not is_valid_object_global(obj):
+        return False
+
+    view_layer = context.view_layer
+
+    if not is_object_in_view_layer(obj, view_layer):
+        log.debug(f"{obj.name} is not in the current view layer.")
+        return False
+
+    if not is_object_visible_in_viewport(obj):
+        log.debug(f"{obj.name} is not visible in the current viewport.")
+        return False
+
+    if obj.hide_select:
+        log.debug(f"{obj.name} is hidden from selection.")
+        return False
+
+    return True
 
 
 def unhide_object_and_collections(obj: bpy.types.Object):
@@ -356,24 +405,21 @@ def object_visible(obj):
     return obj.visible_get()
 
 
-def is_valid_object_global(obj):
+def is_valid_object_global(obj: bpy.types.Object | None) -> bool:
     """
     Check if an object reference is valid
     """
-    try:
-        if not obj:
-            return False
 
-        if obj.as_pointer == 0:
+    if obj is None:
+        return False
+
+    try:
+        if obj.as_pointer() == 0:
             return False
 
         # Direct data check
         data_objects = bpy.data.objects
-        if obj.name not in data_objects:
-            return False
-
-        # Has the object been orphaned?
-        return any(data_objects[obj.name].users_scene)
+        return obj.name in data_objects
     except (ReferenceError, KeyError):
         return False
     except Exception as e:

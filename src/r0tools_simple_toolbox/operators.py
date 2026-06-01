@@ -741,7 +741,7 @@ class SimpleToolbox_OT_FindModifierSelectObject(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     # This property will receive the object name from the UIList button.
-    object_name: bpy.props.StringProperty(default="")  # type: ignore
+    item_index: bpy.props.IntProperty(default=-1)  # type: ignore
     add_to_selection: bpy.props.BoolProperty(default=False)  # type: ignore
 
     @classmethod
@@ -787,27 +787,36 @@ class SimpleToolbox_OT_FindModifierSelectObject(bpy.types.Operator):
             return {"CANCELLED"}
 
         for obj in objects_to_select:
-            obj.select_set(True)
+            # obj.select_set(True)
+            u.select_object(obj, add=True, context=context)
 
-        context.view_layer.objects.active = objects_to_select[0]
+        u.set_active_object(objects_to_select[0])
 
         return {"FINISHED"}
 
     def execute_select_single(self, context):
-        if not self.object_name:
-            self.report({"WARNING"}, "No object name provided.")
+        addon_find_modifier_props = u.get_addon_find_modifier_props()
+        found_items = addon_find_modifier_props.objects_list.found_objects
+
+        if self.item_index < 0 or self.item_index >= len(found_items):
+            self.report({"WARNING"}, "Invalid object list index.")
             return {"CANCELLED"}
 
-        target_obj = bpy.data.objects.get(self.object_name)
-        if not target_obj:
-            self.report({"WARNING"}, f"Object '{self.object_name}' not found.")
+        item = found_items[self.item_index]
+
+        if item.category_name:
+            self.report({"WARNING"}, "Selected list item is a category header, not an object.")
+            return {"CANCELLED"}
+
+        if not item.obj:
+            self.report({"WARNING"}, "Object pointer is no longer valid.")
             return {"CANCELLED"}
 
         if self.add_to_selection:
-            u.select_object(target_obj, add=True)
+            u.select_object(item.obj, add=True, context=context)
         else:
             u.deselect_all()
-            u.select_object(target_obj)
+            u.select_object(item.obj, context=context)
 
         return {"FINISHED"}
 
