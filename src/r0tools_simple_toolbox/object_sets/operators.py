@@ -92,15 +92,15 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
         addon_prefs = u.get_addon_prefs()
         addon_object_sets_props = u.get_addon_object_sets_props()
 
-        label_add_new = "Create a New Object Set"
-        if self.separator:
-            label_add_new = "Add new Separator"
-
         layout = self.layout
-        layout.label(text=label_add_new, icon="ADD")
+
+        # label_add_new = "Create a New Object Set"
+        # if self.separator:
+        # label_add_new = "Add new Separator"
+        # layout.label(text=label_add_new, icon="ADD")
 
         separator_checkbox_row = layout.row()
-        separator_checkbox_row.prop(self, "separator", text="Separator?")
+        separator_checkbox_row.prop(self, "separator", text="Separator")
 
         if self.separator:
             return
