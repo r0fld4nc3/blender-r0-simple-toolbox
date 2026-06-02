@@ -148,7 +148,7 @@ class SimpleToolbox_OT_AddObjectSetPopup(bpy.types.Operator):
                 new_set = u.get_object_sets().add()
                 new_set.name = new_set.default_separator_name
                 new_set.separator = self.separator
-                self.report({"INFO"}, f"Added separator ot Object Sets")
+                self.report({"INFO"}, f"Added separator to Object Sets")
 
             else:
                 new_set = u.get_object_sets().add()
