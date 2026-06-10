@@ -87,5 +87,3 @@ def unregister():
         bpy.utils.unregister_class(cls)
 
     bpy.types.MATERIAL_MT_context_menu.remove(draw_materials_actions_menu)
-
-    bpy.types.MATERIAL_MT_context_menu.remove(draw_materials_actions_menu)
