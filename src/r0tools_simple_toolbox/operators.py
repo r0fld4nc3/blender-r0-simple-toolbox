@@ -629,6 +629,85 @@ class SimpleToolbox_OT_RemoveUnusedMaterials(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_DuplicateActiveMaterial(bpy.types.Operator):
+    bl_idname = "r0tools.active_material_duplicate"
+    bl_label = "Duplicate Material"
+    bl_description = (
+        "Duplicate the active material and add it to the material slot list without overriding the active slot"
+    )
+    bl_options = {"REGISTER", "UNDO"}
+
+    placement: bpy.props.EnumProperty(
+        name="Placement",
+        description="Where to place the duplicated material slot",
+        items=(
+            (
+                "APPEND",
+                "Append",
+                "Add the duplicated material at the end of the material slot list",
+            ),
+            (
+                "AFTER_ACTIVE",
+                "After Active Slot",
+                "Insert the duplicated material slot directly after the active slot",
+            ),
+        ),
+        default="AFTER_ACTIVE",
+    )  # type: ignore
+
+    make_active: bpy.props.BoolProperty(
+        name="Make Duplicate Active", description="Select the new duplicated material slot after creation", default=True
+    )  # type: ignore
+
+    @classmethod
+    def poll(cls, context: bpy.types.Context) -> bool:
+        return u.can_duplicate_active_material(context)
+
+    def execute(self, context):
+
+        log.info("------------- Duplicate Active Material -------------")
+
+        obj = u.get_active_object()
+
+        if not u.can_duplicate_active_material(context):
+            self.report({"WARNING"}, "No active material to duplicate")
+            return {"CANCELLED"}
+
+        source_index = obj.active_material_index
+        source_slot = obj.material_slots[source_index]
+        source_material = source_slot.material
+        source_link = source_slot.link
+
+        duplicated_material = source_material.copy()
+
+        new_index = u.append_material_to_new_slot(obj, duplicated_material, link=source_link)
+
+        if self.placement == "AFTER_ACTIVE":
+            target_index = source_index + 1
+
+            moved = u.move_material_slot_to_index(context, obj, from_index=new_index, to_index=target_index)
+
+            if moved:
+                new_index = target_index
+            else:
+                msg = f"Duplicated material '{source_material.name}' was appended, but could not be moved after the active slot for Object '{obj.name}'"
+
+                log.warning(msg)
+
+                self.report({"WARNING"}, msg)
+
+        if self.make_active:
+            obj.active_material_index = new_index
+
+            msg = f"Duplicated '{source_material.name}' to slot {new_index} for Object '{obj.name}'"
+
+            log.info(msg)
+
+            self.report({"INFO"}, msg)
+
+        return {"FINISHED"}
+
+
 class SimpleToolbox_OT_FindModifierSearch(bpy.types.Operator):
     bl_idname = "r0tools.find_modifier_search"
     bl_label = "Find Modifiers"
@@ -1760,6 +1839,7 @@ classes = [
     SimpleToolbox_OT_FindModifierClearList,
     
     SimpleToolbox_OT_RemoveUnusedMaterials,
+    SimpleToolbox_OT_DuplicateActiveMaterial,
     
     SimpleToolbox_OT_DissolveNthEdge,
     SimpleToolbox_OT_RestoreNthEdge,

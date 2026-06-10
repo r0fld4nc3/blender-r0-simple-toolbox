@@ -7,6 +7,7 @@ from .constants import *  # isort: skip
 from .context import *  # isort: skip
 from .custom_transform import *  # isort: skip
 from .general import *  # isort: skip
+from .materials import * # isort: skip
 from .path_utils import * # isort: skip
 from ..object_sets.object_sets import *  # isort: skip
 from ..vertex_groups.vertex_groups import *  # isort: skip
@@ -25,6 +26,7 @@ modules_load_order = (
     "context",
     "custom_transform",
     "general",
+    "materials",
     "defer",
     "edge_data",
 )

@@ -50,11 +50,15 @@ class SimpleToolbox_MT_VertexGroupsActionsMenu(bpy.types.Menu):
 
 
 def draw_materials_actions_menu(self, context):
-    from .operators import SimpleToolbox_OT_RemoveUnusedMaterials
+    from .operators import (
+        SimpleToolbox_OT_DuplicateActiveMaterial,
+        SimpleToolbox_OT_RemoveUnusedMaterials,
+    )
 
     layout = self.layout
     layout.separator()
     layout.operator(SimpleToolbox_OT_RemoveUnusedMaterials.bl_idname)
+    layout.operator(SimpleToolbox_OT_DuplicateActiveMaterial.bl_idname)
 
 
 # ===================================================================
