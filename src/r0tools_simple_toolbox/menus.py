@@ -67,15 +67,18 @@ def draw_materials_operators_cycles_pt(self, context):
     )
 
     layout = self.layout
-    ob = context.object
+    obj = context.object
     slot = context.material_slot
 
-    enabled = ob is not None and slot is not None and slot.material is not None
+    enabled = obj is not None and slot is not None and slot.material is not None
 
-    row = layout.row(align=True)
+    split = layout.split(factor=0.95, align=True)
+    split.separator()
+
+    row = split.row(align=True)
     row.enabled = enabled
 
-    op = row.operator(SimpleToolbox_OT_DuplicateActiveMaterial.bl_idname, text="Duplicate Material", icon="DUPLICATE")
+    op = row.operator(SimpleToolbox_OT_DuplicateActiveMaterial.bl_idname, text="", icon="DUPLICATE")
     op.placement = "AFTER_ACTIVE"
     op.make_active = True
 
