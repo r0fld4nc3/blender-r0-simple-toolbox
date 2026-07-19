@@ -89,6 +89,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
         panelvis_uv_ops = "panelvis_uv_ops"
         panelvis_find_modifier_ops = "panelvis_find_modifier_ops"
         panelvis_custom_properties_ops = "panelvis_custom_properties_ops"
+        panelvis_object_modifiers_ops = "panelvis_object_modifiers_ops"
 
         is_dev_branch = ADDON_BRANCH.lower().startswith("dev")
 
@@ -183,6 +184,22 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 row_split = object_ops_panel_row.split(align=True)
                 # Remove unused Materials
                 row_split.operator(SimpleToolbox_OT_RemoveUnusedMaterials.bl_idname)
+
+                # >> Object Modifiers Panel
+                object_modifiers_header, object_modifiers_ops_panel = object_ops_panel.panel_prop(
+                    addon_props, panelvis_object_modifiers_ops
+                )
+                if object_modifiers_header:
+                    object_modifiers_header.label(text="Modifiers")
+
+                if object_modifiers_ops_panel:
+                    # >> Row
+                    object_modifiers_panel_row = object_modifiers_ops_panel.row(align=True)
+                    object_modifiers_panel_row.prop(addon_prefs, "r0_double_subdiv_modifier_base_name", text="Name:")
+
+                    # >> Row
+                    object_modifiers_panel_row = object_modifiers_ops_panel.row(align=True)
+                    object_modifiers_panel_row.operator(SimpleToolbox_OT_AddDoubleSubdivModifiers.bl_idname)
 
         # ====== Mesh Ops ======
         if cat_show_mesh_ops:

@@ -140,6 +140,10 @@ class AddonPreferences(bpy.types.AddonPreferences):
         default="sharp_edge, uv_seam, custom_normal, material_index, UVMap",
     )  # type: ignore
 
+    r0_double_subdiv_modifier_base_name: StringProperty(
+        name="Double Subdiv Modifier Name", default="Subdivision"
+    )  # type: ignore
+
     def draw(self, context):
         addon_object_sets_props = u.get_addon_object_sets_props()
 

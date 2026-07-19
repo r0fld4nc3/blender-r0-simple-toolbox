@@ -1010,6 +1010,52 @@ class SimpleToolbox_OT_ToggleWireDisplay(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_AddDoubleSubdivModifiers(bpy.types.Operator):
+    bl_idname = "r0tools.add_double_subdiv_modifiers"
+    bl_label = "Add Double Subdiv"
+
+    def execute(self, context):
+        addon_prefs = u.get_addon_prefs()
+
+        for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
+            # Check for existing modifiers
+            mods = obj.modifiers
+            mods_name_type = {mod.name: mod.type for mod in mods}
+            print(mods_name_type)
+
+            subdivs = 0
+            for mod_type in mods_name_type.values():
+                if subdivs >= 2:
+                    break
+
+                if mod_type in ["SUBSURF"]:
+                    subdivs += 1
+
+            if subdivs >= 2:
+                log.info(f"{obj.name} has minumum {subdivs} subdiv modifiers already.")
+                break
+
+            # Add required modifiers
+            max_iters = 2 - subdivs
+            # Catch negative if needed
+            if max_iters < 0:
+                max_iters = 0
+
+            for i in range(0, max_iters):
+                new_modifier = obj.modifiers.new(name=addon_prefs.r0_double_subdiv_modifier_base_name, type="SUBSURF")
+                new_modifier.levels = 2
+                new_modifier.render_levels = 2
+                new_modifier.quality = 3
+
+                if i == 0 and subdivs < 1:
+                    new_modifier.use_creases = True
+
+                if i > 0 or i == max_iters - 1:
+                    new_modifier.use_creases = False
+
+        return {"FINISHED"}
+
+
 # ===================================================================
 #   MESH OPS
 # ===================================================================
@@ -1696,6 +1742,7 @@ class SimpleToolbox_OT_ShowAddonPreferences(bpy.types.Operator):
 # fmt: off
 classes = [
     SimpleToolbox_OT_ToggleWireDisplay,
+    SimpleToolbox_OT_AddDoubleSubdivModifiers,
     
     VIEW3D_MT_CustomOrientationsPieMenu,
     SimpleToolbox_OT_ShowCustomOrientationsPie,

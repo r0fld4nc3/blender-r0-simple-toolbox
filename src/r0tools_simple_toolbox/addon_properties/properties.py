@@ -139,6 +139,10 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
         name="Object Attributes", description="Toggle visibility state for panel", default=False
     )  # type: ignore
 
+    panelvis_object_modifiers_ops: BoolProperty(
+        name="Object Modifiers", description="Toggle visibility state for panel", default=False
+    )  # type: ignore
+
     # =======================================================================
 
     show_experimental_features: BoolProperty(  # type: ignore
