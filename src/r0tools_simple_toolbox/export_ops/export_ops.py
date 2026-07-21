@@ -159,6 +159,9 @@ def draw_quick_export_sets_uilist(layout, context):
         icon="MESH_CUBE" if export_item.use_object_sets else "RESTRICT_SELECT_OFF",
     )
 
+    # Export Individual Objects
+    path_row.prop(export_item, "export_individual_objects", text="", icon="EVENT_NDOF_BUTTON_1")
+
     options_panel_header, options_panel = layout.panel("simpletoolbox_pt_export_options", default_closed=True)
     if options_panel_header:
         options_panel_header.label(text="Options")

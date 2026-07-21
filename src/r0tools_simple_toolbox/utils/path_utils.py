@@ -1,4 +1,5 @@
 import os
+import re
 
 import bpy
 
@@ -30,3 +31,8 @@ def to_absolute_path(path: str) -> str:
         resolved = path
 
     return os.path.normpath(os.path.expanduser(resolved))
+
+
+def sanitize_filename(name: str) -> str:
+    name = re.sub(r'[<>:"/\\|?*]', "_", name)
+    return name.strip(". ")

@@ -374,6 +374,10 @@ class r0SimpleToolbox_PG_ExportEntryItem(bpy.types.PropertyGroup):
         default=False,
     )  # type: ignore
 
+    export_individual_objects: BoolProperty(
+        name="Individual Export", description="Export each object separately in the selection", default=False
+    )  # type: ignore
+
     object_sets_names: CollectionProperty(
         type=r0SimpleToolbox_PG_ObjectSetName, name="Object Set Names", description="List of object set names to export"
     )  # type: ignore
@@ -463,6 +467,9 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
             # Export at frame
             if item.export_at_frame:
                 header_row.label(text="", icon="KEYTYPE_KEYFRAME_VEC")
+
+            if item.export_individual_objects:
+                header_row.label(text="", icon="EVENT_NDOF_BUTTON_1")
 
             # Small separator
             header_row.separator(factor=1)

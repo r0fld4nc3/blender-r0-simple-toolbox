@@ -221,6 +221,12 @@ class SimpleToolbox_OT_ExportObjects(bpy.types.Operator):
         name="Export Entry Index", description="Index of the export entry being used", default=-1
     )  # type: ignore
 
+    export_individual_objects: BoolProperty(
+        name="Export Individual Objects",
+        description="Export each object as a separate file named after the object",
+        default=False,
+    )  # type: ignore
+
     @classmethod
     def poll(cls, context):
         # NOTE: For the other ways to "poll" check the `export_sub_row.enabled`
@@ -243,11 +249,12 @@ class SimpleToolbox_OT_ExportObjects(bpy.types.Operator):
             if export_item.use_custom_fbx_settings:
                 settings = export_item.export_settings_fbx
 
+        # Indiviual export for this item?
+        self.export_individual_objects = export_item.export_individual_objects
+
         # Store current selection to restore later
         original_selection = u.get_selected_objects()
         original_active = u.get_active_object()
-
-        # Store current timeline frame
         original_timeline_frame = u.get_scene().frame_current
 
         states_modified = []
@@ -329,51 +336,109 @@ class SimpleToolbox_OT_ExportObjects(bpy.types.Operator):
                     self.report({"ERROR"}, f"Export directory does not exist: {directory}")
                     return {"CANCELLED"}
 
-            bpy.ops.export_scene.fbx(
-                filepath=str(export_path),
-                check_existing=False,
-                filter_glob="*.fbx",
-                use_selection=settings.use_selection,
-                use_visible=settings.use_visible,
-                use_active_collection=settings.use_active_collection,
-                collection=settings.collection,
-                global_scale=settings.global_scale,
-                apply_unit_scale=settings.apply_unit_scale,
-                apply_scale_options=settings.apply_scale_options,
-                use_space_transform=settings.use_space_transform,
-                bake_space_transform=settings.bake_space_transform,
-                object_types=settings.get_object_types_set(),
-                use_mesh_modifiers=settings.use_mesh_modifiers,
-                use_mesh_modifiers_render=settings.use_mesh_modifiers_render,
-                mesh_smooth_type=settings.mesh_smooth_type,
-                colors_type=settings.colors_type,
-                prioritize_active_color=settings.prioritize_active_color,
-                use_subsurf=settings.use_subsurf,
-                use_mesh_edges=settings.use_mesh_edges,
-                use_tspace=settings.use_tspace,
-                use_triangles=settings.use_triangles,
-                use_custom_props=settings.use_custom_props,
-                add_leaf_bones=settings.add_leaf_bones,
-                primary_bone_axis=settings.primary_bone_axis,
-                secondary_bone_axis=settings.secondary_bone_axis,
-                use_armature_deform_only=settings.use_armature_deform_only,
-                armature_nodetype=settings.armature_nodetype,
-                # Use main toggle to handle properties
-                bake_anim=settings.export_animation and settings.bake_anim,
-                bake_anim_use_all_bones=settings.bake_anim_use_all_bones and settings.bake_anim,
-                bake_anim_use_nla_strips=settings.bake_anim_use_nla_strips and settings.bake_anim,
-                bake_anim_use_all_actions=settings.bake_anim_use_all_actions and settings.bake_anim,
-                bake_anim_force_startend_keying=settings.bake_anim_force_startend_keying and settings.bake_anim,
-                bake_anim_step=settings.bake_anim_step,
-                bake_anim_simplify_factor=settings.bake_anim_simplify_factor,
-                path_mode=settings.path_mode,
-                embed_textures=settings.embed_textures,
-                batch_mode=settings.batch_mode,
-                use_batch_own_dir=settings.use_batch_own_dir,
-                use_metadata=settings.use_metadata,
-                axis_forward=settings.axis_forward,
-                axis_up=settings.axis_up,
-            )
+            if self.export_individual_objects:
+                if not original_selection:
+                    self.report({"WARNING"}, "No objects to export individually")
+                    return {"CANCELLED"}
+
+                for obj in original_selection:
+                    u.deselect_all()
+                    u.select_object(obj, set_active=True)
+
+                    safe_name = u.sanitize_filename(obj.name)
+                    individual_path = directory / f"{safe_name}.fbx"
+
+                    bpy.ops.export_scene.fbx(
+                        filepath=str(individual_path),
+                        check_existing=False,
+                        filter_glob="*.fbx",
+                        use_selection=True,  # Forced selection for individual export
+                        use_visible=settings.use_visible,
+                        use_active_collection=settings.use_active_collection,
+                        collection=settings.collection,
+                        global_scale=settings.global_scale,
+                        apply_unit_scale=settings.apply_unit_scale,
+                        apply_scale_options=settings.apply_scale_options,
+                        use_space_transform=settings.use_space_transform,
+                        bake_space_transform=settings.bake_space_transform,
+                        object_types=settings.get_object_types_set(),
+                        use_mesh_modifiers=settings.use_mesh_modifiers,
+                        use_mesh_modifiers_render=settings.use_mesh_modifiers_render,
+                        mesh_smooth_type=settings.mesh_smooth_type,
+                        colors_type=settings.colors_type,
+                        prioritize_active_color=settings.prioritize_active_color,
+                        use_subsurf=settings.use_subsurf,
+                        use_mesh_edges=settings.use_mesh_edges,
+                        use_tspace=settings.use_tspace,
+                        use_triangles=settings.use_triangles,
+                        use_custom_props=settings.use_custom_props,
+                        add_leaf_bones=settings.add_leaf_bones,
+                        primary_bone_axis=settings.primary_bone_axis,
+                        secondary_bone_axis=settings.secondary_bone_axis,
+                        use_armature_deform_only=settings.use_armature_deform_only,
+                        armature_nodetype=settings.armature_nodetype,
+                        # Use main toggle to handle properties
+                        bake_anim=settings.export_animation and settings.bake_anim,
+                        bake_anim_use_all_bones=settings.bake_anim_use_all_bones and settings.bake_anim,
+                        bake_anim_use_nla_strips=settings.bake_anim_use_nla_strips and settings.bake_anim,
+                        bake_anim_use_all_actions=settings.bake_anim_use_all_actions and settings.bake_anim,
+                        bake_anim_force_startend_keying=settings.bake_anim_force_startend_keying and settings.bake_anim,
+                        bake_anim_step=settings.bake_anim_step,
+                        bake_anim_simplify_factor=settings.bake_anim_simplify_factor,
+                        path_mode=settings.path_mode,
+                        embed_textures=settings.embed_textures,
+                        batch_mode=settings.batch_mode,
+                        use_batch_own_dir=settings.use_batch_own_dir,
+                        use_metadata=settings.use_metadata,
+                        axis_forward=settings.axis_forward,
+                        axis_up=settings.axis_up,
+                    )
+            else:
+                bpy.ops.export_scene.fbx(
+                    filepath=str(export_path),
+                    check_existing=False,
+                    filter_glob="*.fbx",
+                    use_selection=settings.use_selection,  # Forced selection for individual export
+                    use_visible=settings.use_visible,
+                    use_active_collection=settings.use_active_collection,
+                    collection=settings.collection,
+                    global_scale=settings.global_scale,
+                    apply_unit_scale=settings.apply_unit_scale,
+                    apply_scale_options=settings.apply_scale_options,
+                    use_space_transform=settings.use_space_transform,
+                    bake_space_transform=settings.bake_space_transform,
+                    object_types=settings.get_object_types_set(),
+                    use_mesh_modifiers=settings.use_mesh_modifiers,
+                    use_mesh_modifiers_render=settings.use_mesh_modifiers_render,
+                    mesh_smooth_type=settings.mesh_smooth_type,
+                    colors_type=settings.colors_type,
+                    prioritize_active_color=settings.prioritize_active_color,
+                    use_subsurf=settings.use_subsurf,
+                    use_mesh_edges=settings.use_mesh_edges,
+                    use_tspace=settings.use_tspace,
+                    use_triangles=settings.use_triangles,
+                    use_custom_props=settings.use_custom_props,
+                    add_leaf_bones=settings.add_leaf_bones,
+                    primary_bone_axis=settings.primary_bone_axis,
+                    secondary_bone_axis=settings.secondary_bone_axis,
+                    use_armature_deform_only=settings.use_armature_deform_only,
+                    armature_nodetype=settings.armature_nodetype,
+                    # Use main toggle to handle properties
+                    bake_anim=settings.export_animation and settings.bake_anim,
+                    bake_anim_use_all_bones=settings.bake_anim_use_all_bones and settings.bake_anim,
+                    bake_anim_use_nla_strips=settings.bake_anim_use_nla_strips and settings.bake_anim,
+                    bake_anim_use_all_actions=settings.bake_anim_use_all_actions and settings.bake_anim,
+                    bake_anim_force_startend_keying=settings.bake_anim_force_startend_keying and settings.bake_anim,
+                    bake_anim_step=settings.bake_anim_step,
+                    bake_anim_simplify_factor=settings.bake_anim_simplify_factor,
+                    path_mode=settings.path_mode,
+                    embed_textures=settings.embed_textures,
+                    batch_mode=settings.batch_mode,
+                    use_batch_own_dir=settings.use_batch_own_dir,
+                    use_metadata=settings.use_metadata,
+                    axis_forward=settings.axis_forward,
+                    axis_up=settings.axis_up,
+                )
 
             self.report({"INFO"}, f"Exported to: {export_path}")
 
@@ -414,10 +479,19 @@ class SimpleToolbox_OT_BatchExportObjects(bpy.types.Operator):
         name="Export Entry Index", description="Index of the export entry being used", default=-1
     )  # type: ignore
 
+    export_individual_objects: BoolProperty(
+        name="Export Individual Objects",
+        description="Export each selected object as a separate file named after the object",
+        default=False,
+    )  # type: ignore
+
     @classmethod
     def poll(cls, context):
         accepted_contexts = context.mode in [u.OBJECT_MODES.OBJECT]
         export_sets = get_export_sets()
+
+        if not (accepted_contexts and export_sets):
+            return False
 
         batch_sets = [export_set for export_set in export_sets if export_set.consider_batch_export]
 
@@ -426,14 +500,17 @@ class SimpleToolbox_OT_BatchExportObjects(bpy.types.Operator):
             for export_set in batch_sets
             if export_set.use_object_sets and export_set.get_selected_object_sets()
         ]
+
         has_selection = u.get_selected_objects()
+
         sets_with_selection_export = [
             export_set for export_set in batch_sets if not export_set.use_object_sets and has_selection
         ]
 
-        return all(
-            [accepted_contexts and export_sets and any([sets_with_object_sets_export, sets_with_selection_export])]
-        )
+        can_export_object_sets = bool(sets_with_object_sets_export)
+        can_export_selection = bool(sets_with_selection_export) and has_selection
+
+        return can_export_object_sets or can_export_selection
 
     def execute(self, context):
         addon_export_props = u.get_addon_export_props()
@@ -464,6 +541,7 @@ class SimpleToolbox_OT_BatchExportObjects(bpy.types.Operator):
                     mkdirs_if_not_exist=addon_export_props.mkdirs_if_not_exist,
                     object_set_names=object_set_names,
                     export_entry_index=index,
+                    export_individual_objects=self.export_individual_objects,
                 )
                 if success in (True, {"FINISHED"}):
                     exported.add(export_set.name)
