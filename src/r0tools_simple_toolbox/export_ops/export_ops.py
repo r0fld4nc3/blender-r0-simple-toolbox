@@ -145,22 +145,26 @@ def draw_quick_export_sets_uilist(layout, context):
     if not export_item:
         return
 
+    # Export Source Options
+    export_sources_row = layout.row(align=True)
+
+    # Use Object Sets button
+    export_sources_row.prop(
+        export_item,
+        "enum_export_source",
+        expand=True,
+    )
+
+    export_sources_row.separator()
+
+    # Export Individual Objects
+    export_sources_row.prop(export_item, "export_individual_objects", text="", icon="EVENT_NDOF_BUTTON_1")
+
     # Export Path
     path_row = layout.row(align=True)
     path_row.prop(export_item, "export_path_absolute", text="")
     op = path_row.operator(SimpleToolbox_OT_SelectPath.bl_idname, text="", icon="FILE_FOLDER")
     op.index = active_index
-
-    # Use Object Sets button
-    path_row.prop(
-        export_item,
-        "use_object_sets",
-        text="",
-        icon="MESH_CUBE" if export_item.use_object_sets else "RESTRICT_SELECT_OFF",
-    )
-
-    # Export Individual Objects
-    path_row.prop(export_item, "export_individual_objects", text="", icon="EVENT_NDOF_BUTTON_1")
 
     options_panel_header, options_panel = layout.panel("simpletoolbox_pt_export_options", default_closed=True)
     if options_panel_header:
@@ -187,23 +191,8 @@ def draw_quick_export_sets_uilist(layout, context):
             right_col.enabled = export_item.export_at_frame  # Dynamic contextual enable
             right_col.prop(export_item, "export_frame")
 
-        # FBX Export Settings
-        custom_fbx_settings_header, custom_fbx_settings_panel = options_panel.panel(
-            "simpletoolbox_pt_export_fbx_settings", default_closed=True
-        )
-        if custom_fbx_settings_header:
-            custom_fbx_settings_header.label(text="FBX Settings Override")
-
-        if custom_fbx_settings_panel:
-            checkbox_row = custom_fbx_settings_panel.row()
-            checkbox_row.alignment = "RIGHT"
-            checkbox_row.prop(export_item, "use_custom_fbx_settings")
-            if export_item.use_custom_fbx_settings:
-                settings_row = custom_fbx_settings_panel.row()
-                draw_fbx_export_settings(settings_row, export_item.export_settings_fbx)
-
-        # Object Sets Row
-        if export_item.use_object_sets:
+        # Object Sets Section
+        if export_item.enum_export_source == "OBJECT_SETS":
             object_sets_panel_header, object_sets_panel = options_panel.panel(
                 "simpletoolbox_pt_export_use_object_sets", default_closed=True
             )
@@ -227,6 +216,32 @@ def draw_quick_export_sets_uilist(layout, context):
                 else:
                     no_sets_row = object_sets_panel.row()
                     no_sets_row.label(text="No Object Sets available", icon="INFO")
+        # Collection Section
+        elif export_item.enum_export_source == "COLLECTION":
+            export_collection_panel_header, export_collection_panel = options_panel.panel(
+                "simpletoolbox_pt_export_use_collection", default_closed=True
+            )
+
+            if export_collection_panel_header:
+                export_collection_panel_header.label(text="Collection")
+
+            if export_collection_panel:
+                export_collection_panel.prop(export_item, "export_collection_ptr", text="")
+
+        # FBX Export Settings
+        custom_fbx_settings_header, custom_fbx_settings_panel = options_panel.panel(
+            "simpletoolbox_pt_export_fbx_settings", default_closed=True
+        )
+        if custom_fbx_settings_header:
+            custom_fbx_settings_header.label(text="FBX Settings Override")
+
+        if custom_fbx_settings_panel:
+            checkbox_row = custom_fbx_settings_panel.row()
+            checkbox_row.alignment = "RIGHT"
+            checkbox_row.prop(export_item, "use_custom_fbx_settings")
+            if export_item.use_custom_fbx_settings:
+                settings_row = custom_fbx_settings_panel.row()
+                draw_fbx_export_settings(settings_row, export_item.export_settings_fbx)
 
 
 def draw_fbx_export_settings(layout, settings):

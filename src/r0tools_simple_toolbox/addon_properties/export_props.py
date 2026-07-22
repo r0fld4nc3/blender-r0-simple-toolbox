@@ -368,10 +368,19 @@ class r0SimpleToolbox_PG_ExportEntryItem(bpy.types.PropertyGroup):
 
     consider_batch_export: BoolProperty(name="Batch", description="Consider this Set for batch exporting", default=False)  # type: ignore
 
-    use_object_sets: BoolProperty(
-        name="Use Object Sets",
-        description="Pick Object Sets from the Object Sets list that describe what to export",
-        default=False,
+    enum_export_source: EnumProperty(
+        name="Export Source",
+        description="Use Object Sets or Collections as export source",
+        items=[
+            ("SELECTION", "", "Use Selection", "RESTRICT_SELECT_OFF", 0),
+            ("OBJECT_SETS", "", "Use Object Sets as Export source", "MESH_CUBE", 1),
+            ("COLLECTION", "", "Use a Collection as Export source", "OUTLINER_COLLECTION", 2),
+        ],
+        default="SELECTION",
+    )  # type: ignore
+
+    export_collection_ptr: PointerProperty(
+        type=bpy.types.Collection, name="Collection", description="Collection to export"
     )  # type: ignore
 
     export_individual_objects: BoolProperty(
@@ -434,7 +443,7 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
             export_op.export_entry_index = index
             export_op.mkdirs_if_not_exist = data.mkdirs_if_not_exist
 
-            if item.use_object_sets:
+            if item.enum_export_source == "OBJECT_SETS":
                 selected_object_sets = item.get_selected_object_sets()
                 export_op.object_set_names = ", ".join(selected_object_sets)
             else:
@@ -461,8 +470,14 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
                 header_row.label(text="", icon="PREFERENCES")
 
             # Uses Object Sets
-            if item.use_object_sets:
+            if item.enum_export_source == "OBJECT_SETS":
                 header_row.label(text="", icon="MESH_CUBE")
+            # Uses Collection
+            elif item.enum_export_source == "COLLECTION":
+                header_row.label(text="", icon="OUTLINER_COLLECTION")
+            # Falls back to selection
+            else:
+                header_row.label(text="", icon="RESTRICT_SELECT_OFF")
 
             # Export at frame
             if item.export_at_frame:
@@ -478,11 +493,15 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
             header_row.prop(item, "consider_batch_export", text="")
 
             # Button state based on context selection
-            if item.use_object_sets:
-                selected_sets = item.get_selected_object_sets()
-                export_sub_row.enabled = bool(selected_sets) and bool(item.export_path)
+            is_valid_source = False
+            if item.enum_export_source == "OBJECT_SETS":
+                is_valid_source = bool(item.get_selected_object_sets())
+            elif item.enum_export_source == "COLLECTION":
+                is_valid_source = item.export_collection_ptr is not None
             else:
-                export_sub_row.enabled = len(u.get_selected_objects()) > 0 and bool(item.export_path)
+                is_valid_source = bool(u.get_selected_objects())
+
+            export_sub_row.enabled = is_valid_source and bool(item.export_path)
 
         elif self.layout_type in {"GRID"}:
             layout.alignment = "CENTER"

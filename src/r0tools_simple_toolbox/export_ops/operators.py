@@ -232,10 +232,7 @@ class SimpleToolbox_OT_ExportObjects(bpy.types.Operator):
         # NOTE: For the other ways to "poll" check the `export_sub_row.enabled`
         # section in export_props.py in draw_item, where it dynamically
         # update this Operator based on conditions
-        accepted_contexts = context.mode in [u.OBJECT_MODES.OBJECT]
-        export_sets = get_export_sets()
-
-        return accepted_contexts and export_sets
+        return context.mode in [u.OBJECT_MODES.OBJECT]
 
     def execute(self, context):
         # Get the export settings
@@ -258,189 +255,169 @@ class SimpleToolbox_OT_ExportObjects(bpy.types.Operator):
         original_timeline_frame = u.get_scene().frame_current
 
         states_modified = []
+        objects_to_export: set = set()
 
         viewport_was_local = u.is_viewport_local()
         if viewport_was_local:
             u.toggle_viewport_local_mode()
 
-        # No valid selection when not using Object Sets
-        if not export_item.use_object_sets and not u.get_selected_objects():
-            return {"CANCELLED"}
+        log.info(f"Original active: {original_active}")
 
         try:
-            # Clear current selection
+            # Resolve objects to export based on source
+            export_source = export_item.enum_export_source
+            log.info(f"Export Source: {export_source}")
+
+            if export_source == "OBJECT_SETS":
+                if not self.object_set_names:
+                    _msg: str = "No object set names provided"
+                    self.report({"WARNING"}, _msg)
+                    log.warning(_msg)
+                    return {"CANCELLED"}
+
+                object_set_names_list = [name.strip() for name in self.object_set_names.split(",") if name.strip()]
+                object_sets = u.get_object_sets()
+
+                for obj_set in object_sets:
+                    if obj_set.name not in object_set_names_list:
+                        continue
+
+                    for obj_ref in obj_set.objects:
+                        obj = obj_ref.object
+                        if obj and obj.name in bpy.data.objects:
+                            objects_to_export.add(obj)
+
+                if not objects_to_export:
+                    _msg: str = "No objects found in specified object sets"
+                    self.report({"WARNING"}, _msg)
+                    log.warning(_msg)
+                    return {"CANCELLED"}
+
+            elif export_source == "COLLECTION":
+                target_collection = export_item.export_collection_ptr
+                if not target_collection:
+                    _msg: str = "No collection selection for export"
+                    self.report({"WARNING"}, _msg)
+                    log.warning(_msg)
+                    return {"CANCELLED"}
+
+                objects_to_export = u.get_objects_in_collection(target_collection)
+
+                if not objects_to_export:
+                    _msg: str = f"Collection '{target_collection.name}' is empty"
+                    self.report({"WARNING"}, _msg)
+                    log.warning(_msg)
+                    return {"CANCELLED"}
+
+            else:  # SELECTION
+                if not original_selection:
+                    _msg: str = "No obnjects selected for export"
+                    self.report({"WARNING"}, _msg)
+                    return {"CANCELLED"}
+                objects_to_export = set(original_selection)
+
+            log.info(f"Objects to export: {objects_to_export}")
+
+            # Handle scene state
             u.deselect_all()
 
-            # Set timeline frame if using it
             if export_item.export_at_frame:
                 u.get_scene().frame_current = export_item.export_frame
 
-            # If the export item is using Objet Sets and we have Object Set names, select objects from those sets
-            if export_item.use_object_sets and self.object_set_names:
-                object_set_names_list = [name.strip() for name in self.object_set_names.split(",") if name.strip()]
+            for obj in objects_to_export:
+                states_modified.extend(u.unhide_object_and_collections(obj))
+                u.select_object(obj, add=True, set_active=True)
 
-                # Get all object sets
-                object_sets = u.get_object_sets()
-
-                # Select objects from specified object sets
-                objects_to_export = set()
-                for obj_set in object_sets:
-                    if obj_set.name in object_set_names_list:
-                        # Get objects from this object set
-                        for obj_ref in obj_set.objects:
-                            obj = obj_ref.object
-                            if obj and obj.name in bpy.data.objects:
-                                objects_to_export.add(obj)
-
-                # Select all objects to export
-                for obj in objects_to_export:
-                    # Unhide if necessary and track changes
-                    modified = u.unhide_object_and_collections(obj)
-                    states_modified.extend(modified)
-
-                    u.select_object(obj, add=True, set_active=True)
-
-                if not objects_to_export:
-                    self.report({"WARNING"}, "No objects found in specified object sets")
-                    return {"CANCELLED"}
-            else:
-                # Use current selection if no object sets specified
-                if not original_selection:
-                    self.report({"WARNING"}, "No objects selected and no object sets specified")
-                    return {"CANCELLED"}
-
-                # Restore original selection for export
-                for obj in original_selection:
-                    u.select_object(obj, add=True, set_active=True)
-
-            # Export path handling
+            # Resolve export path
             raw_path = export_item.export_path
             if not raw_path:
-                self.report({"WARNING"}, "No export path defined")
+                _msg: str = "No export path defined"
+                self.report({"WARNING"}, _msg)
+                log.warning(_msg)
                 return {"CANCELLED"}
 
-            # Resolve '//' relative or '~' paths to real absolute path
             export_path = Path(u.to_absolute_path(raw_path))
 
-            # Ensure .fbx extension
             if export_path.suffix.lower() != ".fbx":
                 export_path = export_path.with_suffix(".fbx")
 
-            # Create path if it doesn't exist
+            log.info(f"Export path: {export_path}")
+
             directory = export_path.parent
             if not directory.exists():
                 if self.mkdirs_if_not_exist:
                     directory.mkdir(parents=True, exist_ok=True)
-                    self.report({"INFO"}, f"Created directories: {directory}")
+                    _msg = f"Created directory: {directory}"
+                    self.report({"INFO"}, _msg)
+                    log.info(_msg)
                 else:
-                    self.report({"ERROR"}, f"Export directory does not exist: {directory}")
+                    _msg: str = f"Export directory does not exist: {directory}"
+                    self.report({"ERROR"}, _msg)
+                    log.error(_msg)
                     return {"CANCELLED"}
+
+            # Handle Export
+            fbx_kwargs = {
+                # "filepath": str(export_path),
+                "check_existing": False,
+                "filter_glob": "*.fbx",
+                # "use_selection": settings.use_selection,
+                "use_visible": settings.use_visible,
+                "use_active_collection": settings.use_active_collection,
+                "collection": settings.collection,
+                "global_scale": settings.global_scale,
+                "apply_unit_scale": settings.apply_unit_scale,
+                "apply_scale_options": settings.apply_scale_options,
+                "use_space_transform": settings.use_space_transform,
+                "bake_space_transform": settings.bake_space_transform,
+                "object_types": settings.get_object_types_set(),
+                "use_mesh_modifiers": settings.use_mesh_modifiers,
+                "use_mesh_modifiers_render": settings.use_mesh_modifiers_render,
+                "mesh_smooth_type": settings.mesh_smooth_type,
+                "colors_type": settings.colors_type,
+                "prioritize_active_color": settings.prioritize_active_color,
+                "use_subsurf": settings.use_subsurf,
+                "use_mesh_edges": settings.use_mesh_edges,
+                "use_tspace": settings.use_tspace,
+                "use_triangles": settings.use_triangles,
+                "use_custom_props": settings.use_custom_props,
+                "add_leaf_bones": settings.add_leaf_bones,
+                "primary_bone_axis": settings.primary_bone_axis,
+                "secondary_bone_axis": settings.secondary_bone_axis,
+                "use_armature_deform_only": settings.use_armature_deform_only,
+                "armature_nodetype": settings.armature_nodetype,
+                # Use main toggle to handle properties
+                "bake_anim": settings.export_animation and settings.bake_anim,
+                "bake_anim_use_all_bones": settings.bake_anim_use_all_bones and settings.bake_anim,
+                "bake_anim_use_nla_strips": settings.bake_anim_use_nla_strips and settings.bake_anim,
+                "bake_anim_use_all_actions": settings.bake_anim_use_all_actions and settings.bake_anim,
+                "bake_anim_force_startend_keying": settings.bake_anim_force_startend_keying and settings.bake_anim,
+                "bake_anim_step": settings.bake_anim_step,
+                "bake_anim_simplify_factor": settings.bake_anim_simplify_factor,
+                "path_mode": settings.path_mode,
+                "embed_textures": settings.embed_textures,
+                "batch_mode": settings.batch_mode,
+                "use_batch_own_dir": settings.use_batch_own_dir,
+                "use_metadata": settings.use_metadata,
+                "axis_forward": settings.axis_forward,
+                "axis_up": settings.axis_up,
+            }
 
             if self.export_individual_objects:
-                if not original_selection:
-                    self.report({"WARNING"}, "No objects to export individually")
-                    return {"CANCELLED"}
-
-                for obj in original_selection:
+                for obj in objects_to_export:
                     u.deselect_all()
                     u.select_object(obj, set_active=True)
 
                     safe_name = u.sanitize_filename(obj.name)
                     individual_path = directory / f"{safe_name}.fbx"
 
-                    bpy.ops.export_scene.fbx(
-                        filepath=str(individual_path),
-                        check_existing=False,
-                        filter_glob="*.fbx",
-                        use_selection=True,  # Forced selection for individual export
-                        use_visible=settings.use_visible,
-                        use_active_collection=settings.use_active_collection,
-                        collection=settings.collection,
-                        global_scale=settings.global_scale,
-                        apply_unit_scale=settings.apply_unit_scale,
-                        apply_scale_options=settings.apply_scale_options,
-                        use_space_transform=settings.use_space_transform,
-                        bake_space_transform=settings.bake_space_transform,
-                        object_types=settings.get_object_types_set(),
-                        use_mesh_modifiers=settings.use_mesh_modifiers,
-                        use_mesh_modifiers_render=settings.use_mesh_modifiers_render,
-                        mesh_smooth_type=settings.mesh_smooth_type,
-                        colors_type=settings.colors_type,
-                        prioritize_active_color=settings.prioritize_active_color,
-                        use_subsurf=settings.use_subsurf,
-                        use_mesh_edges=settings.use_mesh_edges,
-                        use_tspace=settings.use_tspace,
-                        use_triangles=settings.use_triangles,
-                        use_custom_props=settings.use_custom_props,
-                        add_leaf_bones=settings.add_leaf_bones,
-                        primary_bone_axis=settings.primary_bone_axis,
-                        secondary_bone_axis=settings.secondary_bone_axis,
-                        use_armature_deform_only=settings.use_armature_deform_only,
-                        armature_nodetype=settings.armature_nodetype,
-                        # Use main toggle to handle properties
-                        bake_anim=settings.export_animation and settings.bake_anim,
-                        bake_anim_use_all_bones=settings.bake_anim_use_all_bones and settings.bake_anim,
-                        bake_anim_use_nla_strips=settings.bake_anim_use_nla_strips and settings.bake_anim,
-                        bake_anim_use_all_actions=settings.bake_anim_use_all_actions and settings.bake_anim,
-                        bake_anim_force_startend_keying=settings.bake_anim_force_startend_keying and settings.bake_anim,
-                        bake_anim_step=settings.bake_anim_step,
-                        bake_anim_simplify_factor=settings.bake_anim_simplify_factor,
-                        path_mode=settings.path_mode,
-                        embed_textures=settings.embed_textures,
-                        batch_mode=settings.batch_mode,
-                        use_batch_own_dir=settings.use_batch_own_dir,
-                        use_metadata=settings.use_metadata,
-                        axis_forward=settings.axis_forward,
-                        axis_up=settings.axis_up,
-                    )
+                    bpy.ops.export_scene.fbx(filepath=str(individual_path), use_selection=True, **fbx_kwargs)
             else:
-                bpy.ops.export_scene.fbx(
-                    filepath=str(export_path),
-                    check_existing=False,
-                    filter_glob="*.fbx",
-                    use_selection=settings.use_selection,  # Forced selection for individual export
-                    use_visible=settings.use_visible,
-                    use_active_collection=settings.use_active_collection,
-                    collection=settings.collection,
-                    global_scale=settings.global_scale,
-                    apply_unit_scale=settings.apply_unit_scale,
-                    apply_scale_options=settings.apply_scale_options,
-                    use_space_transform=settings.use_space_transform,
-                    bake_space_transform=settings.bake_space_transform,
-                    object_types=settings.get_object_types_set(),
-                    use_mesh_modifiers=settings.use_mesh_modifiers,
-                    use_mesh_modifiers_render=settings.use_mesh_modifiers_render,
-                    mesh_smooth_type=settings.mesh_smooth_type,
-                    colors_type=settings.colors_type,
-                    prioritize_active_color=settings.prioritize_active_color,
-                    use_subsurf=settings.use_subsurf,
-                    use_mesh_edges=settings.use_mesh_edges,
-                    use_tspace=settings.use_tspace,
-                    use_triangles=settings.use_triangles,
-                    use_custom_props=settings.use_custom_props,
-                    add_leaf_bones=settings.add_leaf_bones,
-                    primary_bone_axis=settings.primary_bone_axis,
-                    secondary_bone_axis=settings.secondary_bone_axis,
-                    use_armature_deform_only=settings.use_armature_deform_only,
-                    armature_nodetype=settings.armature_nodetype,
-                    # Use main toggle to handle properties
-                    bake_anim=settings.export_animation and settings.bake_anim,
-                    bake_anim_use_all_bones=settings.bake_anim_use_all_bones and settings.bake_anim,
-                    bake_anim_use_nla_strips=settings.bake_anim_use_nla_strips and settings.bake_anim,
-                    bake_anim_use_all_actions=settings.bake_anim_use_all_actions and settings.bake_anim,
-                    bake_anim_force_startend_keying=settings.bake_anim_force_startend_keying and settings.bake_anim,
-                    bake_anim_step=settings.bake_anim_step,
-                    bake_anim_simplify_factor=settings.bake_anim_simplify_factor,
-                    path_mode=settings.path_mode,
-                    embed_textures=settings.embed_textures,
-                    batch_mode=settings.batch_mode,
-                    use_batch_own_dir=settings.use_batch_own_dir,
-                    use_metadata=settings.use_metadata,
-                    axis_forward=settings.axis_forward,
-                    axis_up=settings.axis_up,
-                )
+                bpy.ops.export_scene.fbx(filepath=str(export_path), use_selection=True, **fbx_kwargs)
 
-            self.report({"INFO"}, f"Exported to: {export_path}")
+            _msg: str = f"Exported to: {export_path}"
+            self.report({"INFO"}, _msg)
+            log.info(_msg)
 
         finally:
             u.get_scene().frame_current = original_timeline_frame
@@ -498,13 +475,15 @@ class SimpleToolbox_OT_BatchExportObjects(bpy.types.Operator):
         sets_with_object_sets_export = [
             export_set
             for export_set in batch_sets
-            if export_set.use_object_sets and export_set.get_selected_object_sets()
+            if export_set.enum_export_source == "OBJECT_SETS" and export_set.get_selected_object_sets()
         ]
 
         has_selection = u.get_selected_objects()
 
         sets_with_selection_export = [
-            export_set for export_set in batch_sets if not export_set.use_object_sets and has_selection
+            export_set
+            for export_set in batch_sets
+            if not export_set.enum_export_source == "OBJECT_SETS" and has_selection
         ]
 
         can_export_object_sets = bool(sets_with_object_sets_export)

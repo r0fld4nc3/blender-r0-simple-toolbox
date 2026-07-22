@@ -41,6 +41,10 @@ def get_bl_config_path() -> str:
 
 def set_active_object(obj: bpy.types.Object):
     """Set the active object in the current view layer"""
+    if obj is None:
+        log.warning(f"No valid object to set as active: {obj}")
+        return None
+
     objects = getattr(bpy.context.view_layer, "objects", None)
 
     is_valid_global = is_valid_object_global(obj)
@@ -299,6 +303,14 @@ def unhide_object_and_collections(obj: bpy.types.Object):
         unhide_collection_hierarchy(collection)
 
     return modified
+
+
+def get_objects_in_collection(collection, include_children=True):
+    objects = set(collection.objects)
+    if include_children:
+        for child in collection.children:
+            objects.update(get_objects_in_collection(child, include_children=True))
+    return objects
 
 
 def restore_visibility_state(modified):
