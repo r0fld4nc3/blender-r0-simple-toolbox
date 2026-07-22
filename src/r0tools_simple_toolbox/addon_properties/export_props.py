@@ -436,6 +436,8 @@ class R0PROP_UL_ExportSetsList(bpy.types.UIList):
             header_row = col.row(align=True)
             export_sub_row = header_row.row(align=True)
             export_sub_row.scale_x = 1.1
+            if not item.export_path or not item.export_path_absolute:
+                export_sub_row.alert = True
 
             # Export Button
             export_op = export_sub_row.operator(SimpleToolbox_OT_ExportObjects.bl_idname, text="", icon="EXPORT")

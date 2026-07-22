@@ -162,35 +162,21 @@ def draw_quick_export_sets_uilist(layout, context):
 
     # Export Path
     path_row = layout.row(align=True)
+
+    # Mark red if no path set
+    if not export_item.export_path_absolute or not export_item.export_path:
+        path_row.alert = True
+        path_row.label(text="", icon="ERROR")
+
     path_row.prop(export_item, "export_path_absolute", text="")
     op = path_row.operator(SimpleToolbox_OT_SelectPath.bl_idname, text="", icon="FILE_FOLDER")
     op.index = active_index
 
-    options_panel_header, options_panel = layout.panel("simpletoolbox_pt_export_options", default_closed=True)
+    options_panel_header, options_panel = layout.panel("simpletoolbox_pt_export_options", default_closed=False)
     if options_panel_header:
         options_panel_header.label(text="Options")
 
     if options_panel:
-        # Frame Export Settings
-        frame_export_header, frame_export_panel = options_panel.panel(
-            "simpletoolbox_pt_frame_export", default_closed=True
-        )
-        if frame_export_header:
-            frame_export_header.label(text="Export frame")
-
-        if frame_export_panel:
-            export_row = frame_export_panel.row()
-            export_row.alignment = "RIGHT"
-
-            # Checkbox
-            export_row.prop(export_item, "export_at_frame", text="")
-
-            # Frame Column
-            right_col = export_row.column()
-            right_col.scale_x = 0.88
-            right_col.enabled = export_item.export_at_frame  # Dynamic contextual enable
-            right_col.prop(export_item, "export_frame")
-
         # Object Sets Section
         if export_item.enum_export_source == "OBJECT_SETS":
             object_sets_panel_header, object_sets_panel = options_panel.panel(
@@ -227,6 +213,26 @@ def draw_quick_export_sets_uilist(layout, context):
 
             if export_collection_panel:
                 export_collection_panel.prop(export_item, "export_collection_ptr", text="")
+
+        # Frame Export Settings
+        frame_export_header, frame_export_panel = options_panel.panel(
+            "simpletoolbox_pt_frame_export", default_closed=True
+        )
+        if frame_export_header:
+            frame_export_header.label(text="Export frame")
+
+        if frame_export_panel:
+            export_row = frame_export_panel.row()
+            export_row.alignment = "RIGHT"
+
+            # Checkbox
+            export_row.prop(export_item, "export_at_frame", text="")
+
+            # Frame Column
+            right_col = export_row.column()
+            right_col.scale_x = 0.88
+            right_col.enabled = export_item.export_at_frame  # Dynamic contextual enable
+            right_col.prop(export_item, "export_frame")
 
         # FBX Export Settings
         custom_fbx_settings_header, custom_fbx_settings_panel = options_panel.panel(

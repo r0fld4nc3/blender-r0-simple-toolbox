@@ -464,32 +464,11 @@ class SimpleToolbox_OT_BatchExportObjects(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        accepted_contexts = context.mode in [u.OBJECT_MODES.OBJECT]
         export_sets = get_export_sets()
+        batch_sets = bool([export_set for export_set in export_sets if export_set.consider_batch_export])
+        batch_sets_export_paths = any(export_set for export_set in export_sets if export_set.export_path)
 
-        if not (accepted_contexts and export_sets):
-            return False
-
-        batch_sets = [export_set for export_set in export_sets if export_set.consider_batch_export]
-
-        sets_with_object_sets_export = [
-            export_set
-            for export_set in batch_sets
-            if export_set.enum_export_source == "OBJECT_SETS" and export_set.get_selected_object_sets()
-        ]
-
-        has_selection = u.get_selected_objects()
-
-        sets_with_selection_export = [
-            export_set
-            for export_set in batch_sets
-            if not export_set.enum_export_source == "OBJECT_SETS" and has_selection
-        ]
-
-        can_export_object_sets = bool(sets_with_object_sets_export)
-        can_export_selection = bool(sets_with_selection_export) and has_selection
-
-        return can_export_object_sets or can_export_selection
+        return context.mode in [u.OBJECT_MODES.OBJECT] and (batch_sets and batch_sets_export_paths)
 
     def execute(self, context):
         addon_export_props = u.get_addon_export_props()
