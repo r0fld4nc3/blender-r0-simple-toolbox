@@ -99,6 +99,10 @@ def unregister():
 
     log.info("-------------------------------------------------------------")
 
+    from .logs import shutdown_logging
+
+    shutdown_logging(__name__)
+
 
 if __name__ == "__main__":
     register()

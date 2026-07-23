@@ -6,7 +6,20 @@ from typing import Optional
 _logger: Optional[logging.Logger] = None
 
 
-def configure_logging(logger_name: str, log_file: Path, level: int = logging.INFO, console: bool = True) -> None:
+def _close_and_remove_handlers(logger: logging.Logger) -> None:
+    """Flush, close and remove all handlers from a logger."""
+    for handler in logger.handlers[:]:
+        try:
+            handler.flush()
+            handler.close()
+        except Exception as e:
+            pass
+        logger.removeHandler(handler)
+
+
+def configure_logging(
+    logger_name: str, log_file: Path, level: int = logging.INFO, console: bool = True
+) -> logging.Logger:
 
     if log_file.exists() and not log_file.is_file():
         raise RuntimeError(f"Attempting to create/ensure directory when a file path has been given: '{log_file}'.")
@@ -16,6 +29,8 @@ def configure_logging(logger_name: str, log_file: Path, level: int = logging.INF
     root = logging.getLogger(logger_name)
     root.setLevel(level)
     root.propagate = False
+
+    _close_and_remove_handlers(root)
 
     # [%(asctime)s]
     formatter = logging.Formatter("[%(levelname)s] [%(name)s] %(message)s", datefmt="%d-%m-%Y %H:%M:%S")
@@ -34,14 +49,36 @@ def configure_logging(logger_name: str, log_file: Path, level: int = logging.INF
 
     global _logger
     _logger = root
+    return root
 
 
 def reset_log_file(log_file: Path) -> None:
+    global _logger
+
+    if _logger:
+        for handler in _logger.handlers:
+            if isinstance(handler, RotatingFileHandler):
+                try:
+                    handler.doRollover()
+                    return
+                except Exception as e:
+                    raise RuntimeError(f"Error rolling over log file: {e}")
+
+    # Fallback when logging has not been configured
     try:
         with open(log_file, "w", encoding="utf-8") as f:
             f.write("")
     except Exception as e:
         raise RuntimeError(f"Error resetting log file: {e}")
+
+
+def shutdown_logging(logger_name: str) -> None:
+    logger = logging.getLogger(logger_name)
+    _close_and_remove_handlers(logger)
+
+    global _logger
+    if _logger is logger:
+        _logger = None
 
 
 def get_root_logger() -> Optional[logging.Logger]:

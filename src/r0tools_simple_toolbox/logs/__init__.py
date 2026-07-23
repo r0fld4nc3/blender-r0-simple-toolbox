@@ -3,6 +3,7 @@ from .logging import (
     get_root_logger,
     reset_log_file,
     set_root_logger_level,
+    shutdown_logging,
 )
 
-__all__ = ["configure_logging", "reset_log_file"]
+__all__ = ["configure_logging", "reset_log_file", "shutdown_logging"]
