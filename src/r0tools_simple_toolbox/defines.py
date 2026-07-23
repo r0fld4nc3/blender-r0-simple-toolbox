@@ -36,5 +36,5 @@ INTERNAL_NAME      = _set_addon_internal_name(BASE_NAME)
 REPO_NAME          = "r0Tools Extensions"
 UPDATE_CHECK_CD    = 60  # seconds
 TOOLBOX_PROPS_NAME = "r0fl_toolbox_props"
-LOG_FILE           = Path(bpy.utils.user_resource("DATAFILES")) / "simple_toolbox.log"
+LOG_FILE           = Path(bpy.utils.user_resource("DATAFILES")) / "Simple Toolbox" / "logs" / "simple_toolbox.log"
 # fmt: on
