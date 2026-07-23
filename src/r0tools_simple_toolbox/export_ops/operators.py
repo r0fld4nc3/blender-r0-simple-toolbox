@@ -441,7 +441,7 @@ class SimpleToolbox_OT_ExportObjects(bpy.types.Operator):
 
 class SimpleToolbox_OT_BatchExportObjects(bpy.types.Operator):
     bl_label = "Batch Export"
-    bl_idname = "r0tools.batch_export_object_sets"
+    bl_idname = "r0tools.quick_export_batch_export"
     bl_description = "Batch export sets that have been marked as such"
     bl_options = {"REGISTER"}
 
