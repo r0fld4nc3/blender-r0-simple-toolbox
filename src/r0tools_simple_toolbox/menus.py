@@ -11,6 +11,7 @@ class SimpleToolbox_MT_ObjectSetsActionsMenu(bpy.types.Menu):
 
     def draw(self, context):
         from .object_sets import (
+            SimpleToolbox_OT_ClearObjectSet,
             SimpleToolbox_OT_ForceRefreshObjectSets,
             SimpleToolbox_OT_LinkObjectsInObjectSetsToCollections,
             SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections,
@@ -25,6 +26,7 @@ class SimpleToolbox_MT_ObjectSetsActionsMenu(bpy.types.Menu):
         layout.operator(SimpleToolbox_OT_RenameObjectsInObjectSet.bl_idname, icon="OUTLINER_OB_FONT")
         layout.operator(SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections.bl_idname, icon="COLLECTION_NEW")
         layout.operator(SimpleToolbox_OT_LinkObjectsInObjectSetsToCollections.bl_idname, icon="COLLECTION_NEW")
+        layout.operator(SimpleToolbox_OT_ClearObjectSet.bl_idname, icon="CANCEL_LARGE")
         layout.operator(SimpleToolbox_OT_RemoveFromAllObjectSets.bl_idname, icon="X")
 
 

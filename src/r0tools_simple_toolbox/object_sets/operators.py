@@ -414,6 +414,38 @@ class SimpleToolbox_OT_RemoveFromObjectSet(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_ClearObjectSet(bpy.types.Operator):
+    bl_label = "Clear Object Set"
+    bl_idname = "r0tools.clear_object_set"
+    bl_description = "Empties active Object Set of all objects"
+    bl_options = {"INTERNAL"}
+
+    accepted_contexts = [u.OBJECT_MODES.OBJECT]
+
+    @classmethod
+    def poll(cls, context):
+        object_sets = get_object_sets()
+        active_index = get_active_object_set_index()
+
+        # Evaluate polls
+        accepted_contexts = context.mode in cls.accepted_contexts
+        is_separator = get_object_set_at_index(active_index).separator if len(object_sets) else False
+
+        return accepted_contexts and not is_separator
+
+    def execute(self, context):
+        index = get_active_object_set_index()
+
+        if 0 <= index < get_object_sets_count():
+            object_set = get_object_set_at_index(index)
+
+            object_set.remove_objects([obj.object for obj in object_set.objects])
+
+            self.report({"INFO"}, f"Cleared Object Set '{object_set.name}'")
+
+        return {"FINISHED"}
+
+
 class SimpleToolbox_OT_RemoveFromAllObjectSets(bpy.types.Operator):
     bl_label = "Remove From All Sets"
     bl_idname = "r0tools.remove_from_all_object_sets"
@@ -895,6 +927,7 @@ classes = [
     SimpleToolbox_OT_RemoveObjectSet,
     SimpleToolbox_OT_AddToObjectSet,
     SimpleToolbox_OT_RemoveFromObjectSet,
+    SimpleToolbox_OT_ClearObjectSet,
     SimpleToolbox_OT_RemoveFromAllObjectSets,
     SimpleToolbox_OT_SelectObjectSet,
     SimpleToolbox_OT_ForceRefreshObjectSets,
