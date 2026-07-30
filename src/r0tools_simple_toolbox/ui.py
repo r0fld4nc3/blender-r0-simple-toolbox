@@ -195,7 +195,7 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 if object_modifiers_ops_panel:
                     # >> Row
                     object_modifiers_panel_row = object_modifiers_ops_panel.row(align=True)
-                    object_modifiers_panel_row.prop(addon_prefs, "r0_double_subdiv_modifier_base_name", text="Name:")
+                    object_modifiers_panel_row.prop(addon_prefs, "r0_double_subdiv_modifier_base_name", text="Name")
 
                     # >> Row
                     object_modifiers_panel_row = object_modifiers_ops_panel.row(align=True)
