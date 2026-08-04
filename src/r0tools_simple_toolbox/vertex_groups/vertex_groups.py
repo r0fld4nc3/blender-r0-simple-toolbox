@@ -421,11 +421,7 @@ def draw_vertex_groups_uilist(layout, context):
 
     # Bottom
     # Assign/Unassign Vertices
-    if (
-        context.mode in u.OBJECT_MODES.EDIT_MESH
-        and len(context.selected_objects) > 0
-        and u.get_vertex_groups_count() > 0
-    ):
+    if context.mode in u.OBJECT_MODES.EDIT_MESH:
         col = layout.column()
         split = col.split(factor=0.5)
         # Assign/Unassign

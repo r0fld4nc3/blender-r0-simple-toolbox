@@ -393,11 +393,12 @@ class SimpleToolbox_OT_VgroupsSelectObjectsWithVgroups(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     accepted_object_types = [u.OBJECT_TYPES.MESH]
+    accepted_contexts = [u.OBJECT_MODES.OBJECT]
 
     @classmethod
     def poll(cls, context):
         has_vgroups = get_vertex_groups_count() > 0
-        return context.mode == u.OBJECT_MODES.OBJECT and len(u.get_selected_objects()) > 0 and has_vgroups
+        return context.mode in cls.accepted_contexts and len(u.get_selected_objects()) > 0 and has_vgroups
 
     def invoke(self, context, event):
         return self.execute(context)
@@ -447,6 +448,14 @@ class SimpleToolbox_OT_VgroupsAssignVertices(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     accepted_object_types = [u.OBJECT_TYPES.MESH]
+    accepted_contexts = [u.OBJECT_MODES.EDIT_MESH]
+
+    @classmethod
+    def poll(cls, context):
+        accepted_context = context.mode in cls.accepted_contexts
+        has_vgroups = get_vertex_groups_count() > 0
+
+        return accepted_context and has_vgroups
 
     def execute(self, context):
         # Selected vertex groups
@@ -516,7 +525,7 @@ class SimpleToolbox_OT_VgroupsAssignVertices(bpy.types.Operator):
             for vert in verts_to_assign:
                 for vg_index in vg_indices:
                     try:
-                        vert[deform_layer][vg_index] = 1.0
+                        vert[deform_layer][vg_index] = bpy.context.scene.tool_settings.vertex_group_weight
                     except ReferenceError as e:
                         log.error(f"AssignVertices: {e}")
                     except Exception as e:
@@ -536,6 +545,14 @@ class SimpleToolbox_OT_VgroupsUnassignVertices(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     accepted_object_types = [u.OBJECT_TYPES.MESH]
+    accepted_contexts = [u.OBJECT_MODES.EDIT_MESH]
+
+    @classmethod
+    def poll(cls, context):
+        accepted_context = context.mode in cls.accepted_contexts
+        has_vgroups = get_vertex_groups_count() > 0
+
+        return accepted_context and has_vgroups
 
     def execute(self, context):
         # Selected vertex groups
@@ -589,6 +606,7 @@ class SimpleToolbox_OT_VgroupsSelectVertices(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     accepted_object_types = [u.OBJECT_TYPES.MESH]
+    accepted_contexts = [u.OBJECT_MODES.EDIT_MESH]
 
     add_to_selection: BoolProperty(name="Add to selection", default=False)  # type: ignore
 
@@ -599,6 +617,13 @@ class SimpleToolbox_OT_VgroupsSelectVertices(bpy.types.Operator):
             self.add_to_selection = True
 
         return self.execute(context)
+
+    @classmethod
+    def poll(cls, context):
+        accepted_context = context.mode in cls.accepted_contexts
+        has_vgroups = get_vertex_groups_count() > 0
+
+        return accepted_context and has_vgroups
 
     def execute(self, context):
         # Selected vertex groups
@@ -660,6 +685,14 @@ class SimpleToolbox_OT_VgroupsDeselectVertices(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     accepted_object_types = [u.OBJECT_TYPES.MESH]
+    accepted_contexts = [u.OBJECT_MODES.EDIT_MESH]
+
+    @classmethod
+    def poll(cls, context):
+        accepted_context = context.mode in cls.accepted_contexts
+        has_vgroups = get_vertex_groups_count() > 0
+
+        return accepted_context and has_vgroups
 
     def execute(self, context):
         # Selected vertex groups
