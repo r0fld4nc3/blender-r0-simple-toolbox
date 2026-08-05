@@ -201,6 +201,25 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                     object_modifiers_panel_row = object_modifiers_ops_panel.row(align=True)
                     object_modifiers_panel_row.operator(SimpleToolbox_OT_AddDoubleSubdivModifiers.bl_idname)
 
+                    # >> Row
+                    object_modifiers_panel_row = object_modifiers_ops_panel.row(align=True)
+                    object_modifiers_panel_row.prop(addon_props, "r0_double_subdiv_modifier_level", text="Level")
+
+                    # >> Row
+                    object_modifiers_panel_row = object_modifiers_ops_panel.row(align=True)
+                    # Subdiv 1
+                    op = object_modifiers_panel_row.operator(
+                        SimpleToolbox_OT_SetDoubleSubdivisionModifierLevel.bl_idname,
+                        text="Subdiv 1",
+                    )
+                    op.subdiv_to_set = 0
+
+                    # Subdiv 2
+                    op = object_modifiers_panel_row.operator(
+                        SimpleToolbox_OT_SetDoubleSubdivisionModifierLevel.bl_idname, text="Subdiv 2"
+                    )
+                    op.subdiv_to_set = 1
+
         # ====== Mesh Ops ======
         if cat_show_mesh_ops:
             mesh_ops_header, mesh_ops_panel = layout.panel_prop(addon_props, panelvis_mesh_ops)

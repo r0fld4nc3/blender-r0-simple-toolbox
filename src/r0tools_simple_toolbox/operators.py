@@ -1016,12 +1016,12 @@ class SimpleToolbox_OT_AddDoubleSubdivModifiers(bpy.types.Operator):
 
     def execute(self, context):
         addon_prefs = u.get_addon_prefs()
+        addon_props = u.get_addon_props()
 
         for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
             # Check for existing modifiers
             mods = obj.modifiers
             mods_name_type = {mod.name: mod.type for mod in mods}
-            print(mods_name_type)
 
             subdivs = 0
             for mod_type in mods_name_type.values():
@@ -1041,10 +1041,12 @@ class SimpleToolbox_OT_AddDoubleSubdivModifiers(bpy.types.Operator):
             if max_iters < 0:
                 max_iters = 0
 
+            double_subdiv_mod_level_set = addon_props.r0_double_subdiv_modifier_level
+
             for i in range(0, max_iters):
                 new_modifier = obj.modifiers.new(name=addon_prefs.r0_double_subdiv_modifier_base_name, type="SUBSURF")
-                new_modifier.levels = 2
-                new_modifier.render_levels = 2
+                new_modifier.levels = double_subdiv_mod_level_set
+                new_modifier.render_levels = double_subdiv_mod_level_set
                 new_modifier.quality = 3
 
                 if i == 0 and subdivs < 1:
@@ -1052,6 +1054,46 @@ class SimpleToolbox_OT_AddDoubleSubdivModifiers(bpy.types.Operator):
 
                 if i > 0 or i == max_iters - 1:
                     new_modifier.use_creases = False
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_SetDoubleSubdivisionModifierLevel(bpy.types.Operator):
+
+    bl_idname = "r0tools.set_double_subdiv_mod_level"
+    bl_label = "Subdivision Level"
+
+    subdiv_to_set: IntProperty(default=-1)  # type: ignore
+
+    def execute(self, context):
+        addon_prefs = u.get_addon_prefs()
+        addon_props = u.get_addon_props()
+
+        active_obj = u.get_active_object()
+
+        if not active_obj:
+            return {"CANCELLED"}
+
+        # Check for existing modifiers
+        mods = active_obj.modifiers
+
+        if not mods:
+            return {"CANCELLED"}
+
+        double_subdiv_mod_name_base = addon_prefs.r0_double_subdiv_modifier_base_name
+        double_subdiv_mod_level_set = addon_props.r0_double_subdiv_modifier_level
+
+        i: int = 0
+        for mod in mods:
+            mod_type = mod.type
+            mod_name = mod.name
+
+            if mod_type in ["SUBSURF"] and double_subdiv_mod_name_base.lower() in mod_name.lower():
+                if i == self.subdiv_to_set:
+                    mod.levels = double_subdiv_mod_level_set
+                    mod.render_levels = double_subdiv_mod_level_set
+
+                i += 1  # Increment after
 
         return {"FINISHED"}
 
@@ -1743,6 +1785,7 @@ class SimpleToolbox_OT_ShowAddonPreferences(bpy.types.Operator):
 classes = [
     SimpleToolbox_OT_ToggleWireDisplay,
     SimpleToolbox_OT_AddDoubleSubdivModifiers,
+    SimpleToolbox_OT_SetDoubleSubdivisionModifierLevel,
     
     VIEW3D_MT_CustomOrientationsPieMenu,
     SimpleToolbox_OT_ShowCustomOrientationsPie,
