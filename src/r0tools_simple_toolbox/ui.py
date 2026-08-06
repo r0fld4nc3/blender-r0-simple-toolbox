@@ -23,6 +23,38 @@ from .repo import draw_repo_layout
 log = logging.getLogger(__name__)
 
 
+def draw_subdivision_modifiers_section(layout, context):
+    active_obj = u.get_active_object()
+    has_selection = bool(u.get_selected_objects(context))
+
+    if not has_selection:
+        layout.label(text="No active object")
+        return
+
+    subdiv_mods = [mod for mod in active_obj.modifiers if mod.type == "SUBSURF"]
+
+    if not subdiv_mods:
+        layout.label(text="No subdivision modifiers")
+        return
+
+    for mod in subdiv_mods:
+        # Modifier name
+        mod_row = layout.row(align=True)
+        mod_row.alignment = "LEFT"
+        mod_row.ui_units_x = 6
+        mod_row.label(text=f"{mod.name}:")
+
+        prop_row = mod_row.row(align=True)
+        prop_row.ui_units_x = 5
+        prop_row.prop(mod, "levels", text="")
+
+        propagate_row = mod_row.row()
+        propagate_row.ui_units_x = 10
+        op = propagate_row.operator(SimpleToolbox_OT_PropagateSubdivLevels.bl_idname, text="Propagate")
+        op.modifier_name = mod.name
+        op.levels = mod.levels
+
+
 class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
     bl_idname = "OBJECT_PT_simple_toolbox"
     bl_label = f"{ADDON_NAME_BARE}{IDNAME_EXTRA} ({VERSION_STR})"
@@ -201,24 +233,8 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                     object_modifiers_panel_row = object_modifiers_ops_panel.row(align=True)
                     object_modifiers_panel_row.operator(SimpleToolbox_OT_AddDoubleSubdivModifiers.bl_idname)
 
-                    # >> Row
-                    object_modifiers_panel_row = object_modifiers_ops_panel.row(align=True)
-                    object_modifiers_panel_row.prop(addon_props, "r0_double_subdiv_modifier_level", text="Level")
-
-                    # >> Row
-                    object_modifiers_panel_row = object_modifiers_ops_panel.row(align=True)
-                    # Subdiv 1
-                    op = object_modifiers_panel_row.operator(
-                        SimpleToolbox_OT_SetDoubleSubdivisionModifierLevel.bl_idname,
-                        text="Subdiv 1",
-                    )
-                    op.subdiv_to_set = 0
-
-                    # Subdiv 2
-                    op = object_modifiers_panel_row.operator(
-                        SimpleToolbox_OT_SetDoubleSubdivisionModifierLevel.bl_idname, text="Subdiv 2"
-                    )
-                    op.subdiv_to_set = 1
+                    # >> Modifiers Levels Row
+                    draw_subdivision_modifiers_section(object_modifiers_ops_panel, context)
 
         # ====== Mesh Ops ======
         if cat_show_mesh_ops:

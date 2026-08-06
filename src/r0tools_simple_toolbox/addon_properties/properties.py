@@ -261,8 +261,6 @@ class r0SimpleToolboxProps(bpy.types.PropertyGroup):
         update=lambda self, context: u.save_preferences(),
     )
 
-    r0_double_subdiv_modifier_level: IntProperty(name="Subdivision Level", default=2, min=0, max=6, description="Level to apply to both Viewport and Render properties of a given Subdivision modifier")  # type: ignore
-
     ##############
     ### LEGACY ###
     ##############
