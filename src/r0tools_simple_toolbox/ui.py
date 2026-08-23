@@ -27,6 +27,10 @@ def draw_subdivision_modifiers_section(layout, context):
     active_obj = u.get_active_object()
     has_selection = bool(u.get_selected_objects(context))
 
+    if active_obj is None or not active_obj:
+        layout.label(text="Active object is None")
+        return
+
     if not has_selection:
         layout.label(text="No active object")
         return
