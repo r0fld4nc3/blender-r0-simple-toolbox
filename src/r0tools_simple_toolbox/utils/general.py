@@ -56,8 +56,14 @@ def set_active_object(obj: bpy.types.Object):
         log.debug(f"{obj.name} {is_valid_global=} {is_visible_viewport=}")
 
 
-def get_active_object() -> bpy.types.Object | None:
+def get_active_object(context: bpy.context = None) -> bpy.types.Object | None:
     """Get the active object from the current view layer"""
+    if context is not None:
+        active_object = context.active_object
+
+        if active_object is not None:
+            return active_object
+
     objects = getattr(bpy.context.view_layer, "objects", None)
 
     if objects:
