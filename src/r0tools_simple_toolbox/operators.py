@@ -7,7 +7,7 @@ from pathlib import Path
 import bmesh
 import bpy
 from bpy.props import BoolProperty, FloatProperty, IntProperty, StringProperty
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 from . import settings
 from . import utils as u
@@ -1305,103 +1305,98 @@ class SimpleToolbox_OT_ResetEdgeData(bpy.types.Operator):
 class SimpleToolbox_OT_RestoreRotationFromSelection(bpy.types.Operator):
     bl_label = "Restore Rotation"
     bl_idname = "r0tools.rotation_from_selection"
-    bl_description = "Given a selection of vertices/edges/faces, align each object such that the selection aligns to the Z Axis.\n\n- SHIFT: Clear object rotations on finish. (Also present in Redo panel)"
+    bl_description = (
+        "Given a selection of vertices/edges/faces, align each object such that the "
+        "selection aligns to the Z Axis.\n\nSHIFT: Clear object rotations on finish."
+    )
     bl_options = {"REGISTER", "UNDO"}
 
     clear_rotation_on_align: BoolProperty(name="Clear Rotation(s)", default=False)  # type: ignore
-    origin_to_selection: BoolProperty(name="Origin to selection", default=False)  # type: ignore
-    keep_original_tool_configs: BoolProperty(name="Restore Tool Configurations", default=True)  # type: ignore
+    origin_to_selection: BoolProperty(name="Origin to Selection", default=False)  # type: ignore
+    keep_empty: BoolProperty(name="Keep Empty (Debug)", default=False)  # type: ignore
 
     @classmethod
     def poll(cls, context):
         return u.get_selected_objects(context) and context.mode == u.OBJECT_MODES.EDIT_MESH
 
     def invoke(self, context, event):
-        self.clear_rotation_on_align = False  # Always reset
-        self.origin_to_selection = False  # Always reset
-
-        if event.shift:
-            self.clear_rotation_on_align = True
-
+        self.clear_rotation_on_align = bool(event.shift)
+        self.origin_to_selection = False
         return self.execute(context)
 
     def execute(self, context):
         log.info("------------- Restore Rotation From Selection -------------")
 
-        # Store original configurations
-        orig_affect_only_origins = u.get_scene().tool_settings.use_transform_data_origin
-        orig_affect_only_locations = u.get_scene().tool_settings.use_transform_pivot_point_align
-        orig_affect_only_parents = u.get_scene().tool_settings.use_transform_skip_children
-        orig_transform_orientation = u.get_scene().transform_orientation_slots[0].type
-        orig_cursor_location = tuple(u.get_scene().cursor.location.xyz)
-        orig_cursor_rotation = tuple(u.get_scene().cursor.rotation_euler)
-        orig_active_obj = context.active_object
-        orig_selected_objects = list(u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]))
+        scene = u.get_scene()
+        view_layer = context.view_layer
 
-        transform_orientation_names = []
+        orig_cursor_matrix = scene.cursor.matrix.copy()
+        orig_active = view_layer.objects.active
 
-        for obj in orig_selected_objects:
-            log.debug(f"Iterating Object: {obj.name}")
-            u.select_object(obj, add=False)
-            u.set_mode_edit()
+        objs = [o for o in context.objects_in_mode_unique_data if o.type == "MESH"]
+        if not objs:
+            msg = "No mesh objects in Edit Mode."
+            log.warning(msg)
+            self.report({"WARNING"}, msg)
+            return {"CANCELLED"}
 
-            # TODO: Check for selected loops/polygons, otherwise, skip.
+        empties = []
 
-            # Create Transform Orientation
-            to_name = f"{obj.name}_restore_orientation"
-            transform_orientation_names.append(to_name)
-            bpy.ops.transform.create_orientation(name=to_name, use=True)  # Immediately set to use it
+        for obj in objs:
+            bm = bmesh.from_edit_mesh(obj.data)
 
-            u.set_mode_object()
+            rot_matrix = u.get_selection_orientation_matrix(obj, bm)
+            if rot_matrix is None:
+                log.debug(f"No selection on {obj.name}, skipping.")
+                continue
 
-            # Affect only origins
-            u.get_scene().tool_settings.use_transform_data_origin = True
-            u.get_scene().tool_settings.use_transform_pivot_point_align = False
-            u.get_scene().tool_settings.use_transform_skip_children = False
+            sel_verts = [v for v in bm.verts if v.select]
+            local_median = sum((v.co for v in sel_verts), Vector()) / len(sel_verts)
+            world_median = obj.matrix_world @ local_median
 
-            # Align to Transform Orientation
-            bpy.ops.transform.transform(mode="ALIGN")
+            target_matrix = Matrix.Translation(world_median) @ rot_matrix
 
-            # Clear affect only origins
-            u.get_scene().tool_settings.use_transform_data_origin = False
+            # Snap an empty to that transform
+            empty = bpy.data.objects.new(f"{obj.name}_restore_orientation", None)
+            empty.empty_display_size = 0.25
+            scene.collection.objects.link(empty)
+            empty.matrix_world = target_matrix
+            empties.append(empty)
 
-            # Conditionally clear rotations based on property
+            # Step 3: parent object to empty, preserving current world transform
+            obj.parent = empty
+            obj.matrix_parent_inverse = empty.matrix_world.inverted()
+
+            # Step 4: restore/clear the empty's rotation
             if self.clear_rotation_on_align:
-                log.debug(f"Clearing Rotation for {obj.name}")
-                obj.rotation_euler = (0, 0, 0)
+                empty.rotation_euler = (0.0, 0.0, 0.0)
+                log.debug(f"Cleared rotation for {obj.name} via empty pivot")
             else:
-                log.debug(f"Keeping Rotation for {obj.name}")
+                log.debug(f"Keeping current alignment for {obj.name}")
 
-            # Check if we're just setting origin to transform
             if self.origin_to_selection:
-                u.set_mode_edit()
-                log.debug(f"Setting object origin to median of selection for {obj.name}")
-                bpy.ops.view3d.snap_cursor_to_selected()
-                u.set_mode_object()
-                bpy.ops.object.origin_set(type="ORIGIN_CURSOR", center="MEDIAN")
+                context.view_layer.update()
+                new_local_median = obj.matrix_world.inverted() @ world_median
+                delta = Matrix.Translation(-new_local_median)
+                bmesh.ops.transform(bm, matrix=delta, verts=bm.verts)
+                bmesh.update_edit_mesh(obj.data)
+                obj.matrix_world = obj.matrix_world @ Matrix.Translation(new_local_median)
 
-        # Restore selection
-        for obj in orig_selected_objects:
-            u.select_object(obj, add=True, set_active=False)  # Add to selection
-            u.set_mode_edit()
+            if not self.keep_empty:
+                baked_world = obj.matrix_world.copy()
+                obj.parent = None
+                obj.matrix_basis = baked_world
 
-        # Restore active object
-        u.set_active_object(orig_active_obj)
+        if not self.keep_empty:
+            for e in empties:
+                bpy.data.objects.remove(e, do_unlink=True)
 
-        # Delete custom orientations
-        for orientation_name in transform_orientation_names:
-            u.delete_custom_transform_orientation(orientation_name)
+        view_layer.objects.active = orig_active
+        scene.cursor.matrix = orig_cursor_matrix
 
-        # Restore effectors and transform orientation selections
-        if self.keep_original_tool_configs:
-            u.get_scene().tool_settings.use_transform_data_origin = orig_affect_only_origins
-            u.get_scene().tool_settings.use_transform_pivot_point_align = orig_affect_only_locations
-            u.get_scene().tool_settings.use_transform_skip_children = orig_affect_only_parents
-            u.get_scene().transform_orientation_slots[0].type = orig_transform_orientation
-        u.get_scene().cursor.location.xyz = orig_cursor_location
-        u.get_scene().cursor.rotation_euler = orig_cursor_rotation
-
-        self.report({"INFO"}, "Restore Rotation From Face: Done")
+        msg = "No mesh objects in Edit Mode."
+        log.info(msg)
+        self.report({"INFO"}, msg)
         return {"FINISHED"}
 
 
