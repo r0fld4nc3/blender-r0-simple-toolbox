@@ -895,6 +895,22 @@ class SimpleToolbox_OT_LinkObjectsInObjectSetsToCollections(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SimpleToolbox_OT_ObjectSetsUpdateMeshStats(bpy.types.Operator):
+    bl_label = "Update Mesh Stats"
+    bl_idname = "r0tools.object_sets_update_mesh_stats"
+    bl_description = "Run mesh stats calculation"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        try:
+            object_sets_update_mesh_stats()
+        except Exception as e:
+            log.error(e)
+            self.report({"ERROR", "Unable to update mesh stats"})
+            return {"CANCELLED"}
+        return {"FINISHED"}
+
+
 class SimpleToolbox_OT_ObjectSetsPanelAttributionsRestoreDefaults(bpy.types.Operator):
     bl_label = "Reset"
     bl_idname = "r0tools.object_sets_panel_attributions_restore_defaults"
@@ -935,6 +951,7 @@ classes = [
     SimpleToolbox_OT_RenameObjectsInObjectSet,
     SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections,
     SimpleToolbox_OT_LinkObjectsInObjectSetsToCollections,
+    SimpleToolbox_OT_ObjectSetsUpdateMeshStats,
     SimpleToolbox_OT_ObjectSetsPanelAttributionsRestoreDefaults,
 ]
 # fmt: on

@@ -1,7 +1,6 @@
 import logging
 import time
 
-import bmesh
 import bpy
 
 from .. import utils as u
@@ -323,7 +322,7 @@ def object_sets_update_mesh_stats(depsgraph=None):
     _show_states_updated = current_show_states != _last_show_states
     _last_show_states = current_show_states
 
-    if not any([show_verts, show_edges, show_faces, show_tris]):
+    if not any(current_show_states):
         return
 
     # Filter depsgraph updates
@@ -364,18 +363,13 @@ def _get_object_mesh_stats(obj, depsgraph, show_verts, show_edges, show_faces, s
             stats["verts"] = len(mesh.vertices)
         if show_edges:
             stats["edges"] = len(mesh.edges)
-        if show_verts:
+        if show_faces:
             stats["faces"] = len(mesh.polygons)
 
         # Triangle count
         if show_tris:
-            bm = bmesh.new()
-            try:
-                bm.from_mesh(mesh)
-                bmesh.ops.triangulate(bm, faces=bm.faces)
-                stats["tris"] = len(bm.faces)
-            finally:
-                bm.free()
+            mesh.calc_loop_triangles()
+            stats["tris"] = len(mesh.loop_triangles)
 
         return stats
 
