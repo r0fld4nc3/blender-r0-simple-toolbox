@@ -409,7 +409,7 @@ class SimpleToolbox_OT_RemoveFromObjectSet(bpy.types.Operator):
 
             self.report({"INFO"}, f"Removed {total_removed} objects of Set '{object_set.name}'")
 
-        u.timer_manager.schedule(object_sets_update_mesh_stats, delay=1, min_interval=1)
+        # u.timer_manager.schedule(object_sets_update_mesh_stats, delay=1, min_interval=1)
 
         return {"FINISHED"}
 
@@ -473,7 +473,7 @@ class SimpleToolbox_OT_RemoveFromAllObjectSets(bpy.types.Operator):
 
         self.report({"INFO"}, f"Removed selected objects from all Object Sets")
 
-        u.timer_manager.schedule(object_sets_update_mesh_stats, delay=1, min_interval=1)
+        # u.timer_manager.schedule(object_sets_update_mesh_stats, delay=1, min_interval=1)
 
         return {"FINISHED"}
 
