@@ -568,6 +568,7 @@ def draw_objects_sets_uilist(layout, context):
         SimpleToolbox_OT_AddObjectSetPopup,
         SimpleToolbox_OT_AddToObjectSet,
         SimpleToolbox_OT_MoveObjectSetItem,
+        SimpleToolbox_OT_ObjectSetsUpdateMeshStats,
         SimpleToolbox_OT_RandomiseObjectSetsColours,
         SimpleToolbox_OT_RemoveFromObjectSet,
         SimpleToolbox_OT_RemoveObjectSet,
@@ -579,8 +580,8 @@ def draw_objects_sets_uilist(layout, context):
     _object_sets_use_colour = addon_object_sets_props.object_sets_use_colour
 
     # Experimental Features Checkbox
-    row = layout.row()
-    row.prop(addon_object_sets_props, "experimental_features")
+    # row = layout.row()
+    # row.prop(addon_object_sets_props, "experimental_features")
 
     # Object Sets Row Number Slider
     row = layout.row()
@@ -590,17 +591,19 @@ def draw_objects_sets_uilist(layout, context):
     col_right = row.column()
     col_right.separator()
 
-    if addon_object_sets_props.experimental_features:
-        # Object Sets Visual Aids
-        row = layout.row()
-        # Show mesh verts
-        row.prop(addon_object_sets_props, "object_sets_show_mesh_verts", text="", icon="VERTEXSEL")
-        # Show mesh edges
-        row.prop(addon_object_sets_props, "object_sets_show_mesh_edges", text="", icon="EDGESEL")
-        # Show mesh faces
-        row.prop(addon_object_sets_props, "object_sets_show_mesh_faces", text="", icon="FACESEL")
-        # Show mesh triangles
-        row.prop(addon_object_sets_props, "object_sets_show_mesh_tris", text="", icon="MESH_DATA")
+    # Object Sets Visual Aids
+    row = layout.row()
+    # Trigger update mesh stats
+    row.operator(SimpleToolbox_OT_ObjectSetsUpdateMeshStats.bl_idname, text="", icon="FILE_REFRESH")
+    row.separator(factor=0.2)
+    # Show mesh verts
+    row.prop(addon_object_sets_props, "object_sets_show_mesh_verts", text="", icon="VERTEXSEL")
+    # Show mesh edges
+    row.prop(addon_object_sets_props, "object_sets_show_mesh_edges", text="", icon="EDGESEL")
+    # Show mesh faces
+    row.prop(addon_object_sets_props, "object_sets_show_mesh_faces", text="", icon="FACESEL")
+    # Show mesh triangles
+    row.prop(addon_object_sets_props, "object_sets_show_mesh_tris", text="", icon="MESH_DATA")
 
     row = layout.row()
 

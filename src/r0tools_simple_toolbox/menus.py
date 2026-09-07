@@ -15,7 +15,6 @@ class SimpleToolbox_MT_ObjectSetsActionsMenu(bpy.types.Menu):
             SimpleToolbox_OT_ForceRefreshObjectSets,
             SimpleToolbox_OT_LinkObjectsInObjectSetsToCollections,
             SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections,
-            SimpleToolbox_OT_ObjectSetsUpdateMeshStats,
             SimpleToolbox_OT_RemoveFromAllObjectSets,
             SimpleToolbox_OT_RenameObjectsInObjectSet,
             SimpleToolbox_OT_UpdateObjectSetsUUIDs,
@@ -27,7 +26,6 @@ class SimpleToolbox_MT_ObjectSetsActionsMenu(bpy.types.Menu):
         layout.operator(SimpleToolbox_OT_RenameObjectsInObjectSet.bl_idname, icon="OUTLINER_OB_FONT")
         layout.operator(SimpleToolbox_OT_MoveObjectsInObjectSetsToCollections.bl_idname, icon="COLLECTION_NEW")
         layout.operator(SimpleToolbox_OT_LinkObjectsInObjectSetsToCollections.bl_idname, icon="COLLECTION_NEW")
-        layout.operator(SimpleToolbox_OT_ObjectSetsUpdateMeshStats.bl_idname, icon="MOD_REMESH")
         layout.operator(SimpleToolbox_OT_ClearObjectSet.bl_idname, icon="CANCEL_LARGE")
         layout.operator(SimpleToolbox_OT_RemoveFromAllObjectSets.bl_idname, icon="X")
 
