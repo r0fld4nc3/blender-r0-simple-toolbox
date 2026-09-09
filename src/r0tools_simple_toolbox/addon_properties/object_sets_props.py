@@ -64,11 +64,6 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
                 if obj is None:
                     continue
 
-                # Fast path: colour already correct, skip membership lookup
-                if tuple(obj.color) == target_colour:
-                    log.debug(f"Object colour == Target Colour")
-                    continue
-
                 if allow_colour_override:
                     continue
 
@@ -76,8 +71,9 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
                 first_set = next(iter(u.check_object_in_sets(obj, fast=True)), None)
 
                 if first_set is None or first_set.uuid == self.uuid:
-                    log.debug(f"Updating colour for '{obj.name}' with colour from Object Set '{self.name}'")
-                    obj.color = target_colour
+                    if tuple(obj.color) != target_colour:
+                        log.debug(f"Updating colour for '{obj.name}' with colour from Object Set '{self.name}'")
+                        obj.color = target_colour
         finally:
             R0PROP_PG_ObjectSetEntryItem._updating = False
 
@@ -148,16 +144,23 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
         key = self.as_pointer()
         cached = _object_set_caches.get(key)
 
-        if cached is not None:
-            log.debug(f"{self.name}: {len(cached)=}")
+        actual_count = sum(1 for item in self.objects if item.object is not None)
 
-        # Rebuild if missing or membership count changed
+        log.debug(
+            f"Cache lookup: "
+            f"set='{self.name}' "
+            f"ptr={key} "
+            f"actual_count={actual_count} "
+            f"cached_count={len(cached) if cached is not None else None}"
+        )
+
+        # Build the cache if it doesn't exist.
         if cached is None:
-            # A cold start intial build
             cached = {item.object.as_pointer() for item in self.objects if item.object}
+
             _object_set_caches[key] = cached
-            log.debug(f"Cold cache build for: {self.name} ({len(cached)}) objects.")
-            log.debug(f"{self.name}: {len(cached)=}")
+
+            log.debug(f"Cache BUILD: " f"set='{self.name}' " f"ptr={key} " f"count={len(cached)}")
 
         return cached
 
@@ -166,7 +169,7 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
         Trigger a re-evaluation and resync of the object sets cache.
         Mainly used in Undo/Redo operations to ensure cache stays in sync.
         This should be called on an Object Sets loop iteration, i.e.:
-        ```
+
         for obj_set in object_sets:
             obj_set.resync_cache()
         """

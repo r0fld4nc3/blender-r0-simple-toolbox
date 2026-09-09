@@ -113,6 +113,8 @@ def move_object_set_to_index(from_index, to_index):
 
     object_sets.move(from_index, to_index)
 
+    u.refresh_object_sets_colours(None)
+
 
 def add_set_reference_to_obj(obj: bpy.types.Object, set_uuid: str):
     if not obj or not set_uuid:
@@ -125,6 +127,8 @@ def add_set_reference_to_obj(obj: bpy.types.Object, set_uuid: str):
         new_ref = object_props.object_sets.add()
         new_ref.uuid = set_uuid
 
+    u.resync_object_sets_caches()
+
 
 def remove_set_reference_from_obj(obj: bpy.types.Object, set_uuid: str):
     if not obj or not set_uuid:
@@ -135,6 +139,8 @@ def remove_set_reference_from_obj(obj: bpy.types.Object, set_uuid: str):
     for i, prop in reversed(list(enumerate(object_props.object_sets))):
         if object_props.object_sets[i].uuid == set_uuid:
             object_props.object_sets.remove(i)
+
+    u.resync_object_sets_caches()
 
 
 def cleanup_object_set_invalid_references(scene=None):
@@ -181,6 +187,8 @@ def cleanup_object_set_invalid_references(scene=None):
 
     if total_cleaned > 0:
         u.tag_redraw_if_visible()
+
+    u.resync_object_sets_caches()
 
     return None
 
@@ -255,39 +263,28 @@ def handle_object_duplication_update(scene=None):
     if _tag_redraw:
         u.tag_redraw_if_visible()
 
+    u.resync_object_sets_caches()
+
     return None
 
 
-def check_object_in_sets(obj, fast: bool = False) -> list:
-    """
-    Checks if an object is present in more Object Sets. If so
-    return a list of references to each Object Set containing the object
+def check_object_in_sets(obj, fast: bool = False):
+    """Yield object sets that contain `obj`, in priority order."""
 
-    `fast`: Forces return of first instance found, avoiding checing all sets.
+    log.debug(f"Check '{obj.name}' in Object Sets")
 
-    :return: `list` of `Object Sets`
-    """
-
-    if not obj:
-        return []
-
-    containing_sets = []
     obj_ptr = obj.as_pointer()
 
-    all_objects_sets = get_object_sets()
-
-    for object_set in all_objects_sets:
-        if object_set.separator:
-            continue
-
-        cache = object_set._get_or_build_cache()
-
-        if obj_ptr in cache:
-            containing_sets.append(object_set)
-            if fast:
-                break
-
-    return containing_sets
+    for obj_set in get_object_sets():
+        if fast:
+            cache = obj_set._get_or_build_cache()
+            if obj_ptr in cache:
+                log.debug(f"(fast) '{obj.name}' in {obj_set.name}")
+                yield obj_set
+        else:
+            if any(item.object == obj for item in obj_set.objects):
+                log.debug(f"'{obj.name}' in {obj_set.name}")
+                yield obj_set
 
 
 _show_states_updated = False
@@ -451,24 +448,24 @@ def refresh_object_sets_colours(context, force=False):
 
     log.debug(f"Force Refreshing Object Sets' Colours")
 
-    addon_object_sets_props = u.get_addon_object_sets_props()
-    allow_colour_override = addon_object_sets_props.object_sets_colour_allow_override
+    u.resync_object_sets_caches()
 
-    # When allowing override, don't refresh the colours to any set colours
-    if allow_colour_override and not force:
-        log.info("Cancelling Object Sets' colour refresh as allowed colour override is in effect.")
+    addon_props = u.get_addon_object_sets_props()
+
+    log.debug("Refreshing Object Sets' colours")
+
+    if addon_props.object_sets_colour_allow_override and not force:
+        log.info("Colour override is active; skipping refresh.")
         return
 
-    object_sets = get_object_sets()
-
-    if not addon_object_sets_props.object_sets_use_colour:
+    if not addon_props.object_sets_use_colour:
         return
 
-    for object_set in object_sets:
-        log.info(f"Refresh: {object_set.name}")
-        object_set.update_object_set_colour(context)
+    for obj_set in get_object_sets():
+        log.info(f"Refresh colour: {obj_set.name}")
+        obj_set.update_object_set_colour(context)
 
-    log.info(f"Finished refreshing Object Set's colours.")
+    log.info("Finished refreshing Object Set colours.")
 
 
 @bpy.app.handlers.persistent
