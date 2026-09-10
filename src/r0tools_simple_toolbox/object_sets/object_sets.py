@@ -268,25 +268,6 @@ def handle_object_duplication_update(scene=None):
     return None
 
 
-def check_object_in_sets(obj, fast: bool = False):
-    """Yield object sets that contain `obj`, in priority order."""
-
-    log.debug(f"Check '{obj.name}' in Object Sets")
-
-    obj_ptr = obj.as_pointer()
-
-    for obj_set in get_object_sets():
-        if fast:
-            cache = obj_set._get_or_build_cache()
-            if obj_ptr in cache:
-                log.debug(f"(fast) '{obj.name}' in {obj_set.name}")
-                yield obj_set
-        else:
-            if any(item.object == obj for item in obj_set.objects):
-                log.debug(f"'{obj.name}' in {obj_set.name}")
-                yield obj_set
-
-
 _show_states_updated = False
 _last_show_states = (False, False, False, False)
 _mesh_stats_cache = {}
@@ -440,6 +421,27 @@ def _calculate_mesh_stats(show_verts, show_edges, show_faces, show_tris):
                         break
             elif area.type in {"OUTLINER", "VIEW_3D"}:
                 area.tag_redraw()
+
+
+def check_object_in_sets(obj, fast: bool = False):
+    """Yield object sets that contain `obj`, in priority order."""
+
+    log.debug(f"Check '{obj.name}' in Object Sets")
+
+    obj_ptr = obj.as_pointer()
+
+    for obj_set in get_object_sets():
+        if fast:
+            cache = obj_set._get_or_build_cache()
+
+            if obj_ptr in cache:
+                log.debug(f"(fast) '{obj.name}' in {obj_set.name}")
+                yield obj_set
+                return
+        else:
+            if any(item.object == obj for item in obj_set.objects):
+                log.debug(f"'{obj.name}' in {obj_set.name}")
+                yield obj_set
 
 
 @bpy.app.handlers.persistent
