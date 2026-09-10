@@ -362,11 +362,11 @@ class SimpleToolbox_OT_AddToObjectSet(bpy.types.Operator):
 
         if 0 <= index < get_object_sets_count():
             object_set = get_object_set_at_index(index)
-            object_set_count_before = object_set.count
+            object_set_count_before = len(object_set.objects)  # object_set.count
 
             object_set.assign_objects(context.selected_objects, force_update=True)
 
-            object_set_count_after = object_set.count - object_set_count_before
+            object_set_count_after = len(object_set.objects) - object_set_count_before  # object_set.count
 
             # u.timer_manager.schedule(object_sets_update_mesh_stats, delay=1, min_interval=1)
 

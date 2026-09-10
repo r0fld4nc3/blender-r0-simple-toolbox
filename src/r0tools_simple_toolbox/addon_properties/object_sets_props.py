@@ -188,12 +188,23 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
             return
 
         log.info(f"Assign {len(objects_to_add)} objects to: {self.name}")
+        log.debug(
+            f"BEFORE ASSIGN: set='{self.name}' " f"count_property={self.count} " f"collection_len={len(self.objects)}"
+        )
 
         addon_object_sets_props = u.get_addon_object_sets_props()
         allow_colour_override = addon_object_sets_props.object_sets_colour_allow_override
 
         # Get cache. Perf cost should be O(1) if built/warm, O(n) cold.
         cache = self._get_or_build_cache()
+
+        log.debug(
+            f"AFTER CACHE: set='{self.name}' "
+            f"count_property={self.count} "
+            f"collection_len={len(self.objects)} "
+            f"cache_len={len(cache)}"
+        )
+
         target_colour = tuple(self.set_colour)
         requires_update = False
         newly_added: list[bpy.types.Object] = []
@@ -219,7 +230,15 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
             return
 
         # Update count without triggering the full colour rebuild
+        log.debug(
+            f"BEFORE COUNT UPDATE: set='{self.name}' " f"collection_len={len(self.objects)} " f"cache_len={len(cache)}"
+        )
         self.count = len(self.objects)
+        log.debug(
+            f"AFTER COUNT UPDATE: set='{self.name}' "
+            f"count_property={self.count} "
+            f"collection_len={len(self.objects)}"
+        )
         log.debug(f"Updated count for Set '{self.name}': {self.count}")
 
         # Only colour objects that were just added, skip entire set
@@ -282,8 +301,8 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
             u.remove_set_reference_from_obj(obj, self.uuid)
 
             # Check if object not in other sets
-            containing_sets = u.check_object_in_sets(obj, fast=True)
-            obj.color = containing_sets[0].set_colour if containing_sets else (1.0, 1.0, 1.0, 1.0)
+            containing_set = next(u.check_object_in_sets(obj, fast=True), None)
+            obj.color = containing_set.set_colour if containing_set else (1.0, 1.0, 1.0, 1.0)
 
         self.update_count()
 
