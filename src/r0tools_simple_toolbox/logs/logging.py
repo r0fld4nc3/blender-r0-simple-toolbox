@@ -62,14 +62,16 @@ def reset_log_file(log_file: Path) -> None:
                     handler.doRollover()
                     return
                 except Exception as e:
-                    raise RuntimeError(f"Error rolling over log file: {e}")
+                    print(f"Error rolling over log file: {e}")
+                    # raise RuntimeError(f"Error rolling over log file: {e}")
 
     # Fallback when logging has not been configured
     try:
         with open(log_file, "w", encoding="utf-8") as f:
             f.write("")
     except Exception as e:
-        raise RuntimeError(f"Error resetting log file: {e}")
+        print(f"Error resetting log file: {e}")
+        # raise RuntimeError(f"Error resetting log file: {e}")
 
 
 def shutdown_logging(logger_name: str) -> None:
