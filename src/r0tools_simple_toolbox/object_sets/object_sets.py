@@ -367,8 +367,11 @@ def _calculate_mesh_stats(show_verts, show_edges, show_faces, show_tris):
     global _mesh_stats_cache, _last_update_time, _show_states_updated
 
     if current_time - _last_update_time > 5 or _show_states_updated:
+        log.debug("Clear mesh stats cache")
         _mesh_stats_cache.clear()
         _last_update_time = current_time
+
+    log_output = dict()  # Object Set: Stats
 
     for object_set in u.get_object_sets():
         total_verts = 0
@@ -388,6 +391,8 @@ def _calculate_mesh_stats(show_verts, show_edges, show_faces, show_tris):
                 total_edges += cached_stats.get("edges", 0) if show_edges else 0
                 total_faces += cached_stats.get("faces", 0) if show_faces else 0
                 total_tris += cached_stats.get("tris", 0) if show_tris else 0
+
+                log_output[object_set.name] = {k: v for k, v in cached_stats.items()}
                 continue
 
             stats = _get_object_mesh_stats(obj, depsgraph, show_verts, show_edges, show_faces, show_tris)
@@ -398,6 +403,8 @@ def _calculate_mesh_stats(show_verts, show_edges, show_faces, show_tris):
                 total_faces += stats.get("faces", 0) if show_faces else 0
                 total_tris += stats.get("tris", 0) if show_tris else 0
 
+                log_output[object_set.name] = {k: v for k, v in _mesh_stats_cache[cache_key].items()}
+
         # Update object set properties
         if show_verts:
             object_set.verts = total_verts
@@ -407,6 +414,14 @@ def _calculate_mesh_stats(show_verts, show_edges, show_faces, show_tris):
             object_set.faces = total_faces
         if show_tris:
             object_set.tris = total_tris
+
+    log.info(
+        "Object Statistics:\n"
+        + "\n".join(
+            f"\n[{name}]\n" + "\n".join(f"    {str(k).capitalize()}: {v}" for k, v in stats.items())
+            for name, stats in log_output.items()
+        )
+    )
 
     # Force UI Update to reflect changes
     """Only redraw UI areas that are actually visible and relevant."""
