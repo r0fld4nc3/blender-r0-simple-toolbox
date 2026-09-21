@@ -78,7 +78,7 @@ class R0PROP_PG_ObjectSetEntryItem(bpy.types.PropertyGroup):
             R0PROP_PG_ObjectSetEntryItem._updating = False
 
         _elapsed = time.perf_counter() - _start
-        log.info(f"Took: {_elapsed}s")
+        log.info(f"Refresh colour: {self.name} (Took: {_elapsed}s)")
 
     def set_object_set_colour(self, colour: list):
         """

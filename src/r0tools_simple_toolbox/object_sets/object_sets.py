@@ -479,7 +479,6 @@ def refresh_object_sets_colours(context, force=False):
         return
 
     for obj_set in get_object_sets():
-        log.info(f"Refresh colour: {obj_set.name}")
         obj_set.update_object_set_colour(context)
 
     log.info("Finished refreshing Object Set colours.")
