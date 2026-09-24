@@ -316,7 +316,8 @@ class SimpleToolbox_OT_ExportObjects(bpy.types.Operator):
                     return {"CANCELLED"}
                 objects_to_export = set(original_selection)
 
-            log.info(f"Objects to export: {objects_to_export}")
+            _to_export_names = set(o.name for o in objects_to_export if o is not None)
+            log.info(f"Objects to export ({len(_to_export_names)}): {_to_export_names}")
 
             # Handle scene state
             u.deselect_all()
