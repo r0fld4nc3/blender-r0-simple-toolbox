@@ -157,7 +157,6 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                 dev_tools_header.label(text="Dev Tools")
 
             if dev_tools_panel:
-
                 # Show Addon Preferences
                 row = dev_tools_panel.row()
                 row.operator(SimpleToolbox_OT_ShowAddonPreferences.bl_idname, icon="PREFERENCES")
@@ -186,10 +185,12 @@ class r0Tools_PT_SimpleToolbox(bpy.types.Panel):
                     row = reload_user_defined_box.row()
                     row.operator(SimpleToolbox_OT_ReloadNamedScripts.bl_idname, icon="TOOL_SETTINGS")
 
+                # Reload Images
+                row = dev_tools_panel.row()
+                # row.operator("image.reload", icon="IMAGE_DATA")
+                row.operator(SimpleToolbox_OT_ReloadImages.bl_idname, icon="IMAGE_DATA")
+
                 if is_dev_branch and addon_prefs.experimental_features:
-                    # Reload Images
-                    row = dev_tools_panel.row()
-                    row.operator("image.reload", icon="IMAGE_DATA")
                     row = dev_tools_panel.row()
                     row.operator(SimpleToolbox_OT_FixImageDataPaths.bl_idname, icon="IMAGE_DATA")
 

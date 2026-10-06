@@ -471,10 +471,7 @@ class SimpleToolbox_OT_FixImageDataPaths(bpy.types.Operator):
     dry_run: BoolProperty(default=False, name="Dry Run")  # type: ignore
 
     def invoke(self, context, event):
-        self.dry_run = False  # Always reset
-
-        if event.shift:
-            self.dry_run = True
+        self.dry_run = event.shift
 
         return self.execute(context)
 
@@ -504,6 +501,45 @@ class SimpleToolbox_OT_FixImageDataPaths(bpy.types.Operator):
                             log.info(f"[DRY] Fixed: {fp_fix}")
                     else:
                         log.info(f"Not fixed: {fp} -> ({fp_fix})")
+
+        return {"FINISHED"}
+
+
+class SimpleToolbox_OT_ReloadImages(bpy.types.Operator):
+    bl_label = "Reload Images"
+    bl_idname = "r0tools.reload_images"
+    bl_description = "Reloads textures loaded and referenced in the current Blend file"
+    bl_options = {"REGISTER", "UNDO"}
+
+    print_full_path: BoolProperty(default=False, name="Print full path")  # type: ignore
+
+    def invoke(self, context, event):
+        self.print_full_path = event.shift
+
+        return self.execute(context)
+
+    def execute(self, context):
+        images = list(bpy.data.images)
+        total = len(bpy.data.images) - 1
+        last = total - 1
+
+        # Print column widths, compute once up-front
+        counter_width = len(f"[{last}/{last}]")
+        name_width = max((len(image.name) for image in images), default=0)
+
+        for idx, image in enumerate(images):
+            counter = f"[{idx:>{len(str(last))}}/{last}]"  # right-align the index so the numbers line up ([ 5/21])
+
+            if image.filepath:
+                if self.print_full_path:
+                    abs_path: Path = Path(bpy.path.abspath(image.filepath, library=image.library)).resolve()
+                else:
+                    abs_path = image.filepath
+            else:
+                abs_path = "<no filepath>"  # generated / packed
+
+            log.info(f"{counter} Reload: {image.name:<{name_width}} ({abs_path})")
+            image.reload()
 
         return {"FINISHED"}
 
@@ -1782,6 +1818,7 @@ classes = [
     
     SimpleToolbox_OT_ReloadNamedScripts,
     SimpleToolbox_OT_FixImageDataPaths,
+    SimpleToolbox_OT_ReloadImages,
     SimpleToolbox_OT_ClearChildrenRecurse,
     
     SimpleToolbox_OT_FindModifierSearch,
