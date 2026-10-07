@@ -541,7 +541,7 @@ class SimpleToolbox_OT_ReloadImages(bpy.types.Operator):
             log.info(f"{counter} Reload: {image.name:<{name_width}} ({abs_path})")
             image.reload()
 
-        self.report({"INFO"}, f"Reloaded {total} images.")
+        self.report({"INFO"}, f"Reloaded {total} images")
 
         return {"FINISHED"}
 
