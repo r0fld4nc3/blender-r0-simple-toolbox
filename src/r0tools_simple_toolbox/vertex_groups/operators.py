@@ -188,7 +188,7 @@ class SimpleToolbox_OT_RemoveUnusedVertexGroups(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
-        log.info("\n------------- Remove Unused Materials -------------")
+        log.info("\n------------- Remove Unused Vertex Groups -------------")
 
         original_active = u.get_active_object()
 
