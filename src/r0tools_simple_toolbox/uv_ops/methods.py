@@ -1,10 +1,7 @@
 import logging
+from statistics import median
 
 import bmesh
-import bpy
-from mathutils import Vector
-
-from .. import utils as u
 
 THRESHOLD = 0.00001  # Minimum area for an island to be considered "too small"
 THRESHOLD_PX_COVERAGE = 80.0  # The "pixel area squared", or coverage in this case, is essentially the area of the UV island expressed in pixel units rather than in UV space (which ranges from 0 to 1)
@@ -16,183 +13,157 @@ TEXTURE_SIZE_SQ = TEXTURE_SIZE_X * TEXTURE_SIZE_Y
 log = logging.getLogger(__name__)
 
 
-def get_uv_islands(obj):
-    """Find UV islands in an object's active UV map while correctly handling overlapping islands."""
-
-    if not obj.data.uv_layers:
-        return []
-
-    # Enter Edit Mode and get the BMesh
-    bpy.ops.object.mode_set(mode="EDIT")
-    mesh = bmesh.from_edit_mesh(obj.data)
-
-    # Ensure lookup tables are up-to-date
-    mesh.faces.ensure_lookup_table()
-    mesh.edges.ensure_lookup_table()
-    mesh.verts.ensure_lookup_table()
-
-    # Prepare UV connectivity dictionary with both UV coordinates and vertex indices
-    uv_layer = mesh.loops.layers.uv.active
-    uv_faces = {}
-
-    for face in mesh.faces:
-        uv_faces[face.index] = [
-            (loop[uv_layer].uv, loop.vert.index) for loop in face.loops
-        ]  # Store both UV and vertex index
-
-    # Find connected UV islands
-    islands = []
-    visited = set()
-
-    def flood_fill(face_idx, island):
-        """Recursive function to collect connected faces in an island."""
-        if face_idx in visited:
-            return
-        visited.add(face_idx)
-        island.append(face_idx)
-
-        face_data = uv_faces[face_idx]  # (UV, VertexIndex) pairs
-        for edge in mesh.faces[face_idx].edges:
-            for linked_face in edge.link_faces:
-                if linked_face.index not in visited:
-                    linked_data = uv_faces[linked_face.index]
-
-                    # Ensure UVs match but also belong to the same vertex index (avoid accidental merging)
-                    if any(
-                        (uv1.xy == uv2.xy and v1 == v2)  # Ensure both UV and vertex index match
-                        for (uv1, v1) in face_data
-                        for (uv2, v2) in linked_data
-                    ):
-                        flood_fill(linked_face.index, island)
-
-    for face_idx in uv_faces:
-        if face_idx not in visited:
-            island = []
-            flood_fill(face_idx, island)
-            islands.append(island)
-
-    bpy.ops.object.mode_set(mode="OBJECT")  # Back to object mode
+def get_uv_islands(bm, uv_layer):
+    """Iterative. Faces are linked through shared UV vertices."""
+    islands, visited = [], set()
+    for seed in bm.faces:
+        if seed in visited:
+            continue
+        visited.add(seed)
+        island, stack = [seed], [seed]
+        while stack:
+            face = stack.pop()
+            for loop in face.loops:
+                uv = loop[uv_layer].uv
+                for other in loop.vert.link_loops:
+                    f = other.face
+                    if f not in visited and other[uv_layer].uv == uv:
+                        visited.add(f)
+                        island.append(f)
+                        stack.append(f)
+        islands.append(island)
     return islands
 
 
-def calculate_uv_area(uv_x: int, uv_y: int, obj, islands):
-    """Calculate UV island areas relative to 0-1 UV space and convert to pixels."""
-    uv_layer = obj.data.uv_layers.active.data
-    uv_areas = []
-
-    uvmap_size = uv_x * uv_y
-
-    batch_print = set()
-
-    for island_num, island in enumerate(islands):
-        total_area = 0
-        for face_idx in island:
-            poly = obj.data.polygons[face_idx]
-            uvs = [uv_layer[loop_idx].uv for loop_idx in poly.loop_indices]
-
-            # Shoelace formula for polygon area
-            area = 0.5 * abs(sum((uvs[i][0] * uvs[i - 1][1] - uvs[i - 1][0] * uvs[i][1]) for i in range(len(uvs))))
-            total_area += area
-
-        # Convert relative UV area to pixel area
-        island_pixel_area = total_area * uvmap_size
-        # Derive pixel area peercentage directly since total area is 0-1
-        pixel_area_pct = total_area * 100
-
-        batch_print.add(
-            f"{obj.name} | Island {island_num}: Relative UV Area: {total_area} | Pixel Area: {island_pixel_area:.2f} px² | Pixel Area Percentage: {pixel_area_pct}%"
-        )
-
-        uv_areas.append(
-            (total_area, island_pixel_area, pixel_area_pct)
-        )  # Store UV area and pixel area coverage and pixel area percentage
-
-    if batch_print:
-        log.debug(f"\n".join(batch_print))
-
-    return uv_areas
+def uv_face_area(face, uv_layer):
+    uvs = [l[uv_layer].uv for l in face.loops]
+    return 0.5 * abs(sum(uvs[i].x * uvs[i - 1].y - uvs[i - 1].x * uvs[i].y for i in range(len(uvs))))
 
 
-def select_small_uv_islands(
-    obj,
-    uv_x: int,
-    uv_y: int,
-    threshold=THRESHOLD,
-    threshold_px_coverage=THRESHOLD_PX_COVERAGE,
-    threshold_pct=THRESHOLD_PCT,
-) -> tuple[list, set, set]:
+def effective_thresholds(uv_x, uv_y, threshold=None, threshold_px_coverage=None, threshold_pct=None):
     """
-    Selects UV islands that are below a given threshold and returns the respective UV Islands, their faces and vertices.
+    Convert every enabled threshold to relative UV area (0-1) so the ycan be compared directly.
 
-    :returns: Tuple of 3 `list`: Small Islands, Selected Faces, Selected Vertices
-    :rtype: Union[list, list, list]
+    Returns:
+        `dict` of {check name: relative area cutoff}. Empty if not check is enabled.
     """
 
-    log.debug(f"Selecting Small UV Islands")
-    log.debug(f"Obj: {obj}")
-    log.debug(f"UV X: {uv_x}")
-    log.debug(f"UV Y: {uv_y}")
-    log.debug(f"Threshold: {threshold}")
-    log.debug(f"Threshold Pixel Coverage: {threshold_px_coverage}")
-    log.debug(f"Threshold Percent: {threshold_pct}")
+    px_scale = uv_x * uv_y
+    cutoffs = {}
 
-    uv_island_sync = bpy.context.scene.tool_settings.use_uv_select_sync
+    if threshold is not None:
+        cutoffs["relative"] = threshold
 
-    # Disable sync
-    bpy.context.scene.tool_settings.use_uv_select_sync = False
+    if threshold_px_coverage is not None:
+        cutoffs["pixels"] = threshold_px_coverage / px_scale
 
-    islands = get_uv_islands(obj)
-    areas = calculate_uv_area(uv_x, uv_y, obj, islands)
+    if threshold_pct is not None:
+        cutoffs["percentage"] = threshold_pct / 100
 
-    small_islands = []
-    selected_faces = set()
-    selected_verts = set()
-
-    batch_print = set()
-
-    for i, (relative_area, island_pixel_area, pixel_area_pct) in enumerate(areas):
-        if relative_area <= threshold:
-            small_islands.append(islands[i])
-            selected_faces.update(islands[i])
-            batch_print.add(f"{obj.name} | Island {i} too small: Relative UV Area: {relative_area}")
-        elif island_pixel_area <= threshold_px_coverage:
-            small_islands.append(islands[i])
-            selected_faces.update(islands[i])
-            batch_print.add(f"{obj.name} | Island {i} too small: Pixel Area: {island_pixel_area:.2f} px²")
-        elif pixel_area_pct <= threshold_pct:
-            small_islands.append(islands[i])
-            selected_faces.update(islands[i])
-            batch_print.add(f"{obj.name} | Island {i} too small: Pixel Area Percentage: {pixel_area_pct}%")
-
-    log.debug(f"\n".join(batch_print))
-
-    # Switch to Edit Mode to select faces
-    bpy.ops.object.mode_set(mode="EDIT")
-    bpy.ops.mesh.select_all(action="DESELECT")
-
-    mesh = bmesh.from_edit_mesh(obj.data)
-
-    for face in mesh.faces:
-        if face.index in selected_faces:
-            face.select = True
-            selected_verts.update([vert.index for vert in face.verts])  # Store vertex indices
-
-    bmesh.update_edit_mesh(obj.data, loop_triangles=True)  # Update the mesh
-    bpy.ops.object.mode_set(mode="OBJECT")  # Switch back to Object Mode
-
-    # Restore (or not) UV Island Sync
-    bpy.context.scene.tool_settings.use_uv_select_sync = uv_island_sync
-
-    return small_islands, selected_faces, selected_verts
+    return cutoffs
 
 
-if __name__ == "__main__":
-    # Iterate through selected objects
-    for obj in bpy.context.selected_objects:
-        if obj.type == "MESH":
-            small_islands, small_faces, small_verts = select_small_uv_islands(
-                obj, TEXTURE_SIZE_X, TEXTURE_SIZE_Y, threshold=THRESHOLD
+def select_small_uv_islands(obj, uv_x, uv_y, threshold=None, threshold_px_coverage=None, threshold_pct=None):
+    """Must be called in Object Mode. A threshold of None means that check is disabled."""
+    me = obj.data
+    if not me.uv_layers:
+        log.warning(f"[{obj.name}] Has no UV maps, skipped")
+        return [], set(), set()
+
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    uv_layer = bm.loops.layers.uv.active
+    log.info(f"[{obj.name}] Using UV map '{uv_layer.name}' | {len(bm.faces)} face(s), {len(bm.verts)} vert(s)")
+
+    # Clear previous mesh and UV selection
+    for seq in (bm.verts, bm.edges, bm.faces):
+        for elem in seq:
+            elem.select = False
+    for f in bm.faces:
+        _set_face_uv_select(f, uv_layer, False)
+
+    islands = get_uv_islands(bm, uv_layer)
+    log.debug(f"[{obj.name}] Found {len(islands)} UV island(s).")
+
+    px_scale = uv_x * uv_y
+    small_islands, sel_faces, sel_verts = [], set(), set()
+    areas = []
+    reason_counts = {"relative": 0, "pixels": 0, "percentage": 0}
+    log_islands = log.isEnabledFor(logging.DEBUG)
+
+    for i, island in enumerate(islands):
+        area = sum(uv_face_area(f, uv_layer) for f in island)
+        px_area = area * px_scale
+        pct_area = area * 100
+        areas.append(area)
+
+        reasons = []
+        if threshold is not None and area <= threshold:
+            reasons.append("relative")
+        if threshold_px_coverage is not None and px_area <= threshold_px_coverage:
+            reasons.append("pixels")
+        if threshold_pct is not None and pct_area <= threshold_pct:
+            reasons.append("percentage")
+
+        if log_islands:
+            status = f"SMALL [{', '.join(reasons)}]" if reasons else "ok"
+            log.debug(
+                f"[{obj.name}] Island {i:>4} | {len(island):>5} face(s) | "
+                f"rel {area:.3e} | {px_area:>12.2f} px² | {pct_area:.6f}% | {status}"
             )
-            log.info(
-                f"Object: {obj.name}, Small UV Islands Selected: {len(small_faces)} Faces, {len(small_verts)} Vertices"
-            )
+
+        if not reasons:
+            continue
+
+        for r in reasons:
+            reason_counts[r] += 1
+
+        small_islands.append([f.index for f in island])
+        for f in island:
+            f.select = True  # also selects edges/verts
+            _set_face_uv_select(f, uv_layer, True)
+            sel_faces.add(f.index)
+            sel_verts.update(v.index for v in f.verts)
+
+    bm.to_mesh(me)
+    bm.free()
+    me.update()
+
+    _log_object_summary(obj.name, areas, len(small_islands), len(sel_faces), len(sel_verts), reason_counts, px_scale)
+    return small_islands, sel_faces, sel_verts
+
+
+def _log_object_summary(name, areas, n_small, n_faces, n_verts, reason_counts, px_scale):
+    if not areas:
+        log.info(f"[{name}] Mesh has no faces, nothing to check")
+        return
+
+    log.info(f"[{name}] {len(areas)} island(s), {n_small} small " f"({n_faces} face(s), {n_verts} vert(s) selected)")
+    log.info(
+        f"[{name}] Island area min / median / max: "
+        f"{min(areas) * px_scale:.2f} / {median(areas) * px_scale:.2f} / {max(areas) * px_scale:.2f} px²"
+    )
+    # Stacked/overlapping islands are each counted, so this can exceed 100%
+    log.info(f"[{name}] UV space used: {sum(areas) * 100:.2f}%")
+
+    if n_small:
+        # One island can trip several checks, so these can add up to more than n_small
+        triggered = ", ".join(f"{k}: {v}" for k, v in reason_counts.items() if v)
+        log.info(f"[{name}] Triggered by: {triggered}")
+
+    zero_area = sum(1 for a in areas if a == 0.0)
+    if zero_area:
+        log.warning(f"[{name}] {zero_area} island(s) have zero UV area (degenerate faces or collapsed UVs)")
+
+
+def _set_face_uv_select(face, uv_layer, state: bool):
+    if hasattr(face, "uv_select"):  # Blender 5.0+
+        face.uv_select = state
+        for loop in face.loops:
+            loop.uv_select_vert = state
+            loop.uv_select_edge = state
+    else:  # Blender 3.2 - 4.x
+        for loop in face.loops:
+            luv = loop[uv_layer]
+            luv.select = state
+            luv.select_edge = state

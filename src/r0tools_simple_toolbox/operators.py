@@ -2,6 +2,7 @@ import importlib
 import logging
 import math
 import sys
+import time
 from pathlib import Path
 
 import bmesh
@@ -13,7 +14,7 @@ from . import settings
 from . import utils as u
 from .defines import INTERNAL_NAME
 from .logs import set_root_logger_level
-from .uv_ops import select_small_uv_islands
+from .uv_ops import effective_thresholds, select_small_uv_islands
 
 log = logging.getLogger(__name__)
 
@@ -1710,73 +1711,91 @@ class SimpleToolbox_OT_UVCheckIslandThresholds(bpy.types.Operator):
 
     def execute(self, context):
         log.info("------------- Check UV Islands Size Thresholds -------------")
+        t_start = time.perf_counter()
 
         addon_props = u.get_addon_props()
 
         uv_x = u.get_uvmap_size_x()
         uv_y = u.get_uvmap_size_y()
+        px_scale = uv_x * uv_y
 
-        size_relative_threshold = (
-            addon_props.uvisland_sizecheck_arearelative if addon_props.use_uvisland_sizecheck_arearelative else 0
+        threshold = (
+            addon_props.uvisland_sizecheck_arearelative if addon_props.use_uvisland_sizecheck_arearelative else None
         )
-        size_pixel_coverage_threshold = (
+
+        threshold_px = (
             addon_props.uvisland_sizecheck_area_pixelcoverage
             if addon_props.use_uvisland_sizecheck_area_pixelcoverage
-            else 0
+            else None
         )
-        size_pixel_coverage_pct_threshold = (
+
+        threshold_pct = (
             addon_props.uvisland_sizecheck_area_pixelpercentage
             if addon_props.use_uvisland_sizecheck_area_pixelpercentage
-            else 0
+            else None
         )
 
-        # Store object selection
-        original_selection = u.get_selected_objects()
-        # Store active object
-        original_active = u.get_active_object()
-        # Object, Edit Modes?
-        original_mode = context.mode
-        if original_mode in [u.OBJECT_MODES.EDIT_MESH]:
-            # Need to hack edit mode, because there's EDIT and EDIT_MESH...
-            original_mode = u.OBJECT_MODES.EDIT
+        log.info(f"Texture size: {uv_x}x{uv_y} ({px_scale:,} px²)")
+
+        cutoffs = effective_thresholds(uv_x, uv_y, threshold, threshold_px, threshold_pct)
+        if not cutoffs:
+            msg = "No size check is enabled, nothing to do"
+            log.warning(msg)
+            self.report({"WARNING"}, msg)
+            return {"CANCELLED"}
+
+        labels = {"relative": "Relative area", "pixels": "Pixel coverage", "percentage": "Pixel percentage"}
+        raw_values = {"relative": f"{threshold}", "pixels": f"{threshold_px} px²", "percentage": f"{threshold_pct}%"}
+        log.info("Thresholds (each also shown as relative area and pixels):")
+        for key, label in labels.items():
+            if key in cutoffs:
+                rel = cutoffs[key]
+                log.info(f"  {label:<17} <= {raw_values[key]:<16} (rel {rel:.3e} | {rel * px_scale:.2f} px²)")
+            else:
+                log.info(f"  {label:<17} disabled")
+
+        # All checks measure the same quantity, so the largest cutoff decides what gets selected
+        dominant = max(cutoffs, key=cutoffs.get)
+        log.info(
+            f"Effective cutoff: rel {cutoffs[dominant]:.3e} ({cutoffs[dominant] * px_scale:.2f} px²), "
+            f"set by '{labels[dominant]}'"
+        )
+
+        original_mode = u.OBJECT_MODES.EDIT if context.mode == u.OBJECT_MODES.EDIT_MESH else context.mode
+        if context.mode != u.OBJECT_MODES.OBJECT:
+            u.set_object_mode(u.OBJECT_MODES.OBJECT)  # Flush Edit-Mode data to meshes once
 
         total_small_islands = 0
+        total_faces = 0
+        total_meshes = 0
+        skipped_no_uv = []
+        objects_with_small = []
 
-        if size_relative_threshold == 0:
-            log.info(f"Not using Relative Area Size factor into account.")
-        if size_pixel_coverage_threshold == 0:
-            log.info(f"Not using Pixel Area Coverage into account.")
-        if size_pixel_coverage_pct_threshold == 0:
-            log.info(f"Not using Pixel Area Percentage factor into account.")
+        for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
+            if not obj.data.uv_layers:
+                skipped_no_uv.append(obj.name)
+                continue
 
-        # Prepare to go 1 by 1 and select only that object
-        u.deselect_all()
+            islands, faces, _ = select_small_uv_islands(obj, uv_x, uv_y, threshold, threshold_px, threshold_pct)
+            total_small_islands += len(islands)
+            total_faces += len(faces)
+            total_meshes += 1
+            if islands:
+                objects_with_small.append((obj.name, len(islands)))
 
-        for obj in original_selection:
-            if obj.type == u.OBJECT_TYPES.MESH:
-                u.select_object(obj)
-                small_islands, small_faces, small_verts = select_small_uv_islands(
-                    obj,
-                    uv_x,
-                    uv_y,
-                    threshold=size_relative_threshold,
-                    threshold_px_coverage=size_pixel_coverage_threshold,
-                    threshold_pct=size_pixel_coverage_pct_threshold,
-                )
-                total_small_islands += len(small_islands)
-
-        # Restore selection
-        for obj in original_selection:
-            u.select_object(obj, add=True)
-
-        u.set_active_object(original_active)
-
-        # Restore mode
         u.set_object_mode(original_mode)
+        msg = f"Selected {total_small_islands} small island(s) across {total_meshes} mesh object(s)"
 
-        report_msg = f"Selected {total_small_islands} small island(s) across {len(original_selection)} object(s)"
-        log.info(f"{report_msg}")
-        self.report({"INFO"}, report_msg)
+        if skipped_no_uv:
+            log.warning(f"Skipped {len(skipped_no_uv)} mesh(es) without UV maps: {', '.join(skipped_no_uv)}")
+        if objects_with_small:
+            log.info(
+                "Objects with small islands: " + ", ".join(f"{name} ({count})" for name, count in objects_with_small)
+            )
+
+        msg = f"Selected {total_small_islands} small island(s) across {total_meshes} mesh object(s)"
+        log.info(f"{msg} | {total_faces} face(s) | {(time.perf_counter() - t_start) * 1000:.1f} ms total")
+        self.report({"INFO"}, msg)
 
         return {"FINISHED"}
 
