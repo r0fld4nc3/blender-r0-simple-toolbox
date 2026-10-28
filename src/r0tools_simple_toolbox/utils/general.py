@@ -1,6 +1,7 @@
 import logging
 import math
 import uuid
+from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -431,50 +432,72 @@ def is_valid_object_global(obj: bpy.types.Object | None) -> bool:
         return False
 
 
-def iter_scene_objects(selected=False, types: list[str] = []):
+def _as_type_set(types: Iterable[str] | None) -> frozenset[str] | None:
+    """Normalise a types filter to a set (None = no filter)."""
+    return frozenset(types) if types else None
+
+
+def iter_scene_objects(
+    selected: bool = False, types: Iterable[str] | None = None, context: bpy.types.Context | None = None
+) -> Iterator[bpy.types.Object]:
     """
-    Iterate through objects in the scene
+    Lazily iterate through objects in the current scene.
 
     Args:
         selected: Only iterate through selected objects
         types: Filter by object types (empty list = all types)
+        context: Context to read the scene/view layer from (defaults to bpy.context)
     """
+
+    context = context or bpy.context
+    type_set = _as_type_set(types)
 
     if selected:
-        iters = get_selected_objects()
+        view_layer = context.view_layer
+        for obj in view_layer.objects:
+            if type_set and obj.type not in type_set:
+                continue
+
+            if obj.select_get(view_layer=view_layer) and obj.visible_get(view_layer=view_layer):
+                yield obj
     else:
-        iters = bpy.data.objects
-
-    for o in iters:
-        if not types or o.type in types:
-            yield o
+        for obj in context.scene.objects:
+            if not type_set or obj.type in type_set:
+                yield obj
 
 
-def iter_data_objects(types: list[str] = []):
+def iter_data_objects(types: Iterable[str] | None = None) -> Iterator[bpy.types.Object]:
     """
-    Iterate through objects in bpy.data.objects
+    Lazily iterate through every object in the blend file (bpy.data.objects), including objects not linked to any scene.
 
     Args:
-        types: Filter by object types (empty list = all types)
+        types: Filter by object types (None or empty = all types)
     """
-    for o in bpy.data.objects:
-        if not types or o.type in types:
-            yield o
+    type_set = _as_type_set(types)
+
+    for obj in bpy.data.objects:
+        if not type_set or obj.type in type_set:
+            yield obj
 
 
 def iter_obj_children(p_obj, recursive=True):
     """
-    Iterate through all children of a given parent object
+    Lazily iterate through the children of a parent object, depth-first.
 
     Args:
-        p_obj: Parent object to find children for
-        recursive: If True, also iterate through children of children
+        p_obj: Parent object
+        recursive: If True, also yield children of children
     """
-    for obj in bpy.data.objects:
-        if obj.parent == p_obj:
-            yield obj
-            if recursive:
-                yield from iter_obj_children(obj, recursive=True)
+    if not recursive:
+        yield from p_obj.children
+        return
+
+    # Explicit stack instead of recursion: no nested generators, no recursion limit
+    stack = list(reversed(p_obj.children))
+    while stack:
+        obj = stack.pop()
+        yield obj
+        stack.extend(reversed(obj.children))
 
 
 def collection_exists(name: str, is_global: bool = False) -> bool:

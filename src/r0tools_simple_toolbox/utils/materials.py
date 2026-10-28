@@ -91,3 +91,27 @@ def move_material_slot_to_index(
                 return False
 
     return True
+
+
+def ensure_material_assignment(obj: bpy.types.Object) -> bool:
+    """
+    If the object has materials but none of its faces point to a slot with a material, assign all faces to the first slot that has none.
+
+    Returns:
+        True if faces reassigned
+    """
+
+    polygons = obj.data.polygons
+    valid = [i for i, slot in enumerate(obj.material_slots) if slot.material]
+
+    if not valid or not polygons:
+        return False
+
+    valid_set = set(valid)
+    if any(p.material_index in valid_set for p in polygons):
+        return False
+
+    polygons.foreach_set("material_index", [valid[0]] * len(polygons))
+    obj.data.update()
+    log.info(f"'{obj.name}': had no valid assignments, assigned all faces to the first material.")
+    return True

@@ -639,31 +639,58 @@ class SimpleToolbox_OT_ClearChildrenRecurse(bpy.types.Operator):
 class SimpleToolbox_OT_RemoveUnusedMaterials(bpy.types.Operator):
     bl_idname = "r0tools.remove_unused_material_slots"
     bl_label = "Remove Unused Materials"
-    bl_description = "Runs the operator to remove all unused materials across all selected objects"
+    bl_description = "Remove material slots not used by any face on all selected mesh objects"
     bl_options = {"REGISTER", "UNDO"}
+
+    fix_broken_assignments: bpy.props.BoolProperty(
+        name="Fix Broken Assignments",
+        description="Ensure objects with broken/invalid assignments have at least one material assigned (the default assignment is material in the first slot)",
+        default=True,
+    )  # type: ignore
 
     @classmethod
     def poll(cls, context):
-        return context.mode == u.OBJECT_MODES.OBJECT and u.get_selected_objects(context)
+        return context.mode == u.OBJECT_MODES.OBJECT and any(
+            u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH])
+        )
 
     def invoke(self, context, event):
+        self.fix_broken_assignments = not event.shift
+
         return self.execute(context)
 
     def execute(self, context):
         log.info("------------- Remove Unused Materials -------------")
 
+        # Fix broken assignments first
+        if self.fix_broken_assignments:
+            fixed: int = 0
+            for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
+                if u.ensure_material_assignment(obj):
+                    fixed += 1
+
+        # Slot count per selected mesh, to report what was removed
+        before = {
+            obj: len(obj.material_slots)
+            for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH], context=context)
+        }
+
         original_active = u.get_active_object()
+        if not original_active:
+            original_active = u.set_active_object(next(iter(before)))
 
-        for obj in u.iter_scene_objects(selected=True, types=[u.OBJECT_TYPES.MESH]):
-            # Set active object
-            u.set_active_object(obj)
-
-            log.debug(f"Processing '{obj.name}'")
-
-            bpy.ops.object.material_slot_remove_unused()
+        bpy.ops.object.material_slot_remove_unused()
 
         u.set_active_object(original_active)
 
+        removed = 0
+        for obj, count in before.items():
+            gone = count - len(obj.material_slots)
+            removed += gone
+            if gone:
+                log.debug(f"'{obj.name}': removed {gone} slot(s)")
+
+        self.report({"INFO"}, f"Removed {removed} unused material slot(s) from {len(before)} object(s)")
         return {"FINISHED"}
 
 
