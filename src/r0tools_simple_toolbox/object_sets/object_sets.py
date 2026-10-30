@@ -277,17 +277,8 @@ _last_update_time = 0
 def object_sets_update_mesh_stats(depsgraph=None):
     log.info("------------- Object Sets Update Mesh Stats -------------")
 
-    scene = bpy.context.scene
-
     addon_props = u.get_addon_props()
     addon_object_sets_props = u.get_addon_object_sets_props()
-
-    if not addon_object_sets_props.experimental_features:
-        return
-
-    if not addon_object_sets_props.object_sets_modal:
-        if not addon_props.cat_show_object_sets_editor:
-            return
 
     show_verts = addon_object_sets_props.object_sets_show_mesh_verts
     show_edges = addon_object_sets_props.object_sets_show_mesh_edges
